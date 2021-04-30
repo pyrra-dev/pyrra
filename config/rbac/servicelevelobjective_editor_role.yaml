@@ -1,0 +1,24 @@
+# permissions for end users to edit servicelevelobjectives.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: servicelevelobjective-editor-role
+rules:
+- apiGroups:
+  - athena.metalmatze.de
+  resources:
+  - servicelevelobjectives
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - athena.metalmatze.de
+  resources:
+  - servicelevelobjectives/status
+  verbs:
+  - get
