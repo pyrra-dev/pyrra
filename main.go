@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Athena Authors.
+Copyright 2021 Athene Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import (
 	"flag"
 	"os"
 
-	athenav1alpha1 "github.com/metalmatze/athena/api/v1alpha1"
-	"github.com/metalmatze/athena/controllers"
+	athenev1alpha1 "github.com/metalmatze/athene/api/v1alpha1"
+	"github.com/metalmatze/athene/controllers"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -38,7 +38,7 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = athenav1alpha1.AddToScheme(scheme)
+	_ = athenev1alpha1.AddToScheme(scheme)
 	_ = monitoringv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }

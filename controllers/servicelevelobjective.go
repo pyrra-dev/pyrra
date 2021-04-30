@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Athena Authors.
+Copyright 2021 Athene Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	athenav1alpha1 "github.com/metalmatze/athena/api/v1alpha1"
+	athenev1alpha1 "github.com/metalmatze/athene/api/v1alpha1"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/common/model"
@@ -43,8 +43,8 @@ type ServiceLevelObjectiveReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=athena.metalmatze.de,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=athena.metalmatze.de,resources=servicelevelobjectives/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=athene.metalmatze.de,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=athene.metalmatze.de,resources=servicelevelobjectives/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=create
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules/status,verbs=get
 
@@ -52,7 +52,7 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 	log := r.Log.WithValues("servicelevelobjective", req.NamespacedName)
 	log.Info("reconciling")
 
-	var slo athenav1alpha1.ServiceLevelObjective
+	var slo athenev1alpha1.ServiceLevelObjective
 	if err := r.Get(ctx, req.NamespacedName, &slo); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -87,11 +87,11 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 
 func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&athenav1alpha1.ServiceLevelObjective{}).
+		For(&athenev1alpha1.ServiceLevelObjective{}).
 		Complete(r)
 }
 
-func makePrometheusRule(slo athenav1alpha1.ServiceLevelObjective) (*monitoringv1.PrometheusRule, error) {
+func makePrometheusRule(slo athenev1alpha1.ServiceLevelObjective) (*monitoringv1.PrometheusRule, error) {
 	var groups []monitoringv1.RuleGroup
 	{
 		// HTTP
@@ -130,7 +130,7 @@ func makePrometheusRule(slo athenav1alpha1.ServiceLevelObjective) (*monitoringv1
 	}, nil
 }
 
-func makeHTTPRules(slo athenav1alpha1.ServiceLevelObjective) (*monitoringv1.RuleGroup, error) {
+func makeHTTPRules(slo athenev1alpha1.ServiceLevelObjective) (*monitoringv1.RuleGroup, error) {
 	http := slo.Spec.ServiceLevelIndicator.HTTP
 	if http == nil {
 		return nil, nil
@@ -162,7 +162,7 @@ func makeHTTPRules(slo athenav1alpha1.ServiceLevelObjective) (*monitoringv1.Rule
 	return group, nil
 }
 
-func makeHTTPErrorRules(slo athenav1alpha1.ServiceLevelObjective) ([]monitoringv1.Rule, error) {
+func makeHTTPErrorRules(slo athenev1alpha1.ServiceLevelObjective) ([]monitoringv1.Rule, error) {
 	http := slo.Spec.ServiceLevelIndicator.HTTP
 
 	if http.Metric == nil {
@@ -204,7 +204,7 @@ func makeHTTPErrorRules(slo athenav1alpha1.ServiceLevelObjective) ([]monitoringv
 	return rules, nil
 }
 
-func makeHTTPLatencyRules(slo athenav1alpha1.ServiceLevelObjective) ([]monitoringv1.Rule, error) {
+func makeHTTPLatencyRules(slo athenev1alpha1.ServiceLevelObjective) ([]monitoringv1.Rule, error) {
 	const bucketSuffix = "_bucket"
 
 	http := slo.Spec.ServiceLevelIndicator.HTTP
@@ -252,7 +252,7 @@ func makeHTTPLatencyRules(slo athenav1alpha1.ServiceLevelObjective) ([]monitorin
 	return rules, nil
 }
 
-func makeGRPCRules(slo athenav1alpha1.ServiceLevelObjective) (*monitoringv1.RuleGroup, error) {
+func makeGRPCRules(slo athenev1alpha1.ServiceLevelObjective) (*monitoringv1.RuleGroup, error) {
 	grpc := slo.Spec.ServiceLevelIndicator.GRPC
 	if grpc == nil {
 		return nil, nil

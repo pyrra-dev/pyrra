@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: servicelevelobjectives.athena.metalmatze.de
+  name: servicelevelobjectives.athene.metalmatze.de
 spec:
-  group: athena.metalmatze.de
+  group: athene.metalmatze.de
   names:
     kind: ServiceLevelObjective
     listKind: ServiceLevelObjectiveList

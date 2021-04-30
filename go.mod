@@ -1,4 +1,4 @@
-module github.com/metalmatze/athena
+module github.com/metalmatze/athene
 
 go 1.13
 

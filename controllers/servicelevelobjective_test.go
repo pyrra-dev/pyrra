@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	athenav1alpha1 "github.com/metalmatze/athena/api/v1alpha1"
+	athenev1alpha1 "github.com/metalmatze/athene/api/v1alpha1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,18 +13,18 @@ import (
 
 func Test_makeHTTPRules(t *testing.T) {
 	testcases := []struct {
-		slo   athenav1alpha1.ServiceLevelObjective
+		slo   athenev1alpha1.ServiceLevelObjective
 		rules *monitoringv1.RuleGroup
 	}{{
-		slo: athenav1alpha1.ServiceLevelObjective{
+		slo: athenev1alpha1.ServiceLevelObjective{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "http-users-errors",
 			},
-			Spec: athenav1alpha1.ServiceLevelObjectiveSpec{
+			Spec: athenev1alpha1.ServiceLevelObjectiveSpec{
 				Target: "99.9",
 				Window: metav1.Duration{Duration: 28 * 24 * time.Hour},
-				ServiceLevelIndicator: athenav1alpha1.ServiceLevelIndicator{
-					HTTP: &athenav1alpha1.HTTPIndicator{
+				ServiceLevelIndicator: athenev1alpha1.ServiceLevelIndicator{
+					HTTP: &athenev1alpha1.HTTPIndicator{
 						Selectors: []string{`job="api"`, `handler="/users"`},
 					},
 				},
@@ -98,16 +98,16 @@ func Test_makeHTTPRules(t *testing.T) {
 			}},
 		},
 	}, {
-		slo: athenav1alpha1.ServiceLevelObjective{
+		slo: athenev1alpha1.ServiceLevelObjective{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "http-users-latency",
 			},
-			Spec: athenav1alpha1.ServiceLevelObjectiveSpec{
+			Spec: athenev1alpha1.ServiceLevelObjectiveSpec{
 				Target:  "99",
 				Latency: "1",
 				Window:  metav1.Duration{Duration: 28 * 24 * time.Hour},
-				ServiceLevelIndicator: athenav1alpha1.ServiceLevelIndicator{
-					HTTP: &athenav1alpha1.HTTPIndicator{
+				ServiceLevelIndicator: athenev1alpha1.ServiceLevelIndicator{
+					HTTP: &athenev1alpha1.HTTPIndicator{
 						Selectors: []string{`job="api"`, `handler="/users"`},
 					},
 				},
@@ -190,15 +190,15 @@ func Test_makeHTTPRules(t *testing.T) {
 }
 
 func Test_makeGRPCRules(t *testing.T) {
-	slo := athenav1alpha1.ServiceLevelObjective{
+	slo := athenev1alpha1.ServiceLevelObjective{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "grpc-users-errors",
 		},
-		Spec: athenav1alpha1.ServiceLevelObjectiveSpec{
+		Spec: athenev1alpha1.ServiceLevelObjectiveSpec{
 			Target: "99.9",
 			Window: metav1.Duration{Duration: 28 * 24 * time.Hour},
-			ServiceLevelIndicator: athenav1alpha1.ServiceLevelIndicator{
-				GRPC: &athenav1alpha1.GRPCIndicator{
+			ServiceLevelIndicator: athenev1alpha1.ServiceLevelIndicator{
+				GRPC: &athenev1alpha1.GRPCIndicator{
 					Service: "example.api",
 					Method:  "Users",
 				},

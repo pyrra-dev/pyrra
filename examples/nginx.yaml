@@ -1,4 +1,4 @@
-apiVersion: athena.metalmatze.de/v1alpha1
+apiVersion: athene.metalmatze.de/v1alpha1
 kind: ServiceLevelObjective
 metadata:
   name: nginx-api-errors
@@ -20,7 +20,7 @@ spec:
         - status=~"5.."
 ---
 # Latency
-apiVersion: athena.metalmatze.de/v1alpha1
+apiVersion: athene.metalmatze.de/v1alpha1
 kind: ServiceLevelObjective
 metadata:
   name: nginx-api-latency

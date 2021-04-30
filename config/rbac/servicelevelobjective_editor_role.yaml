@@ -5,7 +5,7 @@ metadata:
   name: servicelevelobjective-editor-role
 rules:
 - apiGroups:
-  - athena.metalmatze.de
+  - athene.metalmatze.de
   resources:
   - servicelevelobjectives
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - athena.metalmatze.de
+  - athene.metalmatze.de
   resources:
   - servicelevelobjectives/status
   verbs:

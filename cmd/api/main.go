@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/metalmatze/athena/slo"
+	"github.com/metalmatze/athene/slo"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"

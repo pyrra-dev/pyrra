@@ -5,7 +5,7 @@ metadata:
   name: servicelevelobjective-viewer-role
 rules:
 - apiGroups:
-  - athena.metalmatze.de
+  - athene.metalmatze.de
   resources:
   - servicelevelobjectives
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - athena.metalmatze.de
+  - athene.metalmatze.de
   resources:
   - servicelevelobjectives/status
   verbs:

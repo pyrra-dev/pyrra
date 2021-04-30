@@ -3,7 +3,7 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: servicelevelobjectives.athena.metalmatze.de
+  name: servicelevelobjectives.athene.metalmatze.de
 spec:
   conversion:
     strategy: Webhook
