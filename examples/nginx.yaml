@@ -1,0 +1,40 @@
+apiVersion: athena.metalmatze.de/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: nginx-api-errors
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: '99.9'
+  window: 672h
+  serviceLevelIndicator:
+    http:
+      metric: nginx_ingress_controller_requests
+      selectors:
+        - namespace="lastfm"
+        - ingress="lastfm"
+        - service="lastfm"
+      errorSelectors:
+        - status=~"5.."
+---
+# Latency
+apiVersion: athena.metalmatze.de/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: nginx-api-latency
+  namespace: monitoring
+spec:
+  target: '90' # 90% of requests should be faster than 1s
+  latency: '1' # le="1" needs to be available on _bucket metric
+  window: 672h
+  serviceLevelIndicator:
+    http:
+      metric: nginx_ingress_controller_request_duration_seconds_bucket
+      selectors:
+        - namespace="lastfm"
+        - ingress="lastfm"
+        - service="lastfm"
+      errorSelectors:
+        - status=~"5.."

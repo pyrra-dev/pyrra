@@ -1,0 +1,16 @@
+apiVersion: athena.metalmatze.de/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: prometheus-api-query
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: '99.0'
+  window: 168h
+  serviceLevelIndicator:
+    http:
+      metric: prometheus_http_requests_total
+      selectors:
+        - 'handler="/api/v1/query"'

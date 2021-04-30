@@ -1,0 +1,16 @@
+apiVersion: athena.metalmatze.de/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: thanos-query
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: '99'
+  window: 672h
+  serviceLevelIndicator:
+    http:
+      selectors:
+        - handler=~"query|query_range"
+        - job="thanos-query"

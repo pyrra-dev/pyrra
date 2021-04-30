@@ -1,0 +1,7 @@
+domain: metalmatze.de
+repo: github.com/metalmatze/athena
+resources:
+- group: athena
+  kind: ServiceLevelObjective
+  version: v1alpha1
+version: "2"

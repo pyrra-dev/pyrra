@@ -1,0 +1,18 @@
+apiVersion: athena.metalmatze.de/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: thanos-store
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: '99.5'
+  window: 7d
+  serviceLevelIndicator:
+    grpc:
+      service: thanos.Store
+      method: Series
+      selectors:
+        - namespace="monitoring"
+        - job="thanos-store"
