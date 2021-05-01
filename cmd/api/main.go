@@ -29,8 +29,8 @@ func main() {
 	promAPI := prometheusv1.NewAPI(client)
 
 	objective := slo.Objective{
-		Target: 90,
-		Window: model.Duration(28 * 24 * time.Hour),
+		Target: 0.90,
+		Window: model.Duration(30 * 24 * time.Hour),
 		Indicator: slo.Indicator{
 			HTTP: &slo.HTTPIndicator{
 				Metric:    "prometheus_http_requests_total",
@@ -39,8 +39,9 @@ func main() {
 		},
 	}
 
-	http.HandleFunc("/", sloHandler(promAPI, objective))
-	http.HandleFunc("/errorbudget.svg", svgHandler(promAPI, objective))
+	http.HandleFunc("/objective.json", sloHandler(promAPI, objective))
+	http.HandleFunc("/objective/valet.json", valetHandler(promAPI, objective))
+	http.HandleFunc("/objective/errorbudget.svg", svgHandler(promAPI, objective))
 
 	if err := http.ListenAndServe(":9099", nil); err != nil {
 		log.Fatal(err)
@@ -61,6 +62,8 @@ func sloHandler(api prometheusv1.API, slo slo.Objective) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		_, _ = w.Write(bytes)
 	}
 }
@@ -96,7 +99,7 @@ func status(ctx context.Context, api prometheusv1.API, objective slo.Objective) 
 		},
 	}
 
-	value, _, err := api.Query(ctx, objective.QueryTotal(), time.Now().Round(time.Minute))
+	value, _, err := api.Query(ctx, objective.QueryTotal(objective.Window), time.Now().Round(time.Minute))
 	if err != nil {
 		return SLOStatus{}, err
 	}
@@ -105,7 +108,7 @@ func status(ctx context.Context, api prometheusv1.API, objective slo.Objective) 
 		status.Availability.Total = float64(v.Value)
 	}
 
-	value, _, err = api.Query(ctx, objective.QueryErrors(), time.Now().Round(time.Minute))
+	value, _, err = api.Query(ctx, objective.QueryErrors(objective.Window), time.Now().Round(time.Minute))
 	if err != nil {
 		return status, err
 	}
@@ -115,13 +118,79 @@ func status(ctx context.Context, api prometheusv1.API, objective slo.Objective) 
 
 	status.Availability.Percentage = 1 - (status.Availability.Errors / status.Availability.Total)
 
-	status.Budget.Total = (100 - objective.Target) / 100
+	status.Budget.Total = 1 - objective.Target
 	status.Budget.Remaining = (status.Budget.Total - (status.Availability.Errors / status.Availability.Total)) / status.Budget.Total
 	status.Budget.Max = status.Budget.Total * status.Availability.Total
 
 	return status, nil
 }
 
+func valetHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFunc {
+	type valet struct {
+		Window       model.Duration `json:"window"`
+		Volume       *float64       `json:"volume"`
+		Errors       *float64       `json:"errors"`
+		Availability *float64       `json:"availability"`
+		Budget       *float64       `json:"budget"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		var valets []valet
+
+		for _, window := range []model.Duration{
+			objective.Window,
+			model.Duration(7 * 24 * time.Hour),
+			model.Duration(24 * time.Hour),
+			model.Duration(time.Hour),
+		} {
+			totalVector, _, err := api.Query(r.Context(), objective.QueryTotal(window), time.Now())
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			errorsVector, _, err := api.Query(r.Context(), objective.QueryErrors(window), time.Now())
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			var total, errors, availability, budget *float64
+
+			if len(totalVector.(model.Vector)) == 1 {
+				value := float64(totalVector.(model.Vector)[0].Value)
+				total = &value
+			}
+			if len(errorsVector.(model.Vector)) == 1 {
+				value := float64(errorsVector.(model.Vector)[0].Value)
+				errors = &value
+			}
+
+			if total != nil && errors != nil {
+				av := 1 - *errors / *total
+				availability = &av
+
+				bv := ((1 - objective.Target) - (1 - *availability)) / (1 - objective.Target)
+				budget = &bv
+			}
+
+			valets = append(valets, valet{
+				Window:       window,
+				Volume:       total,
+				Errors:       errors,
+				Availability: availability,
+				Budget:       budget,
+			})
+		}
+
+		bytes, err := json.Marshal(valets)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		_, _ = w.Write(bytes)
+	}
+}
 func svgHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now().Add(-1 * time.Duration(objective.Window)).UTC()

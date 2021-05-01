@@ -36,7 +36,7 @@ func TestObjective_QueryTotal(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.QueryTotal())
+			require.Equal(t, tc.expected, tc.objective.QueryTotal(tc.objective.Window))
 		})
 	}
 }
@@ -71,7 +71,7 @@ func TestObjective_QueryErrors(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.QueryErrors())
+			require.Equal(t, tc.expected, tc.objective.QueryErrors(tc.objective.Window))
 		})
 	}
 }
@@ -85,31 +85,31 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 		name: "http",
 		objective: Objective{
 			Window: model.Duration(28 * 24 * time.Hour),
-			Target: 99.9,
+			Target: 0.999,
 			Indicator: Indicator{
 				HTTP: &HTTPIndicator{},
 			},
 		},
-		expected: `(((100 - 99.900)/100) - (sum(increase(http_requests_total{code=~"5.."}[4w])) / sum(increase(http_requests_total{}[4w])))) / ((100 - 99.900)/100)`,
+		expected: `((1 - 0.999) - (sum(increase(http_requests_total{code=~"5.."}[4w])) / sum(increase(http_requests_total{}[4w])))) / (1 - 0.999)`,
 	}, {
 		name: "http-custom",
 		objective: Objective{
 			Window: model.Duration(28 * 24 * time.Hour),
-			Target: 95.3,
+			Target: 0.953,
 			Indicator: Indicator{
 				HTTP: &HTTPIndicator{
-					Metric:         "prometheus_http_request_total",
+					Metric:         "prometheus_http_requests_total",
 					Selectors:      Selectors{`job="prometheus"`},
 					ErrorSelectors: Selectors{`status=~"5.."`},
 				},
 			},
 		},
-		expected: `(((100 - 95.300)/100) - (sum(increase(prometheus_http_request_total{job="prometheus",status=~"5.."}[4w])) / sum(increase(prometheus_http_request_total{job="prometheus"}[4w])))) / ((100 - 95.300)/100)`,
+		expected: `((1 - 0.953) - (sum(increase(prometheus_http_requests_total{job="prometheus",status=~"5.."}[4w])) / sum(increase(prometheus_http_requests_total{job="prometheus"}[4w])))) / (1 - 0.953)`,
 	}, {
 		name: "grpc",
 		objective: Objective{
 			Window: model.Duration(28 * 24 * time.Hour),
-			Target: 99.9,
+			Target: 0.999,
 			Indicator: Indicator{
 				GRPC: &GRPCIndicator{
 					Service: "service",
@@ -117,12 +117,12 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 				},
 			},
 		},
-		expected: `(((100 - 99.900)/100) - (sum(increase(grpc_server_handled_total{grpc_service="service",grpc_method="method",grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"}[4w])) / sum(increase(grpc_server_handled_total{grpc_service="service",grpc_method="method"}[4w])))) / ((100 - 99.900)/100)`,
+		expected: `((1 - 0.999) - (sum(increase(grpc_server_handled_total{grpc_service="service",grpc_method="method",grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"}[4w])) / sum(increase(grpc_server_handled_total{grpc_service="service",grpc_method="method"}[4w])))) / (1 - 0.999)`,
 	}, {
 		name: "grpc-custom",
 		objective: Objective{
 			Window: model.Duration(14 * 24 * time.Hour),
-			Target: 95.3,
+			Target: 0.953,
 			Indicator: Indicator{
 				GRPC: &GRPCIndicator{
 					Service:   "awesome",
@@ -131,7 +131,7 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 				},
 			},
 		},
-		expected: `(((100 - 95.300)/100) - (sum(increase(grpc_server_handled_total{grpc_service="awesome",grpc_method="lightspeed",job="app",grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"}[2w])) / sum(increase(grpc_server_handled_total{grpc_service="awesome",grpc_method="lightspeed",job="app"}[2w])))) / ((100 - 95.300)/100)`,
+		expected: `((1 - 0.953) - (sum(increase(grpc_server_handled_total{grpc_service="awesome",grpc_method="lightspeed",job="app",grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"}[2w])) / sum(increase(grpc_server_handled_total{grpc_service="awesome",grpc_method="lightspeed",job="app"}[2w])))) / (1 - 0.953)`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
