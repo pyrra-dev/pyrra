@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"math"
 	"net/http"
@@ -16,7 +18,14 @@ import (
 	"github.com/prometheus/common/model"
 )
 
+//go:embed ui/build
+var ui embed.FS
+
 func main() {
+	build, err := fs.Sub(ui, "ui/build")
+	if err != nil {
+	}
+
 	prometheusURL := flag.String("prometheus.url", "http://localhost:9090", "The URL to the Prometheus to query.")
 	flag.Parse()
 
@@ -42,6 +51,7 @@ func main() {
 	http.HandleFunc("/objective.json", sloHandler(promAPI, objective))
 	http.HandleFunc("/objective/valet.json", valetHandler(promAPI, objective))
 	http.HandleFunc("/objective/errorbudget.svg", svgHandler(promAPI, objective))
+	http.Handle("/", http.FileServer(http.FS(build)))
 
 	if err := http.ListenAndServe(":9099", nil); err != nil {
 		log.Fatal(err)
