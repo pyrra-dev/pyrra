@@ -45,7 +45,7 @@ type ServiceLevelObjectiveReconciler struct {
 
 // +kubebuilder:rbac:groups=athene.metalmatze.de,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=athene.metalmatze.de,resources=servicelevelobjectives/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=create
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules/status,verbs=get
 
 func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
