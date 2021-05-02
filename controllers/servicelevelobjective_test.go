@@ -120,7 +120,7 @@ func Test_makeHTTPRules(t *testing.T) {
 				Record: "http_request_duration_seconds:burnrate5m",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
-					StrVal: "1-(sum(rate(http_request_duration_seconds_bucket{namespace=\"default\",job=\"fooapp\",le=\"1\",code!~\"5..\"}[5m]))/sum(rate(http_request_duration_seconds_count{namespace=\"default\",job=\"fooapp\"}[5m])))",
+					StrVal: "sum(rate(http_request_duration_seconds_bucket{job=\"api\",handler=\"/users\",code=~\"5..\"}[5m]))\n/\nsum(rate(http_request_duration_seconds_bucket{job=\"api\",handler=\"/users\"}[5m]))",
 				},
 			}, {
 				Record: "http_request_duration_seconds:burnrate30m",
