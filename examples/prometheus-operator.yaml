@@ -1,0 +1,16 @@
+apiVersion: athene.metalmatze.de/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: prometheus-operator-http
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: '95.0'
+  window: 168h # 7d
+  serviceLevelIndicator:
+    http:
+      metric: prometheus_operator_kubernetes_client_http_requests_total
+      errorSelectors:
+        - 'status_code=~"5.."'
