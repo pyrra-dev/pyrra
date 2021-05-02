@@ -17,7 +17,10 @@ limitations under the License.
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"flag"
+	"net/http"
 	"os"
 
 	athenev1alpha1 "github.com/metalmatze/athene/api/v1alpha1"
@@ -27,13 +30,13 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = runtime.NewScheme()
 )
 
 func init() {
@@ -52,6 +55,7 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
 
+	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -76,9 +80,32 @@ func main() {
 	}
 	// +kubebuilder:scaffold:builder
 
+	go func() {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/objectives", objectivesHandler(mgr.GetClient()))
+		if err := http.ListenAndServe(":9444", mux); err != nil {
+			setupLog.Error(err, "problem running api")
+			return
+		}
+	}()
+
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+}
+
+func objectivesHandler(client client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var slos athenev1alpha1.ServiceLevelObjectiveList
+		if err := client.List(context.Background(), &slos); err != nil {
+			return
+		}
+		bytes, err := json.Marshal(slos)
+		if err != nil {
+			return
+		}
+		_, _ = w.Write(bytes)
 	}
 }
