@@ -12,5 +12,5 @@ spec:
   serviceLevelIndicator:
     http:
       metric: prometheus_operator_kubernetes_client_http_requests_total
-      errorSelectors:
+      errorMatchers:
         - 'status_code=~"5.."'

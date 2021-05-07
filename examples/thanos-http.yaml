@@ -11,6 +11,6 @@ spec:
   window: 672h
   serviceLevelIndicator:
     http:
-      selectors:
+      matchers:
         - handler=~"query|query_range"
         - job="thanos-query"

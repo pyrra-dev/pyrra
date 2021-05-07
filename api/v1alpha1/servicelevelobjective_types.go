@@ -17,6 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strconv"
+
+	"github.com/metalmatze/athene/slo"
+	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/pkg/labels"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -57,10 +62,10 @@ type ServiceLevelObjectiveSpec struct {
 	// Window within which the Target is supposed to be kept. Usually something like 1d, 7d or 28d.
 	Window metav1.Duration `json:"window"`
 
-	// Latency target for the service. Combined with the Target this is used to define things like:
-	// 99% of the requests need to be served within 5s.
-	// +optional
-	Latency string `json:"latency"`
+	//// Latency target for the service. Combined with the Target this is used to define things like:
+	//// 99% of the requests need to be served within 5s.
+	//// +optional
+	//Latency string `json:"latency"`
 
 	// ServiceLevelIndicator is the underlying data source that indicates how the service is doing.
 	// This will be a Prometheus metric with specific selectors for your service.
@@ -81,13 +86,13 @@ type HTTPIndicator struct {
 	// Metric to use. Defaults to http_requests_total without latency or http_request_duration_seconds_bucket if latency is specified.
 	// +optional
 	Metric *string `json:"metric"`
-	// Selectors are free form PromQL selectors for that specific service.
+	// Matchers are free form PromQL label matchers to select time series for the service.
 	// +optional
-	Selectors []string `json:"selectors"`
-	// ErrorSelectors are free form PromQL selectors that specify what time series should be uses as error counters.
+	Matchers []string `json:"matchers"`
+	// ErrorMatchers are free form PromQL label matchers that specify what time series should be used to count errors.
 	// Defaults to code=~"5.." selecting all HTTP 5xx responses as errors.
 	// +optional
-	ErrorSelectors []string `json:"errorSelectors"`
+	ErrorMatchers []string `json:"errorMatchers"`
 }
 
 type GRPCIndicator struct {
@@ -98,8 +103,12 @@ type GRPCIndicator struct {
 	Service string `json:"service"`
 	// Method is a selector to which gRPC service's method this indicator refers to.
 	Method string `json:"method"`
-	// Selectors are free form PromQL selectors for that specific service.
-	Selectors []string `json:"selectors"`
+	// Matchers are free form PromQL label matchers to select time series for the service.
+	Matchers []string `json:"matchers"`
+	// ErrorMatchers are free form PromQL selectors that specify what time series should be uses as error counters.
+	// Defaults to grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss".
+	// +optional
+	ErrorMatchers []string `json:"errorMatchers"`
 }
 
 type CustomIndicator struct {
@@ -107,8 +116,8 @@ type CustomIndicator struct {
 	//Type string `json:"type"`
 	//// Metric to use.
 	//Metric string `json:"metric"`
-	//// Selectors for the metric to specify what time series are part of your service's indicator.
-	//Selectors []string `json:"selectors"`
+	//// Matchers for the metric to specify what time series are part of your service's indicator.
+	//Matchers []string `json:"selectors"`
 }
 
 // Selector wraps the prometheus matchers.
@@ -116,3 +125,75 @@ type Selector string
 
 // ServiceLevelObjectiveStatus defines the observed state of ServiceLevelObjective
 type ServiceLevelObjectiveStatus struct{}
+
+func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
+	target, err := strconv.ParseFloat(in.Spec.Target, 64)
+	if err != nil {
+		return slo.Objective{}, err
+	}
+
+	var http *slo.HTTPIndicator
+	if in.Spec.ServiceLevelIndicator.HTTP != nil {
+		metric := slo.HTTPDefaultMetric
+		if in.Spec.ServiceLevelIndicator.HTTP.Metric != nil {
+			metric = *in.Spec.ServiceLevelIndicator.HTTP.Metric
+		}
+
+		var matchers []*labels.Matcher
+		for _, s := range in.Spec.ServiceLevelIndicator.HTTP.Matchers {
+			matchers = append(matchers, slo.ParseMatcher(s))
+		}
+
+		var errorMatchers []*labels.Matcher
+		for _, s := range in.Spec.ServiceLevelIndicator.HTTP.ErrorMatchers {
+			errorMatchers = append(errorMatchers, slo.ParseMatcher(s))
+		}
+		if len(errorMatchers) == 0 {
+			errorMatchers = append(errorMatchers, slo.HTTPDefaultErrorSelector)
+		}
+
+		http = &slo.HTTPIndicator{
+			Metric:        metric,
+			Matchers:      matchers,
+			ErrorMatchers: errorMatchers,
+		}
+	}
+
+	var grpc *slo.GRPCIndicator
+	if in.Spec.ServiceLevelIndicator.GRPC != nil {
+		metric := slo.GRPCDefaultMetric
+		if in.Spec.ServiceLevelIndicator.GRPC.Metric != nil {
+			metric = *in.Spec.ServiceLevelIndicator.GRPC.Metric
+		}
+
+		var matchers []*labels.Matcher
+		for _, s := range in.Spec.ServiceLevelIndicator.GRPC.Matchers {
+			matchers = append(matchers, slo.ParseMatcher(s))
+		}
+		var errorMatchers []*labels.Matcher
+		for _, s := range in.Spec.ServiceLevelIndicator.GRPC.ErrorMatchers {
+			errorMatchers = append(errorMatchers, slo.ParseMatcher(s))
+		}
+		if len(errorMatchers) == 0 {
+			errorMatchers = append(errorMatchers, slo.GRPCDefaultErrorSelector)
+		}
+
+		grpc = &slo.GRPCIndicator{
+			Metric:        metric,
+			Service:       in.Spec.ServiceLevelIndicator.GRPC.Service,
+			Method:        in.Spec.ServiceLevelIndicator.GRPC.Method,
+			Matchers:      matchers,
+			ErrorMatchers: errorMatchers,
+		}
+	}
+
+	return slo.Objective{
+		Name:   in.GetName(),
+		Target: target / 100,
+		Window: model.Duration(in.Spec.Window.Duration),
+		Indicator: slo.Indicator{
+			HTTP: http,
+			GRPC: grpc,
+		},
+	}, nil
+}

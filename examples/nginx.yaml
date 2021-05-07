@@ -12,11 +12,11 @@ spec:
   serviceLevelIndicator:
     http:
       metric: nginx_ingress_controller_requests
-      selectors:
+      matchers:
         - namespace="lastfm"
         - ingress="lastfm"
         - service="lastfm"
-      errorSelectors:
+      errorMatchers:
         - status=~"5.."
 ---
 # Latency
@@ -32,9 +32,9 @@ spec:
   serviceLevelIndicator:
     http:
       metric: nginx_ingress_controller_request_duration_seconds_bucket
-      selectors:
+      matchers:
         - namespace="lastfm"
         - ingress="lastfm"
         - service="lastfm"
-      errorSelectors:
+      errorMatchers:
         - status=~"5.."

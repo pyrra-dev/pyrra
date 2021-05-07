@@ -35,11 +35,6 @@ spec:
         spec:
           description: ServiceLevelObjectiveSpec defines the desired state of ServiceLevelObjective
           properties:
-            latency:
-              description: 'Latency target for the service. Combined with the Target
-                this is used to define things like: 99% of the requests need to be
-                served within 5s.'
-              type: string
             serviceLevelIndicator:
               description: ServiceLevelIndicator is the underlying data source that
                 indicates how the service is doing. This will be a Prometheus metric
@@ -47,6 +42,19 @@ spec:
               properties:
                 grpc:
                   properties:
+                    errorMatchers:
+                      description: ErrorMatchers are free form PromQL selectors that
+                        specify what time series should be uses as error counters.
+                        Defaults to grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss".
+                      items:
+                        type: string
+                      type: array
+                    matchers:
+                      description: Matchers are free form PromQL label matchers to
+                        select time series for the service.
+                      items:
+                        type: string
+                      type: array
                     method:
                       description: Method is a selector to which gRPC service's method
                         this indicator refers to.
@@ -56,28 +64,28 @@ spec:
                         without latency or grpc_server_handling_seconds_bucket if
                         latency is specified.
                       type: string
-                    selectors:
-                      description: Selectors are free form PromQL selectors for that
-                        specific service.
-                      items:
-                        type: string
-                      type: array
                     service:
                       description: Service is a selector to which gRPC service this
                         indicator refers to.
                       type: string
                   required:
+                  - matchers
                   - method
-                  - selectors
                   - service
                   type: object
                 http:
                   properties:
-                    errorSelectors:
-                      description: ErrorSelectors are free form PromQL selectors that
-                        specify what time series should be uses as error counters.
+                    errorMatchers:
+                      description: ErrorMatchers are free form PromQL label matchers
+                        that specify what time series should be used to count errors.
                         Defaults to code=~"5.." selecting all HTTP 5xx responses as
                         errors.
+                      items:
+                        type: string
+                      type: array
+                    matchers:
+                      description: Matchers are free form PromQL label matchers to
+                        select time series for the service.
                       items:
                         type: string
                       type: array
@@ -86,12 +94,6 @@ spec:
                         without latency or http_request_duration_seconds_bucket if
                         latency is specified.
                       type: string
-                    selectors:
-                      description: Selectors are free form PromQL selectors for that
-                        specific service.
-                      items:
-                        type: string
-                      type: array
                   type: object
               type: object
             target:

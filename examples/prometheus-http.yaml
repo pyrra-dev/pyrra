@@ -12,5 +12,5 @@ spec:
   serviceLevelIndicator:
     http:
       metric: prometheus_http_requests_total
-      selectors:
+      matchers:
         - 'handler="/api/v1/query"'

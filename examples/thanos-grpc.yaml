@@ -13,6 +13,6 @@ spec:
     grpc:
       service: thanos.Store
       method: Series
-      selectors:
+      matchers:
         - namespace="monitoring"
         - job="thanos-store"

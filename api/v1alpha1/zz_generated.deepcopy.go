@@ -47,8 +47,13 @@ func (in *GRPCIndicator) DeepCopyInto(out *GRPCIndicator) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.Selectors != nil {
-		in, out := &in.Selectors, &out.Selectors
+	if in.Matchers != nil {
+		in, out := &in.Matchers, &out.Matchers
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.ErrorMatchers != nil {
+		in, out := &in.ErrorMatchers, &out.ErrorMatchers
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
@@ -72,13 +77,13 @@ func (in *HTTPIndicator) DeepCopyInto(out *HTTPIndicator) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.Selectors != nil {
-		in, out := &in.Selectors, &out.Selectors
+	if in.Matchers != nil {
+		in, out := &in.Matchers, &out.Matchers
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.ErrorSelectors != nil {
-		in, out := &in.ErrorSelectors, &out.ErrorSelectors
+	if in.ErrorMatchers != nil {
+		in, out := &in.ErrorMatchers, &out.ErrorMatchers
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
