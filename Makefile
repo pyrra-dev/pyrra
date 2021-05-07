@@ -39,13 +39,23 @@ uninstall: manifests
 	kustomize build config/crd | kubectl delete -f -
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	cd config/manager && kustomize edit set image controller=${IMG_MANAGER}
-	kustomize build config/default | kubectl apply -f -
+deploy: manifests config/api.yaml config/manager.yaml
+	kubectl apply -f ./config/api.yaml
+	kubectl apply -f ./config/rbac/role.yaml -n monitoring
+	kubectl apply -f ./config/manager.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=athene-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
+
+config/api.yaml: config/api.cue
+	cue fmt -s ./config/
+	cue cmd --inject imageAPI=${IMG_API} "api.yaml" ./config
+
+config/manager.yaml: config/manager.cue
+	cue fmt -s ./config/
+	cue cmd --inject imageManager=${IMG_MANAGER} "manager.yaml" ./config
 
 # Run go fmt against code
 fmt:
@@ -60,7 +70,7 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: test docker-build-manager
+docker-build: test docker-build-api docker-build-manager
 
 docker-build-api:
 	docker build . -t ${IMG_API} -f ./cmd/api/Dockerfile
