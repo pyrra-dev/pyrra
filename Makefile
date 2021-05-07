@@ -1,6 +1,7 @@
-
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG_API ?= api:latest
+IMG_MANAGER ?= controller:latest
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
 
@@ -11,7 +12,7 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-all: manager
+all: manager api
 
 # Run tests
 test: generate fmt vet manifests
@@ -20,6 +21,10 @@ test: generate fmt vet manifests
 # Build manager binary
 manager: generate fmt vet
 	go build -o bin/manager ./cmd/manager/main.go
+
+# Build api binary
+api: generate fmt vet
+	go build -o bin/api ./cmd/api/main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests
@@ -35,7 +40,7 @@ uninstall: manifests
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
-	cd config/manager && kustomize edit set image controller=${IMG}
+	cd config/manager && kustomize edit set image controller=${IMG_MANAGER}
 	kustomize build config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
@@ -55,12 +60,22 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: test
-	docker build . -t ${IMG}
+docker-build: test docker-build-manager
+
+docker-build-api:
+	docker build . -t ${IMG_API} -f ./cmd/api/Dockerfile
+
+docker-build-manager:
+	docker build . -t ${IMG_MANAGER} -f ./cmd/manager/Dockerfile
 
 # Push the docker image
-docker-push:
-	docker push ${IMG}
+docker-push: docker-push-api docker-push-manager
+
+docker-push-api:
+	docker push ${IMG_API}
+
+docker-push-manager:
+	docker push ${IMG_MANAGER}
 
 # find or download controller-gen
 # download controller-gen if necessary
