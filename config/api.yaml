@@ -1,0 +1,47 @@
+metadata:
+  name: athene-api
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: athene-api
+spec:
+  ports:
+  - name: http
+    port: 9099
+  selector:
+    app.kubernetes.io/name: athene-api
+kind: Service
+apiVersion: v1
+---
+metadata:
+  name: athene-api
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: athene-api
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: athene-api
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: athene-api
+    spec:
+      containers:
+      - args:
+        - --prometheus.url=http://prometheus-k8s.monitoring.svc.cluster.local:9090
+        - --backend.url=http://athene-manager.monitoring.svc.cluster.local:9444
+        image: k3d-k3s-default-registry:41475/api:latest
+        name: athene-api
+        ports:
+        - name: http
+          containerPort: 9099
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+kind: Deployment
+apiVersion: apps/v1
