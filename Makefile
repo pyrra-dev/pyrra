@@ -70,7 +70,7 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: test docker-build-api docker-build-manager
+docker-build: docker-build-api docker-build-manager
 
 docker-build-api:
 	docker build . -t ${IMG_API} -f ./cmd/api/Dockerfile
