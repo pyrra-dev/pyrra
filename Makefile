@@ -103,3 +103,8 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+.PHONY: ui
+ui:
+	cd ui && npm run build
+	rm -rf ./cmd/api/ui/build && cp -r ./ui/build/ ./cmd/api/ui/
