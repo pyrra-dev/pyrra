@@ -32,11 +32,11 @@ run: generate fmt vet manifests
 
 # Install CRDs into a cluster
 install: manifests
-	kustomize build config/crd | kubectl apply -f -
+	kubectl apply -f ./config/crd/bases/athene.metalmatze.de_servicelevelobjectives.yaml
 
 # Uninstall CRDs from a cluster
 uninstall: manifests
-	kustomize build config/crd | kubectl delete -f -
+	kubectl delete -f ./config/crd/bases/athene.metalmatze.de_servicelevelobjectives.yaml
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests config/api.yaml config/manager.yaml
