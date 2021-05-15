@@ -6,10 +6,10 @@
     text-align: center;
 }
 
-.App .metric .good {
+.App .metric .good, .App table.table td .good {
     color: #2C9938;
 }
 
-.App .metric .bad {
+.App .metric .bad, .App table.table td .bad {
     color: #e6522c;
 }

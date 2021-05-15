@@ -75,10 +75,11 @@ interface TableState {
   objectives: { [key: string]: TableObjective }
 }
 
-enum TableActionType { SetObjective}
+enum TableActionType { SetObjective, SetStatus }
 
 type TableAction =
   | { type: TableActionType.SetObjective, objective: Objective }
+  | { type: TableActionType.SetStatus, name: string, status: ObjectiveStatus }
 
 const tableReducer = (state: TableState, action: TableAction): TableState => {
   switch (action.type) {
@@ -92,6 +93,17 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             target: action.objective.target,
             availability: undefined,
             budget: undefined
+          }
+        }
+      }
+    case TableActionType.SetStatus:
+      return {
+        objectives: {
+          ...state.objectives,
+          [action.name]: {
+            ...state.objectives[action.name],
+            availability: action.status.availability,
+            budget: action.status.budget
           }
         }
       }
@@ -116,6 +128,10 @@ const List = () => {
       .sort((a: Objective, b: Objective) => a.name.localeCompare(b.name))
       .forEach((o: Objective) => {
         dispatchTable({ type: TableActionType.SetObjective, objective: o })
+
+        fetchObjectiveStatus(o.name).then((s: ObjectiveStatus) => {
+          dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
+        })
       })
 
   }, [objectives])
@@ -149,17 +165,21 @@ const List = () => {
             </td>
             <td>{o.window}</td>
             <td>
-              {(100 * o.target).toFixed(1)}%
+              {(100 * o.target).toFixed(2)}%
             </td>
             <td>
               {o.availability !== undefined ?
-                o.availability :
-                <Spinner animation={'border'} style={{ opacity: 0.1 }}/>}
+                <span className={o.availability > o.target ? 'good' : 'bad'}>
+                  {(100 * o.availability).toFixed(2)}%
+                </span> :
+                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>}
             </td>
             <td>
               {o.budget !== undefined ?
-                o.budget :
-                <Spinner animation={'border'} style={{ opacity: 0.1 }}/>}
+                <span className={o.budget >= 0 ? 'good' : 'bad'}>
+                  {(100 * o.budget).toFixed(2)}%
+                </span> :
+                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>}
             </td>
           </tr>
         ))}
