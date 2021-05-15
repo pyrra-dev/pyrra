@@ -10,8 +10,11 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/metalmatze/athene/slo"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -24,12 +27,15 @@ var ui embed.FS
 func main() {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
+		log.Fatal(err)
 	}
 
 	prometheusURL := flag.String("prometheus.url", "http://localhost:9090", "The URL to the Prometheus to query.")
+	backendURL := flag.String("backend.url", "http://localhost:9444", "The URL to the backend service like a Kubernetes Operator.")
 	flag.Parse()
 
 	log.Println("Using Prometheus at", *prometheusURL)
+	log.Println("Using backend at", *backendURL)
 
 	client, err := api.NewClient(api.Config{Address: *prometheusURL})
 	if err != nil {
@@ -37,31 +43,64 @@ func main() {
 	}
 	promAPI := prometheusv1.NewAPI(client)
 
-	objective := slo.Objective{
-		Target: 0.90,
-		Window: model.Duration(30 * 24 * time.Hour),
-		Indicator: slo.Indicator{
-			HTTP: &slo.HTTPIndicator{
-				Metric:    "prometheus_http_requests_total",
-				Selectors: slo.Selectors{`handler="/debug/*subpath"`},
-			},
-		},
-	}
+	backend := backend{url: *backendURL}
 
-	http.HandleFunc("/objective.json", sloHandler(promAPI, objective))
-	http.HandleFunc("/objective/valet.json", valetHandler(promAPI, objective))
-	http.HandleFunc("/objective/errorbudget.svg", svgHandler(promAPI, objective))
-	http.Handle("/", http.FileServer(http.FS(build)))
+	r := chi.NewRouter()
+	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
+	r.Get("/api/objectives", objectivesHandler(promAPI, backend))
+	r.Get("/api/objectives/{name}", objectiveHandler(backend))
+	r.Get("/api/objectives/{name}/status", objectiveStatusHandler(promAPI, backend))
+	r.Get("/api/objectives/{name}/valet", valetHandler(promAPI, backend))
+	r.Get("/api/objectives/{name}/errorbudget.svg", errorBudgetSVGHandler(promAPI, backend))
+	r.Handle("/*", http.FileServer(http.FS(build)))
 
-	if err := http.ListenAndServe(":9099", nil); err != nil {
+	if err := http.ListenAndServe(":9099", r); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func sloHandler(api prometheusv1.API, slo slo.Objective) http.HandlerFunc {
+func objectivesHandler(_ prometheusv1.API, backend backend) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		objectives, err := backend.ListObjectives()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		bytes, err := json.Marshal(objectives)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_, _ = w.Write(bytes)
+	}
+}
 
-		sloStatus, err := status(r.Context(), api, slo)
+func objectiveHandler(backend backend) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		objective, err := backend.GetObjective(chi.URLParam(r, "name"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		bytes, err := json.Marshal(objective)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_, _ = w.Write(bytes)
+	}
+}
+
+func objectiveStatusHandler(api prometheusv1.API, backend backend) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		objective, err := backend.GetObjective(chi.URLParam(r, "name"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		sloStatus, err := status(r.Context(), api, objective)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -72,8 +111,6 @@ func sloHandler(api prometheusv1.API, slo slo.Objective) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		_, _ = w.Write(bytes)
 	}
 }
@@ -135,7 +172,7 @@ func status(ctx context.Context, api prometheusv1.API, objective slo.Objective) 
 	return status, nil
 }
 
-func valetHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFunc {
+func valetHandler(api prometheusv1.API, backend backend) http.HandlerFunc {
 	type valet struct {
 		Window       model.Duration `json:"window"`
 		Volume       *float64       `json:"volume"`
@@ -144,6 +181,12 @@ func valetHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFun
 		Budget       *float64       `json:"budget"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		objective, err := backend.GetObjective(chi.URLParam(r, "name"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		var valets []valet
 
 		for _, window := range []model.Duration{
@@ -163,19 +206,19 @@ func valetHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFun
 				return
 			}
 
-			var total, errors, availability, budget *float64
+			var total, availability, budget *float64
+			var errors float64
 
 			if len(totalVector.(model.Vector)) == 1 {
 				value := float64(totalVector.(model.Vector)[0].Value)
 				total = &value
 			}
 			if len(errorsVector.(model.Vector)) == 1 {
-				value := float64(errorsVector.(model.Vector)[0].Value)
-				errors = &value
+				errors = float64(errorsVector.(model.Vector)[0].Value)
 			}
 
-			if total != nil && errors != nil {
-				av := 1 - *errors / *total
+			if total != nil {
+				av := 1 - errors / *total
 				availability = &av
 
 				bv := ((1 - objective.Target) - (1 - *availability)) / (1 - objective.Target)
@@ -185,7 +228,7 @@ func valetHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFun
 			valets = append(valets, valet{
 				Window:       window,
 				Volume:       total,
-				Errors:       errors,
+				Errors:       &errors,
 				Availability: availability,
 				Budget:       budget,
 			})
@@ -196,32 +239,51 @@ func valetHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFun
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		_, _ = w.Write(bytes)
 	}
 }
-func svgHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFunc {
+func errorBudgetSVGHandler(api prometheusv1.API, backend backend) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now().Add(-1 * time.Duration(objective.Window)).UTC()
-		end := time.Now().UTC()
+		objective, err := backend.GetObjective(chi.URLParam(r, "name"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		end := time.Now().UTC().Round(15 * time.Second)
+		start := end.Add(-1 * time.Duration(objective.Window)).UTC()
+
+		if r.URL.Query().Get("start") != "" {
+			float, err := strconv.ParseInt(r.URL.Query().Get("start"), 10, 64)
+			if err == nil {
+				start = time.Unix(float, 0)
+			}
+		}
+		if r.URL.Query().Get("end") != "" {
+			float, err := strconv.ParseInt(r.URL.Query().Get("end"), 10, 64)
+			if err == nil {
+				end = time.Unix(float, 0)
+			}
+		}
+
+		width := 1200.0
+		height := 320.0
+		padding := 60.0
+
+		step := end.Sub(start) / time.Duration(width-2*padding) // Should return roughly a datapoint per "pixel".
 
 		query := objective.QueryErrorBudget()
 		log.Println(query)
 		value, _, err := api.QueryRange(r.Context(), query, prometheusv1.Range{
 			Start: start,
 			End:   end,
-			Step:  time.Hour,
+			Step:  step,
 		})
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		width := 1200.0
-		height := 320.0
-		padding := 50.0
 
 		if len(value.(model.Matrix)) == 0 {
 			http.Error(w, "no data", http.StatusNotFound)
@@ -231,7 +293,7 @@ func svgHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFunc 
 		var min, max float64
 		{
 			vMin := math.MaxFloat64
-			vMax := 0.0
+			vMax := 1.0
 			for _, sample := range value.(model.Matrix)[0].Values {
 				v := float64(sample.Value)
 				if v > vMax {
@@ -241,8 +303,14 @@ func svgHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFunc 
 					vMin = v
 				}
 			}
+
 			min = math.Floor(vMin*10) / 10
 			max = math.Ceil(vMax*10) / 10
+		}
+
+		// If we have 100% availability we want the min to be our target for the graph.
+		if max == 1.0 && min == 1.0 {
+			min = objective.Target
 		}
 
 		graph := fmt.Sprintf(`<g transform="translate(%.f,%.f)">`, padding, padding)
@@ -274,7 +342,7 @@ func svgHandler(api prometheusv1.API, objective slo.Objective) http.HandlerFunc 
 		for v := max; v >= min; v = v - steps {
 			yAxis += fmt.Sprintf(`<g class="tick" opacity="1" transform="translate(0,%.f)">`, i*(height-2*padding))
 			yAxis += `<line stroke="currentColor" x1="-8" x2="-2"></line>`
-			yAxis += fmt.Sprintf(`<text fill="currentColor" x="-10" dy="0.32em">%.f%%</text>`, v*100)
+			yAxis += fmt.Sprintf(`<text fill="currentColor" x="-10" dy="0.32em">%.2f%%</text>`, v*100)
 			yAxis += `</g>`
 			i = i + (1 / labelCount)
 		}
@@ -370,4 +438,36 @@ func graphLines(samples []model.SamplePair, start, end time.Time, width, height,
 
 func relative(min, max, v float64) float64 {
 	return (-1*min + v) / (max - min)
+}
+
+type backend struct {
+	url string
+}
+
+func (b *backend) ListObjectives() ([]slo.Objective, error) {
+	resp, err := http.Get(b.url + "/objectives")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var objectives []slo.Objective
+	if err := json.NewDecoder(resp.Body).Decode(&objectives); err != nil {
+		return nil, err
+	}
+
+	return objectives, nil
+}
+
+func (b backend) GetObjective(name string) (slo.Objective, error) {
+	var objective slo.Objective
+
+	resp, err := http.Get(b.url + "/objectives/" + name)
+	if err != nil {
+		return objective, err
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&objective)
+	return objective, err
 }
