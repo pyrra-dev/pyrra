@@ -129,6 +129,19 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 		},
 		expected: `((1 - 0.999) - (sum(increase(http_requests_total{code=~"5.."}[4w])) / sum(increase(http_requests_total[4w])))) / (1 - 0.999)`,
 	}, {
+		name: "http-matchers",
+		objective: Objective{
+			Window: model.Duration(28 * 24 * time.Hour),
+			Target: 0.953,
+			Indicator: Indicator{
+				HTTP: &HTTPIndicator{
+					Metric:   "prometheus_http_requests_total",
+					Matchers: []*labels.Matcher{ParseMatcher(`job="prometheus"`)},
+				},
+			},
+		},
+		expected: `((1 - 0.953) - (sum(increase(prometheus_http_requests_total{code=~"5..",job="prometheus"}[4w])) / sum(increase(prometheus_http_requests_total{job="prometheus"}[4w])))) / (1 - 0.953)`,
+	}, {
 		name: "http-custom",
 		objective: Objective{
 			Window: model.Duration(28 * 24 * time.Hour),

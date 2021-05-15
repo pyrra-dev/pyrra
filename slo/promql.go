@@ -17,7 +17,7 @@ func (o Objective) QueryTotal(window model.Duration) string {
 	}
 
 	var metric string
-	var selectors []*labels.Matcher
+	var matchers []*labels.Matcher
 
 	if o.Indicator.HTTP != nil {
 		http := o.Indicator.HTTP
@@ -25,7 +25,7 @@ func (o Objective) QueryTotal(window model.Duration) string {
 			http.Metric = HTTPDefaultMetric
 		}
 		metric = http.Metric
-		selectors = http.Matchers
+		matchers = http.Matchers
 	}
 	if o.Indicator.GRPC != nil {
 		grpc := o.Indicator.GRPC
@@ -33,12 +33,15 @@ func (o Objective) QueryTotal(window model.Duration) string {
 			grpc.Metric = GRPCDefaultMetric
 		}
 		metric = grpc.Metric
-		selectors = grpc.GRPCSelectors()
+		matchers = grpc.GRPCSelectors()
 	}
+
+	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
+	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
 
 	objectiveReplacer{
 		metric:   metric,
-		matchers: selectors,
+		matchers: matchers,
 		window:   time.Duration(window),
 	}.replace(expr)
 
@@ -53,7 +56,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 	}
 
 	var metric string
-	var selectors []*labels.Matcher
+	var matchers []*labels.Matcher
 
 	if o.Indicator.HTTP != nil {
 		http := o.Indicator.HTTP
@@ -66,7 +69,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		if len(http.ErrorMatchers) == 0 {
 			http.ErrorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
 		}
-		selectors = http.AllSelectors()
+		matchers = http.AllSelectors()
 	}
 	if o.Indicator.GRPC != nil {
 		grpc := o.Indicator.GRPC
@@ -79,12 +82,15 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		if len(grpc.ErrorMatchers) == 0 {
 			grpc.ErrorMatchers = []*labels.Matcher{GRPCDefaultErrorSelector}
 		}
-		selectors = grpc.AllSelectors()
+		matchers = grpc.AllSelectors()
 	}
+
+	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
+	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
 
 	objectiveReplacer{
 		metric:   metric,
-		matchers: selectors,
+		matchers: matchers,
 		window:   time.Duration(window),
 	}.replace(expr)
 
@@ -100,7 +106,7 @@ type objectiveReplacer struct {
 }
 
 func (o Objective) QueryErrorBudget() string {
-	expr, err := parser.ParseExpr(`((1 - 0.696969) - (sum(increase(metric{matchers="errors"}[1s])) / sum(increase(metric{matchers="total"}[1s])))) / (1 - 0.696969)`)
+	expr, err := parser.ParseExpr(`((1 - 0.696969) - (sum(increase(metric{matchers="errors"}[1s]) or vector(0)) / sum(increase(metric{matchers="total"}[1s])))) / (1 - 0.696969)`)
 	if err != nil {
 		return ""
 	}
@@ -110,31 +116,33 @@ func (o Objective) QueryErrorBudget() string {
 	var errorMatchers []*labels.Matcher
 
 	if o.Indicator.HTTP != nil {
+		if o.Indicator.HTTP.Metric == "" {
+			o.Indicator.HTTP.Metric = HTTPDefaultMetric
+		}
+		if len(o.Indicator.HTTP.ErrorMatchers) == 0 {
+			o.Indicator.HTTP.ErrorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
+		}
+
 		metric = o.Indicator.HTTP.Metric
-		if metric == "" {
-			metric = HTTPDefaultMetric
-		}
-
-		errorMatchers = o.Indicator.HTTP.AllSelectors()
-		if len(errorMatchers) == 0 {
-			errorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
-		}
-
 		matchers = o.Indicator.HTTP.Matchers
+		errorMatchers = o.Indicator.HTTP.AllSelectors()
 	}
 	if o.Indicator.GRPC != nil {
 		if o.Indicator.GRPC.Metric == "" {
 			o.Indicator.GRPC.Metric = GRPCDefaultMetric
 		}
-
 		if len(o.Indicator.GRPC.ErrorMatchers) == 0 {
 			o.Indicator.GRPC.ErrorMatchers = []*labels.Matcher{GRPCDefaultErrorSelector}
 		}
 
 		metric = o.Indicator.GRPC.Metric
-		errorMatchers = o.Indicator.GRPC.AllSelectors()
 		matchers = o.Indicator.GRPC.GRPCSelectors()
+		errorMatchers = o.Indicator.GRPC.AllSelectors()
 	}
+
+	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
+	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
+	errorMatchers = append([]*labels.Matcher{metricMatcher}, errorMatchers...)
 
 	objectiveReplacer{
 		metric:        metric,
@@ -175,9 +183,6 @@ func (r objectiveReplacer) replace(node parser.Node) {
 		} else {
 			n.LabelMatchers = r.matchers
 		}
-		n.LabelMatchers = append(n.LabelMatchers,
-			&labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: r.metric},
-		)
 	case *parser.BinaryExpr:
 		r.replace(n.LHS)
 		r.replace(n.RHS)
