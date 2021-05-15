@@ -22,9 +22,12 @@ import (
 	"flag"
 	"net/http"
 	"os"
+	"strings"
 
 	athenev1alpha1 "github.com/metalmatze/athene/api/v1alpha1"
 	"github.com/metalmatze/athene/controllers"
+	"github.com/metalmatze/athene/slo"
+	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -80,29 +83,77 @@ func main() {
 	}
 	// +kubebuilder:scaffold:builder
 
-	go func() {
+	var gr run.Group
+	{
 		mux := http.NewServeMux()
-		mux.HandleFunc("/objectives", objectivesHandler(mgr.GetClient()))
-		if err := http.ListenAndServe(":9444", mux); err != nil {
-			setupLog.Error(err, "problem running api")
-			return
+		mux.HandleFunc("/objectives", objectivesListHandler(mgr.GetClient()))
+		mux.HandleFunc("/objectives/", objectiveHandler(mgr.GetClient()))
+		s := http.Server{
+			Addr:    ":9444",
+			Handler: mux,
 		}
-	}()
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
+		gr.Add(func() error {
+			return s.ListenAndServe()
+		}, func(err error) {
+			_ = s.Shutdown(context.Background())
+		})
+	}
+	{
+		gr.Add(func() error {
+			setupLog.Info("starting manager")
+			return mgr.Start(ctrl.SetupSignalHandler())
+		}, func(err error) {
+		})
+	}
+
+	if err := gr.Run(); err != nil {
+		setupLog.Error(err, "failed to run groups")
+		return
 	}
 }
 
-func objectivesHandler(client client.Client) http.HandlerFunc {
+func objectiveHandler(c client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var slos athenev1alpha1.ServiceLevelObjectiveList
-		if err := client.List(context.Background(), &slos); err != nil {
+		name := strings.TrimPrefix(r.URL.Path, "/objectives/")
+		var slo athenev1alpha1.ServiceLevelObjective
+		err := c.Get(r.Context(), client.ObjectKey{Namespace: "monitoring", Name: name}, &slo)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		bytes, err := json.Marshal(slos)
+		objective, err := slo.Internal()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		bytes, err := json.Marshal(objective)
+		if err != nil {
+			return
+		}
+		_, _ = w.Write(bytes)
+	}
+}
+
+func objectivesListHandler(client client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var list athenev1alpha1.ServiceLevelObjectiveList
+		if err := client.List(context.Background(), &list); err != nil {
+			return
+		}
+
+		objectives := make([]slo.Objective, 0, len(list.Items))
+		for _, s := range list.Items {
+			objective, err := s.Internal()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			objectives = append(objectives, objective)
+		}
+
+		bytes, err := json.Marshal(objectives)
 		if err != nil {
 			return
 		}
