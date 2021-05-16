@@ -13,3 +13,7 @@
 .App .metric .bad, .App table.table td .bad {
     color: #e6522c;
 }
+
+.App table.table thead th:hover {
+    cursor: pointer;
+}

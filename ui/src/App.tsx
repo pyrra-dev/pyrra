@@ -112,10 +112,29 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
   }
 }
 
+enum TableSortType {
+  Name,
+  Window,
+  Objective,
+  Availability,
+  Budget,
+}
+
+enum TableSortOrder {Ascending, Descending}
+
+interface TableSorting {
+  type: TableSortType
+  order: TableSortOrder
+}
+
 const List = () => {
   const [objectives, setObjectives] = useState<Array<Objective>>([])
   const initialTableState: TableState = { objectives: {} }
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
+  const [tableSortState, setTableSortState] = useState<TableSorting>({
+    type: TableSortType.Budget,
+    order: TableSortOrder.Ascending
+  })
 
   useEffect(() => {
     fetchObjectives()
@@ -136,9 +155,64 @@ const List = () => {
 
   }, [objectives])
 
+  const handleTableSort = (type: TableSortType): void => {
+    if (tableSortState.type === type) {
+      const order = tableSortState.order === TableSortOrder.Ascending ? TableSortOrder.Descending : TableSortOrder.Ascending
+      setTableSortState({ type: type, order: order })
+    } else {
+      setTableSortState({ type: type, order: TableSortOrder.Ascending })
+    }
+  }
+
   const tableList = Object.keys(table.objectives)
     .map((k: string) => table.objectives[k])
-    .sort((a: TableObjective, b: TableObjective) => a.name.localeCompare(b.name))
+    .sort((a: TableObjective, b: TableObjective) => {
+        // TODO: Make higher order function returning the sort function itself.
+        switch (tableSortState.type) {
+          case TableSortType.Name:
+            if (tableSortState.order === TableSortOrder.Ascending) {
+              return a.name.localeCompare(b.name)
+            } else {
+              return b.name.localeCompare(a.name)
+            }
+          case TableSortType.Window:
+            if (tableSortState.order === TableSortOrder.Ascending) {
+              return a.window.localeCompare(b.window)
+            } else {
+              return b.window.localeCompare(a.window)
+            }
+          case TableSortType.Objective:
+            if (tableSortState.order === TableSortOrder.Ascending) {
+              return a.target - b.target
+            } else {
+              return b.target - a.target
+            }
+          case TableSortType.Availability:
+            if (a.availability !== undefined && b.availability !== undefined) {
+              if (tableSortState.order === TableSortOrder.Ascending) {
+                return a.availability - b.availability
+              } else {
+                return b.availability - a.availability
+              }
+            } else {
+              return 1
+            }
+          case TableSortType.Budget:
+            if (a.budget !== undefined && b.budget !== undefined) {
+              if (tableSortState.order === TableSortOrder.Ascending) {
+                return a.budget - b.budget
+              } else {
+                return b.budget - a.budget
+              }
+            } else {
+              return 1
+            }
+        }
+        return 0
+      }
+    )
+
+  const upDownIcon = tableSortState.order === TableSortOrder.Ascending ? '⬆️' : '⬇️'
 
   return (
     <Container className="App">
@@ -150,11 +224,11 @@ const List = () => {
       <Table hover={true} striped={false}>
         <thead>
         <tr>
-          <th>Name</th>
-          <th>Time Window</th>
-          <th>Objective</th>
-          <th>Availability</th>
-          <th>Error Budget</th>
+          <th onClick={() => handleTableSort(TableSortType.Name)}>Name {tableSortState.type === TableSortType.Name ? upDownIcon:'↕️'}</th>
+          <th onClick={() => handleTableSort(TableSortType.Window)}>Time Window {tableSortState.type === TableSortType.Window ? upDownIcon:'↕️'}</th>
+          <th onClick={() => handleTableSort(TableSortType.Objective)}>Objective {tableSortState.type === TableSortType.Objective ? upDownIcon:'↕️'}</th>
+          <th onClick={() => handleTableSort(TableSortType.Availability)}>Availability {tableSortState.type === TableSortType.Availability ? upDownIcon:'↕️'}</th>
+          <th onClick={() => handleTableSort(TableSortType.Budget)}>Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon:'↕️'}</th>
         </tr>
         </thead>
         <tbody>
