@@ -82,3 +82,30 @@ func Test_graphLines(t *testing.T) {
 		require.Equal(t, tc.lines, lines)
 	}
 }
+
+func TestRoundUp(t *testing.T) {
+	testcases := []struct {
+		t time.Time
+		d time.Duration
+		e time.Time
+	}{{
+		t: time.Date(2020, 2, 2, 2, 2, 2, 0, time.UTC),
+		d: time.Minute,
+		e: time.Date(2020, 2, 2, 2, 3, 0, 0, time.UTC),
+	}, {
+		t: time.Date(2020, 2, 2, 2, 1, 45, 0, time.UTC),
+		d: time.Minute,
+		e: time.Date(2020, 2, 2, 2, 2, 0, 0, time.UTC),
+	}, {
+		t: time.Date(2020, 2, 2, 2, 2, 2, 0, time.UTC),
+		d: 2 * time.Minute,
+		e: time.Date(2020, 2, 2, 2, 4, 0, 0, time.UTC),
+	}, {
+		t: time.Date(2020, 2, 2, 2, 2, 2, 0, time.UTC),
+		d: 5 * time.Minute,
+		e: time.Date(2020, 2, 2, 2, 5, 0, 0, time.UTC),
+	}}
+	for _, tc := range testcases {
+		require.Equal(t, tc.e, RoundUp(tc.t, tc.d))
+	}
+}

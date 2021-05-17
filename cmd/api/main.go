@@ -11,8 +11,11 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
+	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/metalmatze/athene/slo"
@@ -41,13 +44,25 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	promAPI := prometheusv1.NewAPI(client)
+	cache, err := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e7,     // number of keys to track frequency of (10M).
+		MaxCost:     1 << 30, // maximum cost of cache (1GB).
+		BufferItems: 64,      // number of keys per Get buffer.
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cache.Close()
+	promAPI := &promCache{
+		api:   prometheusv1.NewAPI(client),
+		cache: cache,
+	}
 
 	backend := backend{url: *backendURL}
 
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
-	r.Get("/api/objectives", objectivesHandler(promAPI, backend))
+	r.Get("/api/objectives", objectivesHandler(backend))
 	r.Get("/api/objectives/{name}", objectiveHandler(backend))
 	r.Get("/api/objectives/{name}/status", objectiveStatusHandler(promAPI, backend))
 	r.Get("/api/objectives/{name}/valet", valetHandler(promAPI, backend))
@@ -59,7 +74,14 @@ func main() {
 	}
 }
 
-func objectivesHandler(_ prometheusv1.API, backend backend) http.HandlerFunc {
+type prometheusAPI interface {
+	// Query performs a query for the given time.
+	Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error)
+	// QueryRange performs a query for the given range.
+	QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error)
+}
+
+func objectivesHandler(backend backend) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		objectives, err := backend.ListObjectives()
 		if err != nil {
@@ -92,7 +114,7 @@ func objectiveHandler(backend backend) http.HandlerFunc {
 	}
 }
 
-func objectiveStatusHandler(api prometheusv1.API, backend backend) http.HandlerFunc {
+func objectiveStatusHandler(api prometheusAPI, backend backend) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		objective, err := backend.GetObjective(chi.URLParam(r, "name"))
 		if err != nil {
@@ -138,7 +160,7 @@ type BudgetStatus struct {
 	Max       float64 `json:"max"`
 }
 
-func status(ctx context.Context, api prometheusv1.API, objective slo.Objective) (SLOStatus, error) {
+func status(ctx context.Context, api prometheusAPI, objective slo.Objective) (SLOStatus, error) {
 	status := SLOStatus{
 		Objective: Objective{
 			Target: objective.Target,
@@ -146,7 +168,9 @@ func status(ctx context.Context, api prometheusv1.API, objective slo.Objective) 
 		},
 	}
 
-	value, _, err := api.Query(ctx, objective.QueryTotal(objective.Window), time.Now().Round(time.Minute))
+	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
+
+	value, _, err := api.Query(ctx, objective.QueryTotal(objective.Window), ts)
 	if err != nil {
 		return SLOStatus{}, err
 	}
@@ -155,7 +179,7 @@ func status(ctx context.Context, api prometheusv1.API, objective slo.Objective) 
 		status.Availability.Total = float64(v.Value)
 	}
 
-	value, _, err = api.Query(ctx, objective.QueryErrors(objective.Window), time.Now().Round(time.Minute))
+	value, _, err = api.Query(ctx, objective.QueryErrors(objective.Window), ts)
 	if err != nil {
 		return status, err
 	}
@@ -172,7 +196,7 @@ func status(ctx context.Context, api prometheusv1.API, objective slo.Objective) 
 	return status, nil
 }
 
-func valetHandler(api prometheusv1.API, backend backend) http.HandlerFunc {
+func valetHandler(api prometheusAPI, backend backend) http.HandlerFunc {
 	type valet struct {
 		Window       model.Duration `json:"window"`
 		Volume       *float64       `json:"volume"`
@@ -189,18 +213,20 @@ func valetHandler(api prometheusv1.API, backend backend) http.HandlerFunc {
 
 		var valets []valet
 
+		ts := RoundUp(time.Now(), 5*time.Minute)
+
 		for _, window := range []model.Duration{
 			objective.Window,
 			model.Duration(7 * 24 * time.Hour),
 			model.Duration(24 * time.Hour),
 			model.Duration(time.Hour),
 		} {
-			totalVector, _, err := api.Query(r.Context(), objective.QueryTotal(window), time.Now())
+			totalVector, _, err := api.Query(r.Context(), objective.QueryTotal(window), ts)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			errorsVector, _, err := api.Query(r.Context(), objective.QueryErrors(window), time.Now())
+			errorsVector, _, err := api.Query(r.Context(), objective.QueryErrors(window), ts)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -242,7 +268,8 @@ func valetHandler(api prometheusv1.API, backend backend) http.HandlerFunc {
 		_, _ = w.Write(bytes)
 	}
 }
-func errorBudgetSVGHandler(api prometheusv1.API, backend backend) http.HandlerFunc {
+
+func errorBudgetSVGHandler(api prometheusAPI, backend backend) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		objective, err := backend.GetObjective(chi.URLParam(r, "name"))
 		if err != nil {
@@ -470,4 +497,41 @@ func (b backend) GetObjective(name string) (slo.Objective, error) {
 
 	err = json.NewDecoder(resp.Body).Decode(&objective)
 	return objective, err
+}
+
+func RoundUp(t time.Time, d time.Duration) time.Time {
+	n := t.Round(d)
+	if n.Before(t) {
+		return n.Add(d)
+	}
+	return n
+}
+
+type promCache struct {
+	api   prometheusv1.API
+	cache *ristretto.Cache
+}
+
+func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error) {
+	xxh := xxhash.New()
+	_, _ = xxh.WriteString(strconv.FormatInt(ts.Unix(), 10))
+	_, _ = xxh.WriteString(query)
+	hash := xxh.Sum64()
+
+	if value, exists := p.cache.Get(hash); exists {
+		return value.(model.Value), nil, nil
+	}
+
+	value, _, err := p.api.Query(ctx, query, ts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	_ = p.cache.SetWithTTL(hash, value, 10, time.Until(ts))
+
+	return value, nil, nil
+}
+
+func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error) {
+	return p.api.QueryRange(ctx, query, r)
 }
