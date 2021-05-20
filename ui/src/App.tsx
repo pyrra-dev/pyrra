@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import './App.css';
 import { Col, Container, Row, Spinner, Table } from 'react-bootstrap';
 import { BrowserRouter, Link, Route, RouteComponentProps, Switch } from 'react-router-dom';
@@ -285,6 +285,9 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const [errorBudget, setErrorBudget] = useState<ErrorBudget | null>(null);
   const [valets, setValets] = useState<Array<Valet>>([]);
 
+  const [errorBudgetSVGLoading, setErrorBudgetSVGLoading] = useState<boolean>(true)
+  const errorBudgetSVG = useRef<SVGSVGElement>(null)
+
   useEffect(() => {
     const controller = new AbortController()
 
@@ -302,7 +305,25 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
     fetch(`${PUBLIC_API}/api/objectives/${name}/valet`, { signal: controller.signal })
       .then((resp: Response) => resp.json())
       .then((data) => setValets(data))
+
+    setErrorBudgetSVGLoading(true)
+
+    fetch(`${PUBLIC_API}/api/objectives/${name}/errorbudget.svg`, { signal: controller.signal })
+      .then((resp: Response) => resp.text())
+      .then((raw: string) => {
+        const doc: Document = new DOMParser().parseFromString(raw, 'image/svg+xml')
+        const svg: SVGSVGElement | null = doc.querySelector('svg')
+        if (errorBudgetSVG.current != null && svg != null) {
+          errorBudgetSVG.current.replaceWith(svg)
+        }
+      }).finally(() => setErrorBudgetSVGLoading(false))
+
+    return () => {
+      // cancel any pending requests.
+      controller.abort()
+    }
   }, [name])
+
 
   if (objective == null) {
     return (
@@ -358,35 +379,38 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         </Row>
         <br/>
         <Row>
-          <img src={`/api/objectives/${name}/errorbudget.svg`}
-               alt=""
-               style={{ maxWidth: '100%' }}/>
+          {errorBudgetSVGLoading ?
+            <div style={{
+              width: '100%',
+              height: 230,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <Spinner animation="border" style={{ margin: '0 auto' }}/>
+            </div>
+            : <></>}
+          <svg ref={errorBudgetSVG} style={{ display: errorBudgetSVGLoading ? 'none' : 'block' }}/>
+          {valets.map((v: Valet) => (
+            <Col style={{ textAlign: 'right' }}>
+              <small>Volume: {Math.floor(v.volume).toLocaleString()}</small>&nbsp;
+              <small>Errors: {Math.floor(v.errors).toLocaleString()}</small>
+            </Col>
+          ))}
         </Row>
         <br/><br/>
+        {/*
         <Row>
-          <table className="table">
-            <thead>
-            <tr>
-              <th scope="col">Window</th>
-              <th scope="col">Volume</th>
-              <th scope="col">Errors</th>
-              <th scope="col">Availability</th>
-              <th scope="col">Error Budget</th>
-            </tr>
-            </thead>
-            <tbody>
-            {valets.map((v: Valet) => (
-              <tr key={v.window}>
-                <td>{v.window}</td>
-                <td>{Math.floor(v.volume)}</td>
-                <td>{Math.floor(v.errors)}</td>
-                <td>{(100 * v.availability).toFixed(3)}%</td>
-                <td>{(100 * v.budget).toFixed(3)}%</td>
-              </tr>
-            ))}
-            </tbody>
-          </table>
+          <Col xs={12} sm={6} md={4}>
+            <img src={`${PUBLIC_API}/api/objectives/${name}/red/requests.svg`}
+                 alt=""
+                 style={{ maxWidth: '100%' }}/>
+          </Col>
+          <Col xs={12} sm={6} md={4}/>
+          <Col xs={12} sm={6} md={4}/>
         </Row>
+        */}
+        <br/><br/><br/><br/><br/>
       </Container>
     </div>
   );
