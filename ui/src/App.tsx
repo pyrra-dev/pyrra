@@ -3,6 +3,9 @@ import './App.css';
 import { Col, Container, Row, Spinner, Table } from 'react-bootstrap';
 import { BrowserRouter, Link, Route, RouteComponentProps, Switch } from 'react-router-dom';
 
+// @ts-ignore - this is passed from the HTML template.
+const PUBLIC_API: string = window.PUBLIC_API;
+
 interface Objective {
   name: string
   target: number
@@ -48,7 +51,7 @@ interface ObjectiveStatus {
 }
 
 const fetchObjectives = async (): Promise<Array<Objective>> => {
-  const resp: Response = await fetch(`/api/objectives`)
+  const resp: Response = await fetch(`${PUBLIC_API}/api/objectives`)
   const json = await resp.json()
   if (!resp.ok) {
     return Promise.reject(resp)
@@ -56,8 +59,8 @@ const fetchObjectives = async (): Promise<Array<Objective>> => {
   return json
 }
 
-const fetchObjectiveStatus = async (name: string): Promise<ObjectiveStatus> => {
-  const resp: Response = await fetch(`/api/objectives/${name}/status`)
+const fetchObjectiveStatus = async (name: string, signal: AbortSignal): Promise<ObjectiveStatus> => {
+  const resp: Response = await fetch(`${PUBLIC_API}/api/objectives/${name}/status`, { signal })
   const json = await resp.json()
   if (!resp.ok) {
     return Promise.reject(resp)
@@ -143,16 +146,24 @@ const List = () => {
   }, [])
 
   useEffect(() => {
+    const controller = new AbortController()
+    const signal = controller.signal
+
     objectives
       .sort((a: Objective, b: Objective) => a.name.localeCompare(b.name))
       .forEach((o: Objective) => {
         dispatchTable({ type: TableActionType.SetObjective, objective: o })
 
-        fetchObjectiveStatus(o.name).then((s: ObjectiveStatus) => {
-          dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
-        })
+        fetchObjectiveStatus(o.name, signal)
+          .then((s: ObjectiveStatus) => {
+            dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
+          })
       })
 
+    return () => {
+      // cancel pending requests if necessary
+      controller.abort()
+    }
   }, [objectives])
 
   const handleTableSort = (type: TableSortType): void => {
@@ -275,22 +286,20 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const [valets, setValets] = useState<Array<Valet>>([]);
 
   useEffect(() => {
-    fetch(`/api/objectives/${name}`)
+    const controller = new AbortController()
+
+    fetch(`${PUBLIC_API}/api/objectives/${name}`, { signal: controller.signal })
       .then((resp: Response) => resp.json())
       .then((data) => setObjective(data))
-  }, [name])
 
-  useEffect(() => {
-    fetch(`/api/objectives/${name}/status`)
+    fetch(`${PUBLIC_API}/api/objectives/${name}/status`, { signal: controller.signal })
       .then((resp: Response) => resp.json())
       .then((data) => {
         setAvailability(data.availability)
         setErrorBudget(data.budget)
       })
-  }, [name])
 
-  useEffect(() => {
-    fetch(`/api/objectives/${name}/valet`)
+    fetch(`${PUBLIC_API}/api/objectives/${name}/valet`, { signal: controller.signal })
       .then((resp: Response) => resp.json())
       .then((data) => setValets(data))
   }, [name])
