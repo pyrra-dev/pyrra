@@ -1,7 +1,7 @@
 import React, { useEffect, useReducer, useRef, useState } from 'react';
 import './App.css';
 import { Col, Container, Row, Spinner, Table } from 'react-bootstrap';
-import { BrowserRouter, Link, Route, RouteComponentProps, Switch } from 'react-router-dom';
+import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory } from 'react-router-dom';
 
 // @ts-ignore - this is passed from the HTML template.
 const PUBLIC_API: string = window.PUBLIC_API;
@@ -36,10 +36,8 @@ const App = () => {
   return (
     <BrowserRouter>
       <Switch>
-        <Route exact={true} path="/">
-          <List/>
-        </Route>
-        <Route path="/objective/:name" component={Details}/>
+        <Route exact={true} path="/" component={List}/>
+        <Route path="/objectives/:name" component={Details}/>
       </Switch>
     </BrowserRouter>
   )
@@ -51,7 +49,7 @@ interface ObjectiveStatus {
 }
 
 const fetchObjectives = async (): Promise<Array<Objective>> => {
-  const resp: Response = await fetch(`${PUBLIC_API}/api/objectives`)
+  const resp: Response = await fetch(`${PUBLIC_API}api/objectives`)
   const json = await resp.json()
   if (!resp.ok) {
     return Promise.reject(resp)
@@ -60,7 +58,7 @@ const fetchObjectives = async (): Promise<Array<Objective>> => {
 }
 
 const fetchObjectiveStatus = async (name: string, signal: AbortSignal): Promise<ObjectiveStatus> => {
-  const resp: Response = await fetch(`${PUBLIC_API}/api/objectives/${name}/status`, { signal })
+  const resp: Response = await fetch(`${PUBLIC_API}api/objectives/${name}/status`, { signal })
   const json = await resp.json()
   if (!resp.ok) {
     return Promise.reject(resp)
@@ -225,6 +223,12 @@ const List = () => {
 
   const upDownIcon = tableSortState.order === TableSortOrder.Ascending ? '⬆️' : '⬇️'
 
+  const history = useHistory()
+
+  const handleTableRowClick = (name: string) => () => {
+    history.push(`/objectives/${name}`)
+  }
+
   return (
     <Container className="App">
       <Row>
@@ -235,18 +239,28 @@ const List = () => {
       <Table hover={true} striped={false}>
         <thead>
         <tr>
-          <th onClick={() => handleTableSort(TableSortType.Name)}>Name {tableSortState.type === TableSortType.Name ? upDownIcon:'↕️'}</th>
-          <th onClick={() => handleTableSort(TableSortType.Window)}>Time Window {tableSortState.type === TableSortType.Window ? upDownIcon:'↕️'}</th>
-          <th onClick={() => handleTableSort(TableSortType.Objective)}>Objective {tableSortState.type === TableSortType.Objective ? upDownIcon:'↕️'}</th>
-          <th onClick={() => handleTableSort(TableSortType.Availability)}>Availability {tableSortState.type === TableSortType.Availability ? upDownIcon:'↕️'}</th>
-          <th onClick={() => handleTableSort(TableSortType.Budget)}>Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon:'↕️'}</th>
+          <th onClick={() => handleTableSort(TableSortType.Name)}>
+            Name {tableSortState.type === TableSortType.Name ? upDownIcon : '↕️'}
+          </th>
+          <th onClick={() => handleTableSort(TableSortType.Window)}>
+            Time Window {tableSortState.type === TableSortType.Window ? upDownIcon : '↕️'}
+          </th>
+          <th onClick={() => handleTableSort(TableSortType.Objective)}>
+            Objective {tableSortState.type === TableSortType.Objective ? upDownIcon : '↕️'}
+          </th>
+          <th onClick={() => handleTableSort(TableSortType.Availability)}>
+            Availability {tableSortState.type === TableSortType.Availability ? upDownIcon : '↕️'}
+          </th>
+          <th onClick={() => handleTableSort(TableSortType.Budget)}>
+            Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon : '↕️'}
+          </th>
         </tr>
         </thead>
         <tbody>
         {tableList.map((o: TableObjective) => (
-          <tr key={o.name}>
+          <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.name)}>
             <td>
-              <Link to={`/objective/${o.name}`}>{o.name}</Link>
+              {o.name}
             </td>
             <td>{o.window}</td>
             <td>
@@ -291,24 +305,24 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   useEffect(() => {
     const controller = new AbortController()
 
-    fetch(`${PUBLIC_API}/api/objectives/${name}`, { signal: controller.signal })
+    fetch(`${PUBLIC_API}api/objectives/${name}`, { signal: controller.signal })
       .then((resp: Response) => resp.json())
       .then((data) => setObjective(data))
 
-    fetch(`${PUBLIC_API}/api/objectives/${name}/status`, { signal: controller.signal })
+    fetch(`${PUBLIC_API}api/objectives/${name}/status`, { signal: controller.signal })
       .then((resp: Response) => resp.json())
       .then((data) => {
         setAvailability(data.availability)
         setErrorBudget(data.budget)
       })
 
-    fetch(`${PUBLIC_API}/api/objectives/${name}/valet`, { signal: controller.signal })
+    fetch(`${PUBLIC_API}api/objectives/${name}/valet`, { signal: controller.signal })
       .then((resp: Response) => resp.json())
       .then((data) => setValets(data))
 
     setErrorBudgetSVGLoading(true)
 
-    fetch(`${PUBLIC_API}/api/objectives/${name}/errorbudget.svg`, { signal: controller.signal })
+    fetch(`${PUBLIC_API}api/objectives/${name}/errorbudget.svg`, { signal: controller.signal })
       .then((resp: Response) => resp.text())
       .then((raw: string) => {
         const doc: Document = new DOMParser().parseFromString(raw, 'image/svg+xml')
@@ -324,7 +338,6 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
     }
   }, [name])
 
-
   if (objective == null) {
     return (
       <div style={{ marginTop: '50px', textAlign: 'center' }}>
@@ -338,12 +351,16 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   return (
     <div className="App">
       <Container>
-        <Row>
+        <Row style={{ marginBottom: '2em' }}>
+          <Col>
+            <Link to="/">⬅️ Overview</Link>
+          </Col>
+        </Row>
+        <Row style={{ marginBottom: '5em' }}>
           <Col>
             <h1>{objective?.name}</h1>
           </Col>
         </Row>
-        <br/><br/><br/>
         <Row>
           <Col className="metric">
             <div>
@@ -402,7 +419,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         {/*
         <Row>
           <Col xs={12} sm={6} md={4}>
-            <img src={`${PUBLIC_API}/api/objectives/${name}/red/requests.svg`}
+            <img src={`${PUBLIC_API}api/objectives/${name}/red/requests.svg`}
                  alt=""
                  style={{ maxWidth: '100%' }}/>
           </Col>
