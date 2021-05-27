@@ -269,6 +269,80 @@ func valetHandler(api prometheusAPI, backend backend) http.HandlerFunc {
 	}
 }
 
+// SamplePair pairs a SampleValue with a Timestamp.
+type SamplePair struct {
+	T int64   `json:"t"`
+	V float64 `json:"v"`
+}
+
+func errorBudgetHandler(api *promCache, backend backend) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := chi.URLParam(r, "name")
+		objective, err := backend.GetObjective(name)
+		if err != nil {
+			log.Println(name, err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		end := time.Now().UTC().Round(15 * time.Second)
+		start := end.Add(-1 * time.Duration(objective.Window)).UTC()
+
+		if r.URL.Query().Get("start") != "" {
+			float, err := strconv.ParseInt(r.URL.Query().Get("start"), 10, 64)
+			if err == nil {
+				start = time.Unix(float, 0)
+			}
+		}
+		if r.URL.Query().Get("end") != "" {
+			float, err := strconv.ParseInt(r.URL.Query().Get("end"), 10, 64)
+			if err == nil {
+				end = time.Unix(float, 0)
+			}
+		}
+
+		step := end.Sub(start) / 1000
+
+		query := objective.QueryErrorBudget()
+		log.Println(query)
+		value, _, err := api.QueryRange(r.Context(), query, prometheusv1.Range{
+			Start: start,
+			End:   end,
+			Step:  step,
+		})
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		matrix, ok := value.(model.Matrix)
+		if !ok {
+			http.Error(w, "no matrix returned", http.StatusInternalServerError)
+			return
+		}
+
+		if len(matrix) != 1 {
+			http.Error(w, "no data", http.StatusNotFound)
+			return
+		}
+
+		pairs := make([]SamplePair, len(matrix[0].Values))
+
+		for _, m := range matrix {
+			for i, pair := range m.Values {
+				pairs[i] = SamplePair{T: pair.Timestamp.Unix(), V: float64(pair.Value)}
+			}
+		}
+
+		bytes, err := json.Marshal(pairs)
+		if err != nil {
+			return
+		}
+		w.Write(bytes)
+	}
+}
+
 func errorBudgetSVGHandler(api prometheusAPI, backend backend) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		objective, err := backend.GetObjective(chi.URLParam(r, "name"))
