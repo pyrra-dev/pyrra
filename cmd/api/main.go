@@ -5,13 +5,10 @@ import (
 	"embed"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/fs"
 	"log"
-	"math"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
@@ -66,7 +63,6 @@ func main() {
 	r.Get("/api/objectives/{name}", objectiveHandler(backend))
 	r.Get("/api/objectives/{name}/status", objectiveStatusHandler(promAPI, backend))
 	r.Get("/api/objectives/{name}/valet", valetHandler(promAPI, backend))
-	r.Get("/api/objectives/{name}/errorbudget.svg", errorBudgetSVGHandler(promAPI, backend))
 	r.Handle("/*", http.FileServer(http.FS(build)))
 
 	if err := http.ListenAndServe(":9099", r); err != nil {
@@ -341,204 +337,6 @@ func errorBudgetHandler(api *promCache, backend backend) http.HandlerFunc {
 		}
 		w.Write(bytes)
 	}
-}
-
-func errorBudgetSVGHandler(api prometheusAPI, backend backend) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		objective, err := backend.GetObjective(chi.URLParam(r, "name"))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		end := time.Now().UTC().Round(15 * time.Second)
-		start := end.Add(-1 * time.Duration(objective.Window)).UTC()
-
-		if r.URL.Query().Get("start") != "" {
-			float, err := strconv.ParseInt(r.URL.Query().Get("start"), 10, 64)
-			if err == nil {
-				start = time.Unix(float, 0)
-			}
-		}
-		if r.URL.Query().Get("end") != "" {
-			float, err := strconv.ParseInt(r.URL.Query().Get("end"), 10, 64)
-			if err == nil {
-				end = time.Unix(float, 0)
-			}
-		}
-
-		width := 1200.0
-		height := 320.0
-		padding := 60.0
-
-		step := end.Sub(start) / time.Duration(width-2*padding) // Should return roughly a datapoint per "pixel".
-
-		query := objective.QueryErrorBudget()
-		log.Println(query)
-		value, _, err := api.QueryRange(r.Context(), query, prometheusv1.Range{
-			Start: start,
-			End:   end,
-			Step:  step,
-		})
-		if err != nil {
-			log.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		if len(value.(model.Matrix)) == 0 {
-			http.Error(w, "no data", http.StatusNotFound)
-			return
-		}
-
-		var min, max float64
-		{
-			vMin := math.MaxFloat64
-			vMax := 1.0
-			for _, sample := range value.(model.Matrix)[0].Values {
-				v := float64(sample.Value)
-				if v > vMax {
-					vMax = v
-				}
-				if v < vMin {
-					vMin = v
-				}
-			}
-
-			min = math.Floor(vMin*10) / 10
-			max = math.Ceil(vMax*10) / 10
-		}
-
-		// If we have 100% availability we want the min to be our target for the graph.
-		if max == 1.0 && min == 1.0 {
-			min = objective.Target
-		}
-
-		graph := fmt.Sprintf(`<g transform="translate(%.f,%.f)">`, padding, padding)
-		for _, l := range graphLines(value.(model.Matrix)[0].Values, start, end, width-2*padding, height-2*padding, min, max) {
-			graph += l
-		}
-		graph += `</g>`
-
-		days := int(time.Duration(objective.Window).Hours() / 24)
-		firstMidnight := time.Date(start.Year(), start.Month(), start.Day()+1, 0, 0, 0, 0, time.UTC)
-
-		xAxis := fmt.Sprintf(`<g transform="translate(0,%.f)" fill="none" font-size="10" font-family="sans-serif" text-anchor="middle">`, height-padding)
-		xAxis += fmt.Sprintf(`<path stroke="currentColor" d="M %.f 0 H %.f"/>`, padding, width-padding)
-		for i := 0; i < days; i++ {
-			midnight := firstMidnight.Add(time.Duration(i*24) * time.Hour)
-			percentage := float64(midnight.Unix()-start.Unix()) / float64(end.Unix()-start.Unix())
-			x := padding + percentage*(width-2*padding)
-			xAxis += fmt.Sprintf(`<g transform="translate(%.f, 0)">`, x)
-			xAxis += `<line stroke="currentColor" y2="6"/>`
-			xAxis += fmt.Sprintf(`<text fill="currentColor" y="9" dy="0.71em" transform="translate(-25,20) rotate(-45)">%s</text>`, midnight.Format("2006-01-02"))
-			xAxis += `</g>`
-		}
-		xAxis += `</g>`
-
-		const labelCount = 10.0
-		i := 0.0
-		steps := (max - min) / labelCount // 10 value labels from max to min
-		yAxis := fmt.Sprintf(`<g transform="translate(%.f,%.f)" fill="none" font-size="10" font-family="sans-serif" text-anchor="end">`, padding, padding)
-		for v := max; v >= min; v = v - steps {
-			yAxis += fmt.Sprintf(`<g class="tick" opacity="1" transform="translate(0,%.f)">`, i*(height-2*padding))
-			yAxis += `<line stroke="currentColor" x1="-8" x2="-2"></line>`
-			yAxis += fmt.Sprintf(`<text fill="currentColor" x="-10" dy="0.32em">%.2f%%</text>`, v*100)
-			yAxis += `</g>`
-			i = i + (1 / labelCount)
-		}
-		yAxis += `</g>`
-
-		out := fmt.Sprintf(`<svg viewBox="0,0,%.f,%.f" fill="none" xmlns="http://www.w3.org/2000/svg" width="%.f" height="%.f">`, width, height, width, height)
-		out += graph
-		out += xAxis
-		out += yAxis
-		out += fmt.Sprintf("<!--\n%s\n-->", query)
-		out += `</svg>`
-
-		w.Header().Set("Content-Type", "image/svg+xml")
-		_, _ = fmt.Fprintln(w, out)
-	}
-}
-
-type line struct {
-	positive bool
-	points   []point
-}
-
-type point struct {
-	x, y float64
-}
-
-func graphLines(samples []model.SamplePair, start, end time.Time, width, height, min, max float64) []string {
-	var lines []line
-
-	var l line
-	for i, value := range samples {
-		if i == 0 {
-			l.positive = float64(value.Value) > 0
-		}
-		if float64(value.Value) < 0 && l.positive {
-			lines = append(lines, l)
-			l = line{positive: false}
-		}
-		if float64(value.Value) > 0 && !l.positive {
-			lines = append(lines, l)
-			l = line{positive: true}
-		}
-
-		x := width * float64(value.Timestamp.Unix()-start.Unix()) / float64(end.Unix()-start.Unix())
-		y := height - height*relative(min, max, float64(value.Value))
-		l.points = append(l.points, point{x, y})
-	}
-	lines = append(lines, l)
-
-	zeroRelative := relative(min, max, 0)
-	zero := height - height*zeroRelative
-
-	var paths []string
-	for _, l := range lines {
-		var path string
-		for i, p := range l.points {
-			if i == 0 {
-				path = fmt.Sprintf("M%.f %.f ", p.x, p.y)
-			} else {
-				path += fmt.Sprintf("L%.f %.f ", p.x, p.y)
-			}
-		}
-
-		if l.positive {
-			if zero > height {
-				zero = height
-			}
-			paths = append(paths,
-				fmt.Sprintf(`<path stroke="#2C9938" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill="none" d="%s"/>`, path),
-			)
-			paths = append(paths,
-				fmt.Sprintf(`<path fill="#2C9938" fill-opacity="0.1" d="%sV%.f H%.f V%.f"/>`, path, zero, l.points[0].x, l.points[0].y), // TODO Might panic when no points...
-			)
-		} else {
-			paths = append(paths,
-				fmt.Sprintf(`<path stroke="#e6522c" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" fill="none" d="%s"/>`, path),
-			)
-			paths = append(paths,
-				fmt.Sprintf(`<path fill="#e6522c" fill-opacity="0.1" d="%sV%.f H%.f V%.f"/>`, path, zero, l.points[0].x, l.points[0].y), // TODO Might panic when no points...
-			)
-		}
-	}
-
-	if zeroRelative >= 0 && zeroRelative <= 1 {
-		// only append the zero line if it's actually visible
-		paths = append(paths,
-			fmt.Sprintf(`<path stroke="#e6522c" stroke-width="1" stroke-dasharray="20,5" fill="none" d="M0 %.f H%.f"/>`, zero, width),
-		)
-	}
-
-	return paths
-}
-
-func relative(min, max, v float64) float64 {
-	return (-1*min + v) / (max - min)
 }
 
 type backend struct {
