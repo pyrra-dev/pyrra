@@ -1,7 +1,8 @@
-import React, { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import './App.css';
 import { Col, Container, Row, Spinner, Table } from 'react-bootstrap';
 import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory } from 'react-router-dom';
+import { Area, AreaChart, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
 
 // @ts-ignore - this is passed from the HTML template.
 const PUBLIC_API: string = window.PUBLIC_API;
@@ -292,6 +293,11 @@ interface DetailsRouteParams {
   name: string
 }
 
+interface SamplePair {
+  t: number
+  v: number
+}
+
 const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const name = params.match.params.name;
   const [objective, setObjective] = useState<Objective | null>(null);
@@ -299,8 +305,11 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const [errorBudget, setErrorBudget] = useState<ErrorBudget | null>(null);
   const [valets, setValets] = useState<Array<Valet>>([]);
 
-  const [errorBudgetSVGLoading, setErrorBudgetSVGLoading] = useState<boolean>(true)
-  const errorBudgetSVG = useRef<SVGSVGElement>(null)
+  const [errorBudgetSamples, setErrorBudgetSamples] = useState<SamplePair[]>([]);
+  const [errorBudgetSamplesOffset, setErrorBudgetSamplesOffset] = useState<number>(0)
+  const [errorBudgetSamplesMin, setErrorBudgetSamplesMin] = useState<number>(-10000)
+  const [errorBudgetSamplesMax, setErrorBudgetSamplesMax] = useState<number>(1)
+  const [errorBudgetSamplesLoading, setErrorBudgetSamplesLoading] = useState<boolean>(true)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -320,17 +329,26 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       .then((resp: Response) => resp.json())
       .then((data) => setValets(data))
 
-    setErrorBudgetSVGLoading(true)
+    setErrorBudgetSamplesLoading(true)
 
-    fetch(`${PUBLIC_API}api/objectives/${name}/errorbudget.svg`, { signal: controller.signal })
-      .then((resp: Response) => resp.text())
-      .then((raw: string) => {
-        const doc: Document = new DOMParser().parseFromString(raw, 'image/svg+xml')
-        const svg: SVGSVGElement | null = doc.querySelector('svg')
-        if (errorBudgetSVG.current != null && svg != null) {
-          errorBudgetSVG.current.replaceWith(svg)
+    fetch(`${PUBLIC_API}api/objectives/${name}/errorbudget`, { signal: controller.signal })
+      .then((resp: Response) => resp.json())
+      .then((json: SamplePair[]) => {
+        setErrorBudgetSamples(json)
+        // Calculate the offset to split the errorbudget into green and red areas
+        const min = Math.min(...json.map((o: SamplePair) => o.v));
+        const max = Math.max(...json.map((o: SamplePair) => o.v));
+        setErrorBudgetSamplesMin(min)
+        setErrorBudgetSamplesMax(max)
+        if (max <= 0) {
+          setErrorBudgetSamplesOffset(0)
+        } else if (min >= 1) {
+          setErrorBudgetSamplesOffset(1)
+        } else {
+          setErrorBudgetSamplesOffset(max / (max - min))
         }
-      }).finally(() => setErrorBudgetSVGLoading(false))
+      })
+      .finally(() => setErrorBudgetSamplesLoading(false))
 
     return () => {
       // cancel any pending requests.
@@ -396,7 +414,12 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         </Row>
         <br/>
         <Row>
-          {errorBudgetSVGLoading ?
+          <Col>
+
+          </Col>
+        </Row>
+        <Row>
+          {errorBudgetSamplesLoading ?
             <div style={{
               width: '100%',
               height: 230,
@@ -406,8 +429,32 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             }}>
               <Spinner animation="border" style={{ margin: '0 auto' }}/>
             </div>
-            : <></>}
-          <svg ref={errorBudgetSVG} style={{ display: errorBudgetSVGLoading ? 'none' : 'block' }}/>
+            : <ResponsiveContainer height={300}>
+              <AreaChart height={300} data={errorBudgetSamples}>
+                <XAxis
+                  type="number"
+                  dataKey="t"
+                  tickCount={7}
+                  tickFormatter={dateFormatter}
+                  domain={[errorBudgetSamples[0].t, errorBudgetSamples[errorBudgetSamples.length - 1].t]}
+                />
+                <YAxis
+                  tickCount={5}
+                  unit="%"
+                  tickFormatter={(v: number) => (100 * v).toFixed(2)}
+                  domain={[errorBudgetSamplesMin, errorBudgetSamplesMax]}
+                />
+                <Tooltip content={<DateTooltip/>}/>
+                <defs>
+                  <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset={errorBudgetSamplesOffset} stopColor="#2C9938" stopOpacity={1}/>
+                    <stop offset={errorBudgetSamplesOffset} stopColor="#e6522c" stopOpacity={1}/>
+                  </linearGradient>
+                </defs>
+                <Area dataKey="v" type="monotone" animationDuration={250} strokeWidth={0} fill="url(#splitColor)"/>
+              </AreaChart>
+            </ResponsiveContainer>
+          }
           {valets.map((v: Valet) => (
             <Col style={{ textAlign: 'right' }}>
               <small>Volume: {Math.floor(v.volume).toLocaleString()}</small>&nbsp;
@@ -416,8 +463,8 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
           ))}
         </Row>
         <br/><br/>
-        {/*
         <Row>
+          {/*
           <Col xs={12} sm={6} md={4}>
             <img src={`${PUBLIC_API}api/objectives/${name}/red/requests.svg`}
                  alt=""
@@ -425,12 +472,59 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
           </Col>
           <Col xs={12} sm={6} md={4}/>
           <Col xs={12} sm={6} md={4}/>
+          */}
         </Row>
-        */}
-        <br/><br/><br/><br/><br/>
       </Container>
     </div>
   );
 };
+
+const dateFormatter = (t: number): string => {
+  const date = new Date(t * 1000)
+  const year = date.getUTCFullYear()
+  const month = date.getUTCMonth() + 1
+  const day = date.getUTCDate()
+
+  const monthLeading = month > 9 ? month : `0${month}`
+  const dayLeading = day > 9 ? day : `0${day}`
+
+  return `${year}-${monthLeading}-${dayLeading}`
+}
+
+const dateFormatterFull = (t: number): string => {
+  const date = new Date(t * 1000)
+  const year = date.getUTCFullYear()
+  const month = date.getUTCMonth() + 1
+  const day = date.getUTCDate()
+  const hour = date.getUTCHours()
+  const minute = date.getUTCMinutes()
+
+  const monthLeading = month > 9 ? month : `0${month}`
+  const dayLeading = day > 9 ? day : `0${day}`
+  const hourLeading = hour > 9 ? hour : `0${hour}`
+  const minuteLeading = minute > 9 ? minute : `0${minute}`
+
+  return `${year}-${monthLeading}-${dayLeading} ${hourLeading}:${minuteLeading}`
+}
+
+const DateTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
+  const style = {
+    padding: 10,
+    paddingTop: 5,
+    paddingBottom: 5,
+    backgroundColor: 'white',
+    border: '1px solid #666',
+    borderRadius: 3
+  }
+  if (payload !== undefined && payload?.length > 0) {
+    return (
+      <div className="area-chart-tooltip" style={style}>
+        Date: {dateFormatterFull(payload[0].payload.t)}<br/>
+        Value: {(100 * payload[0].payload.v).toFixed(3)}%
+      </div>
+    )
+  }
+  return <></>
+}
 
 export default App;
