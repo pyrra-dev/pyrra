@@ -318,6 +318,8 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
 
   const [requests, setRequests] = useState<SamplePair[]>([])
   const [requestsLabels, setRequestsLabels] = useState<string[]>([])
+  const [errors, setErrors] = useState<SamplePair[]>([])
+  const [errorsLabels, setErrorsLabels] = useState<string[]>([])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -380,6 +382,25 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         setRequestsLabels(labels)
       })
 
+    fetch(`${PUBLIC_API}api/objectives/${name}/red/errors`, { signal: controller.signal })
+      .then((resp: Response) => resp.json())
+      .then((json: Requests[]) => {
+        let data: any[] = []
+        let labels: string[] = []
+        json.forEach((requests: Requests, i: number) => {
+          labels.push(requests.label)
+          requests.samples.forEach((p: SamplePair, j: number) => {
+            if (i === 0) {
+              data[j] = { t: p.t, 0: 100 * p.v }
+            } else {
+              data[j][i] = 100 * p.v
+            }
+          })
+        })
+        setErrors(data)
+        setErrorsLabels(labels)
+      })
+
     return () => {
       // cancel any pending requests.
       controller.abort()
@@ -410,7 +431,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       return (
         <div className="area-chart-tooltip" style={style}>
           Date: {dateFormatterFull(payload[0].payload.t)}<br/>
-          {Object.keys(payload[0].payload).filter((k) => k != 't').map((k: string, i: number) => (
+          {Object.keys(payload[0].payload).filter((k) => k !== 't').map((k: string, i: number) => (
             <>
               <span>{requestsLabels[i]}: {(payload[0].payload[k]).toFixed(2)} req/s</span><br/>
             </>
@@ -421,6 +442,29 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
     return <></>
   }
 
+  const ErrorsTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
+    const style = {
+      padding: 10,
+      paddingTop: 5,
+      paddingBottom: 5,
+      backgroundColor: 'white',
+      border: '1px solid #666',
+      borderRadius: 3
+    }
+    if (payload !== undefined && payload?.length > 0) {
+      return (
+        <div className="area-chart-tooltip" style={style}>
+          Date: {dateFormatterFull(payload[0].payload.t)}<br/>
+          {Object.keys(payload[0].payload).filter((k) => k !== 't').map((k: string, i: number) => (
+            <>
+              <span>{errorsLabels[i]}: {(payload[0].payload[k]).toFixed(2)}%</span><br/>
+            </>
+          ))}
+        </div>
+      )
+    }
+    return <></>
+  }
 
   return (
     <div className="App">
@@ -567,7 +611,45 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               <></>
             )}
           </Col>
-          <Col xs={12} sm={6} md={4}/>
+          <Col xs={12} sm={6} md={4}>
+            <h4>Errors</h4>
+            {errors.length > 0 && errorsLabels.length > 0 ? (
+              <ResponsiveContainer height={150}>
+                <AreaChart height={150} data={errors}>
+                  <XAxis
+                    type="number"
+                    dataKey="t"
+                    tickCount={3}
+                    tickFormatter={dateFormatter}
+                    domain={[errors[0].t, errors[errors.length - 1].t]}
+                  />
+                  <YAxis
+                    tickCount={3}
+                    unit="%"
+                    // tickFormatter={(v: number) => (100 * v).toFixed(2)}
+                    // domain={[0, 10]}
+                  />
+                  {Object.keys(errors[0]).filter((k: string) => k !== 't').map((k: string, i: number) => {
+                    const label = errorsLabels[parseInt(k)]
+                    const color = reds[i]
+
+                    return <Area
+                      key={k}
+                      type="monotone"
+                      animationDuration={250}
+                      dataKey={k}
+                      stackId={1}
+                      strokeWidth={0}
+                      fill={`#${color}`}
+                      fillOpacity={1}/>
+                  })}
+                  <Tooltip content={ErrorsTooltip}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <></>
+            )}
+          </Col>
           <Col xs={12} sm={6} md={4}/>
         </Row>
       </Container>

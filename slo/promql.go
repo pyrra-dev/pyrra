@@ -254,3 +254,61 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 
 	return expr.String()
 }
+
+func (o Objective) ErrorsRange(timerange time.Duration) string {
+	expr, err := parser.ParseExpr(`sum by(group) (rate(metric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s])))`)
+	if err != nil {
+		return err.Error()
+	}
+
+	var (
+		metric        string
+		matchers      []*labels.Matcher
+		errorMatchers []*labels.Matcher
+		grouping      []string
+	)
+
+	if o.Indicator.HTTP != nil {
+		if o.Indicator.HTTP.Metric == "" {
+			o.Indicator.HTTP.Metric = HTTPDefaultMetric
+		}
+		if len(o.Indicator.HTTP.ErrorMatchers) == 0 {
+			o.Indicator.HTTP.ErrorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
+		}
+
+		metric = o.Indicator.HTTP.Metric
+		matchers = o.Indicator.HTTP.Matchers
+		errorMatchers = o.Indicator.HTTP.AllSelectors()
+		for _, m := range o.Indicator.HTTP.ErrorMatchers {
+			grouping = append(grouping, m.Name)
+		}
+	}
+	if o.Indicator.GRPC != nil {
+		if o.Indicator.GRPC.Metric == "" {
+			o.Indicator.GRPC.Metric = GRPCDefaultMetric
+		}
+		if len(o.Indicator.GRPC.ErrorMatchers) == 0 {
+			o.Indicator.GRPC.ErrorMatchers = []*labels.Matcher{GRPCDefaultErrorSelector}
+		}
+
+		metric = o.Indicator.GRPC.Metric
+		matchers = o.Indicator.GRPC.GRPCSelectors()
+		errorMatchers = o.Indicator.GRPC.AllSelectors()
+		for _, m := range o.Indicator.GRPC.ErrorMatchers {
+			grouping = append(grouping, m.Name)
+		}
+	}
+
+	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
+	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
+
+	objectiveReplacer{
+		metric:        metric,
+		matchers:      matchers,
+		errorMatchers: errorMatchers,
+		grouping:      grouping,
+		window:        timerange,
+	}.replace(expr)
+
+	return expr.String()
+}

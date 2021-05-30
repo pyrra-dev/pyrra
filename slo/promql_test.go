@@ -181,3 +181,38 @@ func TestObjective_RequestRange(t *testing.T) {
 		})
 	}
 }
+
+func TestObjective_ErrorsRange(t *testing.T) {
+	testcases := []struct {
+		name      string
+		objective Objective
+		timerange time.Duration
+		expected  string
+	}{{
+		name:      "http",
+		objective: objectiveHTTP,
+		timerange: 6 * time.Hour,
+		expected:  `sum by(code) (rate(http_requests_total{code=~"5.."}[6h])) / scalar(sum(rate(http_requests_total[6h])))`,
+	}, {
+		name:      "http-custom",
+		objective: objectiveHTTPCustom,
+		timerange: 6 * time.Hour,
+		expected:  `sum by(status) (rate(prometheus_http_requests_total{foo="bar",status=~"5.."}[6h])) / scalar(sum(rate(prometheus_http_requests_total{foo="bar"}[6h])))`,
+	}, {
+		name:      "grpc",
+		objective: objectiveGRPC,
+		timerange: 24 * time.Hour,
+		expected:  `sum by(grpc_code) (rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="method",grpc_service="service"}[1d])) / scalar(sum(rate(grpc_server_handled_total{grpc_method="method",grpc_service="service"}[1d])))`,
+	}, {
+		name:      "grpc-custom",
+		objective: objectiveGRPCCustom,
+		timerange: 13 * time.Hour,
+		expected:  `sum by(grpc_code) (rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="lightspeed",grpc_service="awesome",job="app"}[13h])) / scalar(sum(rate(grpc_server_handled_total{grpc_method="lightspeed",grpc_service="awesome",job="app"}[13h])))`,
+	}}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, tc.objective.ErrorsRange(tc.timerange))
+		})
+	}
+}
