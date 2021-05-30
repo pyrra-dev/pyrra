@@ -298,6 +298,11 @@ interface SamplePair {
   v: number
 }
 
+interface Requests {
+  label: string
+  samples: SamplePair[]
+}
+
 const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const name = params.match.params.name;
   const [objective, setObjective] = useState<Objective | null>(null);
@@ -310,6 +315,9 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const [errorBudgetSamplesMin, setErrorBudgetSamplesMin] = useState<number>(-10000)
   const [errorBudgetSamplesMax, setErrorBudgetSamplesMax] = useState<number>(1)
   const [errorBudgetSamplesLoading, setErrorBudgetSamplesLoading] = useState<boolean>(true)
+
+  const [requests, setRequests] = useState<SamplePair[]>([])
+  const [requestsLabels, setRequestsLabels] = useState<string[]>([])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -336,9 +344,12 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       .then((json: SamplePair[]) => {
         setErrorBudgetSamples(json)
         // Calculate the offset to split the errorbudget into green and red areas
-        const min = Math.min(...json.map((o: SamplePair) => o.v));
-        const max = Math.max(...json.map((o: SamplePair) => o.v));
-        setErrorBudgetSamplesMin(min)
+        const min = Math.floor(100 * Math.min(...json.map((o: SamplePair) => o.v))) / 100;
+        const max = Math.ceil(100 * Math.max(...json.map((o: SamplePair) => o.v))) / 100;
+
+        console.log(Math.floor(100 * min) / 100, Math.round(100 * max) / 100)
+
+        setErrorBudgetSamplesMin(min === 1 ? 0 : min)
         setErrorBudgetSamplesMax(max)
         if (max <= 0) {
           setErrorBudgetSamplesOffset(0)
@@ -349,6 +360,25 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         }
       })
       .finally(() => setErrorBudgetSamplesLoading(false))
+
+    fetch(`${PUBLIC_API}api/objectives/${name}/red/requests`, { signal: controller.signal })
+      .then((resp: Response) => resp.json())
+      .then((json: Requests[]) => {
+        let data: any[] = []
+        let labels: string[] = []
+        json.forEach((requests: Requests, i: number) => {
+          labels.push(requests.label)
+          requests.samples.forEach((p: SamplePair, j: number) => {
+            if (i === 0) {
+              data[j] = { t: p.t, 0: p.v }
+            } else {
+              data[j][i] = p.v
+            }
+          })
+        })
+        setRequests(data)
+        setRequestsLabels(labels)
+      })
 
     return () => {
       // cancel any pending requests.
@@ -365,6 +395,32 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       </div>
     )
   }
+
+
+  const RequestTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
+    const style = {
+      padding: 10,
+      paddingTop: 5,
+      paddingBottom: 5,
+      backgroundColor: 'white',
+      border: '1px solid #666',
+      borderRadius: 3
+    }
+    if (payload !== undefined && payload?.length > 0) {
+      return (
+        <div className="area-chart-tooltip" style={style}>
+          Date: {dateFormatterFull(payload[0].payload.t)}<br/>
+          {Object.keys(payload[0].payload).filter((k) => k != 't').map((k: string, i: number) => (
+            <>
+              <span>{requestsLabels[i]}: {(payload[0].payload[k]).toFixed(2)} req/s</span><br/>
+            </>
+          ))}
+        </div>
+      )
+    }
+    return <></>
+  }
+
 
   return (
     <div className="App">
@@ -455,8 +511,8 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               </AreaChart>
             </ResponsiveContainer>
           }
-          {valets.map((v: Valet) => (
-            <Col style={{ textAlign: 'right' }}>
+          {valets.map((v: Valet, i: number) => (
+            <Col key={i} style={{ textAlign: 'right' }}>
               <small>Volume: {Math.floor(v.volume).toLocaleString()}</small>&nbsp;
               <small>Errors: {Math.floor(v.errors).toLocaleString()}</small>
             </Col>
@@ -464,15 +520,55 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         </Row>
         <br/><br/>
         <Row>
-          {/*
           <Col xs={12} sm={6} md={4}>
-            <img src={`${PUBLIC_API}api/objectives/${name}/red/requests.svg`}
-                 alt=""
-                 style={{ maxWidth: '100%' }}/>
+            <h4>Requests</h4>
+            {requests.length > 0 && requestsLabels.length > 0 ? (
+              <ResponsiveContainer height={150}>
+                <AreaChart height={150} data={requests}>
+                  <XAxis
+                    type="number"
+                    dataKey="t"
+                    tickCount={3}
+                    tickFormatter={dateFormatter}
+                    domain={[requests[0].t, requests[requests.length - 1].t]}
+                  />
+                  <YAxis
+                    tickCount={3}
+                    // tickFormatter={(v: number) => (100 * v).toFixed(2)}
+                    // domain={[0, 10]}
+                  />
+                  {Object.keys(requests[0]).filter((k: string) => k !== 't').map((k: string, i: number) => {
+                    const label = requestsLabels[parseInt(k)]
+                    let color = ''
+                    if (label.startsWith('2')) {
+                      color = greens[i]
+                    }
+                    if (label.startsWith('4')) {
+                      color = blues[i]
+                    }
+                    if (label.startsWith('5')) {
+                      color = reds[i]
+                    }
+
+                    return <Area
+                      key={k}
+                      type="monotone"
+                      animationDuration={250}
+                      dataKey={k}
+                      stackId={1}
+                      strokeWidth={0}
+                      fill={`#${color}`}
+                      fillOpacity={1}/>
+                  })}
+                  <Tooltip content={RequestTooltip}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <></>
+            )}
           </Col>
           <Col xs={12} sm={6} md={4}/>
           <Col xs={12} sm={6} md={4}/>
-          */}
         </Row>
       </Container>
     </div>
@@ -528,3 +624,37 @@ const DateTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => 
 }
 
 export default App;
+
+const greens = [
+  '1B5E20',
+  '2E7D32',
+  '388E3C',
+  '43A047',
+  '4CAF50',
+  '66BB6A',
+  '81C784',
+  'A5D6A7',
+  'C8E6C9'
+]
+const blues = [
+  "0D47A1",
+  "1565C0",
+  "1976D2",
+  "1E88E5",
+  "2196F3",
+  "42A5F5",
+  "64B5F6",
+  "90CAF9",
+  "BBDEFB"
+]
+const reds = [
+  "B71C1C",
+  "C62828",
+  "D32F2F",
+  "E53935",
+  "F44336",
+  "EF5350",
+  "E57373",
+  "EF9A9A",
+  "FFCDD2"
+]

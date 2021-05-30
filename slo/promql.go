@@ -101,6 +101,7 @@ type objectiveReplacer struct {
 	metric        string
 	matchers      []*labels.Matcher
 	errorMatchers []*labels.Matcher
+	grouping      []string
 	window        time.Duration
 	target        float64
 }
@@ -158,6 +159,9 @@ func (o Objective) QueryErrorBudget() string {
 func (r objectiveReplacer) replace(node parser.Node) {
 	switch n := node.(type) {
 	case *parser.AggregateExpr:
+		if len(n.Grouping) > 0 {
+			n.Grouping = r.grouping
+		}
 		r.replace(n.Expr)
 	case *parser.Call:
 		r.replace(n.Args)
@@ -195,4 +199,58 @@ func (r objectiveReplacer) replace(node parser.Node) {
 	default:
 		panic(fmt.Sprintf("no support for type %T", n))
 	}
+}
+
+func (o Objective) RequestRange(timerange time.Duration) string {
+	//expr, err := parser.ParseExpr(`sum by(group) (rate(metric{}[1s])) > 0`) // TODO
+	expr, err := parser.ParseExpr(`sum by(group) (rate(metric{}[1s]))`)
+	if err != nil {
+		return err.Error()
+	}
+
+	var metric string
+	var matchers []*labels.Matcher
+	var grouping []string
+
+	if o.Indicator.HTTP != nil {
+		if o.Indicator.HTTP.Metric == "" {
+			o.Indicator.HTTP.Metric = HTTPDefaultMetric
+		}
+		if len(o.Indicator.HTTP.ErrorMatchers) == 0 {
+			o.Indicator.HTTP.ErrorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
+		}
+
+		metric = o.Indicator.HTTP.Metric
+		matchers = o.Indicator.HTTP.Matchers
+		for _, m := range o.Indicator.HTTP.ErrorMatchers {
+			grouping = append(grouping, m.Name)
+		}
+	}
+	if o.Indicator.GRPC != nil {
+		if o.Indicator.GRPC.Metric == "" {
+			o.Indicator.GRPC.Metric = GRPCDefaultMetric
+		}
+		if len(o.Indicator.GRPC.ErrorMatchers) == 0 {
+			o.Indicator.GRPC.ErrorMatchers = []*labels.Matcher{GRPCDefaultErrorSelector}
+		}
+
+		metric = o.Indicator.GRPC.Metric
+		matchers = o.Indicator.GRPC.GRPCSelectors()
+		for _, m := range o.Indicator.GRPC.ErrorMatchers {
+			grouping = append(grouping, m.Name)
+		}
+	}
+
+	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
+	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
+
+	objectiveReplacer{
+		metric:   metric,
+		matchers: matchers,
+		grouping: grouping,
+		window:   timerange,
+		target:   o.Target,
+	}.replace(expr)
+
+	return expr.String()
 }

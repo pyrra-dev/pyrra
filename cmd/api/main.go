@@ -63,6 +63,8 @@ func main() {
 	r.Get("/api/objectives/{name}", objectiveHandler(backend))
 	r.Get("/api/objectives/{name}/status", objectiveStatusHandler(promAPI, backend))
 	r.Get("/api/objectives/{name}/valet", valetHandler(promAPI, backend))
+	r.Get("/api/objectives/{name}/errorbudget", errorBudgetHandler(promAPI, backend))
+	r.Get("/api/objectives/{name}/red/requests", redRequestsHandler(promAPI, backend))
 	r.Handle("/*", http.FileServer(http.FS(build)))
 
 	if err := http.ListenAndServe(":9099", r); err != nil {
@@ -336,6 +338,78 @@ func errorBudgetHandler(api *promCache, backend backend) http.HandlerFunc {
 			return
 		}
 		w.Write(bytes)
+	}
+}
+
+type Requests struct {
+	Label   string       `json:"label"`
+	Samples []SamplePair `json:"samples"`
+}
+
+func redRequestsHandler(api prometheusAPI, backend backend) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		objective, err := backend.GetObjective(chi.URLParam(r, "name"))
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		now := time.Now().UTC()
+		query := objective.RequestRange(5 * time.Minute)
+		log.Println(query)
+
+		value, _, err := api.QueryRange(r.Context(), query, prometheusv1.Range{
+			Start: now.Add(-1 * time.Hour),
+			End:   now,
+			Step:  15 * time.Second,
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if value.Type() != model.ValMatrix {
+			http.Error(w, "returned data is not a matrix", http.StatusInternalServerError)
+			return
+		}
+
+		matrix, ok := value.(model.Matrix)
+		if !ok {
+			http.Error(w, "no matrix returned", http.StatusInternalServerError)
+			return
+		}
+
+		if len(matrix) == 0 {
+			http.Error(w, "no data", http.StatusNotFound)
+			return
+		}
+
+		out := make([]Requests, len(matrix))
+
+		for i, m := range matrix {
+			pairs := make([]SamplePair, len(matrix[i].Values))
+			for j, pair := range m.Values {
+				pairs[j] = SamplePair{T: pair.Timestamp.Unix(), V: float64(pair.Value)}
+			}
+			ls := model.LabelSet(m.Metric)
+
+			// TODO: Extract the labels properly from the query...
+			if ls["code"] != "" {
+				out[i].Label = string(ls["code"])
+			}
+			if ls["status"] != "" {
+				out[i].Label = string(ls["status"])
+			}
+
+			out[i].Samples = pairs
+		}
+
+		bytes, err := json.Marshal(out)
+		if err != nil {
+			return
+		}
+		_, _ = w.Write(bytes)
 	}
 }
 
