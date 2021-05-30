@@ -534,7 +534,6 @@ type promCache struct {
 
 func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error) {
 	xxh := xxhash.New()
-	_, _ = xxh.WriteString(strconv.FormatInt(ts.Unix(), 10))
 	_, _ = xxh.WriteString(query)
 	hash := xxh.Sum64()
 
@@ -547,11 +546,28 @@ func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (mode
 		return nil, nil, err
 	}
 
-	_ = p.cache.SetWithTTL(hash, value, 10, time.Until(ts))
+	// TODO might need to pass cache duration via ctx?
+	_ = p.cache.SetWithTTL(hash, value, 10, 5*time.Minute)
 
 	return value, nil, nil
 }
 
 func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error) {
-	return p.api.QueryRange(ctx, query, r)
+	xxh := xxhash.New()
+	_, _ = xxh.WriteString(query)
+	hash := xxh.Sum64()
+
+	if value, exists := p.cache.Get(hash); exists {
+		return value.(model.Value), nil, nil
+	}
+
+	value, _, err := p.api.QueryRange(ctx, query, r)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO might need to pass cache duration via ctx?
+	_ = p.cache.SetWithTTL(hash, value, 100, 10*time.Minute)
+
+	return value, nil, nil
 }
