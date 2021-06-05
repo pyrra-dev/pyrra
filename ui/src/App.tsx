@@ -3,11 +3,12 @@ import './App.css';
 import { Col, Container, Row, Spinner, Table } from 'react-bootstrap';
 import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory } from 'react-router-dom';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
+import AlertsTable from './components/AlertsTable'
 
 // @ts-ignore - this is passed from the HTML template.
-const PUBLIC_API: string = window.PUBLIC_API;
+export const PUBLIC_API: string = window.PUBLIC_API;
 
-interface Objective {
+export interface Objective {
   name: string
   target: number
   window: string
@@ -341,15 +342,18 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
 
     setErrorBudgetSamplesLoading(true)
 
-    fetch(`${PUBLIC_API}api/objectives/${name}/errorbudget`, { signal: controller.signal })
+    const end = Math.ceil(Date.now() / 1000)
+    const start = end - 3600
+
+    const urlErrorBudget = `${PUBLIC_API}api/objectives/${name}/errorbudget?start=${start}&end=${end}`
+
+    fetch(urlErrorBudget, { signal: controller.signal })
       .then((resp: Response) => resp.json())
       .then((json: SamplePair[]) => {
         setErrorBudgetSamples(json)
         // Calculate the offset to split the errorbudget into green and red areas
         const min = Math.floor(100 * Math.min(...json.map((o: SamplePair) => o.v))) / 100;
         const max = Math.ceil(100 * Math.max(...json.map((o: SamplePair) => o.v))) / 100;
-
-        console.log(Math.floor(100 * min) / 100, Math.round(100 * max) / 100)
 
         setErrorBudgetSamplesMin(min === 1 ? 0 : min)
         setErrorBudgetSamplesMax(max)
@@ -564,7 +568,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         </Row>
         <br/><br/>
         <Row>
-          <Col xs={12} sm={6} md={4}>
+          <Col xs={12} sm={6}>
             <h4>Requests</h4>
             {requests.length > 0 && requestsLabels.length > 0 ? (
               <ResponsiveContainer height={150}>
@@ -611,7 +615,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               <></>
             )}
           </Col>
-          <Col xs={12} sm={6} md={4}>
+          <Col xs={12} sm={6}>
             <h4>Errors</h4>
             {errors.length > 0 && errorsLabels.length > 0 ? (
               <ResponsiveContainer height={150}>
@@ -630,9 +634,6 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                     // domain={[0, 10]}
                   />
                   {Object.keys(errors[0]).filter((k: string) => k !== 't').map((k: string, i: number) => {
-                    const label = errorsLabels[parseInt(k)]
-                    const color = reds[i]
-
                     return <Area
                       key={k}
                       type="monotone"
@@ -640,7 +641,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                       dataKey={k}
                       stackId={1}
                       strokeWidth={0}
-                      fill={`#${color}`}
+                      fill={`#${reds[i]}`}
                       fillOpacity={1}/>
                   })}
                   <Tooltip content={ErrorsTooltip}/>
@@ -650,7 +651,13 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               <></>
             )}
           </Col>
-          <Col xs={12} sm={6} md={4}/>
+        </Row>
+        <br/><br/><br/>
+        <Row>
+          <Col>
+            <h4>Multi Burn Rate Alerts</h4>
+            <AlertsTable objective={objective}/>
+          </Col>
         </Row>
       </Container>
     </div>
@@ -740,3 +747,37 @@ const reds = [
   "EF9A9A",
   "FFCDD2"
 ]
+
+// From prometheus/prometheus
+
+export const formatDuration = (d: number): string => {
+  let ms = d;
+  let r = '';
+  if (ms === 0) {
+    return '0s';
+  }
+
+  const f = (unit: string, mult: number, exact: boolean) => {
+    if (exact && ms % mult !== 0) {
+      return;
+    }
+    const v = Math.floor(ms / mult);
+    if (v > 0) {
+      r += `${v}${unit}`;
+      ms -= v * mult;
+    }
+  };
+
+  // Only format years and weeks if the remainder is zero, as it is often
+  // easier to read 90d than 12w6d.
+  f('y', 1000 * 60 * 60 * 24 * 365, true);
+  f('w', 1000 * 60 * 60 * 24 * 7, true);
+
+  f('d', 1000 * 60 * 60 * 24, false);
+  f('h', 1000 * 60 * 60, false);
+  f('m', 1000 * 60, false);
+  f('s', 1000, false);
+  f('ms', 1, false);
+
+  return r;
+};
