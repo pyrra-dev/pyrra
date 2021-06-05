@@ -48,9 +48,14 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	}
 
 	for _, br := range burnrates {
+		expr, err := Burnrate(metric, br, matcher, errorMatcher)
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
 		rules = append(rules, monitoringv1.Rule{
 			Record: burnrateName(metric, br),
-			Expr:   intstr.FromString(burnrate(metric, br, matcher, errorMatcher)),
+			Expr:   intstr.FromString(expr),
 			//Labels: http.Matchers, // TODO: Properly parse selectors via matchers
 		})
 	}
@@ -86,20 +91,24 @@ func burnrateName(metric string, rate time.Duration) string {
 	return fmt.Sprintf("%s:burnrate%s", metric, model.Duration(rate))
 }
 
-func burnrate(metric string, rate time.Duration, selectors []*labels.Matcher, errorSelectors []*labels.Matcher) string {
+func Burnrate(metric string, rate time.Duration, matchers []*labels.Matcher, errorMatchers []*labels.Matcher) (string, error) {
 	expr, err := parser.ParseExpr(`sum(rate(metric{matchers="errors"}[1s])) / sum(rate(metric{matchers="total"}[1s]))`)
 	if err != nil {
-		return err.Error() // TODO: Actually return err
+		return "", err
 	}
+
+	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
+	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
+	errorMatchers = append([]*labels.Matcher{metricMatcher}, errorMatchers...)
 
 	objectiveReplacer{
 		metric:        metric,
-		matchers:      selectors,
-		errorMatchers: errorSelectors,
+		matchers:      matchers,
+		errorMatchers: errorMatchers,
 		window:        rate,
 	}.replace(expr)
 
-	return expr.String()
+	return expr.String(), nil
 }
 
 type severity string
