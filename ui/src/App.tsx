@@ -3,10 +3,22 @@ import './App.css';
 import { Col, Container, Row, Spinner, Table } from 'react-bootstrap';
 import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory } from 'react-router-dom';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
+import {
+  Configuration,
+  ErrorBudget as APIErrorBudget,
+  ErrorBudgetPair,
+  Objective as APIObjective,
+  ObjectivesApi,
+  ObjectiveStatus as APIObjectiveStatus,
+  ObjectiveStatusAvailability,
+  ObjectiveStatusBudget
+} from './client'
 import AlertsTable from './components/AlertsTable'
 
 // @ts-ignore - this is passed from the HTML template.
 export const PUBLIC_API: string = window.PUBLIC_API;
+const APIConfiguration = new Configuration({ basePath: `${PUBLIC_API}api/v1` })
+export const APIObjectives = new ObjectivesApi(APIConfiguration)
 
 export interface Objective {
   name: string
@@ -26,14 +38,6 @@ interface ErrorBudget {
   remaining: number
 }
 
-interface Valet {
-  window: number
-  volume: number
-  errors: number
-  availability: number
-  budget: number
-}
-
 const App = () => {
   return (
     <BrowserRouter>
@@ -50,15 +54,6 @@ interface ObjectiveStatus {
   budget: number
 }
 
-const fetchObjectives = async (): Promise<Array<Objective>> => {
-  const resp: Response = await fetch(`${PUBLIC_API}api/objectives`)
-  const json = await resp.json()
-  if (!resp.ok) {
-    return Promise.reject(resp)
-  }
-  return json
-}
-
 const fetchObjectiveStatus = async (name: string, signal: AbortSignal): Promise<ObjectiveStatus> => {
   const resp: Response = await fetch(`${PUBLIC_API}api/objectives/${name}/status`, { signal })
   const json = await resp.json()
@@ -69,7 +64,7 @@ const fetchObjectiveStatus = async (name: string, signal: AbortSignal): Promise<
 }
 
 // TableObjective extends Objective to add some more additional (async) properties
-interface TableObjective extends Objective {
+interface TableObjective extends APIObjective {
   availability?: number
   budget?: number
 }
@@ -81,8 +76,8 @@ interface TableState {
 enum TableActionType { SetObjective, SetStatus }
 
 type TableAction =
-  | { type: TableActionType.SetObjective, objective: Objective }
-  | { type: TableActionType.SetStatus, name: string, status: ObjectiveStatus }
+  | { type: TableActionType.SetObjective, objective: APIObjective }
+  | { type: TableActionType.SetStatus, name: string, status: APIObjectiveStatus }
 
 const tableReducer = (state: TableState, action: TableAction): TableState => {
   switch (action.type) {
@@ -105,8 +100,8 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           ...state.objectives,
           [action.name]: {
             ...state.objectives[action.name],
-            availability: action.status.availability,
-            budget: action.status.budget
+            availability: action.status.availability?.percentage,
+            budget: action.status.budget?.remaining
           }
         }
       }
@@ -131,7 +126,7 @@ interface TableSorting {
 }
 
 const List = () => {
-  const [objectives, setObjectives] = useState<Array<Objective>>([])
+  const [objectives, setObjectives] = useState<Array<APIObjective>>([])
   const initialTableState: TableState = { objectives: {} }
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
   const [tableSortState, setTableSortState] = useState<TableSorting>({
@@ -140,22 +135,22 @@ const List = () => {
   })
 
   useEffect(() => {
-    fetchObjectives()
-      .then((objectives: Objective[]) => setObjectives(objectives))
+    APIObjectives.listObjectives()
+      .then((objectives: APIObjective[]) => setObjectives(objectives))
       .catch((err) => console.log(err))
   }, [])
 
   useEffect(() => {
     const controller = new AbortController()
-    const signal = controller.signal
+    const signal = controller.signal // TODO: Pass this to the generated fetch client?
 
     objectives
-      .sort((a: Objective, b: Objective) => a.name.localeCompare(b.name))
-      .forEach((o: Objective) => {
+      .sort((a: APIObjective, b: APIObjective) => a.name.localeCompare(b.name))
+      .forEach((o: APIObjective) => {
         dispatchTable({ type: TableActionType.SetObjective, objective: o })
 
-        fetchObjectiveStatus(o.name, signal)
-          .then((s: ObjectiveStatus) => {
+        APIObjectives.getObjectiveStatus({name:o.name})
+          .then((s:APIObjectiveStatus) => {
             dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
           })
       })
@@ -188,9 +183,9 @@ const List = () => {
             }
           case TableSortType.Window:
             if (tableSortState.order === TableSortOrder.Ascending) {
-              return a.window.localeCompare(b.window)
+              return a.window - b.window
             } else {
-              return b.window.localeCompare(a.window)
+              return b.window - a.window
             }
           case TableSortType.Objective:
             if (tableSortState.order === TableSortOrder.Ascending) {
@@ -264,7 +259,7 @@ const List = () => {
             <td>
               {o.name}
             </td>
-            <td>{o.window}</td>
+            <td>{formatDuration(o.window)}</td>
             <td>
               {(100 * o.target).toFixed(2)}%
             </td>
@@ -306,12 +301,11 @@ interface Requests {
 
 const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const name = params.match.params.name;
-  const [objective, setObjective] = useState<Objective | null>(null);
-  const [availability, setAvailability] = useState<Availability | null>(null);
-  const [errorBudget, setErrorBudget] = useState<ErrorBudget | null>(null);
-  const [valets, setValets] = useState<Array<Valet>>([]);
+  const [objective, setObjective] = useState<APIObjective | null>(null);
+  const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null);
+  const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null);
 
-  const [errorBudgetSamples, setErrorBudgetSamples] = useState<SamplePair[]>([]);
+  const [errorBudgetSamples, setErrorBudgetSamples] = useState<ErrorBudgetPair[]>([]);
   const [errorBudgetSamplesOffset, setErrorBudgetSamplesOffset] = useState<number>(0)
   const [errorBudgetSamplesMin, setErrorBudgetSamplesMin] = useState<number>(-10000)
   const [errorBudgetSamplesMax, setErrorBudgetSamplesMax] = useState<number>(1)
@@ -325,15 +319,13 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   useEffect(() => {
     const controller = new AbortController()
 
-    fetch(`${PUBLIC_API}api/objectives/${name}`, { signal: controller.signal })
-      .then((resp: Response) => resp.json())
-      .then((data) => setObjective(data))
+    APIObjectives.getObjective({name})
+      .then((o: APIObjective) => setObjective(o))
 
-    fetch(`${PUBLIC_API}api/objectives/${name}/status`, { signal: controller.signal })
-      .then((resp: Response) => resp.json())
-      .then((data) => {
-        setAvailability(data.availability)
-        setErrorBudget(data.budget)
+    APIObjectives.getObjectiveStatus({ name })
+      .then((s:APIObjectiveStatus) => {
+        setAvailability(s.availability)
+        setErrorBudget(s.budget)
       })
 
     fetch(`${PUBLIC_API}api/objectives/${name}/valet`, { signal: controller.signal })
@@ -342,19 +334,17 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
 
     setErrorBudgetSamplesLoading(true)
 
-    const end = Math.ceil(Date.now() / 1000)
-    const start = end - 3600
+    // TODO: Pass as query parameters
+    // const end = Math.ceil(Date.now() / 1000)
+    // const start = end - 3600
 
-    const urlErrorBudget = `${PUBLIC_API}api/objectives/${name}/errorbudget?start=${start}&end=${end}`
+    APIObjectives.getObjectiveErrorBudget({ name })
+      .then((b: APIErrorBudget) => {
+        setErrorBudgetSamples(b.pair)
 
-    fetch(urlErrorBudget, { signal: controller.signal })
-      .then((resp: Response) => resp.json())
-      .then((json: SamplePair[]) => {
-        setErrorBudgetSamples(json)
         // Calculate the offset to split the errorbudget into green and red areas
-        const min = Math.floor(100 * Math.min(...json.map((o: SamplePair) => o.v))) / 100;
-        const max = Math.ceil(100 * Math.max(...json.map((o: SamplePair) => o.v))) / 100;
-
+        const min = Math.floor(10000 * Math.min(...b.pair.map((o: ErrorBudgetPair) => o.v))) / 10000;
+        const max = Math.ceil(10000 * Math.max(...b.pair.map((o: ErrorBudgetPair) => o.v))) / 10000;
         setErrorBudgetSamplesMin(min === 1 ? 0 : min)
         setErrorBudgetSamplesMax(max)
         if (max <= 0) {
@@ -366,6 +356,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         }
       })
       .finally(() => setErrorBudgetSamplesLoading(false))
+
 
     fetch(`${PUBLIC_API}api/objectives/${name}/red/requests`, { signal: controller.signal })
       .then((resp: Response) => resp.json())
@@ -487,7 +478,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
           <Col className="metric">
             <div>
               <h2>{100 * objective.target}%</h2>
-              <h6 className="text-muted">Objective in {objective.window}</h6>
+              <h6 className="text-muted">Objective in {formatDuration(objective.window)}</h6>
             </div>
           </Col>
           <Col className="metric">
@@ -559,12 +550,16 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               </AreaChart>
             </ResponsiveContainer>
           }
-          {valets.map((v: Valet, i: number) => (
-            <Col key={i} style={{ textAlign: 'right' }}>
-              <small>Volume: {Math.floor(v.volume).toLocaleString()}</small>&nbsp;
-              <small>Errors: {Math.floor(v.errors).toLocaleString()}</small>
-            </Col>
-          ))}
+          <Col style={{ textAlign: 'right' }}>
+            {availability != null ? (
+              <>
+                <small>Errors: {Math.floor(availability.errors).toLocaleString()}</small>&nbsp;
+                <small>Volume: {Math.floor(availability.total).toLocaleString()}</small>&nbsp;
+              </>
+            ) : (
+              <></>
+            )}
+          </Col>
         </Row>
         <br/><br/>
         <Row>
