@@ -13,6 +13,74 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+type MultiBurnRateAlert struct {
+	Severity string
+	Short    time.Duration
+	Long     time.Duration
+	For      time.Duration
+	Factor   float64
+
+	QueryShort string
+	QueryLong  string
+}
+
+func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
+	ws := windows(time.Duration(o.Window))
+
+	var metric string
+	var matcher []*labels.Matcher
+	var errorMatcher []*labels.Matcher
+
+	if o.Indicator.HTTP != nil {
+		if o.Indicator.HTTP.Metric == "" {
+			o.Indicator.HTTP.Metric = HTTPDefaultMetric
+		}
+		if len(o.Indicator.HTTP.ErrorMatchers) == 0 {
+			o.Indicator.HTTP.ErrorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
+		}
+
+		metric = o.Indicator.HTTP.Metric
+		matcher = o.Indicator.HTTP.Matchers
+		errorMatcher = o.Indicator.HTTP.AllSelectors()
+	}
+	if o.Indicator.GRPC != nil {
+		if o.Indicator.GRPC.Metric == "" {
+			o.Indicator.GRPC.Metric = GRPCDefaultMetric
+		}
+		if len(o.Indicator.GRPC.ErrorMatchers) == 0 {
+			o.Indicator.GRPC.ErrorMatchers = []*labels.Matcher{GRPCDefaultErrorSelector}
+		}
+
+		metric = o.Indicator.GRPC.Metric
+		matcher = o.Indicator.GRPC.GRPCSelectors()
+		errorMatcher = o.Indicator.GRPC.AllSelectors()
+	}
+
+	mbras := make([]MultiBurnRateAlert, len(ws))
+	for i, w := range ws {
+		queryShort, err := Burnrate(metric, w.Short, matcher, errorMatcher)
+		if err != nil {
+			return nil, err
+		}
+		queryLong, err := Burnrate(metric, w.Long, matcher, errorMatcher)
+		if err != nil {
+			return nil, err
+		}
+
+		mbras[i] = MultiBurnRateAlert{
+			Severity:   string(w.Severity),
+			Short:      w.Short,
+			Long:       w.Long,
+			For:        w.For,
+			Factor:     w.Factor,
+			QueryShort: queryShort,
+			QueryLong:  queryLong,
+		}
+	}
+
+	return mbras, nil
+}
+
 func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	ws := windows(time.Duration(o.Window))
 	burnrates := burnratesFromWindows(ws)
