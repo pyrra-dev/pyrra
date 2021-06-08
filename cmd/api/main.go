@@ -5,16 +5,19 @@ import (
 	"embed"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	openapi "github.com/metalmatze/athene/server/go/go"
 	"github.com/metalmatze/athene/slo"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -57,8 +60,16 @@ func main() {
 
 	backend := backend{url: *backendURL}
 
+	router := openapi.NewRouter(
+		openapi.NewObjectivesApiController(&ObjectivesServer{
+			promAPI: promAPI,
+			backend: backend,
+		}),
+	)
+
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
+	r.Mount("/api/v1", router)
 	r.Get("/api/objectives", objectivesHandler(backend))
 	r.Get("/api/objectives/{name}", objectiveHandler(backend))
 	r.Get("/api/objectives/{name}/status", objectiveStatusHandler(promAPI, backend))
@@ -570,4 +581,258 @@ func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1
 	_ = p.cache.SetWithTTL(hash, value, 100, 10*time.Minute)
 
 	return value, nil, nil
+}
+
+type ObjectivesServer struct {
+	promAPI *promCache
+	backend backend
+}
+
+func (o *ObjectivesServer) ListObjectives(ctx context.Context) (openapi.ImplResponse, error) {
+	objectives, err := o.backend.ListObjectives()
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	apiObjectives := make([]openapi.Objective, len(objectives))
+	for i, objective := range objectives {
+		apiObjectives[i] = toAPIObjective(objective)
+	}
+
+	return openapi.ImplResponse{
+		Code: http.StatusOK,
+		Body: apiObjectives,
+	}, nil
+}
+
+func (o *ObjectivesServer) GetObjective(ctx context.Context, name string) (openapi.ImplResponse, error) {
+	objective, err := o.backend.GetObjective(name)
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	return openapi.ImplResponse{
+		Code: http.StatusCreated,
+		Body: toAPIObjective(objective),
+	}, nil
+}
+
+func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, name string) (openapi.ImplResponse, error) {
+	objective, err := o.backend.GetObjective(name)
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
+
+	status := openapi.ObjectiveStatus{
+		Availability: openapi.ObjectiveStatusAvailability{},
+		Budget:       openapi.ObjectiveStatusBudget{},
+	}
+
+	value, _, err := o.promAPI.Query(ctx, objective.QueryTotal(objective.Window), ts)
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+	vec := value.(model.Vector)
+	for _, v := range vec {
+		status.Availability.Total = float64(v.Value)
+	}
+
+	value, _, err = o.promAPI.Query(ctx, objective.QueryErrors(objective.Window), ts)
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+	for _, v := range value.(model.Vector) {
+		status.Availability.Errors = float64(v.Value)
+	}
+
+	status.Availability.Percentage = 1 - (status.Availability.Errors / status.Availability.Total)
+
+	status.Budget.Total = 1 - objective.Target
+	status.Budget.Remaining = (status.Budget.Total - (status.Availability.Errors / status.Availability.Total)) / status.Budget.Total
+	status.Budget.Max = status.Budget.Total * status.Availability.Total
+
+	return openapi.ImplResponse{
+		Code: http.StatusOK,
+		Body: status,
+	}, nil
+}
+
+func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name string) (openapi.ImplResponse, error) {
+	objective, err := o.backend.GetObjective(name)
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	end := time.Now().UTC().Round(15 * time.Second)
+	start := end.Add(-1 * time.Hour).UTC()
+
+	// TODO: Get from generated API query parameters
+	//if r.URL.Query().Get("start") != "" {
+	//	float, err := strconv.ParseInt(r.URL.Query().Get("start"), 10, 64)
+	//	if err == nil {
+	//		start = time.Unix(float, 0)
+	//	}
+	//}
+	//if r.URL.Query().Get("end") != "" {
+	//	float, err := strconv.ParseInt(r.URL.Query().Get("end"), 10, 64)
+	//	if err == nil {
+	//		end = time.Unix(float, 0)
+	//	}
+	//}
+
+	step := end.Sub(start) / 1000
+
+	query := objective.QueryErrorBudget()
+	log.Println(query)
+	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
+		Start: start,
+		End:   end,
+		Step:  step,
+	})
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	matrix, ok := value.(model.Matrix)
+	if !ok {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
+	}
+
+	if len(matrix) != 1 {
+		return openapi.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+	}
+
+	pairs := make([]openapi.ErrorBudgetPair, len(matrix[0].Values))
+
+	for _, m := range matrix {
+		for i, pair := range m.Values {
+			pairs[i] = openapi.ErrorBudgetPair{T: pair.Timestamp.Unix(), V: float64(pair.Value)}
+		}
+	}
+
+	return openapi.ImplResponse{
+		Code: http.StatusOK,
+		Body: openapi.ErrorBudget{Pair: pairs},
+	}, nil
+}
+
+func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name string) (openapi.ImplResponse, error) {
+	objective, err := o.backend.GetObjective(name)
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	baseAlerts, err := objective.Alerts()
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	var alerts []openapi.MultiBurnrateAlert
+
+	for _, ba := range baseAlerts {
+		short := &openapi.Burnrate{
+			Window:  ba.Short.Milliseconds(),
+			Current: -1,
+			Query:   ba.QueryShort,
+		}
+		long := &openapi.Burnrate{
+			Window:  ba.Long.Milliseconds(),
+			Current: -1,
+			Query:   ba.QueryLong,
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func(b *openapi.Burnrate) {
+			defer wg.Done()
+
+			value, _, err := o.promAPI.Query(ctx, b.Query, time.Now())
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			vec, ok := value.(model.Vector)
+			if !ok {
+				return
+			}
+			if vec.Len() != 1 {
+				return
+			}
+			log.Println(vec[0].Value)
+			b.Current = float64(vec[0].Value)
+		}(short)
+
+		go func(b *openapi.Burnrate) {
+			defer wg.Done()
+
+			value, _, err := o.promAPI.Query(ctx, b.Query, time.Now())
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			vec, ok := value.(model.Vector)
+			if !ok {
+				return
+			}
+			if vec.Len() != 1 {
+				return
+			}
+			log.Println(vec[0].Value)
+			b.Current = float64(vec[0].Value)
+		}(long)
+
+		wg.Wait()
+
+		alerts = append(alerts, openapi.MultiBurnrateAlert{
+			Severity: ba.Severity,
+			For:      ba.For.Milliseconds(),
+			Factor:   ba.Factor,
+			Short:    *short,
+			Long:     *long,
+		})
+	}
+
+	return openapi.ImplResponse{
+		Code: http.StatusOK,
+		Body: alerts,
+	}, nil
+}
+
+func toAPIObjective(objective slo.Objective) openapi.Objective {
+	http := openapi.IndicatorHttp{}
+	if objective.Indicator.HTTP != nil {
+		http.Metric = objective.Indicator.HTTP.Metric
+		for _, m := range objective.Indicator.HTTP.Matchers {
+			http.Matchers = append(http.Matchers, m.String())
+		}
+		for _, m := range objective.Indicator.HTTP.ErrorMatchers {
+			http.ErrorMatchers = append(http.ErrorMatchers, m.String())
+		}
+	}
+
+	grpc := openapi.IndicatorGrpc{}
+	if objective.Indicator.GRPC != nil {
+		grpc.Metric = objective.Indicator.GRPC.Metric
+		grpc.Service = objective.Indicator.GRPC.Service
+		grpc.Method = objective.Indicator.GRPC.Method
+		for _, m := range objective.Indicator.GRPC.Matchers {
+			grpc.Matchers = append(grpc.Matchers, m.String())
+		}
+		for _, m := range objective.Indicator.GRPC.ErrorMatchers {
+			grpc.ErrorMatchers = append(grpc.ErrorMatchers, m.String())
+		}
+	}
+
+	return openapi.Objective{
+		Name:   objective.Name,
+		Target: objective.Target,
+		Window: time.Duration(objective.Window).Milliseconds(),
+		Indicator: openapi.Indicator{
+			Http: http,
+			Grpc: grpc,
+		},
+	}
 }
