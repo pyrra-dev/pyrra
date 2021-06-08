@@ -12,6 +12,11 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+OPENAPI ?= docker run --rm \
+		--user=$(shell id -u $(USER)):$(shell id -g $(USER)) \
+		-v $(shell pwd):$(shell pwd) \
+		openapitools/openapi-generator-cli:v5.1.1
+
 all: manager api
 
 # Run tests
@@ -103,6 +108,17 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
+
+server/go: api.yaml
+	-rm -rf $@
+	$(OPENAPI) generate -i $(shell pwd)/api.yaml -g go-server -o $(shell pwd)/server/go
+	-rm -rf $@/{Dockerfile,go.mod,main.go,README.md}
+	goimports -w $(shell find ./server/go/ -name '*.go')
+	touch $@
+
+ui/src/client:
+	-rm -rf $@
+	$(OPENAPI) generate -i $(shell pwd)/api.yaml -g typescript-fetch -o $(shell pwd)/ui/src/client
 
 .PHONY: ui
 ui:

@@ -1,0 +1,367 @@
+openapi: 3.0.2
+info:
+  title: Athene
+  version: 0.0.0
+servers:
+- url: /api/v1
+paths:
+  /objectives:
+    get:
+      operationId: ListObjectives
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Objectives'
+          description: List Objectives
+      summary: List Objectives
+      tags:
+      - objectives
+  /objectives/{name}:
+    get:
+      operationId: GetObjective
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Objective'
+          description: Get Objective
+      summary: Get Objective
+      tags:
+      - objectives
+  /objectives/{name}/status:
+    get:
+      operationId: GetObjectiveStatus
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectiveStatus'
+          description: Get objective status
+      summary: Get objective status
+      tags:
+      - objectives
+  /objectives/{name}/errorbudget:
+    get:
+      operationId: GetObjectiveErrorBudget
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBudget'
+          description: Get ErrorBudget graph sample pairs
+      summary: Get ErrorBudget graph sample pairs
+      tags:
+      - objectives
+  /objectives/{name}/alerts:
+    get:
+      operationId: GetMultiBurnrateAlerts
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/MultiBurnrateAlert'
+                type: array
+          description: Get GetMultiBurnrateAlerts for the Objective
+      summary: Get the MultiBurnrateAlerts for the Objective
+      tags:
+      - objectives
+components:
+  schemas:
+    Objectives:
+      items:
+        $ref: '#/components/schemas/Objective'
+      type: array
+    Objective:
+      example:
+        indicator:
+          http:
+            matchers:
+            - matchers
+            - matchers
+            metric: metric
+            errorMatchers:
+            - errorMatchers
+            - errorMatchers
+          grpc:
+            matchers:
+            - matchers
+            - matchers
+            method: method
+            metric: metric
+            service: service
+            errorMatchers:
+            - errorMatchers
+            - errorMatchers
+        name: name
+        window: 6
+        target: 0.8008281904610115
+      properties:
+        name:
+          type: string
+        target:
+          format: double
+          type: number
+        window:
+          format: int64
+          type: integer
+        indicator:
+          $ref: '#/components/schemas/Indicator'
+      required:
+      - name
+      - target
+      - window
+      type: object
+    Indicator:
+      example:
+        http:
+          matchers:
+          - matchers
+          - matchers
+          metric: metric
+          errorMatchers:
+          - errorMatchers
+          - errorMatchers
+        grpc:
+          matchers:
+          - matchers
+          - matchers
+          method: method
+          metric: metric
+          service: service
+          errorMatchers:
+          - errorMatchers
+          - errorMatchers
+      properties:
+        http:
+          $ref: '#/components/schemas/Indicator_http'
+        grpc:
+          $ref: '#/components/schemas/Indicator_grpc'
+      type: object
+    ObjectiveStatus:
+      example:
+        availability:
+          total: 6.027456183070403
+          percentage: 0.8008281904610115
+          errors: 1.4658129805029452
+        budget:
+          total: 5.962133916683182
+          max: 2.3021358869347655
+          remaining: 5.637376656633329
+      properties:
+        availability:
+          $ref: '#/components/schemas/ObjectiveStatus_availability'
+        budget:
+          $ref: '#/components/schemas/ObjectiveStatus_budget'
+      required:
+      - availability
+      - budget
+      type: object
+    ErrorBudget:
+      example:
+        pair:
+        - t: 0
+          v: 6.027456183070403
+        - t: 0
+          v: 6.027456183070403
+      properties:
+        pair:
+          items:
+            $ref: '#/components/schemas/ErrorBudget_pair'
+          type: array
+      required:
+      - pair
+      type: object
+    MultiBurnrateAlert:
+      example:
+        severity: severity
+        for: 0
+        short:
+          current: 5.962133916683182
+          query: query
+          window: 1
+        factor: 6.027456183070403
+        long:
+          current: 5.962133916683182
+          query: query
+          window: 1
+      properties:
+        severity:
+          type: string
+        for:
+          format: int64
+          type: integer
+        factor:
+          format: double
+          type: number
+        short:
+          $ref: '#/components/schemas/Burnrate'
+        long:
+          $ref: '#/components/schemas/Burnrate'
+      required:
+      - factor
+      - for
+      - long
+      - severity
+      - short
+      type: object
+    Burnrate:
+      example:
+        current: 5.962133916683182
+        query: query
+        window: 1
+      properties:
+        window:
+          format: int64
+          type: integer
+        current:
+          format: double
+          type: number
+        query:
+          type: string
+      required:
+      - current
+      - query
+      - window
+      type: object
+    Indicator_http:
+      example:
+        matchers:
+        - matchers
+        - matchers
+        metric: metric
+        errorMatchers:
+        - errorMatchers
+        - errorMatchers
+      properties:
+        metric:
+          type: string
+        matchers:
+          items:
+            type: string
+          type: array
+        errorMatchers:
+          items:
+            type: string
+          type: array
+      type: object
+    Indicator_grpc:
+      example:
+        matchers:
+        - matchers
+        - matchers
+        method: method
+        metric: metric
+        service: service
+        errorMatchers:
+        - errorMatchers
+        - errorMatchers
+      properties:
+        metric:
+          type: string
+        service:
+          type: string
+        method:
+          type: string
+        matchers:
+          items:
+            type: string
+          type: array
+        errorMatchers:
+          items:
+            type: string
+          type: array
+      type: object
+    ObjectiveStatus_availability:
+      example:
+        total: 6.027456183070403
+        percentage: 0.8008281904610115
+        errors: 1.4658129805029452
+      properties:
+        percentage:
+          format: double
+          type: number
+        total:
+          format: double
+          type: number
+        errors:
+          format: double
+          type: number
+      required:
+      - errors
+      - percentage
+      - total
+      type: object
+    ObjectiveStatus_budget:
+      example:
+        total: 5.962133916683182
+        max: 2.3021358869347655
+        remaining: 5.637376656633329
+      properties:
+        total:
+          format: double
+          type: number
+        remaining:
+          format: double
+          type: number
+        max:
+          format: double
+          type: number
+      required:
+      - max
+      - remaining
+      - total
+      type: object
+    ErrorBudget_pair:
+      example:
+        t: 0
+        v: 6.027456183070403
+      properties:
+        t:
+          format: int64
+          type: integer
+        v:
+          format: double
+          type: number
+      required:
+      - t
+      - v
+      type: object

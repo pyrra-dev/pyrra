@@ -1,0 +1,249 @@
+openapi: 3.0.2
+info:
+  title: Athene
+  version: 0.0.0
+servers:
+  - url: /api/v1
+paths:
+  /objectives:
+    get:
+      summary: List Objectives
+      operationId: ListObjectives
+      tags:
+        - objectives
+      responses:
+        '200':
+          description: List Objectives
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Objectives"
+  /objectives/{name}:
+    get:
+      summary: Get Objective
+      operationId: GetObjective
+      tags:
+        - objectives
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get Objective
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Objective'
+  /objectives/{name}/status:
+    get:
+      summary: Get objective status
+      operationId: GetObjectiveStatus
+      tags:
+        - objectives
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get objective status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectiveStatus'
+  /objectives/{name}/errorbudget:
+    get:
+      summary: Get ErrorBudget graph sample pairs
+      operationId: GetObjectiveErrorBudget
+      tags:
+        - objectives
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get ErrorBudget graph sample pairs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBudget'
+  /objectives/{name}/alerts:
+    get:
+      summary: Get the MultiBurnrateAlerts for the Objective
+      operationId: GetMultiBurnrateAlerts
+      tags:
+        - objectives
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get GetMultiBurnrateAlerts for the Objective
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MultiBurnrateAlert'
+
+#  /objectives/{name}/red/requests
+#  /objectives/{name}/red/errors
+
+components:
+  schemas:
+    Objectives:
+      type: array
+      items:
+        $ref: '#/components/schemas/Objective'
+    Objective:
+      type: object
+      required:
+        - name
+        - target
+        - window
+      properties:
+        name:
+          type: string
+        target:
+          type: number
+          format: double
+        window:
+          type: integer
+          format: int64
+        indicator:
+          $ref: '#/components/schemas/Indicator'
+    Indicator:
+      type: object
+      properties:
+        http:
+          type: object
+          properties:
+            metric:
+              type: string
+            matchers:
+              type: array
+              items:
+                type: string
+            errorMatchers:
+              type: array
+              items:
+                type: string
+        grpc:
+          type: object
+          properties:
+            metric:
+              type: string
+            service:
+              type: string
+            method:
+              type: string
+            matchers:
+              type: array
+              items:
+                type: string
+            errorMatchers:
+              type: array
+              items:
+                type: string
+    ObjectiveStatus:
+      type: object
+      required:
+        - availability
+        - budget
+      properties:
+        availability:
+          type: object
+          required:
+            - percentage
+            - total
+            - errors
+          properties:
+            percentage:
+              type: number
+              format: double
+            total:
+              type: number
+              format: double
+            errors:
+              type: number
+              format: double
+        budget:
+          type: object
+          required:
+            - total
+            - remaining
+            - max
+          properties:
+            total:
+              type: number
+              format: double
+            remaining:
+              type: number
+              format: double
+            max:
+              type: number
+              format: double
+    ErrorBudget:
+      type: object
+      required:
+        - pair
+      properties:
+        pair:
+          type: array
+          items:
+            type: object
+            required: [ t,v ]
+            properties:
+              t:
+                type: integer
+                format: int64
+              v:
+                type: number
+                format: double
+    MultiBurnrateAlert:
+      type: object
+      required:
+        - severity
+        - for
+        - factor
+        - short
+        - long
+      properties:
+        severity:
+          type: string
+        for:
+          type: integer
+          format: int64
+        factor:
+          type: number
+          format: double
+        short:
+          $ref: '#/components/schemas/Burnrate'
+        long:
+          $ref: '#/components/schemas/Burnrate'
+    Burnrate:
+      type: object
+      required:
+        - window
+        - current
+        - query
+      properties:
+        window:
+          type: integer
+          format: int64
+        current:
+          type: number
+          format: double
+        query:
+          type: string
