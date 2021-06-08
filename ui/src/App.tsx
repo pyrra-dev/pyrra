@@ -26,18 +26,6 @@ export interface Objective {
   window: string
 }
 
-interface Availability {
-  percentage: number
-  total: number
-  errors: number
-}
-
-interface ErrorBudget {
-  total: number
-  max: number
-  remaining: number
-}
-
 const App = () => {
   return (
     <BrowserRouter>
@@ -47,20 +35,6 @@ const App = () => {
       </Switch>
     </BrowserRouter>
   )
-}
-
-interface ObjectiveStatus {
-  availability: number
-  budget: number
-}
-
-const fetchObjectiveStatus = async (name: string, signal: AbortSignal): Promise<ObjectiveStatus> => {
-  const resp: Response = await fetch(`${PUBLIC_API}api/objectives/${name}/status`, { signal })
-  const json = await resp.json()
-  if (!resp.ok) {
-    return Promise.reject(resp)
-  }
-  return { availability: json.availability.percentage, budget: json.budget.remaining }
 }
 
 // TableObjective extends Objective to add some more additional (async) properties
@@ -294,11 +268,6 @@ interface SamplePair {
   v: number
 }
 
-interface Requests {
-  label: string
-  samples: SamplePair[]
-}
-
 const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const name = params.match.params.name;
   const [objective, setObjective] = useState<APIObjective | null>(null);
@@ -328,10 +297,6 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         setErrorBudget(s.budget)
       })
 
-    fetch(`${PUBLIC_API}api/objectives/${name}/valet`, { signal: controller.signal })
-      .then((resp: Response) => resp.json())
-      .then((data) => setValets(data))
-
     setErrorBudgetSamplesLoading(true)
 
     // TODO: Pass as query parameters
@@ -358,43 +323,43 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       .finally(() => setErrorBudgetSamplesLoading(false))
 
 
-    fetch(`${PUBLIC_API}api/objectives/${name}/red/requests`, { signal: controller.signal })
-      .then((resp: Response) => resp.json())
-      .then((json: Requests[]) => {
-        let data: any[] = []
-        let labels: string[] = []
-        json.forEach((requests: Requests, i: number) => {
-          labels.push(requests.label)
-          requests.samples.forEach((p: SamplePair, j: number) => {
-            if (i === 0) {
-              data[j] = { t: p.t, 0: p.v }
-            } else {
-              data[j][i] = p.v
-            }
-          })
-        })
-        setRequests(data)
-        setRequestsLabels(labels)
-      })
+    // fetch(`${PUBLIC_API}api/objectives/${name}/red/requests`, { signal: controller.signal })
+    //   .then((resp: Response) => resp.json())
+    //   .then((json: Requests[]) => {
+    //     let data: any[] = []
+    //     let labels: string[] = []
+    //     json.forEach((requests: Requests, i: number) => {
+    //       labels.push(requests.label)
+    //       requests.samples.forEach((p: SamplePair, j: number) => {
+    //         if (i === 0) {
+    //           data[j] = { t: p.t, 0: p.v }
+    //         } else {
+    //           data[j][i] = p.v
+    //         }
+    //       })
+    //     })
+    //     setRequests(data)
+    //     setRequestsLabels(labels)
+    //   })
 
-    fetch(`${PUBLIC_API}api/objectives/${name}/red/errors`, { signal: controller.signal })
-      .then((resp: Response) => resp.json())
-      .then((json: Requests[]) => {
-        let data: any[] = []
-        let labels: string[] = []
-        json.forEach((requests: Requests, i: number) => {
-          labels.push(requests.label)
-          requests.samples.forEach((p: SamplePair, j: number) => {
-            if (i === 0) {
-              data[j] = { t: p.t, 0: 100 * p.v }
-            } else {
-              data[j][i] = 100 * p.v
-            }
-          })
-        })
-        setErrors(data)
-        setErrorsLabels(labels)
-      })
+    // fetch(`${PUBLIC_API}api/objectives/${name}/red/errors`, { signal: controller.signal })
+    //   .then((resp: Response) => resp.json())
+    //   .then((json: Requests[]) => {
+    //     let data: any[] = []
+    //     let labels: string[] = []
+    //     json.forEach((requests: Requests, i: number) => {
+    //       labels.push(requests.label)
+    //       requests.samples.forEach((p: SamplePair, j: number) => {
+    //         if (i === 0) {
+    //           data[j] = { t: p.t, 0: 100 * p.v }
+    //         } else {
+    //           data[j][i] = 100 * p.v
+    //         }
+    //       })
+    //     })
+    //     setErrors(data)
+    //     setErrorsLabels(labels)
+    //   })
 
     return () => {
       // cancel any pending requests.
