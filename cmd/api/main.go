@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -71,6 +72,14 @@ func main() {
 	r.Mount("/api/v1", router)
 	r.Get("/api/objectives/{name}/red/requests", redRequestsHandler(promAPI, backend))
 	r.Get("/api/objectives/{name}/red/errors", redErrorsHandler(promAPI, backend))
+	r.Get("/objectives/{name}", func(w http.ResponseWriter, r *http.Request) {
+		file, err := build.Open("index.html")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		_, _ = io.Copy(w, file)
+	})
 	r.Handle("/*", http.FileServer(http.FS(build)))
 
 	if err := http.ListenAndServe(":9099", r); err != nil {
