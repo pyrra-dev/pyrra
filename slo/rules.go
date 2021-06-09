@@ -115,6 +115,13 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		errorMatcher = o.Indicator.GRPC.AllSelectors()
 	}
 
+	var matcherLabels = map[string]string{}
+	for _, m := range matcher {
+		if m.Type == labels.MatchEqual || m.Type == labels.MatchRegexp {
+			matcherLabels[m.Name] = m.Value
+		}
+	}
+
 	for _, br := range burnrates {
 		expr, err := Burnrate(metric, br, matcher, errorMatcher)
 		if err != nil {
@@ -124,18 +131,32 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		rules = append(rules, monitoringv1.Rule{
 			Record: burnrateName(metric, br),
 			Expr:   intstr.FromString(expr),
-			//Labels: http.Matchers, // TODO: Properly parse selectors via matchers
+			Labels: matcherLabels,
 		})
 	}
+
+	matcherLabelsString := func(ml map[string]string) string {
+		var s []string
+		for n, v := range ml {
+			s = append(s, fmt.Sprintf(`%s="%s"`, n, v))
+		}
+		sort.Slice(s, func(i, j int) bool {
+			return s[i] < s[j]
+		})
+		return strings.Join(s, ",")
+	}(matcherLabels)
 
 	for _, w := range ws {
 		r := monitoringv1.Rule{
 			Alert: "ErrorBudgetBurn",
-			Expr: intstr.FromString(fmt.Sprintf("%s > (%.f * (1-%.5f)) and %s > (%.f * (1-%.5f))",
+			// TODO: Use expr replacer
+			Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%.5f)) and %s{%s} > (%.f * (1-%.5f))",
 				burnrateName(metric, w.Short),
+				matcherLabelsString,
 				w.Factor,
 				o.Target,
 				burnrateName(metric, w.Long),
+				matcherLabelsString,
 				w.Factor,
 				o.Target,
 			)),
@@ -143,6 +164,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			Annotations: map[string]string{
 				"severity": string(w.Severity),
 			},
+			Labels: matcherLabels,
 		}
 		rules = append(rules, r)
 	}
