@@ -40,73 +40,73 @@ func TestObjective_Burnrates(t *testing.T) {
 					Type:   intstr.String,
 					StrVal: `sum(rate(http_requests_total{code=~"5..",handler="/users",job="api"}[5m])) / sum(rate(http_requests_total{handler="/users",job="api"}[5m]))`,
 				},
-				Labels: map[string]string{"handler": "/users", "job": "api"},
+				Labels: map[string]string{"handler": "/users", "job": "api", "slo": "http-users-errors"},
 			}, {
 				Record: "http_requests:burnrate30m",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(http_requests_total{code=~"5..",handler="/users",job="api"}[30m])) / sum(rate(http_requests_total{handler="/users",job="api"}[30m]))`,
 				},
-				Labels: map[string]string{"handler": "/users", "job": "api"},
+				Labels: map[string]string{"handler": "/users", "job": "api", "slo": "http-users-errors"},
 			}, {
 				Record: "http_requests:burnrate1h",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(http_requests_total{code=~"5..",handler="/users",job="api"}[1h])) / sum(rate(http_requests_total{handler="/users",job="api"}[1h]))`,
 				},
-				Labels: map[string]string{"handler": "/users", "job": "api"},
+				Labels: map[string]string{"handler": "/users", "job": "api", "slo": "http-users-errors"},
 			}, {
 				Record: "http_requests:burnrate2h",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(http_requests_total{code=~"5..",handler="/users",job="api"}[2h])) / sum(rate(http_requests_total{handler="/users",job="api"}[2h]))`,
 				},
-				Labels: map[string]string{"handler": "/users", "job": "api"},
+				Labels: map[string]string{"handler": "/users", "job": "api", "slo": "http-users-errors"},
 			}, {
 				Record: "http_requests:burnrate6h",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(http_requests_total{code=~"5..",handler="/users",job="api"}[6h])) / sum(rate(http_requests_total{handler="/users",job="api"}[6h]))`,
 				},
-				Labels: map[string]string{"handler": "/users", "job": "api"},
+				Labels: map[string]string{"handler": "/users", "job": "api", "slo": "http-users-errors"},
 			}, {
 				Record: "http_requests:burnrate1d",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(http_requests_total{code=~"5..",handler="/users",job="api"}[1d])) / sum(rate(http_requests_total{handler="/users",job="api"}[1d]))`,
 				},
-				Labels: map[string]string{"handler": "/users", "job": "api"},
+				Labels: map[string]string{"handler": "/users", "job": "api", "slo": "http-users-errors"},
 			}, {
 				Record: "http_requests:burnrate4d",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(http_requests_total{code=~"5..",handler="/users",job="api"}[4d])) / sum(rate(http_requests_total{handler="/users",job="api"}[4d]))`,
 				},
-				Labels: map[string]string{"handler": "/users", "job": "api"},
+				Labels: map[string]string{"handler": "/users", "job": "api", "slo": "http-users-errors"},
 			}, {
 				Alert:       "ErrorBudgetBurn",
 				For:         "2m",
-				Expr:        intstr.FromString(`http_requests:burnrate5m{handler="/users",job="api"} > (14 * (1-0.99900)) and http_requests:burnrate1h{handler="/users",job="api"} > (14 * (1-0.99900))`),
+				Expr:        intstr.FromString(`http_requests:burnrate5m{handler="/users",job="api",slo="http-users-errors"} > (14 * (1-0.99900)) and http_requests:burnrate1h{handler="/users",job="api",slo="http-users-errors"} > (14 * (1-0.99900))`),
 				Annotations: map[string]string{"severity": "critical"},
-				Labels:      map[string]string{"handler": "/users", "job": "api"},
+				Labels:      map[string]string{"handler": "/users", "job": "api", "long": "1h", "slo": "http-users-errors", "short": "5m"},
 			}, {
 				Alert:       "ErrorBudgetBurn",
 				For:         "15m",
-				Expr:        intstr.FromString(`http_requests:burnrate30m{handler="/users",job="api"} > (7 * (1-0.99900)) and http_requests:burnrate6h{handler="/users",job="api"} > (7 * (1-0.99900))`),
+				Expr:        intstr.FromString(`http_requests:burnrate30m{handler="/users",job="api",slo="http-users-errors"} > (7 * (1-0.99900)) and http_requests:burnrate6h{handler="/users",job="api",slo="http-users-errors"} > (7 * (1-0.99900))`),
 				Annotations: map[string]string{"severity": "critical"},
-				Labels:      map[string]string{"handler": "/users", "job": "api"},
+				Labels:      map[string]string{"handler": "/users", "job": "api", "long": "6h", "slo": "http-users-errors", "short": "30m"},
 			}, {
 				Alert:       "ErrorBudgetBurn",
 				For:         "1h",
-				Expr:        intstr.FromString(`http_requests:burnrate2h{handler="/users",job="api"} > (2 * (1-0.99900)) and http_requests:burnrate1d{handler="/users",job="api"} > (2 * (1-0.99900))`),
+				Expr:        intstr.FromString(`http_requests:burnrate2h{handler="/users",job="api",slo="http-users-errors"} > (2 * (1-0.99900)) and http_requests:burnrate1d{handler="/users",job="api",slo="http-users-errors"} > (2 * (1-0.99900))`),
 				Annotations: map[string]string{"severity": "warning"},
-				Labels:      map[string]string{"handler": "/users", "job": "api"},
+				Labels:      map[string]string{"handler": "/users", "job": "api", "long": "1d", "slo": "http-users-errors", "short": "2h"},
 			}, {
 				Alert:       "ErrorBudgetBurn",
 				For:         "3h",
-				Expr:        intstr.FromString(`http_requests:burnrate6h{handler="/users",job="api"} > (1 * (1-0.99900)) and http_requests:burnrate4d{handler="/users",job="api"} > (1 * (1-0.99900))`),
+				Expr:        intstr.FromString(`http_requests:burnrate6h{handler="/users",job="api",slo="http-users-errors"} > (1 * (1-0.99900)) and http_requests:burnrate4d{handler="/users",job="api",slo="http-users-errors"} > (1 * (1-0.99900))`),
 				Annotations: map[string]string{"severity": "warning"},
-				Labels:      map[string]string{"handler": "/users", "job": "api"},
+				Labels:      map[string]string{"handler": "/users", "job": "api", "long": "4d", "slo": "http-users-errors", "short": "6h"},
 			}},
 		},
 		//}, {
@@ -214,73 +214,73 @@ func TestObjective_Burnrates(t *testing.T) {
 					Type:   intstr.String,
 					StrVal: `sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Users",grpc_service="example.api"}[5m])) / sum(rate(grpc_server_handled_total{grpc_method="Users",grpc_service="example.api"}[5m]))`,
 				},
-				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "slo": "grpc-users-errors"},
 			}, {
 				Record: "grpc_server_handled:burnrate30m",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Users",grpc_service="example.api"}[30m])) / sum(rate(grpc_server_handled_total{grpc_method="Users",grpc_service="example.api"}[30m]))`,
 				},
-				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "slo": "grpc-users-errors"},
 			}, {
 				Record: "grpc_server_handled:burnrate1h",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Users",grpc_service="example.api"}[1h])) / sum(rate(grpc_server_handled_total{grpc_method="Users",grpc_service="example.api"}[1h]))`,
 				},
-				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "slo": "grpc-users-errors"},
 			}, {
 				Record: "grpc_server_handled:burnrate2h",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Users",grpc_service="example.api"}[2h])) / sum(rate(grpc_server_handled_total{grpc_method="Users",grpc_service="example.api"}[2h]))`,
 				},
-				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "slo": "grpc-users-errors"},
 			}, {
 				Record: "grpc_server_handled:burnrate6h",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Users",grpc_service="example.api"}[6h])) / sum(rate(grpc_server_handled_total{grpc_method="Users",grpc_service="example.api"}[6h]))`,
 				},
-				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "slo": "grpc-users-errors"},
 			}, {
 				Record: "grpc_server_handled:burnrate1d",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Users",grpc_service="example.api"}[1d])) / sum(rate(grpc_server_handled_total{grpc_method="Users",grpc_service="example.api"}[1d]))`,
 				},
-				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "slo": "grpc-users-errors"},
 			}, {
 				Record: "grpc_server_handled:burnrate4d",
 				Expr: intstr.IntOrString{
 					Type:   intstr.String,
 					StrVal: `sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Users",grpc_service="example.api"}[4d])) / sum(rate(grpc_server_handled_total{grpc_method="Users",grpc_service="example.api"}[4d]))`,
 				},
-				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels: map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "slo": "grpc-users-errors"},
 			}, {
 				Alert:       "ErrorBudgetBurn",
 				For:         "2m",
-				Expr:        intstr.FromString(`grpc_server_handled:burnrate5m{grpc_method="Users",grpc_service="example.api"} > (14 * (1-0.99900)) and grpc_server_handled:burnrate1h{grpc_method="Users",grpc_service="example.api"} > (14 * (1-0.99900))`),
+				Expr:        intstr.FromString(`grpc_server_handled:burnrate5m{grpc_method="Users",grpc_service="example.api",slo="grpc-users-errors"} > (14 * (1-0.99900)) and grpc_server_handled:burnrate1h{grpc_method="Users",grpc_service="example.api",slo="grpc-users-errors"} > (14 * (1-0.99900))`),
 				Annotations: map[string]string{"severity": "critical"},
-				Labels:      map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels:      map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "long": "1h", "slo": "grpc-users-errors", "short": "5m"},
 			}, {
 				Alert:       "ErrorBudgetBurn",
 				For:         "15m",
-				Expr:        intstr.FromString(`grpc_server_handled:burnrate30m{grpc_method="Users",grpc_service="example.api"} > (7 * (1-0.99900)) and grpc_server_handled:burnrate6h{grpc_method="Users",grpc_service="example.api"} > (7 * (1-0.99900))`),
+				Expr:        intstr.FromString(`grpc_server_handled:burnrate30m{grpc_method="Users",grpc_service="example.api",slo="grpc-users-errors"} > (7 * (1-0.99900)) and grpc_server_handled:burnrate6h{grpc_method="Users",grpc_service="example.api",slo="grpc-users-errors"} > (7 * (1-0.99900))`),
 				Annotations: map[string]string{"severity": "critical"},
-				Labels:      map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels:      map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "long": "6h", "slo": "grpc-users-errors", "short": "30m"},
 			}, {
 				Alert:       "ErrorBudgetBurn",
 				For:         "1h",
-				Expr:        intstr.FromString(`grpc_server_handled:burnrate2h{grpc_method="Users",grpc_service="example.api"} > (2 * (1-0.99900)) and grpc_server_handled:burnrate1d{grpc_method="Users",grpc_service="example.api"} > (2 * (1-0.99900))`),
+				Expr:        intstr.FromString(`grpc_server_handled:burnrate2h{grpc_method="Users",grpc_service="example.api",slo="grpc-users-errors"} > (2 * (1-0.99900)) and grpc_server_handled:burnrate1d{grpc_method="Users",grpc_service="example.api",slo="grpc-users-errors"} > (2 * (1-0.99900))`),
 				Annotations: map[string]string{"severity": "warning"},
-				Labels:      map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels:      map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "long": "1d", "slo": "grpc-users-errors", "short": "2h"},
 			}, {
 				Alert:       "ErrorBudgetBurn",
 				For:         "3h",
-				Expr:        intstr.FromString(`grpc_server_handled:burnrate6h{grpc_method="Users",grpc_service="example.api"} > (1 * (1-0.99900)) and grpc_server_handled:burnrate4d{grpc_method="Users",grpc_service="example.api"} > (1 * (1-0.99900))`),
+				Expr:        intstr.FromString(`grpc_server_handled:burnrate6h{grpc_method="Users",grpc_service="example.api",slo="grpc-users-errors"} > (1 * (1-0.99900)) and grpc_server_handled:burnrate4d{grpc_method="Users",grpc_service="example.api",slo="grpc-users-errors"} > (1 * (1-0.99900))`),
 				Annotations: map[string]string{"severity": "warning"},
-				Labels:      map[string]string{"grpc_method": "Users", "grpc_service": "example.api"},
+				Labels:      map[string]string{"grpc_method": "Users", "grpc_service": "example.api", "long": "4d", "slo": "grpc-users-errors", "short": "6h"},
 			}},
 		},
 	}}

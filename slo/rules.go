@@ -121,6 +121,19 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			matcherLabels[m.Name] = m.Value
 		}
 	}
+	matcherLabels["slo"] = o.Name
+
+	// Create the label matcher string without the slo label
+	matcherLabelsString := func(ml map[string]string) string {
+		var s []string
+		for n, v := range ml {
+			s = append(s, fmt.Sprintf(`%s="%s"`, n, v))
+		}
+		sort.Slice(s, func(i, j int) bool {
+			return s[i] < s[j]
+		})
+		return strings.Join(s, ",")
+	}(matcherLabels)
 
 	for _, br := range burnrates {
 		expr, err := Burnrate(metric, br, matcher, errorMatcher)
@@ -135,18 +148,14 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		})
 	}
 
-	matcherLabelsString := func(ml map[string]string) string {
-		var s []string
-		for n, v := range ml {
-			s = append(s, fmt.Sprintf(`%s="%s"`, n, v))
-		}
-		sort.Slice(s, func(i, j int) bool {
-			return s[i] < s[j]
-		})
-		return strings.Join(s, ",")
-	}(matcherLabels)
-
 	for _, w := range ws {
+		alertLabels := map[string]string{}
+		for n, v := range matcherLabels {
+			alertLabels[n] = v
+		}
+		alertLabels["short"] = model.Duration(w.Short).String()
+		alertLabels["long"] = model.Duration(w.Long).String()
+
 		r := monitoringv1.Rule{
 			Alert: "ErrorBudgetBurn",
 			// TODO: Use expr replacer
@@ -164,7 +173,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			Annotations: map[string]string{
 				"severity": string(w.Severity),
 			},
-			Labels: matcherLabels,
+			Labels: alertLabels,
 		}
 		rules = append(rules, r)
 	}
