@@ -56,6 +56,22 @@ export interface MultiBurnrateAlert {
      * @memberof MultiBurnrateAlert
      */
     _long: Burnrate;
+    /**
+     * 
+     * @type {string}
+     * @memberof MultiBurnrateAlert
+     */
+    state: MultiBurnrateAlertStateEnum;
+}
+
+/**
+* @export
+* @enum {string}
+*/
+export enum MultiBurnrateAlertStateEnum {
+    Inactive = 'inactive',
+    Pending = 'pending',
+    Firing = 'firing'
 }
 
 export function MultiBurnrateAlertFromJSON(json: any): MultiBurnrateAlert {
@@ -73,6 +89,7 @@ export function MultiBurnrateAlertFromJSONTyped(json: any, ignoreDiscriminator: 
         'factor': json['factor'],
         '_short': BurnrateFromJSON(json['short']),
         '_long': BurnrateFromJSON(json['long']),
+        'state': json['state'],
     };
 }
 
@@ -90,6 +107,7 @@ export function MultiBurnrateAlertToJSON(value?: MultiBurnrateAlert | null): any
         'factor': value.factor,
         'short': BurnrateToJSON(value._short),
         'long': BurnrateToJSON(value._long),
+        'state': value.state,
     };
 }
 

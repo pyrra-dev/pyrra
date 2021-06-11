@@ -218,6 +218,7 @@ components:
           current: 5.962133916683182
           query: query
           window: 1
+        state: inactive
         factor: 6.027456183070403
         long:
           current: 5.962133916683182
@@ -236,12 +237,19 @@ components:
           $ref: '#/components/schemas/Burnrate'
         long:
           $ref: '#/components/schemas/Burnrate'
+        state:
+          enum:
+          - inactive
+          - pending
+          - firing
+          type: string
       required:
       - factor
       - for
       - long
       - severity
       - short
+      - state
       type: object
     Burnrate:
       example:

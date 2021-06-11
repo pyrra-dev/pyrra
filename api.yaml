@@ -219,6 +219,7 @@ components:
         - factor
         - short
         - long
+        - state
       properties:
         severity:
           type: string
@@ -232,6 +233,12 @@ components:
           $ref: '#/components/schemas/Burnrate'
         long:
           $ref: '#/components/schemas/Burnrate'
+        state:
+          type: string
+          enum:
+            - inactive
+            - pending
+            - firing
     Burnrate:
       type: object
       required:

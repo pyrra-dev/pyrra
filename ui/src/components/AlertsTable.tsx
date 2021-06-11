@@ -48,7 +48,7 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
             {a._short.current !== undefined ? a._short.current.toFixed(3) : (0).toFixed(3)}&nbsp;
             {a._long.current !== undefined ? a._long.current.toFixed(3) : (0).toFixed(3)}
           </td>
-          <td>?</td>
+          <td>{a.state}</td>
         </tr>
       ))}
       </tbody>

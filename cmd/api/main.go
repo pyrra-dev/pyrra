@@ -465,6 +465,12 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name str
 	}, nil
 }
 
+const (
+	alertstateInactive = "inactive"
+	alertstatePending  = "pending"
+	alertstateFiring   = "firing"
+)
+
 func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name string) (openapi.ImplResponse, error) {
 	objective, err := o.backend.GetObjective(name)
 	if err != nil {
@@ -491,7 +497,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 		}
 
 		var wg sync.WaitGroup
-		wg.Add(2)
+		wg.Add(3)
 
 		go func(b *openapi.Burnrate) {
 			defer wg.Done()
@@ -503,9 +509,11 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 			}
 			vec, ok := value.(model.Vector)
 			if !ok {
+				log.Println("no vector")
 				return
 			}
 			if vec.Len() != 1 {
+				log.Println("not vector with 1 entry")
 				return
 			}
 			b.Current = float64(vec[0].Value)
@@ -521,13 +529,55 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 			}
 			vec, ok := value.(model.Vector)
 			if !ok {
+				log.Println("no vector")
 				return
 			}
 			if vec.Len() != 1 {
+				log.Println("not vector with 1 entry")
 				return
 			}
 			b.Current = float64(vec[0].Value)
 		}(long)
+
+		alertstate := alertstateInactive
+
+		go func(name string, short, long int64) {
+			defer wg.Done()
+
+			s := model.Duration(time.Duration(short) * time.Millisecond)
+			l := model.Duration(time.Duration(long) * time.Millisecond)
+
+			query := fmt.Sprintf(`ALERTS{slo="%s",short="%s",long="%s"}`, name, s, l)
+			value, _, err := o.promAPI.Query(ctx, query, time.Now())
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			vec, ok := value.(model.Vector)
+			if !ok {
+				log.Println("no vector")
+				return
+			}
+			if vec.Len() != 1 {
+				log.Println("not vector with 1 entry")
+				return
+			}
+			sample := vec[0]
+
+			if sample.Value != 1 {
+				log.Println("alert is not pending or firing")
+				return
+			}
+
+			ls := model.LabelSet(sample.Metric)
+			as := ls["alertstate"]
+			if as == alertstatePending {
+				alertstate = alertstatePending
+			}
+			if as == alertstateFiring {
+				alertstate = alertstateFiring
+			}
+		}(objective.Name, short.Window, long.Window)
 
 		wg.Wait()
 
@@ -537,6 +587,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 			Factor:   ba.Factor,
 			Short:    *short,
 			Long:     *long,
+			State:    alertstate,
 		})
 	}
 

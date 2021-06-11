@@ -19,4 +19,6 @@ type MultiBurnrateAlert struct {
 	Short Burnrate `json:"short"`
 
 	Long Burnrate `json:"long"`
+
+	State string `json:"state"`
 }
