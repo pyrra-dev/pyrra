@@ -110,6 +110,8 @@ const List = () => {
   })
 
   useEffect(() => {
+    document.title = 'Objectives - Athene'
+
     APIObjectives.listObjectives()
       .then((objectives: APIObjective[]) => setObjectives(objectives))
       .catch((err) => console.log(err))
@@ -288,6 +290,8 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
 
   useEffect(() => {
     const controller = new AbortController()
+
+    document.title = `${name} - Athene`
 
     APIObjectives.getObjective({ name })
       .then((o: APIObjective) => setObjective(o))
