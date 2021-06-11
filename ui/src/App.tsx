@@ -11,7 +11,8 @@ import {
   ObjectivesApi,
   ObjectiveStatus as APIObjectiveStatus,
   ObjectiveStatusAvailability,
-  ObjectiveStatusBudget
+  ObjectiveStatusBudget,
+  QueryRange
 } from './client'
 import AlertsTable from './components/AlertsTable'
 
@@ -115,24 +116,24 @@ const List = () => {
   }, [])
 
   useEffect(() => {
-    const controller = new AbortController()
-    const signal = controller.signal // TODO: Pass this to the generated fetch client?
+    // const controller = new AbortController()
+    // const signal = controller.signal // TODO: Pass this to the generated fetch client?
 
     objectives
       .sort((a: APIObjective, b: APIObjective) => a.name.localeCompare(b.name))
       .forEach((o: APIObjective) => {
         dispatchTable({ type: TableActionType.SetObjective, objective: o })
 
-        APIObjectives.getObjectiveStatus({name:o.name})
-          .then((s:APIObjectiveStatus) => {
+        APIObjectives.getObjectiveStatus({ name: o.name })
+          .then((s: APIObjectiveStatus) => {
             dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
           })
       })
 
-    return () => {
-      // cancel pending requests if necessary
-      controller.abort()
-    }
+    // return () => {
+    //   // cancel pending requests if necessary
+    //   controller.abort()
+    // }
   }, [objectives])
 
   const handleTableSort = (type: TableSortType): void => {
@@ -288,11 +289,11 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   useEffect(() => {
     const controller = new AbortController()
 
-    APIObjectives.getObjective({name})
+    APIObjectives.getObjective({ name })
       .then((o: APIObjective) => setObjective(o))
 
     APIObjectives.getObjectiveStatus({ name })
-      .then((s:APIObjectiveStatus) => {
+      .then((s: APIObjectiveStatus) => {
         setAvailability(s.availability)
         setErrorBudget(s.budget)
       })
@@ -322,44 +323,37 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       })
       .finally(() => setErrorBudgetSamplesLoading(false))
 
+    APIObjectives.getREDRequests({ name })
+      .then((r: QueryRange) => {
+        let data: any[] = []
+        r.values.forEach((v: number[], i: number) => {
+          v.forEach((v: number, j: number) => {
+            if (j === 0) {
+              data[i] = { t: v }
+            } else {
+              data[i][j - 1] = v
+            }
+          })
+        })
+        setRequestsLabels(r.labels)
+        setRequests(data)
+      })
 
-    // fetch(`${PUBLIC_API}api/objectives/${name}/red/requests`, { signal: controller.signal })
-    //   .then((resp: Response) => resp.json())
-    //   .then((json: Requests[]) => {
-    //     let data: any[] = []
-    //     let labels: string[] = []
-    //     json.forEach((requests: Requests, i: number) => {
-    //       labels.push(requests.label)
-    //       requests.samples.forEach((p: SamplePair, j: number) => {
-    //         if (i === 0) {
-    //           data[j] = { t: p.t, 0: p.v }
-    //         } else {
-    //           data[j][i] = p.v
-    //         }
-    //       })
-    //     })
-    //     setRequests(data)
-    //     setRequestsLabels(labels)
-    //   })
-
-    // fetch(`${PUBLIC_API}api/objectives/${name}/red/errors`, { signal: controller.signal })
-    //   .then((resp: Response) => resp.json())
-    //   .then((json: Requests[]) => {
-    //     let data: any[] = []
-    //     let labels: string[] = []
-    //     json.forEach((requests: Requests, i: number) => {
-    //       labels.push(requests.label)
-    //       requests.samples.forEach((p: SamplePair, j: number) => {
-    //         if (i === 0) {
-    //           data[j] = { t: p.t, 0: 100 * p.v }
-    //         } else {
-    //           data[j][i] = 100 * p.v
-    //         }
-    //       })
-    //     })
-    //     setErrors(data)
-    //     setErrorsLabels(labels)
-    //   })
+    APIObjectives.getREDErrors({ name })
+      .then((r: QueryRange) => {
+        let data: any[] = []
+        r.values.forEach((v: number[], i: number) => {
+          v.forEach((v: number, j: number) => {
+            if (j === 0) {
+              data[i] = { t: v }
+            }else {
+              data[i][j - 1] = v
+            }
+          })
+        })
+        setErrorsLabels(r.labels)
+        setErrors(data)
+      })
 
     return () => {
       // cancel any pending requests.
@@ -454,8 +448,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                 </h2>
               ) : (
                 <h2>&nbsp;</h2>
-              )
-              }
+              )}
               <h6 className="text-muted">Availability</h6>
             </div>
           </Col>
@@ -507,11 +500,11 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                 <Tooltip content={<DateTooltip/>}/>
                 <defs>
                   <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset={errorBudgetSamplesOffset} stopColor="#2C9938" stopOpacity={1}/>
-                    <stop offset={errorBudgetSamplesOffset} stopColor="#e6522c" stopOpacity={1}/>
+                    <stop offset={errorBudgetSamplesOffset} stopColor={`#${greens[0]}`} stopOpacity={1}/>
+                    <stop offset={errorBudgetSamplesOffset} stopColor={`#${reds[0]}`} stopOpacity={1}/>
                   </linearGradient>
                 </defs>
-                <Area dataKey="v" type="monotone" animationDuration={250} strokeWidth={0} fill="url(#splitColor)"/>
+                <Area dataKey="v" type="monotone" animationDuration={250} strokeWidth={0} fill="url(#splitColor)" fillOpacity={1}/>
               </AreaChart>
             </ResponsiveContainer>
           }
@@ -547,14 +540,18 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                   />
                   {Object.keys(requests[0]).filter((k: string) => k !== 't').map((k: string, i: number) => {
                     const label = requestsLabels[parseInt(k)]
+                    console.log(label)
                     let color = ''
-                    if (label.startsWith('2')) {
+                    if (label.match(/"(2\d{2}|OK)"/) != null) {
                       color = greens[i]
                     }
-                    if (label.startsWith('4')) {
+                    if (label.match(/"(3\d{2})"/) != null) {
+                      color = yellows[i]
+                    }
+                    if (label.match(/"(4\d{2}|Canceled|InvalidArgument|NotFound|AlreadyExists|PermissionDenied|Unauthenticated|ResourceExhausted|FailedPrecondition|Aborted|OutOfRange)"/) != null) {
                       color = blues[i]
                     }
-                    if (label.startsWith('5')) {
+                    if (label.match(/"(5\d{2}|Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss)"/) != null) {
                       color = reds[i]
                     }
 
@@ -706,6 +703,17 @@ const reds = [
   "E57373",
   "EF9A9A",
   "FFCDD2"
+]
+const yellows = [
+  "F57F17",
+  "F9A825",
+  "FBC02D",
+  "FDD835",
+  "FFEB3B",
+  "FFEE58",
+  "FFF176",
+  "FFF59D",
+  "FFF9C4"
 ]
 
 // From prometheus/prometheus

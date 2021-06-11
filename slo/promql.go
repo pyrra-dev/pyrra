@@ -202,8 +202,7 @@ func (r objectiveReplacer) replace(node parser.Node) {
 }
 
 func (o Objective) RequestRange(timerange time.Duration) string {
-	//expr, err := parser.ParseExpr(`sum by(group) (rate(metric{}[1s])) > 0`) // TODO
-	expr, err := parser.ParseExpr(`sum by(group) (rate(metric{}[1s]))`)
+	expr, err := parser.ParseExpr(`sum by(group) (rate(metric{}[1s])) > 0`)
 	if err != nil {
 		return err.Error()
 	}
@@ -256,7 +255,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 }
 
 func (o Objective) ErrorsRange(timerange time.Duration) string {
-	expr, err := parser.ParseExpr(`sum by(group) (rate(metric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s])))`)
+	expr, err := parser.ParseExpr(`sum by(group) (rate(metric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
 	if err != nil {
 		return err.Error()
 	}

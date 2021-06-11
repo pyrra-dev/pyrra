@@ -597,6 +597,120 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 	}, nil
 }
 
+func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string) (openapi.ImplResponse, error) {
+	objective, err := o.backend.GetObjective(name)
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	now := time.Now().UTC()
+	query := objective.RequestRange(5 * time.Minute)
+	log.Println(query)
+
+	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
+		Start: now.Add(-1 * time.Hour),
+		End:   now,
+		Step:  15 * time.Second,
+	})
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	if value.Type() != model.ValMatrix {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("returned data is not a matrix")
+	}
+
+	matrix, ok := value.(model.Matrix)
+	if !ok {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
+	}
+
+	if len(matrix) == 0 {
+		return openapi.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+	}
+
+	labels := make([]string, len(matrix))
+	values := make([][]float64, len(matrix[0].Values))
+
+	for i, m := range matrix {
+		labels[i] = model.LabelSet(m.Metric).String()
+
+		for j, pair := range m.Values {
+			if i == 0 {
+				values[j] = make([]float64, len(matrix)+1) // +1 because the first value is the timestamp
+				values[j][0] = float64(pair.Timestamp.Unix())
+				values[j][1] = float64(pair.Value)
+			}
+			values[j][i+1] = float64(pair.Value) // i+1 because the first value is the timestamp
+		}
+	}
+
+	return openapi.ImplResponse{
+		Code: http.StatusOK,
+		Body: openapi.QueryRange{
+			Labels: labels,
+			Values: values,
+		},
+	}, nil
+}
+
+func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string) (openapi.ImplResponse, error) {
+	objective, err := o.backend.GetObjective(name)
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	now := time.Now().UTC()
+	query := objective.ErrorsRange(5 * time.Minute)
+	log.Println(query)
+
+	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
+		Start: now.Add(-1 * time.Hour),
+		End:   now,
+		Step:  15 * time.Second,
+	})
+	if err != nil {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	if value.Type() != model.ValMatrix {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("returned data is not a matrix")
+	}
+
+	matrix, ok := value.(model.Matrix)
+	if !ok {
+		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
+	}
+
+	if len(matrix) == 0 {
+		return openapi.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+	}
+
+	labels := make([]string, len(matrix))
+	values := make([][]float64, len(matrix[0].Values))
+
+	for i, m := range matrix {
+		labels[i] = model.LabelSet(m.Metric).String()
+
+		for j, pair := range m.Values {
+			if i == 0 {
+				values[j] = make([]float64, len(matrix)+1) // +1 because the first value is the timestamp
+				values[j][0] = float64(pair.Timestamp.Unix())
+				values[j][1] = float64(pair.Value)
+			}
+			values[j][i+1] = float64(pair.Value) // i+1 because the first value is the timestamp
+		}
+	}
+
+	return openapi.ImplResponse{
+		Code: http.StatusOK,
+		Body: openapi.QueryRange{
+			Labels: labels,
+			Values: values,
+		},
+	}, nil
+}
+
 func toAPIObjective(objective slo.Objective) openapi.Objective {
 	http := openapi.IndicatorHttp{}
 	if objective.Indicator.HTTP != nil {
