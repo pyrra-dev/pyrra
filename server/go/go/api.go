@@ -22,6 +22,8 @@ type ObjectivesApiRouter interface {
 	GetObjective(http.ResponseWriter, *http.Request)
 	GetObjectiveErrorBudget(http.ResponseWriter, *http.Request)
 	GetObjectiveStatus(http.ResponseWriter, *http.Request)
+	GetREDErrors(http.ResponseWriter, *http.Request)
+	GetREDRequests(http.ResponseWriter, *http.Request)
 	ListObjectives(http.ResponseWriter, *http.Request)
 }
 
@@ -34,5 +36,7 @@ type ObjectivesApiServicer interface {
 	GetObjective(context.Context, string) (ImplResponse, error)
 	GetObjectiveErrorBudget(context.Context, string) (ImplResponse, error)
 	GetObjectiveStatus(context.Context, string) (ImplResponse, error)
+	GetREDErrors(context.Context, string) (ImplResponse, error)
+	GetREDRequests(context.Context, string) (ImplResponse, error)
 	ListObjectives(context.Context) (ImplResponse, error)
 }

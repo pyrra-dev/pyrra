@@ -9,3 +9,4 @@ export * from './Objective';
 export * from './ObjectiveStatus';
 export * from './ObjectiveStatusAvailability';
 export * from './ObjectiveStatusBudget';
+export * from './QueryRange';

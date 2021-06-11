@@ -70,6 +70,28 @@ func (s *ObjectivesApiService) GetObjectiveStatus(ctx context.Context, name stri
 	return Response(http.StatusNotImplemented, nil), errors.New("GetObjectiveStatus method not implemented")
 }
 
+// GetREDErrors - Get a matrix of error percentage by label
+func (s *ObjectivesApiService) GetREDErrors(ctx context.Context, name string) (ImplResponse, error) {
+	// TODO - update GetREDErrors with the required logic for this service method.
+	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
+
+	//TODO: Uncomment the next line to return response Response(200, QueryRange{}) or use other options such as http.Ok ...
+	//return Response(200, QueryRange{}), nil
+
+	return Response(http.StatusNotImplemented, nil), errors.New("GetREDErrors method not implemented")
+}
+
+// GetREDRequests - Get a matrix of requests by label
+func (s *ObjectivesApiService) GetREDRequests(ctx context.Context, name string) (ImplResponse, error) {
+	// TODO - update GetREDRequests with the required logic for this service method.
+	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
+
+	//TODO: Uncomment the next line to return response Response(200, QueryRange{}) or use other options such as http.Ok ...
+	//return Response(200, QueryRange{}), nil
+
+	return Response(http.StatusNotImplemented, nil), errors.New("GetREDRequests method not implemented")
+}
+
 // ListObjectives - List Objectives
 func (s *ObjectivesApiService) ListObjectives(ctx context.Context) (ImplResponse, error) {
 	// TODO - update ListObjectives with the required logic for this service method.

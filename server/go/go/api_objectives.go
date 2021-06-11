@@ -54,6 +54,18 @@ func (c *ObjectivesApiController) Routes() Routes {
 			c.GetObjectiveStatus,
 		},
 		{
+			"GetREDErrors",
+			strings.ToUpper("Get"),
+			"/api/v1/objectives/{name}/red/errors",
+			c.GetREDErrors,
+		},
+		{
+			"GetREDRequests",
+			strings.ToUpper("Get"),
+			"/api/v1/objectives/{name}/red/requests",
+			c.GetREDRequests,
+		},
+		{
 			"ListObjectives",
 			strings.ToUpper("Get"),
 			"/api/v1/objectives",
@@ -116,6 +128,38 @@ func (c *ObjectivesApiController) GetObjectiveStatus(w http.ResponseWriter, r *h
 	name := params["name"]
 
 	result, err := c.service.GetObjectiveStatus(r.Context(), name)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		EncodeJSONResponse(err.Error(), &result.Code, w)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// GetREDErrors - Get a matrix of error percentage by label
+func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	name := params["name"]
+
+	result, err := c.service.GetREDErrors(r.Context(), name)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		EncodeJSONResponse(err.Error(), &result.Code, w)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+
+}
+
+// GetREDRequests - Get a matrix of requests by label
+func (c *ObjectivesApiController) GetREDRequests(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	name := params["name"]
+
+	result, err := c.service.GetREDRequests(r.Context(), name)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)

@@ -104,6 +104,48 @@ paths:
       summary: Get the MultiBurnrateAlerts for the Objective
       tags:
       - objectives
+  /objectives/{name}/red/requests:
+    get:
+      operationId: GetREDRequests
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryRange'
+          description: Get a matrix of requests by label
+      summary: Get a matrix of requests by label
+      tags:
+      - objectives
+  /objectives/{name}/red/errors:
+    get:
+      operationId: GetREDErrors
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryRange'
+          description: Get a matrix of error percentage by label
+      summary: Get a matrix of error percentage by label
+      tags:
+      - objectives
 components:
   schemas:
     Objectives:
@@ -269,6 +311,32 @@ components:
       - current
       - query
       - window
+      type: object
+    QueryRange:
+      example:
+        values:
+        - - 0.8008281904610115
+          - 0.8008281904610115
+        - - 0.8008281904610115
+          - 0.8008281904610115
+        labels:
+        - labels
+        - labels
+      properties:
+        labels:
+          items:
+            type: string
+          type: array
+        values:
+          items:
+            items:
+              format: double
+              type: number
+            type: array
+          type: array
+      required:
+      - labels
+      - values
       type: object
     Indicator_http:
       example:

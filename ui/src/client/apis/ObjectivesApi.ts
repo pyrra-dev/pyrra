@@ -27,6 +27,9 @@ import {
     ObjectiveStatus,
     ObjectiveStatusFromJSON,
     ObjectiveStatusToJSON,
+    QueryRange,
+    QueryRangeFromJSON,
+    QueryRangeToJSON,
 } from '../models';
 
 export interface GetMultiBurnrateAlertsRequest {
@@ -42,6 +45,14 @@ export interface GetObjectiveErrorBudgetRequest {
 }
 
 export interface GetObjectiveStatusRequest {
+    name: string;
+}
+
+export interface GetREDErrorsRequest {
+    name: string;
+}
+
+export interface GetREDRequestsRequest {
     name: string;
 }
 
@@ -167,6 +178,66 @@ export class ObjectivesApi extends runtime.BaseAPI {
      */
     async getObjectiveStatus(requestParameters: GetObjectiveStatusRequest): Promise<ObjectiveStatus> {
         const response = await this.getObjectiveStatusRaw(requestParameters);
+        return await response.value();
+    }
+
+    /**
+     * Get a matrix of error percentage by label
+     */
+    async getREDErrorsRaw(requestParameters: GetREDErrorsRequest): Promise<runtime.ApiResponse<QueryRange>> {
+        if (requestParameters.name === null || requestParameters.name === undefined) {
+            throw new runtime.RequiredError('name','Required parameter requestParameters.name was null or undefined when calling getREDErrors.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/objectives/{name}/red/errors`.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters.name))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        });
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => QueryRangeFromJSON(jsonValue));
+    }
+
+    /**
+     * Get a matrix of error percentage by label
+     */
+    async getREDErrors(requestParameters: GetREDErrorsRequest): Promise<QueryRange> {
+        const response = await this.getREDErrorsRaw(requestParameters);
+        return await response.value();
+    }
+
+    /**
+     * Get a matrix of requests by label
+     */
+    async getREDRequestsRaw(requestParameters: GetREDRequestsRequest): Promise<runtime.ApiResponse<QueryRange>> {
+        if (requestParameters.name === null || requestParameters.name === undefined) {
+            throw new runtime.RequiredError('name','Required parameter requestParameters.name was null or undefined when calling getREDRequests.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/objectives/{name}/red/requests`.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters.name))),
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        });
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => QueryRangeFromJSON(jsonValue));
+    }
+
+    /**
+     * Get a matrix of requests by label
+     */
+    async getREDRequests(requestParameters: GetREDRequestsRequest): Promise<QueryRange> {
+        const response = await this.getREDRequestsRaw(requestParameters);
         return await response.value();
     }
 
