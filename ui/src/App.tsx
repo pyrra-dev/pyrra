@@ -266,11 +266,6 @@ interface DetailsRouteParams {
   name: string
 }
 
-interface SamplePair {
-  t: number
-  v: number
-}
-
 const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const name = params.match.params.name;
   const [objective, setObjective] = useState<APIObjective | null>(null);
@@ -283,9 +278,9 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const [errorBudgetSamplesMax, setErrorBudgetSamplesMax] = useState<number>(1)
   const [errorBudgetSamplesLoading, setErrorBudgetSamplesLoading] = useState<boolean>(true)
 
-  const [requests, setRequests] = useState<SamplePair[]>([])
+  const [requests, setRequests] = useState<any[]>([])
   const [requestsLabels, setRequestsLabels] = useState<string[]>([])
-  const [errors, setErrors] = useState<SamplePair[]>([])
+  const [errors, setErrors] = useState<any[]>([])
   const [errorsLabels, setErrorsLabels] = useState<string[]>([])
 
   useEffect(() => {
