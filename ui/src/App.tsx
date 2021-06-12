@@ -1,8 +1,8 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import './App.css';
-import { Col, Container, Row, Spinner, Table } from 'react-bootstrap';
+import { Button, ButtonGroup, Col, Container, Row, Spinner, Table } from 'react-bootstrap';
 import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory } from 'react-router-dom';
-import { Area, AreaChart, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
 import {
   Configuration,
   ErrorBudget as APIErrorBudget,
@@ -268,6 +268,8 @@ interface DetailsRouteParams {
 
 const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const name = params.match.params.name;
+  const [timeRange, setTimeRange] = useState<number>(3600 * 1000) // 1h
+
   const [objective, setObjective] = useState<APIObjective | null>(null);
   const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null);
   const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null);
@@ -299,11 +301,11 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
 
     setErrorBudgetSamplesLoading(true)
 
-    // TODO: Pass as query parameters
-    // const end = Math.ceil(Date.now() / 1000)
-    // const start = end - 3600
+    const now = Date.now()
+    const start = Math.floor((now - timeRange) / 1000)
+    const end = Math.floor(now / 1000)
 
-    APIObjectives.getObjectiveErrorBudget({ name })
+    APIObjectives.getObjectiveErrorBudget({ name, start, end })
       .then((b: APIErrorBudget) => {
         setErrorBudgetSamples(b.pair)
 
@@ -322,7 +324,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       })
       .finally(() => setErrorBudgetSamplesLoading(false))
 
-    APIObjectives.getREDRequests({ name })
+    APIObjectives.getREDRequests({ name, start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
@@ -334,19 +336,20 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             }
           })
         })
+        console.log(r.labels)
         setRequestsLabels(r.labels)
         setRequests(data)
       })
 
-    APIObjectives.getREDErrors({ name })
+    APIObjectives.getREDErrors({ name, start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
           v.forEach((v: number, j: number) => {
             if (j === 0) {
               data[i] = { t: v }
-            }else {
-              data[i][j - 1] = v
+            } else {
+              data[i][j - 1] = 100 * v
             }
           })
         })
@@ -358,7 +361,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       // cancel any pending requests.
       controller.abort()
     }
-  }, [name])
+  }, [name, timeRange])
 
   if (objective == null) {
     return (
@@ -385,9 +388,9 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         <div className="area-chart-tooltip" style={style}>
           Date: {dateFormatterFull(payload[0].payload.t)}<br/>
           {Object.keys(payload[0].payload).filter((k) => k !== 't').map((k: string, i: number) => (
-            <>
-              <span>{requestsLabels[i]}: {(payload[0].payload[k]).toFixed(2)} req/s</span><br/>
-            </>
+            <div key={i}>
+              {requestsLabels[i]}: {(payload[0].payload[k]).toFixed(2)} req/s
+            </div>
           ))}
         </div>
       )
@@ -409,15 +412,23 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         <div className="area-chart-tooltip" style={style}>
           Date: {dateFormatterFull(payload[0].payload.t)}<br/>
           {Object.keys(payload[0].payload).filter((k) => k !== 't').map((k: string, i: number) => (
-            <>
-              <span>{errorsLabels[i]}: {(payload[0].payload[k]).toFixed(2)}%</span><br/>
-            </>
+            <div key={i}>
+              {errorsLabels[i]}: {(payload[0].payload[k]).toFixed(2)}%
+            </div>
           ))}
         </div>
       )
     }
     return <></>
   }
+
+  const timeRanges = [
+    28 * 24 * 3600 * 1000,
+    7 * 24 * 3600 * 1000,
+    24 * 3600 * 1000,
+    12 * 3600 * 1000,
+    3600 * 1000
+  ]
 
   return (
     <div className="App">
@@ -427,9 +438,18 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             <Link to="/">⬅️ Overview</Link>
           </Col>
         </Row>
-        <Row style={{ marginBottom: '5em' }}>
+        <Row style={{ marginBottom: '2em' }}>
           <Col>
             <h1>{objective?.name}</h1>
+          </Col>
+        </Row>
+        <Row style={{ marginBottom: '3em' }}>
+          <Col className="text-right">
+            <ButtonGroup aria-label="Basic example">
+              {timeRanges.map((t: number) => (
+                <Button variant="light" onClick={() => setTimeRange(t)} active={timeRange === t}>{formatDuration(t)}</Button>
+              ))}
+            </ButtonGroup>
           </Col>
         </Row>
         <Row>
@@ -496,6 +516,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                   tickFormatter={(v: number) => (100 * v).toFixed(2)}
                   domain={[errorBudgetSamplesMin, errorBudgetSamplesMax]}
                 />
+                <CartesianGrid strokeDasharray="3 3" />
                 <Tooltip content={<DateTooltip/>}/>
                 <defs>
                   <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
@@ -503,7 +524,14 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                     <stop offset={errorBudgetSamplesOffset} stopColor={`#${reds[0]}`} stopOpacity={1}/>
                   </linearGradient>
                 </defs>
-                <Area dataKey="v" type="monotone" animationDuration={250} strokeWidth={0} fill="url(#splitColor)" fillOpacity={1}/>
+                <Area
+                  dataKey="v"
+                  type="monotone"
+                  connectNulls={false}
+                  animationDuration={250}
+                  strokeWidth={0}
+                  fill="url(#splitColor)"
+                  fillOpacity={1}/>
               </AreaChart>
             </ResponsiveContainer>
           }
@@ -525,6 +553,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             {requests.length > 0 && requestsLabels.length > 0 ? (
               <ResponsiveContainer height={150}>
                 <AreaChart height={150} data={requests}>
+                  <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     type="number"
                     dataKey="t"
@@ -539,7 +568,6 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                   />
                   {Object.keys(requests[0]).filter((k: string) => k !== 't').map((k: string, i: number) => {
                     const label = requestsLabels[parseInt(k)]
-                    console.log(label)
                     let color = ''
                     if (label.match(/"(2\d{2}|OK)"/) != null) {
                       color = greens[i]
@@ -557,6 +585,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                     return <Area
                       key={k}
                       type="monotone"
+                      connectNulls={false}
                       animationDuration={250}
                       dataKey={k}
                       stackId={1}
@@ -576,6 +605,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             {errors.length > 0 && errorsLabels.length > 0 ? (
               <ResponsiveContainer height={150}>
                 <AreaChart height={150} data={errors}>
+                  <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     type="number"
                     dataKey="t"
@@ -593,6 +623,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                     return <Area
                       key={k}
                       type="monotone"
+                      connectNulls={false}
                       animationDuration={250}
                       dataKey={k}
                       stackId={1}

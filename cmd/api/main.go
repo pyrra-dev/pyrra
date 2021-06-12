@@ -160,6 +160,8 @@ func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (mode
 func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error) {
 	xxh := xxhash.New()
 	_, _ = xxh.WriteString(query)
+	_, _ = xxh.WriteString(r.Start.String())
+	_, _ = xxh.WriteString(r.End.String())
 	hash := xxh.Sum64()
 
 	if value, exists := p.cache.Get(hash); exists {
@@ -450,14 +452,26 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, star
 		start = time.Unix(int64(startTimestamp), 0)
 		end = time.Unix(int64(endTimestamp), 0)
 	}
+	step := end.Sub(start) / 1000
 
-	query := objective.RequestRange(5 * time.Minute)
+	diff := end.Sub(start)
+	timeRange := 5 * time.Minute
+	if diff >= 28*24*time.Hour {
+		timeRange = 3 * time.Hour
+	} else if diff >= 7*24*time.Hour {
+		timeRange = time.Hour
+	} else if diff >= 24*time.Hour {
+		timeRange = 30 * time.Minute
+	} else if diff >= 12*time.Hour {
+		timeRange = 15 * time.Minute
+	}
+	query := objective.RequestRange(timeRange)
 	log.Println(query)
 
 	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
 		Start: start,
 		End:   end,
-		Step:  15 * time.Second,
+		Step:  step,
 	})
 	if err != nil {
 		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -515,14 +529,27 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startT
 		start = time.Unix(int64(startTimestamp), 0)
 		end = time.Unix(int64(endTimestamp), 0)
 	}
+	step := end.Sub(start) / 1000
 
-	query := objective.ErrorsRange(5 * time.Minute)
+	diff := end.Sub(start)
+	timeRange := 5 * time.Minute
+	if diff >= 28*24*time.Hour {
+		timeRange = 3 * time.Hour
+	} else if diff >= 7*24*time.Hour {
+		timeRange = time.Hour
+	} else if diff >= 24*time.Hour {
+		timeRange = 30 * time.Minute
+	} else if diff >= 12*time.Hour {
+		timeRange = 15 * time.Minute
+	}
+
+	query := objective.ErrorsRange(timeRange)
 	log.Println(query)
 
 	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
 		Start: start,
 		End:   end,
-		Step:  15 * time.Second,
+		Step:  step,
 	})
 	if err != nil {
 		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
