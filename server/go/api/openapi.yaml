@@ -71,6 +71,22 @@ paths:
         schema:
           type: string
         style: simple
+      - description: The timestamp to start the query range at
+        explode: true
+        in: query
+        name: start
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: The timestamp to end the query range at
+        explode: true
+        in: query
+        name: end
+        required: false
+        schema:
+          type: integer
+        style: form
       responses:
         "200":
           content:
@@ -115,6 +131,22 @@ paths:
         schema:
           type: string
         style: simple
+      - description: The timestamp to start the query range at
+        explode: true
+        in: query
+        name: start
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: The timestamp to end the query range at
+        explode: true
+        in: query
+        name: end
+        required: false
+        schema:
+          type: integer
+        style: form
       responses:
         "200":
           content:
@@ -136,6 +168,22 @@ paths:
         schema:
           type: string
         style: simple
+      - description: The timestamp to start the query range at
+        explode: true
+        in: query
+        name: start
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: The timestamp to end the query range at
+        explode: true
+        in: query
+        name: end
+        required: false
+        schema:
+          type: integer
+        style: form
       responses:
         "200":
           content:

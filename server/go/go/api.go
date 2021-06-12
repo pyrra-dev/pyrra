@@ -34,9 +34,9 @@ type ObjectivesApiRouter interface {
 type ObjectivesApiServicer interface {
 	GetMultiBurnrateAlerts(context.Context, string) (ImplResponse, error)
 	GetObjective(context.Context, string) (ImplResponse, error)
-	GetObjectiveErrorBudget(context.Context, string) (ImplResponse, error)
+	GetObjectiveErrorBudget(context.Context, string, int32, int32) (ImplResponse, error)
 	GetObjectiveStatus(context.Context, string) (ImplResponse, error)
-	GetREDErrors(context.Context, string) (ImplResponse, error)
-	GetREDRequests(context.Context, string) (ImplResponse, error)
+	GetREDErrors(context.Context, string, int32, int32) (ImplResponse, error)
+	GetREDRequests(context.Context, string, int32, int32) (ImplResponse, error)
 	ListObjectives(context.Context) (ImplResponse, error)
 }

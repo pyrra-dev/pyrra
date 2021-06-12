@@ -42,6 +42,8 @@ export interface GetObjectiveRequest {
 
 export interface GetObjectiveErrorBudgetRequest {
     name: string;
+    start?: number;
+    end?: number;
 }
 
 export interface GetObjectiveStatusRequest {
@@ -50,10 +52,14 @@ export interface GetObjectiveStatusRequest {
 
 export interface GetREDErrorsRequest {
     name: string;
+    start?: number;
+    end?: number;
 }
 
 export interface GetREDRequestsRequest {
     name: string;
+    start?: number;
+    end?: number;
 }
 
 /**
@@ -131,6 +137,14 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters.start !== undefined) {
+            queryParameters['start'] = requestParameters.start;
+        }
+
+        if (requestParameters.end !== undefined) {
+            queryParameters['end'] = requestParameters.end;
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
@@ -191,6 +205,14 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters.start !== undefined) {
+            queryParameters['start'] = requestParameters.start;
+        }
+
+        if (requestParameters.end !== undefined) {
+            queryParameters['end'] = requestParameters.end;
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
@@ -220,6 +242,14 @@ export class ObjectivesApi extends runtime.BaseAPI {
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters.start !== undefined) {
+            queryParameters['start'] = requestParameters.start;
+        }
+
+        if (requestParameters.end !== undefined) {
+            queryParameters['end'] = requestParameters.end;
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 

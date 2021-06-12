@@ -109,9 +109,20 @@ func (c *ObjectivesApiController) GetObjective(w http.ResponseWriter, r *http.Re
 // GetObjectiveErrorBudget - Get ErrorBudget graph sample pairs
 func (c *ObjectivesApiController) GetObjectiveErrorBudget(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	query := r.URL.Query()
 	name := params["name"]
 
-	result, err := c.service.GetObjectiveErrorBudget(r.Context(), name)
+	start, err := parseInt32Parameter(query.Get("start"), false)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	end, err := parseInt32Parameter(query.Get("end"), false)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	result, err := c.service.GetObjectiveErrorBudget(r.Context(), name, start, end)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -141,9 +152,20 @@ func (c *ObjectivesApiController) GetObjectiveStatus(w http.ResponseWriter, r *h
 // GetREDErrors - Get a matrix of error percentage by label
 func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	query := r.URL.Query()
 	name := params["name"]
 
-	result, err := c.service.GetREDErrors(r.Context(), name)
+	start, err := parseInt32Parameter(query.Get("start"), false)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	end, err := parseInt32Parameter(query.Get("end"), false)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	result, err := c.service.GetREDErrors(r.Context(), name, start, end)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -157,9 +179,20 @@ func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Re
 // GetREDRequests - Get a matrix of requests by label
 func (c *ObjectivesApiController) GetREDRequests(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	query := r.URL.Query()
 	name := params["name"]
 
-	result, err := c.service.GetREDRequests(r.Context(), name)
+	start, err := parseInt32Parameter(query.Get("start"), false)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	end, err := parseInt32Parameter(query.Get("end"), false)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	result, err := c.service.GetREDRequests(r.Context(), name, start, end)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)

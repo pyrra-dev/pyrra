@@ -253,28 +253,20 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, name string) 
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name string) (openapi.ImplResponse, error) {
+func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapi.ImplResponse, error) {
 	objective, err := o.backend.GetObjective(name)
 	if err != nil {
 		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
-	end := time.Now().UTC().Round(15 * time.Second)
-	start := end.Add(-1 * time.Hour).UTC()
+	now := time.Now()
+	start := now.Add(-1 * time.Hour)
+	end := now
 
-	// TODO: Get from generated API query parameters
-	//if r.URL.Query().Get("start") != "" {
-	//	float, err := strconv.ParseInt(r.URL.Query().Get("start"), 10, 64)
-	//	if err == nil {
-	//		start = time.Unix(float, 0)
-	//	}
-	//}
-	//if r.URL.Query().Get("end") != "" {
-	//	float, err := strconv.ParseInt(r.URL.Query().Get("end"), 10, 64)
-	//	if err == nil {
-	//		end = time.Unix(float, 0)
-	//	}
-	//}
+	if startTimestamp != 0 && endTimestamp != 0 {
+		start = time.Unix(int64(startTimestamp), 0)
+		end = time.Unix(int64(endTimestamp), 0)
+	}
 
 	step := end.Sub(start) / 1000
 
@@ -444,19 +436,27 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string) (openapi.ImplResponse, error) {
+func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapi.ImplResponse, error) {
 	objective, err := o.backend.GetObjective(name)
 	if err != nil {
 		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
-	now := time.Now().UTC()
+	now := time.Now()
+	start := now.Add(-1 * time.Hour)
+	end := now
+
+	if startTimestamp != 0 && endTimestamp != 0 {
+		start = time.Unix(int64(startTimestamp), 0)
+		end = time.Unix(int64(endTimestamp), 0)
+	}
+
 	query := objective.RequestRange(5 * time.Minute)
 	log.Println(query)
 
 	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
-		Start: now.Add(-1 * time.Hour),
-		End:   now,
+		Start: start,
+		End:   end,
 		Step:  15 * time.Second,
 	})
 	if err != nil {
@@ -501,19 +501,27 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string) (ope
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string) (openapi.ImplResponse, error) {
+func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapi.ImplResponse, error) {
 	objective, err := o.backend.GetObjective(name)
 	if err != nil {
 		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
-	now := time.Now().UTC()
+	now := time.Now()
+	start := now.Add(-1 * time.Hour)
+	end := now
+
+	if startTimestamp != 0 && endTimestamp != 0 {
+		start = time.Unix(int64(startTimestamp), 0)
+		end = time.Unix(int64(endTimestamp), 0)
+	}
+
 	query := objective.ErrorsRange(5 * time.Minute)
 	log.Println(query)
 
 	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
-		Start: now.Add(-1 * time.Hour),
-		End:   now,
+		Start: start,
+		End:   end,
 		Step:  15 * time.Second,
 	})
 	if err != nil {

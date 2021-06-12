@@ -68,6 +68,16 @@ paths:
           required: true
           schema:
             type: string
+        - in: query
+          name: start
+          schema:
+            type: integer
+          description: The timestamp to start the query range at
+        - in: query
+          name: end
+          schema:
+            type: integer
+          description: The timestamp to end the query range at
       responses:
         '200':
           description: Get ErrorBudget graph sample pairs
@@ -108,6 +118,16 @@ paths:
           required: true
           schema:
             type: string
+        - in: query
+          name: start
+          schema:
+            type: integer
+          description: The timestamp to start the query range at
+        - in: query
+          name: end
+          schema:
+            type: integer
+          description: The timestamp to end the query range at
       responses:
         '200':
           description: Get a matrix of requests by label
@@ -127,6 +147,16 @@ paths:
           required: true
           schema:
             type: string
+        - in: query
+          name: start
+          schema:
+            type: integer
+          description: The timestamp to start the query range at
+        - in: query
+          name: end
+          schema:
+            type: integer
+          description: The timestamp to end the query range at
       responses:
         '200':
           description: Get a matrix of error percentage by label

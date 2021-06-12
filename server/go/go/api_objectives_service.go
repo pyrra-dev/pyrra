@@ -49,7 +49,7 @@ func (s *ObjectivesApiService) GetObjective(ctx context.Context, name string) (I
 }
 
 // GetObjectiveErrorBudget - Get ErrorBudget graph sample pairs
-func (s *ObjectivesApiService) GetObjectiveErrorBudget(ctx context.Context, name string) (ImplResponse, error) {
+func (s *ObjectivesApiService) GetObjectiveErrorBudget(ctx context.Context, name string, start int32, end int32) (ImplResponse, error) {
 	// TODO - update GetObjectiveErrorBudget with the required logic for this service method.
 	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
@@ -71,7 +71,7 @@ func (s *ObjectivesApiService) GetObjectiveStatus(ctx context.Context, name stri
 }
 
 // GetREDErrors - Get a matrix of error percentage by label
-func (s *ObjectivesApiService) GetREDErrors(ctx context.Context, name string) (ImplResponse, error) {
+func (s *ObjectivesApiService) GetREDErrors(ctx context.Context, name string, start int32, end int32) (ImplResponse, error) {
 	// TODO - update GetREDErrors with the required logic for this service method.
 	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
@@ -82,7 +82,7 @@ func (s *ObjectivesApiService) GetREDErrors(ctx context.Context, name string) (I
 }
 
 // GetREDRequests - Get a matrix of requests by label
-func (s *ObjectivesApiService) GetREDRequests(ctx context.Context, name string) (ImplResponse, error) {
+func (s *ObjectivesApiService) GetREDRequests(ctx context.Context, name string, start int32, end int32) (ImplResponse, error) {
 	// TODO - update GetREDRequests with the required logic for this service method.
 	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
