@@ -309,9 +309,25 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       .then((b: APIErrorBudget) => {
         setErrorBudgetSamples(b.pair)
 
-        // Calculate the offset to split the errorbudget into green and red areas
-        const min = Math.floor(10000 * Math.min(...b.pair.map((o: ErrorBudgetPair) => o.v))) / 10000;
-        const max = Math.ceil(10000 * Math.max(...b.pair.map((o: ErrorBudgetPair) => o.v))) / 10000;
+        const minRaw = Math.min(...b.pair.map((o: ErrorBudgetPair) => o.v))
+        const maxRaw = Math.max(...b.pair.map((o: ErrorBudgetPair) => o.v))
+        const diff = maxRaw - minRaw
+
+        let roundBy = 1
+        if (diff < 1) {
+          roundBy = 10
+        }
+        if (diff < 0.1) {
+          roundBy = 100
+        }
+        if (diff < 0.01) {
+          roundBy = 1_000
+        }
+
+        // Calculate the offset to split the error budget into green and red areas
+        const min = Math.floor(minRaw * roundBy) / roundBy;
+        const max = Math.ceil(maxRaw * roundBy) / roundBy;
+
         setErrorBudgetSamplesMin(min === 1 ? 0 : min)
         setErrorBudgetSamplesMax(max)
         if (max <= 0) {
