@@ -354,7 +354,6 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 				return
 			}
 			if vec.Len() != 1 {
-				log.Println("not vector with 1 entry")
 				return
 			}
 			b.Current = float64(vec[0].Value)
@@ -374,7 +373,6 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 				return
 			}
 			if vec.Len() != 1 {
-				log.Println("not vector with 1 entry")
 				return
 			}
 			b.Current = float64(vec[0].Value)
@@ -400,7 +398,6 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 				return
 			}
 			if vec.Len() != 1 {
-				log.Println("not vector with 1 entry")
 				return
 			}
 			sample := vec[0]
