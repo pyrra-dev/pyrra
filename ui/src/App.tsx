@@ -1,7 +1,7 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import './App.css';
 import { Button, ButtonGroup, Col, Container, Row, Spinner, Table } from 'react-bootstrap';
-import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory } from 'react-router-dom';
+import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory, useLocation } from 'react-router-dom';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
 import {
   Configuration,
@@ -268,7 +268,15 @@ interface DetailsRouteParams {
 
 const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const name = params.match.params.name;
-  const [timeRange, setTimeRange] = useState<number>(3600 * 1000) // 1h
+
+  const history = useHistory()
+  const query = new URLSearchParams(useLocation().search)
+
+  const timeRangeQuery = query.get('timerange')
+  const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
+  const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
+
+  // const [timeRange, setTimeRange] = useState<number>(3600 * 1000) // 1h
 
   const [objective, setObjective] = useState<APIObjective | null>(null);
   const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null);
@@ -352,7 +360,6 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             }
           })
         })
-        console.log(r.labels)
         setRequestsLabels(r.labels)
         setRequests(data)
       })
@@ -446,6 +453,10 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
     3600 * 1000
   ]
 
+  const handleTimeRangeClick = (t: number) => () => {
+    history.push(`/objectives/${name}?timerange=${formatDuration(t)}`)
+  }
+
   return (
     <div className="App">
       <Container>
@@ -462,8 +473,8 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         <Row style={{ marginBottom: '3em' }}>
           <Col className="text-right">
             <ButtonGroup aria-label="Basic example">
-              {timeRanges.map((t: number) => (
-                <Button variant="light" onClick={() => setTimeRange(t)} active={timeRange === t}>{formatDuration(t)}</Button>
+              {timeRanges.map((t: number, i: number) => (
+                <Button key={i} variant="light" onClick={handleTimeRangeClick(t)} active={timeRange === t}>{formatDuration(t)}</Button>
               ))}
             </ButtonGroup>
           </Col>
@@ -584,6 +595,9 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                   />
                   {Object.keys(requests[0]).filter((k: string) => k !== 't').map((k: string, i: number) => {
                     const label = requestsLabels[parseInt(k)]
+                    if( label === undefined) {
+                      return <></>
+                    }
                     let color = ''
                     if (label.match(/"(2\d{2}|OK)"/) != null) {
                       color = greens[i]
@@ -794,4 +808,42 @@ export const formatDuration = (d: number): string => {
   f('ms', 1, false);
 
   return r;
+};
+
+export const parseDuration = (durationStr: string): number | null => {
+  if (durationStr === '') {
+    return null;
+  }
+  if (durationStr === '0') {
+    // Allow 0 without a unit.
+    return 0;
+  }
+
+  const durationRE = new RegExp('^(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?$');
+  const matches = durationStr.match(durationRE);
+  if (!matches) {
+    return null;
+  }
+
+  let dur = 0;
+
+  // Parse the match at pos `pos` in the regex and use `mult` to turn that
+  // into ms, then add that value to the total parsed duration.
+  const m = (pos: number, mult: number) => {
+    if (matches[pos] === undefined) {
+      return;
+    }
+    const n = parseInt(matches[pos]);
+    dur += n * mult;
+  };
+
+  m(2, 1000 * 60 * 60 * 24 * 365); // y
+  m(4, 1000 * 60 * 60 * 24 * 7); // w
+  m(6, 1000 * 60 * 60 * 24); // d
+  m(8, 1000 * 60 * 60); // h
+  m(10, 1000 * 60); // m
+  m(12, 1000); // s
+  m(14, 1); // ms
+
+  return dur;
 };
