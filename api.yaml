@@ -174,10 +174,13 @@ components:
       type: object
       required:
         - name
+        - description
         - target
         - window
       properties:
         name:
+          type: string
+        description:
           type: string
         target:
           type: number

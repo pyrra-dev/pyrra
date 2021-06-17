@@ -62,6 +62,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           ...state.objectives,
           [action.objective.name]: {
             name: action.objective.name,
+            description: action.objective.description,
             window: action.objective.window,
             target: action.objective.target,
             availability: undefined,
@@ -466,9 +467,17 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
           </Col>
         </Row>
         <Row style={{ marginBottom: '2em' }}>
-          <Col>
-            <h1>{objective?.name}</h1>
+          <Col xs={12}>
+            <h1>{objective.name}</h1>
           </Col>
+          {objective.description !== undefined && objective.description !== '' ? (
+              <Col xs={12} md={6}>
+                <p>Description: {objective.description}</p>
+              </Col>
+            )
+            : (
+              <></>
+            )}
         </Row>
         <Row style={{ marginBottom: '3em' }}>
           <Col className="text-right">

@@ -222,10 +222,13 @@ components:
             - errorMatchers
             - errorMatchers
         name: name
+        description: description
         window: 6
         target: 0.8008281904610115
       properties:
         name:
+          type: string
+        description:
           type: string
         target:
           format: double
@@ -236,6 +239,7 @@ components:
         indicator:
           $ref: '#/components/schemas/Indicator'
       required:
+      - description
       - name
       - target
       - window

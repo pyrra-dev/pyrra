@@ -18,9 +18,10 @@ var (
 )
 
 type Objective struct {
-	Name   string         `json:"name"`
-	Target float64        `json:"target"`
-	Window model.Duration `json:"window"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Target      float64        `json:"target"`
+	Window      model.Duration `json:"window"`
 
 	Indicator Indicator `json:"indicator"`
 }

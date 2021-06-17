@@ -34,6 +34,12 @@ export interface Objective {
     name: string;
     /**
      * 
+     * @type {string}
+     * @memberof Objective
+     */
+    description: string;
+    /**
+     * 
      * @type {number}
      * @memberof Objective
      */
@@ -63,6 +69,7 @@ export function ObjectiveFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     return {
         
         'name': json['name'],
+        'description': json['description'],
         'target': json['target'],
         'window': json['window'],
         'indicator': !exists(json, 'indicator') ? undefined : IndicatorFromJSON(json['indicator']),
@@ -79,6 +86,7 @@ export function ObjectiveToJSON(value?: Objective | null): any {
     return {
         
         'name': value.name,
+        'description': value.description,
         'target': value.target,
         'window': value.window,
         'indicator': IndicatorToJSON(value.indicator),

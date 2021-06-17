@@ -54,6 +54,10 @@ type ServiceLevelObjective struct {
 
 // ServiceLevelObjectiveSpec defines the desired state of ServiceLevelObjective
 type ServiceLevelObjectiveSpec struct {
+	// Description describes the ServiceLevelObjective in more detail and
+	// gives extra context for engineers that might not directly work on the service.
+	Description string `json:"description"`
+
 	// Target is a string that's casted to a float64 between 0 - 100.
 	// It represents the desired availability of the service in the given window.
 	// float64 are not supported: https://github.com/kubernetes-sigs/controller-tools/issues/245
@@ -61,11 +65,6 @@ type ServiceLevelObjectiveSpec struct {
 
 	// Window within which the Target is supposed to be kept. Usually something like 1d, 7d or 28d.
 	Window metav1.Duration `json:"window"`
-
-	//// Latency target for the service. Combined with the Target this is used to define things like:
-	//// 99% of the requests need to be served within 5s.
-	//// +optional
-	//Latency string `json:"latency"`
 
 	// ServiceLevelIndicator is the underlying data source that indicates how the service is doing.
 	// This will be a Prometheus metric with specific selectors for your service.
@@ -188,9 +187,10 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 	}
 
 	return slo.Objective{
-		Name:   in.GetName(),
-		Target: target / 100,
-		Window: model.Duration(in.Spec.Window.Duration),
+		Name:        in.GetName(),
+		Description: in.Spec.Description,
+		Target:      target / 100,
+		Window:      model.Duration(in.Spec.Window.Duration),
 		Indicator: slo.Indicator{
 			HTTP: http,
 			GRPC: grpc,

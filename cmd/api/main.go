@@ -616,9 +616,10 @@ func toAPIObjective(objective slo.Objective) openapi.Objective {
 	}
 
 	return openapi.Objective{
-		Name:   objective.Name,
-		Target: objective.Target,
-		Window: time.Duration(objective.Window).Milliseconds(),
+		Name:        objective.Name,
+		Description: objective.Description,
+		Target:      objective.Target,
+		Window:      time.Duration(objective.Window).Milliseconds(),
 		Indicator: openapi.Indicator{
 			Http: http,
 			Grpc: grpc,

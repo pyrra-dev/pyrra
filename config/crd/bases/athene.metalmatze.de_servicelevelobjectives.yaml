@@ -35,6 +35,11 @@ spec:
         spec:
           description: ServiceLevelObjectiveSpec defines the desired state of ServiceLevelObjective
           properties:
+            description:
+              description: Description describes the ServiceLevelObjective in more
+                detail and gives extra context for engineers that might not directly
+                work on the service.
+              type: string
             serviceLevelIndicator:
               description: ServiceLevelIndicator is the underlying data source that
                 indicates how the service is doing. This will be a Prometheus metric
@@ -106,6 +111,7 @@ spec:
                 Usually something like 1d, 7d or 28d.
               type: string
           required:
+          - description
           - serviceLevelIndicator
           - target
           - window
