@@ -259,6 +259,11 @@ const List = () => {
         ))}
         </tbody>
       </Table>
+      <Row>
+        <Col>
+          <small>All availabilities and error budgets are calculated across the entire time window of the objective.</small>
+        </Col>
+      </Row>
     </Container>
   )
 }
@@ -492,7 +497,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
           <Col className="metric">
             <div>
               <h2>{100 * objective.target}%</h2>
-              <h6 className="text-muted">Objective in {formatDuration(objective.window)}</h6>
+              <h6 className="text-muted">Objective in <strong>{formatDuration(objective.window)}</strong></h6>
             </div>
           </Col>
           <Col className="metric">
