@@ -6,13 +6,14 @@ models/Burnrate.ts
 models/ErrorBudget.ts
 models/ErrorBudgetPair.ts
 models/Indicator.ts
-models/IndicatorGrpc.ts
-models/IndicatorHttp.ts
+models/IndicatorLatency.ts
+models/IndicatorRatio.ts
 models/MultiBurnrateAlert.ts
 models/Objective.ts
 models/ObjectiveStatus.ts
 models/ObjectiveStatusAvailability.ts
 models/ObjectiveStatusBudget.ts
+models/Query.ts
 models/QueryRange.ts
 models/index.ts
 runtime.ts

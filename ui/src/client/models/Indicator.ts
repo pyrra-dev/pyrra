@@ -14,14 +14,14 @@
 
 import { exists, mapValues } from '../runtime';
 import {
-    IndicatorGrpc,
-    IndicatorGrpcFromJSON,
-    IndicatorGrpcFromJSONTyped,
-    IndicatorGrpcToJSON,
-    IndicatorHttp,
-    IndicatorHttpFromJSON,
-    IndicatorHttpFromJSONTyped,
-    IndicatorHttpToJSON,
+    IndicatorLatency,
+    IndicatorLatencyFromJSON,
+    IndicatorLatencyFromJSONTyped,
+    IndicatorLatencyToJSON,
+    IndicatorRatio,
+    IndicatorRatioFromJSON,
+    IndicatorRatioFromJSONTyped,
+    IndicatorRatioToJSON,
 } from './';
 
 /**
@@ -32,16 +32,16 @@ import {
 export interface Indicator {
     /**
      * 
-     * @type {IndicatorHttp}
+     * @type {IndicatorRatio}
      * @memberof Indicator
      */
-    http?: IndicatorHttp;
+    ratio?: IndicatorRatio;
     /**
      * 
-     * @type {IndicatorGrpc}
+     * @type {IndicatorLatency}
      * @memberof Indicator
      */
-    grpc?: IndicatorGrpc;
+    latency?: IndicatorLatency;
 }
 
 export function IndicatorFromJSON(json: any): Indicator {
@@ -54,8 +54,8 @@ export function IndicatorFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     }
     return {
         
-        'http': !exists(json, 'http') ? undefined : IndicatorHttpFromJSON(json['http']),
-        'grpc': !exists(json, 'grpc') ? undefined : IndicatorGrpcFromJSON(json['grpc']),
+        'ratio': !exists(json, 'ratio') ? undefined : IndicatorRatioFromJSON(json['ratio']),
+        'latency': !exists(json, 'latency') ? undefined : IndicatorLatencyFromJSON(json['latency']),
     };
 }
 
@@ -68,8 +68,8 @@ export function IndicatorToJSON(value?: Indicator | null): any {
     }
     return {
         
-        'http': IndicatorHttpToJSON(value.http),
-        'grpc': IndicatorGrpcToJSON(value.grpc),
+        'ratio': IndicatorRatioToJSON(value.ratio),
+        'latency': IndicatorLatencyToJSON(value.latency),
     };
 }
 

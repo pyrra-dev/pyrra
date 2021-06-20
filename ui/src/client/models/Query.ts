@@ -16,46 +16,46 @@ import { exists, mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface IndicatorHttp
+ * @interface Query
  */
-export interface IndicatorHttp {
+export interface Query {
     /**
      * 
      * @type {string}
-     * @memberof IndicatorHttp
+     * @memberof Query
      */
-    metric?: string;
+    metric: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Query
+     */
+    name?: string;
     /**
      * 
      * @type {Array<string>}
-     * @memberof IndicatorHttp
+     * @memberof Query
      */
     matchers?: Array<string>;
-    /**
-     * 
-     * @type {Array<string>}
-     * @memberof IndicatorHttp
-     */
-    errorMatchers?: Array<string>;
 }
 
-export function IndicatorHttpFromJSON(json: any): IndicatorHttp {
-    return IndicatorHttpFromJSONTyped(json, false);
+export function QueryFromJSON(json: any): Query {
+    return QueryFromJSONTyped(json, false);
 }
 
-export function IndicatorHttpFromJSONTyped(json: any, ignoreDiscriminator: boolean): IndicatorHttp {
+export function QueryFromJSONTyped(json: any, ignoreDiscriminator: boolean): Query {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'metric': !exists(json, 'metric') ? undefined : json['metric'],
+        'metric': json['metric'],
+        'name': !exists(json, 'name') ? undefined : json['name'],
         'matchers': !exists(json, 'matchers') ? undefined : json['matchers'],
-        'errorMatchers': !exists(json, 'errorMatchers') ? undefined : json['errorMatchers'],
     };
 }
 
-export function IndicatorHttpToJSON(value?: IndicatorHttp | null): any {
+export function QueryToJSON(value?: Query | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -65,8 +65,8 @@ export function IndicatorHttpToJSON(value?: IndicatorHttp | null): any {
     return {
         
         'metric': value.metric,
+        'name': value.name,
         'matchers': value.matchers,
-        'errorMatchers': value.errorMatchers,
     };
 }
 
