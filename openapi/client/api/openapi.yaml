@@ -203,24 +203,32 @@ components:
     Objective:
       example:
         indicator:
-          http:
-            matchers:
-            - matchers
-            - matchers
-            metric: metric
-            errorMatchers:
-            - errorMatchers
-            - errorMatchers
-          grpc:
-            matchers:
-            - matchers
-            - matchers
-            method: method
-            metric: metric
-            service: service
-            errorMatchers:
-            - errorMatchers
-            - errorMatchers
+          latency:
+            total:
+              matchers:
+              - matchers
+              - matchers
+              metric: metric
+              name: name
+            success:
+              matchers:
+              - matchers
+              - matchers
+              metric: metric
+              name: name
+          ratio:
+            total:
+              matchers:
+              - matchers
+              - matchers
+              metric: metric
+              name: name
+            errors:
+              matchers:
+              - matchers
+              - matchers
+              metric: metric
+              name: name
         name: name
         description: description
         window: 6
@@ -246,29 +254,56 @@ components:
       type: object
     Indicator:
       example:
-        http:
-          matchers:
-          - matchers
-          - matchers
-          metric: metric
-          errorMatchers:
-          - errorMatchers
-          - errorMatchers
-        grpc:
-          matchers:
-          - matchers
-          - matchers
-          method: method
-          metric: metric
-          service: service
-          errorMatchers:
-          - errorMatchers
-          - errorMatchers
+        latency:
+          total:
+            matchers:
+            - matchers
+            - matchers
+            metric: metric
+            name: name
+          success:
+            matchers:
+            - matchers
+            - matchers
+            metric: metric
+            name: name
+        ratio:
+          total:
+            matchers:
+            - matchers
+            - matchers
+            metric: metric
+            name: name
+          errors:
+            matchers:
+            - matchers
+            - matchers
+            metric: metric
+            name: name
       properties:
-        http:
-          $ref: '#/components/schemas/Indicator_http'
-        grpc:
-          $ref: '#/components/schemas/Indicator_grpc'
+        ratio:
+          $ref: '#/components/schemas/Indicator_ratio'
+        latency:
+          $ref: '#/components/schemas/Indicator_latency'
+      type: object
+    Query:
+      example:
+        matchers:
+        - matchers
+        - matchers
+        metric: metric
+        name: name
+      properties:
+        metric:
+          type: string
+        name:
+          type: string
+        matchers:
+          items:
+            type: string
+          type: array
+      required:
+      - metric
       type: object
     ObjectiveStatus:
       example:
@@ -390,53 +425,51 @@ components:
       - labels
       - values
       type: object
-    Indicator_http:
+    Indicator_ratio:
       example:
-        matchers:
-        - matchers
-        - matchers
-        metric: metric
-        errorMatchers:
-        - errorMatchers
-        - errorMatchers
+        total:
+          matchers:
+          - matchers
+          - matchers
+          metric: metric
+          name: name
+        errors:
+          matchers:
+          - matchers
+          - matchers
+          metric: metric
+          name: name
       properties:
-        metric:
-          type: string
-        matchers:
-          items:
-            type: string
-          type: array
-        errorMatchers:
-          items:
-            type: string
-          type: array
+        errors:
+          $ref: '#/components/schemas/Query'
+        total:
+          $ref: '#/components/schemas/Query'
+      required:
+      - errors
+      - total
       type: object
-    Indicator_grpc:
+    Indicator_latency:
       example:
-        matchers:
-        - matchers
-        - matchers
-        method: method
-        metric: metric
-        service: service
-        errorMatchers:
-        - errorMatchers
-        - errorMatchers
+        total:
+          matchers:
+          - matchers
+          - matchers
+          metric: metric
+          name: name
+        success:
+          matchers:
+          - matchers
+          - matchers
+          metric: metric
+          name: name
       properties:
-        metric:
-          type: string
-        service:
-          type: string
-        method:
-          type: string
-        matchers:
-          items:
-            type: string
-          type: array
-        errorMatchers:
-          items:
-            type: string
-          type: array
+        success:
+          $ref: '#/components/schemas/Query'
+        total:
+          $ref: '#/components/schemas/Query'
+      required:
+      - success
+      - total
       type: object
     ObjectiveStatus_availability:
       example:

@@ -71,7 +71,7 @@ vet:
 	go vet ./...
 
 # Generate code
-generate: controller-gen
+generate: controller-gen manifests
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
@@ -109,11 +109,20 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
-server/go: api.yaml
+openapi: openapi/server openapi/client ui/src/client
+
+openapi/server: api.yaml
 	-rm -rf $@
-	$(OPENAPI) generate -i $(shell pwd)/api.yaml -g go-server -o $(shell pwd)/server/go
+	$(OPENAPI) generate -i $(shell pwd)/api.yaml -g go-server -o $(shell pwd)/openapi/server
 	-rm -rf $@/{Dockerfile,go.mod,main.go,README.md}
-	goimports -w $(shell find ./server/go/ -name '*.go')
+	goimports -w $(shell find ./openapi/server/ -name '*.go')
+	touch $@
+
+openapi/client: api.yaml
+	-rm -rf $@
+	$(OPENAPI) generate -i $(shell pwd)/api.yaml -g go -o $(shell pwd)/openapi/client
+	-rm -rf $@/{docs,.travis.yml,git_push.sh,go.mod,go.sum,README.md}
+	goimports -w $(shell find ./openapi/client/ -name '*.go')
 	touch $@
 
 ui/src/client:

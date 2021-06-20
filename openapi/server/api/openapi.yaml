@@ -1,0 +1,528 @@
+openapi: 3.0.2
+info:
+  title: Athene
+  version: 0.0.0
+servers:
+- url: /api/v1
+paths:
+  /objectives:
+    get:
+      operationId: ListObjectives
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Objectives'
+          description: List Objectives
+      summary: List Objectives
+      tags:
+      - objectives
+  /objectives/{name}:
+    get:
+      operationId: GetObjective
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Objective'
+          description: Get Objective
+      summary: Get Objective
+      tags:
+      - objectives
+  /objectives/{name}/status:
+    get:
+      operationId: GetObjectiveStatus
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectiveStatus'
+          description: Get objective status
+      summary: Get objective status
+      tags:
+      - objectives
+  /objectives/{name}/errorbudget:
+    get:
+      operationId: GetObjectiveErrorBudget
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The timestamp to start the query range at
+        explode: true
+        in: query
+        name: start
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: The timestamp to end the query range at
+        explode: true
+        in: query
+        name: end
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBudget'
+          description: Get ErrorBudget graph sample pairs
+      summary: Get ErrorBudget graph sample pairs
+      tags:
+      - objectives
+  /objectives/{name}/alerts:
+    get:
+      operationId: GetMultiBurnrateAlerts
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/MultiBurnrateAlert'
+                type: array
+          description: Get GetMultiBurnrateAlerts for the Objective
+      summary: Get the MultiBurnrateAlerts for the Objective
+      tags:
+      - objectives
+  /objectives/{name}/red/requests:
+    get:
+      operationId: GetREDRequests
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The timestamp to start the query range at
+        explode: true
+        in: query
+        name: start
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: The timestamp to end the query range at
+        explode: true
+        in: query
+        name: end
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryRange'
+          description: Get a matrix of requests by label
+      summary: Get a matrix of requests by label
+      tags:
+      - objectives
+  /objectives/{name}/red/errors:
+    get:
+      operationId: GetREDErrors
+      parameters:
+      - explode: false
+        in: path
+        name: name
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: The timestamp to start the query range at
+        explode: true
+        in: query
+        name: start
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: The timestamp to end the query range at
+        explode: true
+        in: query
+        name: end
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryRange'
+          description: Get a matrix of error percentage by label
+      summary: Get a matrix of error percentage by label
+      tags:
+      - objectives
+components:
+  schemas:
+    Objectives:
+      items:
+        $ref: '#/components/schemas/Objective'
+      type: array
+    Objective:
+      example:
+        indicator:
+          latency:
+            total:
+              matchers:
+              - matchers
+              - matchers
+              metric: metric
+              name: name
+            success:
+              matchers:
+              - matchers
+              - matchers
+              metric: metric
+              name: name
+          ratio:
+            total:
+              matchers:
+              - matchers
+              - matchers
+              metric: metric
+              name: name
+            errors:
+              matchers:
+              - matchers
+              - matchers
+              metric: metric
+              name: name
+        name: name
+        description: description
+        window: 6
+        target: 0.8008281904610115
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        target:
+          format: double
+          type: number
+        window:
+          format: int64
+          type: integer
+        indicator:
+          $ref: '#/components/schemas/Indicator'
+      required:
+      - description
+      - name
+      - target
+      - window
+      type: object
+    Indicator:
+      example:
+        latency:
+          total:
+            matchers:
+            - matchers
+            - matchers
+            metric: metric
+            name: name
+          success:
+            matchers:
+            - matchers
+            - matchers
+            metric: metric
+            name: name
+        ratio:
+          total:
+            matchers:
+            - matchers
+            - matchers
+            metric: metric
+            name: name
+          errors:
+            matchers:
+            - matchers
+            - matchers
+            metric: metric
+            name: name
+      properties:
+        ratio:
+          $ref: '#/components/schemas/Indicator_ratio'
+        latency:
+          $ref: '#/components/schemas/Indicator_latency'
+      type: object
+    Query:
+      example:
+        matchers:
+        - matchers
+        - matchers
+        metric: metric
+        name: name
+      properties:
+        metric:
+          type: string
+        name:
+          type: string
+        matchers:
+          items:
+            type: string
+          type: array
+      required:
+      - metric
+      type: object
+    ObjectiveStatus:
+      example:
+        availability:
+          total: 6.027456183070403
+          percentage: 0.8008281904610115
+          errors: 1.4658129805029452
+        budget:
+          total: 5.962133916683182
+          max: 2.3021358869347655
+          remaining: 5.637376656633329
+      properties:
+        availability:
+          $ref: '#/components/schemas/ObjectiveStatus_availability'
+        budget:
+          $ref: '#/components/schemas/ObjectiveStatus_budget'
+      required:
+      - availability
+      - budget
+      type: object
+    ErrorBudget:
+      example:
+        pair:
+        - t: 0
+          v: 6.027456183070403
+        - t: 0
+          v: 6.027456183070403
+      properties:
+        pair:
+          items:
+            $ref: '#/components/schemas/ErrorBudget_pair'
+          type: array
+      required:
+      - pair
+      type: object
+    MultiBurnrateAlert:
+      example:
+        severity: severity
+        for: 0
+        short:
+          current: 5.962133916683182
+          query: query
+          window: 1
+        state: inactive
+        factor: 6.027456183070403
+        long:
+          current: 5.962133916683182
+          query: query
+          window: 1
+      properties:
+        severity:
+          type: string
+        for:
+          format: int64
+          type: integer
+        factor:
+          format: double
+          type: number
+        short:
+          $ref: '#/components/schemas/Burnrate'
+        long:
+          $ref: '#/components/schemas/Burnrate'
+        state:
+          enum:
+          - inactive
+          - pending
+          - firing
+          type: string
+      required:
+      - factor
+      - for
+      - long
+      - severity
+      - short
+      - state
+      type: object
+    Burnrate:
+      example:
+        current: 5.962133916683182
+        query: query
+        window: 1
+      properties:
+        window:
+          format: int64
+          type: integer
+        current:
+          format: double
+          type: number
+        query:
+          type: string
+      required:
+      - current
+      - query
+      - window
+      type: object
+    QueryRange:
+      example:
+        values:
+        - - 0.8008281904610115
+          - 0.8008281904610115
+        - - 0.8008281904610115
+          - 0.8008281904610115
+        labels:
+        - labels
+        - labels
+      properties:
+        labels:
+          items:
+            type: string
+          type: array
+        values:
+          items:
+            items:
+              format: double
+              type: number
+            type: array
+          type: array
+      required:
+      - labels
+      - values
+      type: object
+    Indicator_ratio:
+      example:
+        total:
+          matchers:
+          - matchers
+          - matchers
+          metric: metric
+          name: name
+        errors:
+          matchers:
+          - matchers
+          - matchers
+          metric: metric
+          name: name
+      properties:
+        errors:
+          $ref: '#/components/schemas/Query'
+        total:
+          $ref: '#/components/schemas/Query'
+      required:
+      - errors
+      - total
+      type: object
+    Indicator_latency:
+      example:
+        total:
+          matchers:
+          - matchers
+          - matchers
+          metric: metric
+          name: name
+        success:
+          matchers:
+          - matchers
+          - matchers
+          metric: metric
+          name: name
+      properties:
+        success:
+          $ref: '#/components/schemas/Query'
+        total:
+          $ref: '#/components/schemas/Query'
+      required:
+      - success
+      - total
+      type: object
+    ObjectiveStatus_availability:
+      example:
+        total: 6.027456183070403
+        percentage: 0.8008281904610115
+        errors: 1.4658129805029452
+      properties:
+        percentage:
+          format: double
+          type: number
+        total:
+          format: double
+          type: number
+        errors:
+          format: double
+          type: number
+      required:
+      - errors
+      - percentage
+      - total
+      type: object
+    ObjectiveStatus_budget:
+      example:
+        total: 5.962133916683182
+        max: 2.3021358869347655
+        remaining: 5.637376656633329
+      properties:
+        total:
+          format: double
+          type: number
+        remaining:
+          format: double
+          type: number
+        max:
+          format: double
+          type: number
+      required:
+      - max
+      - remaining
+      - total
+      type: object
+    ErrorBudget_pair:
+      example:
+        t: 0
+        v: 6.027456183070403
+      properties:
+        t:
+          format: int64
+          type: integer
+        v:
+          format: double
+          type: number
+      required:
+      - t
+      - v
+      type: object

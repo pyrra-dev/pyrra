@@ -193,36 +193,39 @@ components:
     Indicator:
       type: object
       properties:
-        http:
+        ratio:
           type: object
+          required:
+            - errors
+            - total
           properties:
-            metric:
-              type: string
-            matchers:
-              type: array
-              items:
-                type: string
-            errorMatchers:
-              type: array
-              items:
-                type: string
-        grpc:
+            errors:
+              $ref: '#/components/schemas/Query'
+            total:
+              $ref: '#/components/schemas/Query'
+        latency:
           type: object
+          required:
+            - success
+            - total
           properties:
-            metric:
-              type: string
-            service:
-              type: string
-            method:
-              type: string
-            matchers:
-              type: array
-              items:
-                type: string
-            errorMatchers:
-              type: array
-              items:
-                type: string
+            success:
+              $ref: '#/components/schemas/Query'
+            total:
+              $ref: '#/components/schemas/Query'
+    Query:
+      type: object
+      required:
+        - metric
+      properties:
+        metric:
+          type: string
+        name:
+          type: string
+        matchers:
+          type: array
+          items:
+            type: string
     ObjectiveStatus:
       type: object
       required:

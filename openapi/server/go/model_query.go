@@ -9,10 +9,10 @@
 
 package openapi
 
-type IndicatorHttp struct {
-	Metric string `json:"metric,omitempty"`
+type Query struct {
+	Metric string `json:"metric"`
+
+	Name string `json:"name,omitempty"`
 
 	Matchers []string `json:"matchers,omitempty"`
-
-	ErrorMatchers []string `json:"errorMatchers,omitempty"`
 }

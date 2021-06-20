@@ -9,8 +9,8 @@
 
 package openapi
 
-type Indicator struct {
-	Http IndicatorHttp `json:"http,omitempty"`
+type IndicatorLatency struct {
+	Success Query `json:"success"`
 
-	Grpc IndicatorGrpc `json:"grpc,omitempty"`
+	Total Query `json:"total"`
 }
