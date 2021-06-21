@@ -13,7 +13,7 @@ RUN go mod download
 COPY cmd/api/ cmd/api/
 COPY api/ api/
 COPY controllers/ controllers/
-COPY server/ server/
+COPY openapi/ openapi/
 COPY slo/ slo/
 
 # Build

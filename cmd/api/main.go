@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"embed"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -17,8 +17,9 @@ import (
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	openapi "github.com/metalmatze/athene/server/go/go"
-	"github.com/metalmatze/athene/slo"
+	"github.com/metalmatze/athene/openapi"
+	openapiclient "github.com/metalmatze/athene/openapi/client"
+	openapiserver "github.com/metalmatze/athene/openapi/server/go"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -34,11 +35,11 @@ func main() {
 	}
 
 	prometheusURL := flag.String("prometheus.url", "http://localhost:9090", "The URL to the Prometheus to query.")
-	backendURL := flag.String("backend.url", "http://localhost:9444", "The URL to the backend service like a Kubernetes Operator.")
+	apiURL := flag.String("api.url", "http://localhost:9444", "The URL to the API service like a Kubernetes Operator.")
 	flag.Parse()
 
 	log.Println("Using Prometheus at", *prometheusURL)
-	log.Println("Using backend at", *backendURL)
+	log.Println("Using API at", *apiURL)
 
 	client, err := api.NewClient(api.Config{Address: *prometheusURL})
 	if err != nil {
@@ -58,12 +59,21 @@ func main() {
 		cache: cache,
 	}
 
-	backend := backend{url: *backendURL}
+	parsedAPIURL, err := url.Parse(*apiURL)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 
-	router := openapi.NewRouter(
-		openapi.NewObjectivesApiController(&ObjectivesServer{
-			promAPI: promAPI,
-			backend: backend,
+	apiConfig := openapiclient.NewConfiguration()
+	apiConfig.Scheme = parsedAPIURL.Scheme
+	apiConfig.Host = parsedAPIURL.Host
+	apiClient := openapiclient.NewAPIClient(apiConfig)
+
+	router := openapiserver.NewRouter(
+		openapiserver.NewObjectivesApiController(&ObjectivesServer{
+			promAPI:   promAPI,
+			apiclient: apiClient,
 		}),
 	)
 
@@ -90,38 +100,6 @@ type prometheusAPI interface {
 	Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error)
 	// QueryRange performs a query for the given range.
 	QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error)
-}
-
-type backend struct {
-	url string
-}
-
-func (b *backend) ListObjectives() ([]slo.Objective, error) {
-	resp, err := http.Get(b.url + "/objectives")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var objectives []slo.Objective
-	if err := json.NewDecoder(resp.Body).Decode(&objectives); err != nil {
-		return nil, err
-	}
-
-	return objectives, nil
-}
-
-func (b backend) GetObjective(name string) (slo.Objective, error) {
-	var objective slo.Objective
-
-	resp, err := http.Get(b.url + "/objectives/" + name)
-	if err != nil {
-		return objective, err
-	}
-	defer resp.Body.Close()
-
-	err = json.NewDecoder(resp.Body).Decode(&objective)
-	return objective, err
 }
 
 func RoundUp(t time.Time, d time.Duration) time.Time {
@@ -180,64 +158,69 @@ func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1
 }
 
 type ObjectivesServer struct {
-	promAPI *promCache
-	backend backend
+	promAPI   *promCache
+	apiclient *openapiclient.APIClient
 }
 
-func (o *ObjectivesServer) ListObjectives(ctx context.Context) (openapi.ImplResponse, error) {
-	objectives, err := o.backend.ListObjectives()
+func (o *ObjectivesServer) ListObjectives(ctx context.Context) (openapiserver.ImplResponse, error) {
+	objectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Execute()
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
-	apiObjectives := make([]openapi.Objective, len(objectives))
+	apiObjectives := make([]openapiserver.Objective, len(objectives))
 	for i, objective := range objectives {
-		apiObjectives[i] = toAPIObjective(objective)
+		apiObjectives[i] = openapi.ServerFromClient(objective)
 	}
 
-	return openapi.ImplResponse{
+	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
 		Body: apiObjectives,
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjective(ctx context.Context, name string) (openapi.ImplResponse, error) {
-	objective, err := o.backend.GetObjective(name)
+func (o *ObjectivesServer) GetObjective(ctx context.Context, name string) (openapiserver.ImplResponse, error) {
+	objective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
-	return openapi.ImplResponse{
+	return openapiserver.ImplResponse{
 		Code: http.StatusCreated,
-		Body: toAPIObjective(objective),
+		Body: openapi.ServerFromClient(objective),
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, name string) (openapi.ImplResponse, error) {
-	objective, err := o.backend.GetObjective(name)
+func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, name string) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
+	objective := openapi.InternalFromClient(clientObjective)
 
 	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
 
-	status := openapi.ObjectiveStatus{
-		Availability: openapi.ObjectiveStatusAvailability{},
-		Budget:       openapi.ObjectiveStatusBudget{},
+	status := openapiserver.ObjectiveStatus{
+		Availability: openapiserver.ObjectiveStatusAvailability{},
+		Budget:       openapiserver.ObjectiveStatusBudget{},
 	}
 
-	value, _, err := o.promAPI.Query(ctx, objective.QueryTotal(objective.Window), ts)
+	queryTotal := objective.QueryTotal(objective.Window)
+	log.Println(queryTotal)
+	value, _, err := o.promAPI.Query(ctx, queryTotal, ts)
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 	vec := value.(model.Vector)
 	for _, v := range vec {
 		status.Availability.Total = float64(v.Value)
 	}
 
-	value, _, err = o.promAPI.Query(ctx, objective.QueryErrors(objective.Window), ts)
+	queryErrors := objective.QueryErrors(objective.Window)
+	log.Println(queryErrors)
+	value, _, err = o.promAPI.Query(ctx, queryErrors, ts)
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 	for _, v := range value.(model.Vector) {
 		status.Availability.Errors = float64(v.Value)
@@ -249,17 +232,18 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, name string) 
 	status.Budget.Remaining = (status.Budget.Total - (status.Availability.Errors / status.Availability.Total)) / status.Budget.Total
 	status.Budget.Max = status.Budget.Total * status.Availability.Total
 
-	return openapi.ImplResponse{
+	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
 		Body: status,
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapi.ImplResponse, error) {
-	objective, err := o.backend.GetObjective(name)
+func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
+	objective := openapi.InternalFromClient(clientObjective)
 
 	now := time.Now()
 	start := now.Add(-1 * time.Hour)
@@ -280,29 +264,29 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name str
 		Step:  step,
 	})
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	matrix, ok := value.(model.Matrix)
 	if !ok {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
 	}
 
 	if len(matrix) != 1 {
-		return openapi.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
 	}
 
-	pairs := make([]openapi.ErrorBudgetPair, len(matrix[0].Values))
+	pairs := make([]openapiserver.ErrorBudgetPair, len(matrix[0].Values))
 
 	for _, m := range matrix {
 		for i, pair := range m.Values {
-			pairs[i] = openapi.ErrorBudgetPair{T: pair.Timestamp.Unix(), V: float64(pair.Value)}
+			pairs[i] = openapiserver.ErrorBudgetPair{T: pair.Timestamp.Unix(), V: float64(pair.Value)}
 		}
 	}
 
-	return openapi.ImplResponse{
+	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
-		Body: openapi.ErrorBudget{Pair: pairs},
+		Body: openapiserver.ErrorBudget{Pair: pairs},
 	}, nil
 }
 
@@ -312,26 +296,27 @@ const (
 	alertstateFiring   = "firing"
 )
 
-func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name string) (openapi.ImplResponse, error) {
-	objective, err := o.backend.GetObjective(name)
+func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name string) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
+	objective := openapi.InternalFromClient(clientObjective)
 
 	baseAlerts, err := objective.Alerts()
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
-	var alerts []openapi.MultiBurnrateAlert
+	var alerts []openapiserver.MultiBurnrateAlert
 
 	for _, ba := range baseAlerts {
-		short := &openapi.Burnrate{
+		short := &openapiserver.Burnrate{
 			Window:  ba.Short.Milliseconds(),
 			Current: -1,
 			Query:   ba.QueryShort,
 		}
-		long := &openapi.Burnrate{
+		long := &openapiserver.Burnrate{
 			Window:  ba.Long.Milliseconds(),
 			Current: -1,
 			Query:   ba.QueryLong,
@@ -340,7 +325,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 		var wg sync.WaitGroup
 		wg.Add(3)
 
-		go func(b *openapi.Burnrate) {
+		go func(b *openapiserver.Burnrate) {
 			defer wg.Done()
 
 			value, _, err := o.promAPI.Query(ctx, b.Query, time.Now())
@@ -359,7 +344,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 			b.Current = float64(vec[0].Value)
 		}(short)
 
-		go func(b *openapi.Burnrate) {
+		go func(b *openapiserver.Burnrate) {
 			defer wg.Done()
 
 			value, _, err := o.promAPI.Query(ctx, b.Query, time.Now())
@@ -419,7 +404,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 
 		wg.Wait()
 
-		alerts = append(alerts, openapi.MultiBurnrateAlert{
+		alerts = append(alerts, openapiserver.MultiBurnrateAlert{
 			Severity: ba.Severity,
 			For:      ba.For.Milliseconds(),
 			Factor:   ba.Factor,
@@ -429,17 +414,18 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 		})
 	}
 
-	return openapi.ImplResponse{
+	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
 		Body: alerts,
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapi.ImplResponse, error) {
-	objective, err := o.backend.GetObjective(name)
+func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
+	objective := openapi.InternalFromClient(clientObjective)
 
 	now := time.Now()
 	start := now.Add(-1 * time.Hour)
@@ -471,20 +457,20 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, star
 		Step:  step,
 	})
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	if value.Type() != model.ValMatrix {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("returned data is not a matrix")
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("returned data is not a matrix")
 	}
 
 	matrix, ok := value.(model.Matrix)
 	if !ok {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
 	}
 
 	if len(matrix) == 0 {
-		return openapi.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
 	}
 
 	labels := make([]string, len(matrix))
@@ -503,20 +489,21 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, star
 		}
 	}
 
-	return openapi.ImplResponse{
+	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
-		Body: openapi.QueryRange{
+		Body: openapiserver.QueryRange{
 			Labels: labels,
 			Values: values,
 		},
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapi.ImplResponse, error) {
-	objective, err := o.backend.GetObjective(name)
+func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
+	objective := openapi.InternalFromClient(clientObjective)
 
 	now := time.Now()
 	start := now.Add(-1 * time.Hour)
@@ -549,20 +536,20 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startT
 		Step:  step,
 	})
 	if err != nil {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, err
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	if value.Type() != model.ValMatrix {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("returned data is not a matrix")
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("returned data is not a matrix")
 	}
 
 	matrix, ok := value.(model.Matrix)
 	if !ok {
-		return openapi.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
 	}
 
 	if len(matrix) == 0 {
-		return openapi.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
 	}
 
 	labels := make([]string, len(matrix))
@@ -581,48 +568,11 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startT
 		}
 	}
 
-	return openapi.ImplResponse{
+	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
-		Body: openapi.QueryRange{
+		Body: openapiserver.QueryRange{
 			Labels: labels,
 			Values: values,
 		},
 	}, nil
-}
-
-func toAPIObjective(objective slo.Objective) openapi.Objective {
-	http := openapi.IndicatorHttp{}
-	if objective.Indicator.HTTP != nil {
-		http.Metric = objective.Indicator.HTTP.Metric
-		for _, m := range objective.Indicator.HTTP.Matchers {
-			http.Matchers = append(http.Matchers, m.String())
-		}
-		for _, m := range objective.Indicator.HTTP.ErrorMatchers {
-			http.ErrorMatchers = append(http.ErrorMatchers, m.String())
-		}
-	}
-
-	grpc := openapi.IndicatorGrpc{}
-	if objective.Indicator.GRPC != nil {
-		grpc.Metric = objective.Indicator.GRPC.Metric
-		grpc.Service = objective.Indicator.GRPC.Service
-		grpc.Method = objective.Indicator.GRPC.Method
-		for _, m := range objective.Indicator.GRPC.Matchers {
-			grpc.Matchers = append(grpc.Matchers, m.String())
-		}
-		for _, m := range objective.Indicator.GRPC.ErrorMatchers {
-			grpc.ErrorMatchers = append(grpc.ErrorMatchers, m.String())
-		}
-	}
-
-	return openapi.Objective{
-		Name:        objective.Name,
-		Description: objective.Description,
-		Target:      objective.Target,
-		Window:      time.Duration(objective.Window).Milliseconds(),
-		Indicator: openapi.Indicator{
-			Http: http,
-			Grpc: grpc,
-		},
-	}
 }

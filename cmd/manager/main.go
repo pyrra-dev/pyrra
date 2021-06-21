@@ -18,15 +18,15 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	athenev1alpha1 "github.com/metalmatze/athene/api/v1alpha1"
 	"github.com/metalmatze/athene/controllers"
-	"github.com/metalmatze/athene/slo"
+	"github.com/metalmatze/athene/openapi"
+	openapiserver "github.com/metalmatze/athene/openapi/server/go"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -85,18 +85,16 @@ func main() {
 
 	var gr run.Group
 	{
-		mux := http.NewServeMux()
-		mux.HandleFunc("/objectives", objectivesListHandler(mgr.GetClient()))
-		mux.HandleFunc("/objectives/", objectiveHandler(mgr.GetClient()))
-		s := http.Server{
-			Addr:    ":9444",
-			Handler: mux,
-		}
+		router := openapiserver.NewRouter(
+			openapiserver.NewObjectivesApiController(&ObjectiveServer{client: mgr.GetClient()}),
+		)
+
+		server := http.Server{Addr: ":9444", Handler: router}
 
 		gr.Add(func() error {
-			return s.ListenAndServe()
+			return server.ListenAndServe()
 		}, func(err error) {
-			_ = s.Shutdown(context.Background())
+			_ = server.Shutdown(context.Background())
 		})
 	}
 	{
@@ -113,50 +111,64 @@ func main() {
 	}
 }
 
-func objectiveHandler(c client.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		name := strings.TrimPrefix(r.URL.Path, "/objectives/")
-		var slo athenev1alpha1.ServiceLevelObjective
-		err := c.Get(r.Context(), client.ObjectKey{Namespace: "monitoring", Name: name}, &slo)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		objective, err := slo.Internal()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		bytes, err := json.Marshal(objective)
-		if err != nil {
-			return
-		}
-		_, _ = w.Write(bytes)
-	}
+type ObjectiveServer struct {
+	client client.Client
 }
 
-func objectivesListHandler(client client.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var list athenev1alpha1.ServiceLevelObjectiveList
-		if err := client.List(context.Background(), &list); err != nil {
-			return
-		}
-
-		objectives := make([]slo.Objective, 0, len(list.Items))
-		for _, s := range list.Items {
-			objective, err := s.Internal()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			objectives = append(objectives, objective)
-		}
-
-		bytes, err := json.Marshal(objectives)
-		if err != nil {
-			return
-		}
-		_, _ = w.Write(bytes)
+func (o *ObjectiveServer) ListObjectives(ctx context.Context) (openapiserver.ImplResponse, error) {
+	var list athenev1alpha1.ServiceLevelObjectiveList
+	if err := o.client.List(context.Background(), &list); err != nil {
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
+
+	objectives := make([]openapiserver.Objective, 0, len(list.Items))
+	for _, s := range list.Items {
+		internal, err := s.Internal()
+		if err != nil {
+			return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
+		}
+		objectives = append(objectives, openapi.ServerFromInternal(internal))
+	}
+
+	return openapiserver.ImplResponse{
+		Code: http.StatusOK,
+		Body: objectives,
+	}, nil
+}
+
+func (o *ObjectiveServer) GetObjective(ctx context.Context, name string) (openapiserver.ImplResponse, error) {
+	var slo athenev1alpha1.ServiceLevelObjective
+	err := o.client.Get(ctx, client.ObjectKey{Namespace: "monitoring", Name: name}, &slo)
+	if err != nil {
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+	objective, err := slo.Internal()
+	if err != nil {
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	return openapiserver.ImplResponse{
+		Code: http.StatusOK,
+		Body: openapi.ServerFromInternal(objective),
+	}, nil
+}
+
+func (o *ObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, s string) (openapiserver.ImplResponse, error) {
+	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+}
+
+func (o *ObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, s string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+}
+
+func (o *ObjectiveServer) GetObjectiveStatus(ctx context.Context, s string) (openapiserver.ImplResponse, error) {
+	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+}
+
+func (o *ObjectiveServer) GetREDErrors(ctx context.Context, s string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+}
+
+func (o *ObjectiveServer) GetREDRequests(ctx context.Context, s string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
