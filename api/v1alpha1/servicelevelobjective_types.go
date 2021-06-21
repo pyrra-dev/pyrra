@@ -17,11 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/metalmatze/athene/slo"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -54,6 +56,7 @@ type ServiceLevelObjective struct {
 
 // ServiceLevelObjectiveSpec defines the desired state of ServiceLevelObjective
 type ServiceLevelObjectiveSpec struct {
+	// +optional
 	// Description describes the ServiceLevelObjective in more detail and
 	// gives extra context for engineers that might not directly work on the service.
 	Description string `json:"description"`
@@ -64,63 +67,42 @@ type ServiceLevelObjectiveSpec struct {
 	Target string `json:"target"`
 
 	// Window within which the Target is supposed to be kept. Usually something like 1d, 7d or 28d.
-	Window metav1.Duration `json:"window"`
+	Window model.Duration `json:"window"`
 
 	// ServiceLevelIndicator is the underlying data source that indicates how the service is doing.
 	// This will be a Prometheus metric with specific selectors for your service.
-	ServiceLevelIndicator ServiceLevelIndicator `json:"serviceLevelIndicator"`
+	ServiceLevelIndicator ServiceLevelIndicator `json:"indicator"`
 }
 
 // ServiceLevelIndicator defines the underlying indicator that is a Prometheus metric.
 type ServiceLevelIndicator struct {
 	// +optional
-	HTTP *HTTPIndicator `json:"http,omitempty"`
-	// +optional
-	GRPC *GRPCIndicator `json:"grpc,omitempty"`
+	// Ratio is the indicator that measures against errors / total events.
+	Ratio *RatioIndicator `json:"ratio,omitempty"`
 
-	//Custom *CustomIndicator `json:"custom"`
+	// +optional
+	// Latency is the indicator that measures a certain percentage to be fast than.
+	Latency *LatencyIndicator `json:"latency,omitempty"`
 }
 
-type HTTPIndicator struct {
-	// Metric to use. Defaults to http_requests_total without latency or http_request_duration_seconds_bucket if latency is specified.
-	// +optional
-	Metric *string `json:"metric"`
-	// Matchers are free form PromQL label matchers to select time series for the service.
-	// +optional
-	Matchers []string `json:"matchers"`
-	// ErrorMatchers are free form PromQL label matchers that specify what time series should be used to count errors.
-	// Defaults to code=~"5.." selecting all HTTP 5xx responses as errors.
-	// +optional
-	ErrorMatchers []string `json:"errorMatchers"`
+type RatioIndicator struct {
+	// Errors is the metric that returns how many errors there are.
+	Errors Query `json:"errors"`
+	// Total is the metric that returns how many requests there are in total.
+	Total Query `json:"total"`
 }
 
-type GRPCIndicator struct {
-	// Metric to use. Defaults to grpc_server_handled_total without latency or grpc_server_handling_seconds_bucket if latency is specified.
-	// +optional
-	Metric *string `json:"metric"`
-	// Service is a selector to which gRPC service this indicator refers to.
-	Service string `json:"service"`
-	// Method is a selector to which gRPC service's method this indicator refers to.
-	Method string `json:"method"`
-	// Matchers are free form PromQL label matchers to select time series for the service.
-	Matchers []string `json:"matchers"`
-	// ErrorMatchers are free form PromQL selectors that specify what time series should be uses as error counters.
-	// Defaults to grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss".
-	// +optional
-	ErrorMatchers []string `json:"errorMatchers"`
+type LatencyIndicator struct {
+	// Success is the metric that returns how many errors there are.
+	Success Query `json:"success"`
+	// Total is the metric that returns how many requests there are in total.
+	Total Query `json:"total"`
 }
 
-type CustomIndicator struct {
-	//// Type of the ServiceLevelIndicator. Can be HTTP and gRPC.
-	//Type string `json:"type"`
-	//// Metric to use.
-	//Metric string `json:"metric"`
-	//// Matchers for the metric to specify what time series are part of your service's indicator.
-	//Matchers []string `json:"selectors"`
+// Query contains a PromQL metric
+type Query struct {
+	Metric string `json:"metric"`
 }
-
-// Selector wraps the prometheus matchers.
-type Selector string
 
 // ServiceLevelObjectiveStatus defines the observed state of ServiceLevelObjective
 type ServiceLevelObjectiveStatus struct{}
@@ -131,58 +113,93 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 		return slo.Objective{}, err
 	}
 
-	var http *slo.HTTPIndicator
-	if in.Spec.ServiceLevelIndicator.HTTP != nil {
-		metric := slo.HTTPDefaultMetric
-		if in.Spec.ServiceLevelIndicator.HTTP.Metric != nil {
-			metric = *in.Spec.ServiceLevelIndicator.HTTP.Metric
+	if in.Spec.ServiceLevelIndicator.Ratio != nil && in.Spec.ServiceLevelIndicator.Latency != nil {
+		return slo.Objective{}, fmt.Errorf("cannot have ratio and latency indicators at the same time")
+	}
+
+	var ratio *slo.RatioIndicator
+	if in.Spec.ServiceLevelIndicator.Ratio != nil {
+		totalExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Ratio.Total.Metric)
+		if err != nil {
+			return slo.Objective{}, err
 		}
 
-		var matchers []*labels.Matcher
-		for _, s := range in.Spec.ServiceLevelIndicator.HTTP.Matchers {
-			matchers = append(matchers, slo.ParseMatcher(s))
+		totalVec, ok := totalExpr.(*parser.VectorSelector)
+		if !ok {
+			return slo.Objective{}, fmt.Errorf("ratio total metric is not a VectorSelector")
 		}
 
-		var errorMatchers []*labels.Matcher
-		for _, s := range in.Spec.ServiceLevelIndicator.HTTP.ErrorMatchers {
-			errorMatchers = append(errorMatchers, slo.ParseMatcher(s))
-		}
-		if len(errorMatchers) == 0 {
-			errorMatchers = append(errorMatchers, slo.HTTPDefaultErrorSelector)
+		errorExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Ratio.Errors.Metric)
+		if err != nil {
+			return slo.Objective{}, err
 		}
 
-		http = &slo.HTTPIndicator{
-			Metric:        metric,
-			Matchers:      matchers,
-			ErrorMatchers: errorMatchers,
+		errorVec, ok := errorExpr.(*parser.VectorSelector)
+		if !ok {
+			return slo.Objective{}, fmt.Errorf("ratio error metric is not a VectorSelector")
+		}
+
+		// Copy the matchers to get rid of the re field for unit testing...
+		errorMatchers := make([]*labels.Matcher, len(errorVec.LabelMatchers))
+		for i, matcher := range errorVec.LabelMatchers {
+			errorMatchers[i] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
+		}
+
+		ratio = &slo.RatioIndicator{
+			Errors: slo.Metric{
+				Name:          errorVec.Name,
+				LabelMatchers: errorMatchers,
+			},
+			Total: slo.Metric{
+				Name:          totalVec.Name,
+				LabelMatchers: totalVec.LabelMatchers,
+			},
 		}
 	}
 
-	var grpc *slo.GRPCIndicator
-	if in.Spec.ServiceLevelIndicator.GRPC != nil {
-		metric := slo.GRPCDefaultMetric
-		if in.Spec.ServiceLevelIndicator.GRPC.Metric != nil {
-			metric = *in.Spec.ServiceLevelIndicator.GRPC.Metric
+	var latency *slo.LatencyIndicator
+	if in.Spec.ServiceLevelIndicator.Latency != nil {
+		totalExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Latency.Total.Metric)
+		if err != nil {
+			return slo.Objective{}, err
 		}
 
-		var matchers []*labels.Matcher
-		for _, s := range in.Spec.ServiceLevelIndicator.GRPC.Matchers {
-			matchers = append(matchers, slo.ParseMatcher(s))
-		}
-		var errorMatchers []*labels.Matcher
-		for _, s := range in.Spec.ServiceLevelIndicator.GRPC.ErrorMatchers {
-			errorMatchers = append(errorMatchers, slo.ParseMatcher(s))
-		}
-		if len(errorMatchers) == 0 {
-			errorMatchers = append(errorMatchers, slo.GRPCDefaultErrorSelector)
+		totalVec, ok := totalExpr.(*parser.VectorSelector)
+		if !ok {
+			return slo.Objective{}, fmt.Errorf("latency total metric is not a VectorSelector")
 		}
 
-		grpc = &slo.GRPCIndicator{
-			Metric:        metric,
-			Service:       in.Spec.ServiceLevelIndicator.GRPC.Service,
-			Method:        in.Spec.ServiceLevelIndicator.GRPC.Method,
-			Matchers:      matchers,
-			ErrorMatchers: errorMatchers,
+		// Copy the matchers to get rid of the re field for unit testing...
+		totalMatchers := make([]*labels.Matcher, len(totalVec.LabelMatchers))
+		for i, matcher := range totalVec.LabelMatchers {
+			totalMatchers[i] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
+		}
+
+		successExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Latency.Success.Metric)
+		if err != nil {
+			return slo.Objective{}, err
+		}
+
+		successVec, ok := successExpr.(*parser.VectorSelector)
+		if !ok {
+			return slo.Objective{}, fmt.Errorf("latency success metric is not a VectorSelector")
+		}
+
+		// Copy the matchers to get rid of the re field for unit testing...
+		successMatchers := make([]*labels.Matcher, len(successVec.LabelMatchers))
+		for i, matcher := range successVec.LabelMatchers {
+			successMatchers[i] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
+		}
+
+		latency = &slo.LatencyIndicator{
+			Success: slo.Metric{
+				Name:          successVec.Name,
+				LabelMatchers: successMatchers,
+			},
+			Total: slo.Metric{
+				Name:          totalVec.Name,
+				LabelMatchers: totalMatchers,
+			},
 		}
 	}
 
@@ -190,10 +207,10 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 		Name:        in.GetName(),
 		Description: in.Spec.Description,
 		Target:      target / 100,
-		Window:      model.Duration(in.Spec.Window.Duration),
+		Window:      in.Spec.Window,
 		Indicator: slo.Indicator{
-			HTTP: http,
-			GRPC: grpc,
+			Ratio:   ratio,
+			Latency: latency,
 		},
 	}, nil
 }

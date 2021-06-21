@@ -40,65 +40,62 @@ spec:
                 detail and gives extra context for engineers that might not directly
                 work on the service.
               type: string
-            serviceLevelIndicator:
+            indicator:
               description: ServiceLevelIndicator is the underlying data source that
                 indicates how the service is doing. This will be a Prometheus metric
                 with specific selectors for your service.
               properties:
-                grpc:
+                latency:
+                  description: Latency is the indicator that measures a certain percentage
+                    to be fast than.
                   properties:
-                    errorMatchers:
-                      description: ErrorMatchers are free form PromQL selectors that
-                        specify what time series should be uses as error counters.
-                        Defaults to grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss".
-                      items:
-                        type: string
-                      type: array
-                    matchers:
-                      description: Matchers are free form PromQL label matchers to
-                        select time series for the service.
-                      items:
-                        type: string
-                      type: array
-                    method:
-                      description: Method is a selector to which gRPC service's method
-                        this indicator refers to.
-                      type: string
-                    metric:
-                      description: Metric to use. Defaults to grpc_server_handled_total
-                        without latency or grpc_server_handling_seconds_bucket if
-                        latency is specified.
-                      type: string
-                    service:
-                      description: Service is a selector to which gRPC service this
-                        indicator refers to.
-                      type: string
+                    success:
+                      description: Success is the metric that returns how many errors
+                        there are.
+                      properties:
+                        metric:
+                          type: string
+                      required:
+                      - metric
+                      type: object
+                    total:
+                      description: Total is the metric that returns how many requests
+                        there are in total.
+                      properties:
+                        metric:
+                          type: string
+                      required:
+                      - metric
+                      type: object
                   required:
-                  - matchers
-                  - method
-                  - service
+                  - success
+                  - total
                   type: object
-                http:
+                ratio:
+                  description: Ratio is the indicator that measures against errors
+                    / total events.
                   properties:
-                    errorMatchers:
-                      description: ErrorMatchers are free form PromQL label matchers
-                        that specify what time series should be used to count errors.
-                        Defaults to code=~"5.." selecting all HTTP 5xx responses as
-                        errors.
-                      items:
-                        type: string
-                      type: array
-                    matchers:
-                      description: Matchers are free form PromQL label matchers to
-                        select time series for the service.
-                      items:
-                        type: string
-                      type: array
-                    metric:
-                      description: Metric to use. Defaults to http_requests_total
-                        without latency or http_request_duration_seconds_bucket if
-                        latency is specified.
-                      type: string
+                    errors:
+                      description: Errors is the metric that returns how many errors
+                        there are.
+                      properties:
+                        metric:
+                          type: string
+                      required:
+                      - metric
+                      type: object
+                    total:
+                      description: Total is the metric that returns how many requests
+                        there are in total.
+                      properties:
+                        metric:
+                          type: string
+                      required:
+                      - metric
+                      type: object
+                  required:
+                  - errors
+                  - total
                   type: object
               type: object
             target:
@@ -109,10 +106,8 @@ spec:
             window:
               description: Window within which the Target is supposed to be kept.
                 Usually something like 1d, 7d or 28d.
-              type: string
           required:
-          - description
-          - serviceLevelIndicator
+          - indicator
           - target
           - window
           type: object

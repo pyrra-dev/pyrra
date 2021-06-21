@@ -19,25 +19,14 @@ func (o Objective) QueryTotal(window model.Duration) string {
 	var metric string
 	var matchers []*labels.Matcher
 
-	if o.Indicator.HTTP != nil {
-		http := o.Indicator.HTTP
-		if http.Metric == "" {
-			http.Metric = HTTPDefaultMetric
-		}
-		metric = http.Metric
-		matchers = http.Matchers
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		metric = o.Indicator.Ratio.Total.Name
+		matchers = o.Indicator.Ratio.Total.LabelMatchers
 	}
-	if o.Indicator.GRPC != nil {
-		grpc := o.Indicator.GRPC
-		if grpc.Metric == "" {
-			grpc.Metric = GRPCDefaultMetric
-		}
-		metric = grpc.Metric
-		matchers = grpc.GRPCSelectors()
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		metric = o.Indicator.Latency.Total.Name
+		matchers = o.Indicator.Latency.Total.LabelMatchers
 	}
-
-	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
-	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
 
 	objectiveReplacer{
 		metric:   metric,
@@ -50,110 +39,114 @@ func (o Objective) QueryTotal(window model.Duration) string {
 
 // QueryErrors returns a PromQL query to get the amount of request errors during the window.
 func (o Objective) QueryErrors(window model.Duration) string {
-	expr, err := parser.ParseExpr(`sum(increase(metric{}[1s]))`)
-	if err != nil {
-		return err.Error()
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		expr, err := parser.ParseExpr(`sum(increase(metric{}[1s]))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Errors.Name,
+			matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			window:   time.Duration(window),
+		}.replace(expr)
+
+		return expr.String()
 	}
 
-	var metric string
-	var matchers []*labels.Matcher
-
-	if o.Indicator.HTTP != nil {
-		http := o.Indicator.HTTP
-
-		metric = http.Metric
-		if metric == "" {
-			metric = HTTPDefaultMetric
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		expr, err := parser.ParseExpr(`sum(increase(metric{matchers="total"}[1s])) - sum(increase(errorMetric{matchers="errors"}[1s]))`)
+		if err != nil {
+			return err.Error()
 		}
 
-		if len(http.ErrorMatchers) == 0 {
-			http.ErrorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
-		}
-		matchers = http.AllSelectors()
-	}
-	if o.Indicator.GRPC != nil {
-		grpc := o.Indicator.GRPC
+		objectiveReplacer{
+			metric:        o.Indicator.Latency.Total.Name,
+			matchers:      o.Indicator.Latency.Total.LabelMatchers,
+			errorMetric:   o.Indicator.Latency.Success.Name,
+			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			window:        time.Duration(window),
+		}.replace(expr)
 
-		metric = grpc.Metric
-		if metric == "" {
-			metric = GRPCDefaultMetric
-		}
-
-		if len(grpc.ErrorMatchers) == 0 {
-			grpc.ErrorMatchers = []*labels.Matcher{GRPCDefaultErrorSelector}
-		}
-		matchers = grpc.AllSelectors()
+		return expr.String()
 	}
 
-	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
-	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
+	return ""
+}
 
-	objectiveReplacer{
-		metric:   metric,
-		matchers: matchers,
-		window:   time.Duration(window),
-	}.replace(expr)
+func (o Objective) QueryErrorBudget() string {
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		expr, err := parser.ParseExpr(`
+(
+  (1 - 0.696969)
+  -
+  (
+    sum(increase(errorMetric{matchers="errors"}[1s]) or vector(0))
+    /
+    sum(increase(metric{matchers="total"}[1s]))
+  )
+)
+/
+(1 - 0.696969)
+`)
+		if err != nil {
+			return ""
+		}
 
-	return expr.String()
+		objectiveReplacer{
+			metric:        o.Indicator.Ratio.Total.Name,
+			matchers:      o.Indicator.Ratio.Total.LabelMatchers,
+			errorMetric:   o.Indicator.Ratio.Errors.Name,
+			errorMatchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			window:        time.Duration(o.Window),
+			target:        o.Target,
+		}.replace(expr)
+
+		return expr.String()
+	}
+
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		expr, err := parser.ParseExpr(`
+(
+  (1 - 0.696969)
+  -
+  (
+    1 -
+    sum(increase(errorMetric{matchers="errors"}[1s]) or vector(0))
+    /
+    sum(increase(metric{matchers="total"}[1s]))
+  )
+)
+/
+(1 - 0.696969)
+`)
+		if err != nil {
+			return ""
+		}
+
+		objectiveReplacer{
+			metric:        o.Indicator.Latency.Total.Name,
+			matchers:      o.Indicator.Latency.Total.LabelMatchers,
+			errorMetric:   o.Indicator.Latency.Success.Name,
+			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			window:        time.Duration(o.Window),
+			target:        o.Target,
+		}.replace(expr)
+
+		return expr.String()
+	}
+
+	return ""
 }
 
 type objectiveReplacer struct {
 	metric        string
 	matchers      []*labels.Matcher
+	errorMetric   string
 	errorMatchers []*labels.Matcher
 	grouping      []string
 	window        time.Duration
 	target        float64
-}
-
-func (o Objective) QueryErrorBudget() string {
-	expr, err := parser.ParseExpr(`((1 - 0.696969) - (sum(increase(metric{matchers="errors"}[1s]) or vector(0)) / sum(increase(metric{matchers="total"}[1s])))) / (1 - 0.696969)`)
-	if err != nil {
-		return ""
-	}
-
-	var metric string
-	var matchers []*labels.Matcher
-	var errorMatchers []*labels.Matcher
-
-	if o.Indicator.HTTP != nil {
-		if o.Indicator.HTTP.Metric == "" {
-			o.Indicator.HTTP.Metric = HTTPDefaultMetric
-		}
-		if len(o.Indicator.HTTP.ErrorMatchers) == 0 {
-			o.Indicator.HTTP.ErrorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
-		}
-
-		metric = o.Indicator.HTTP.Metric
-		matchers = o.Indicator.HTTP.Matchers
-		errorMatchers = o.Indicator.HTTP.AllSelectors()
-	}
-	if o.Indicator.GRPC != nil {
-		if o.Indicator.GRPC.Metric == "" {
-			o.Indicator.GRPC.Metric = GRPCDefaultMetric
-		}
-		if len(o.Indicator.GRPC.ErrorMatchers) == 0 {
-			o.Indicator.GRPC.ErrorMatchers = []*labels.Matcher{GRPCDefaultErrorSelector}
-		}
-
-		metric = o.Indicator.GRPC.Metric
-		matchers = o.Indicator.GRPC.GRPCSelectors()
-		errorMatchers = o.Indicator.GRPC.AllSelectors()
-	}
-
-	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
-	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
-	errorMatchers = append([]*labels.Matcher{metricMatcher}, errorMatchers...)
-
-	objectiveReplacer{
-		metric:        metric,
-		matchers:      matchers,
-		errorMatchers: errorMatchers,
-		window:        time.Duration(o.Window),
-		target:        o.Target,
-	}.replace(expr)
-
-	return expr.String()
 }
 
 func (r objectiveReplacer) replace(node parser.Node) {
@@ -173,7 +166,11 @@ func (r objectiveReplacer) replace(node parser.Node) {
 		n.Range = r.window
 		r.replace(n.VectorSelector)
 	case *parser.VectorSelector:
-		n.Name = r.metric
+		if n.Name == "errorMetric" {
+			n.Name = r.errorMetric
+		} else {
+			n.Name = r.metric
+		}
 		if len(n.LabelMatchers) > 1 {
 			for _, m := range n.LabelMatchers {
 				if m.Name == "matchers" {
@@ -202,112 +199,95 @@ func (r objectiveReplacer) replace(node parser.Node) {
 }
 
 func (o Objective) RequestRange(timerange time.Duration) string {
-	expr, err := parser.ParseExpr(`sum by(group) (rate(metric{}[1s])) > 0`)
-	if err != nil {
-		return err.Error()
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		expr, err := parser.ParseExpr(`sum by(group) (rate(metric{}[1s])) > 0`)
+		if err != nil {
+			return err.Error()
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Total.Name,
+			matchers: o.Indicator.Ratio.Total.LabelMatchers,
+			grouping: groupingLabels(
+				o.Indicator.Ratio.Errors.LabelMatchers,
+				o.Indicator.Ratio.Total.LabelMatchers,
+			),
+			window: timerange,
+			target: o.Target,
+		}.replace(expr)
+
+		return expr.String()
 	}
-
-	var metric string
-	var matchers []*labels.Matcher
-	var grouping []string
-
-	if o.Indicator.HTTP != nil {
-		if o.Indicator.HTTP.Metric == "" {
-			o.Indicator.HTTP.Metric = HTTPDefaultMetric
-		}
-		if len(o.Indicator.HTTP.ErrorMatchers) == 0 {
-			o.Indicator.HTTP.ErrorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		expr, err := parser.ParseExpr(`sum(rate(metric{}[1s]))`)
+		if err != nil {
+			return err.Error()
 		}
 
-		metric = o.Indicator.HTTP.Metric
-		matchers = o.Indicator.HTTP.Matchers
-		for _, m := range o.Indicator.HTTP.ErrorMatchers {
-			grouping = append(grouping, m.Name)
-		}
+		objectiveReplacer{
+			metric:        o.Indicator.Latency.Total.Name,
+			matchers:      o.Indicator.Latency.Total.LabelMatchers,
+			errorMetric:   o.Indicator.Latency.Success.Name,
+			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			window:        timerange,
+		}.replace(expr)
+
+		return expr.String()
 	}
-	if o.Indicator.GRPC != nil {
-		if o.Indicator.GRPC.Metric == "" {
-			o.Indicator.GRPC.Metric = GRPCDefaultMetric
-		}
-		if len(o.Indicator.GRPC.ErrorMatchers) == 0 {
-			o.Indicator.GRPC.ErrorMatchers = []*labels.Matcher{GRPCDefaultErrorSelector}
-		}
-
-		metric = o.Indicator.GRPC.Metric
-		matchers = o.Indicator.GRPC.GRPCSelectors()
-		for _, m := range o.Indicator.GRPC.ErrorMatchers {
-			grouping = append(grouping, m.Name)
-		}
-	}
-
-	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
-	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
-
-	objectiveReplacer{
-		metric:   metric,
-		matchers: matchers,
-		grouping: grouping,
-		window:   timerange,
-		target:   o.Target,
-	}.replace(expr)
-
-	return expr.String()
+	return ""
 }
 
 func (o Objective) ErrorsRange(timerange time.Duration) string {
-	expr, err := parser.ParseExpr(`sum by(group) (rate(metric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s])))`)
-	if err != nil {
-		return err.Error()
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		expr, err := parser.ParseExpr(`sum by(group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s])))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		objectiveReplacer{
+			metric:        o.Indicator.Ratio.Total.Name,
+			matchers:      o.Indicator.Ratio.Total.LabelMatchers,
+			errorMetric:   o.Indicator.Ratio.Errors.Name,
+			errorMatchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			grouping: groupingLabels(
+				o.Indicator.Ratio.Errors.LabelMatchers,
+				o.Indicator.Ratio.Total.LabelMatchers,
+			),
+			window: timerange,
+		}.replace(expr)
+
+		return expr.String()
 	}
-
-	var (
-		metric        string
-		matchers      []*labels.Matcher
-		errorMatchers []*labels.Matcher
-		grouping      []string
-	)
-
-	if o.Indicator.HTTP != nil {
-		if o.Indicator.HTTP.Metric == "" {
-			o.Indicator.HTTP.Metric = HTTPDefaultMetric
-		}
-		if len(o.Indicator.HTTP.ErrorMatchers) == 0 {
-			o.Indicator.HTTP.ErrorMatchers = []*labels.Matcher{HTTPDefaultErrorSelector}
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		expr, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[1s])) -  sum(rate(errorMetric{matchers="errors"}[1s]))`)
+		if err != nil {
+			return err.Error()
 		}
 
-		metric = o.Indicator.HTTP.Metric
-		matchers = o.Indicator.HTTP.Matchers
-		errorMatchers = o.Indicator.HTTP.AllSelectors()
-		for _, m := range o.Indicator.HTTP.ErrorMatchers {
-			grouping = append(grouping, m.Name)
-		}
+		objectiveReplacer{
+			metric:        o.Indicator.Latency.Total.Name,
+			matchers:      o.Indicator.Latency.Total.LabelMatchers,
+			errorMetric:   o.Indicator.Latency.Success.Name,
+			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			window:        timerange,
+		}.replace(expr)
+
+		return expr.String()
 	}
-	if o.Indicator.GRPC != nil {
-		if o.Indicator.GRPC.Metric == "" {
-			o.Indicator.GRPC.Metric = GRPCDefaultMetric
-		}
-		if len(o.Indicator.GRPC.ErrorMatchers) == 0 {
-			o.Indicator.GRPC.ErrorMatchers = []*labels.Matcher{GRPCDefaultErrorSelector}
-		}
+	return ""
+}
 
-		metric = o.Indicator.GRPC.Metric
-		matchers = o.Indicator.GRPC.GRPCSelectors()
-		errorMatchers = o.Indicator.GRPC.AllSelectors()
-		for _, m := range o.Indicator.GRPC.ErrorMatchers {
-			grouping = append(grouping, m.Name)
-		}
+func groupingLabels(errorMatchers, totalMatchers []*labels.Matcher) []string {
+	groupingLabels := map[string]struct{}{}
+	for _, m := range errorMatchers {
+		groupingLabels[m.Name] = struct{}{}
 	}
-
-	metricMatcher := &labels.Matcher{Type: labels.MatchEqual, Name: "__name__", Value: metric}
-	matchers = append([]*labels.Matcher{metricMatcher}, matchers...)
-
-	objectiveReplacer{
-		metric:        metric,
-		matchers:      matchers,
-		errorMatchers: errorMatchers,
-		grouping:      grouping,
-		window:        timerange,
-	}.replace(expr)
-
-	return expr.String()
+	for _, m := range totalMatchers {
+		delete(groupingLabels, m.Name)
+	}
+	grouping := make([]string, 0, len(groupingLabels))
+	for l := range groupingLabels {
+		grouping = append(grouping, l)
+	}
+	return grouping
 }

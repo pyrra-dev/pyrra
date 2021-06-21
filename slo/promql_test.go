@@ -10,41 +10,133 @@ import (
 )
 
 var (
-	objectiveHTTP = Objective{
+	objectiveHTTPRatio = Objective{
+		Name:   "monitoring-http-errors",
+		Target: 0.99,
 		Window: model.Duration(28 * 24 * time.Hour),
-		Target: 0.999,
 		Indicator: Indicator{
-			HTTP: &HTTPIndicator{},
-		},
-	}
-	objectiveHTTPCustom = Objective{
-		Window: model.Duration(12 * 24 * time.Hour),
-		Target: 0.953,
-		Indicator: Indicator{HTTP: &HTTPIndicator{
-			Metric:        "prometheus_http_requests_total",
-			Matchers:      []*labels.Matcher{ParseMatcher(`foo="bar"`)},
-			ErrorMatchers: []*labels.Matcher{ParseMatcher(`status=~"5.."`)},
-		}},
-	}
-	objectiveGRPC = Objective{
-		Window: model.Duration(28 * 24 * time.Hour),
-		Target: 0.999,
-		Indicator: Indicator{
-			GRPC: &GRPCIndicator{
-				Service: "service",
-				Method:  "method",
+			Ratio: &RatioIndicator{
+				Errors: Metric{
+					Name: "http_requests_total",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "job", Value: "thanos-receive-default"},
+						{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
+						{Type: labels.MatchEqual, Name: "__name__", Value: "http_requests_total"},
+					},
+				},
+				Total: Metric{
+					Name: "http_requests_total",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "job", Value: "thanos-receive-default"},
+						{Type: labels.MatchEqual, Name: "__name__", Value: "http_requests_total"},
+					},
+				},
 			},
 		},
 	}
-	objectiveGRPCCustom = Objective{
-		Window: model.Duration(7 * 24 * time.Hour),
-		Target: 0.953,
+	objectiveGRPCRatio = Objective{
+		Name:        "monitoring-grpc-errors",
+		Description: "",
+		Target:      0.999,
+		Window:      model.Duration(28 * 24 * time.Hour),
 		Indicator: Indicator{
-			GRPC: &GRPCIndicator{
-				Service:  "awesome",
-				Method:   "lightspeed",
-				Matchers: []*labels.Matcher{ParseMatcher(`job="app"`)},
-			}},
+			Ratio: &RatioIndicator{
+				Errors: Metric{
+					Name: "grpc_server_handled_total",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "job", Value: "api"},
+						{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
+						{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
+						{Type: labels.MatchRegexp, Name: "grpc_code", Value: "Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"},
+						{Type: labels.MatchEqual, Name: "__name__", Value: "grpc_server_handled_total"},
+					},
+				},
+				Total: Metric{
+					Name: "grpc_server_handled_total",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "job", Value: "api"},
+						{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
+						{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
+						{Type: labels.MatchEqual, Name: "__name__", Value: "grpc_server_handled_total"},
+					},
+				},
+			},
+		},
+	}
+	objectiveHTTPLatency = Objective{
+		Name:   "monitoring-http-latency",
+		Target: 0.995,
+		Window: model.Duration(28 * 24 * time.Hour),
+		Indicator: Indicator{
+			Latency: &LatencyIndicator{
+				Success: Metric{
+					Name: "http_request_duration_seconds_bucket",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
+						{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
+						{Type: labels.MatchEqual, Name: "le", Value: "1"},
+						{Type: labels.MatchEqual, Name: "__name__", Value: "http_request_duration_seconds_bucket"},
+					},
+				},
+				Total: Metric{
+					Name: "http_request_duration_seconds_count",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
+						{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
+						{Type: labels.MatchEqual, Name: "__name__", Value: "http_request_duration_seconds_count"},
+					},
+				},
+			},
+		},
+	}
+	objectiveGRPCLatency = Objective{
+		Name:   "monitoring-grpc-latency",
+		Target: 0.995,
+		Window: model.Duration(7 * 24 * time.Hour),
+		Indicator: Indicator{
+			Latency: &LatencyIndicator{
+				Success: Metric{
+					Name: "grpc_server_handling_seconds_bucket",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "job", Value: "api"},
+						{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
+						{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
+						{Type: labels.MatchEqual, Name: "le", Value: "0.6"},
+						{Type: labels.MatchEqual, Name: "__name__", Value: "grpc_server_handling_seconds_bucket"},
+					},
+				},
+				Total: Metric{
+					Name: "grpc_server_handling_seconds_count",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "job", Value: "api"},
+						{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
+						{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
+						{Type: labels.MatchEqual, Name: "__name__", Value: "grpc_server_handling_seconds_count"},
+					},
+				},
+			},
+		},
+	}
+	objectiveOperator = Objective{
+		Name:   "monitoring-prometheus-operator-errors",
+		Target: 0.99,
+		Window: model.Duration(14 * 24 * time.Hour),
+		Indicator: Indicator{
+			Ratio: &RatioIndicator{
+				Errors: Metric{
+					Name: "prometheus_operator_reconcile_errors_total",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "__name__", Value: "prometheus_operator_reconcile_errors_total"},
+					},
+				},
+				Total: Metric{
+					Name: "prometheus_operator_reconcile_operations_total",
+					LabelMatchers: []*labels.Matcher{
+						{Type: labels.MatchEqual, Name: "__name__", Value: "prometheus_operator_reconcile_operations_total"},
+					},
+				},
+			},
+		},
 	}
 )
 
@@ -54,21 +146,25 @@ func TestObjective_QueryTotal(t *testing.T) {
 		objective Objective
 		expected  string
 	}{{
-		name:      "http",
-		objective: objectiveHTTP,
-		expected:  `sum(increase(http_requests_total[4w]))`,
+		name:      "http-ratio",
+		objective: objectiveHTTPRatio,
+		expected:  `sum(increase(http_requests_total{job="thanos-receive-default"}[4w]))`,
 	}, {
-		name:      "http-custom",
-		objective: objectiveHTTPCustom,
-		expected:  `sum(increase(prometheus_http_requests_total{foo="bar"}[12d]))`,
+		name:      "grpc-ratio",
+		objective: objectiveGRPCRatio,
+		expected:  `sum(increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`,
 	}, {
-		name:      "grpc",
-		objective: objectiveGRPC,
-		expected:  `sum(increase(grpc_server_handled_total{grpc_method="method",grpc_service="service"}[4w]))`,
+		name:      "http-latency",
+		objective: objectiveHTTPLatency,
+		expected:  `sum(increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`,
 	}, {
-		name:      "grpc-custom",
-		objective: objectiveGRPCCustom,
-		expected:  `sum(increase(grpc_server_handled_total{grpc_method="lightspeed",grpc_service="awesome",job="app"}[1w]))`,
+		name:      "grpc-latency",
+		objective: objectiveGRPCLatency,
+		expected:  `sum(increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`,
+	}, {
+		name:      "operator-ratio",
+		objective: objectiveOperator,
+		expected:  `sum(increase(prometheus_operator_reconcile_operations_total[2w]))`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -83,21 +179,25 @@ func TestObjective_QueryErrors(t *testing.T) {
 		objective Objective
 		expected  string
 	}{{
-		name:      "http",
-		objective: objectiveHTTP,
-		expected:  `sum(increase(http_requests_total{code=~"5.."}[4w]))`,
+		name:      "http-ratio",
+		objective: objectiveHTTPRatio,
+		expected:  `sum(increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[4w]))`,
 	}, {
-		name:      "http-custom",
-		objective: objectiveHTTPCustom,
-		expected:  `sum(increase(prometheus_http_requests_total{foo="bar",status=~"5.."}[12d]))`,
+		name:      "grpc-ratio",
+		objective: objectiveGRPCRatio,
+		expected:  `sum(increase(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`,
 	}, {
-		name:      "grpc",
-		objective: objectiveGRPC,
-		expected:  `sum(increase(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="method",grpc_service="service"}[4w]))`,
+		name:      "http-latency",
+		objective: objectiveHTTPLatency,
+		expected:  `sum(increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w])) - sum(increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`,
 	}, {
-		name:      "grpc-custom",
-		objective: objectiveGRPCCustom,
-		expected:  `sum(increase(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="lightspeed",grpc_service="awesome",job="app"}[1w]))`,
+		name:      "grpc-latency",
+		objective: objectiveGRPCLatency,
+		expected:  `sum(increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w])) - sum(increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`,
+	}, {
+		name:      "operator-ratio",
+		objective: objectiveOperator,
+		expected:  `sum(increase(prometheus_operator_reconcile_errors_total[2w]))`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -112,34 +212,25 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 		objective Objective
 		expected  string
 	}{{
-		name:      "http",
-		objective: objectiveHTTP,
-		expected:  `((1 - 0.999) - (sum(increase(http_requests_total{code=~"5.."}[4w]) or vector(0)) / sum(increase(http_requests_total[4w])))) / (1 - 0.999)`,
+		name:      "http-ratio",
+		objective: objectiveHTTPRatio,
+		expected:  `((1 - 0.99) - (sum(increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[4w]) or vector(0)) / sum(increase(http_requests_total{job="thanos-receive-default"}[4w])))) / (1 - 0.99)`,
 	}, {
-		name: "http-matchers",
-		objective: Objective{
-			Window: model.Duration(28 * 24 * time.Hour),
-			Target: 0.953,
-			Indicator: Indicator{
-				HTTP: &HTTPIndicator{
-					Metric:   "prometheus_http_requests_total",
-					Matchers: []*labels.Matcher{ParseMatcher(`job="prometheus"`)},
-				},
-			},
-		},
-		expected: `((1 - 0.953) - (sum(increase(prometheus_http_requests_total{code=~"5..",job="prometheus"}[4w]) or vector(0)) / sum(increase(prometheus_http_requests_total{job="prometheus"}[4w])))) / (1 - 0.953)`,
+		name:      "grpc-ratio",
+		objective: objectiveGRPCRatio,
+		expected:  `((1 - 0.999) - (sum(increase(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]) or vector(0)) / sum(increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w])))) / (1 - 0.999)`,
 	}, {
-		name:      "http-custom",
-		objective: objectiveHTTPCustom,
-		expected:  `((1 - 0.953) - (sum(increase(prometheus_http_requests_total{foo="bar",status=~"5.."}[12d]) or vector(0)) / sum(increase(prometheus_http_requests_total{foo="bar"}[12d])))) / (1 - 0.953)`,
+		name:      "http-latency",
+		objective: objectiveHTTPLatency,
+		expected:  `((1 - 0.995) - (1 - sum(increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]) or vector(0)) / sum(increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w])))) / (1 - 0.995)`,
 	}, {
-		name:      "grpc",
-		objective: objectiveGRPC,
-		expected:  `((1 - 0.999) - (sum(increase(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="method",grpc_service="service"}[4w]) or vector(0)) / sum(increase(grpc_server_handled_total{grpc_method="method",grpc_service="service"}[4w])))) / (1 - 0.999)`,
+		name:      "grpc-latency",
+		objective: objectiveGRPCLatency,
+		expected:  `((1 - 0.995) - (1 - sum(increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]) or vector(0)) / sum(increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w])))) / (1 - 0.995)`,
 	}, {
-		name:      "grpc-custom",
-		objective: objectiveGRPCCustom,
-		expected:  `((1 - 0.953) - (sum(increase(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="lightspeed",grpc_service="awesome",job="app"}[1w]) or vector(0)) / sum(increase(grpc_server_handled_total{grpc_method="lightspeed",grpc_service="awesome",job="app"}[1w])))) / (1 - 0.953)`,
+		name:      "operator-ratio",
+		objective: objectiveOperator,
+		expected:  `((1 - 0.99) - (sum(increase(prometheus_operator_reconcile_errors_total[2w]) or vector(0)) / sum(increase(prometheus_operator_reconcile_operations_total[2w])))) / (1 - 0.99)`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -155,25 +246,30 @@ func TestObjective_RequestRange(t *testing.T) {
 		timerange time.Duration
 		expected  string
 	}{{
-		name:      "http",
-		objective: objectiveHTTP,
+		name:      "http-ratio",
+		objective: objectiveHTTPRatio,
 		timerange: 6 * time.Hour,
-		expected:  `sum by(code) (rate(http_requests_total[6h]))`,
+		expected:  `sum by(code) (rate(http_requests_total{job="thanos-receive-default"}[6h])) > 0`,
 	}, {
-		name:      "http-custom",
-		objective: objectiveHTTPCustom,
+		name:      "grpc-ratio",
+		objective: objectiveGRPCRatio,
 		timerange: 6 * time.Hour,
-		expected:  `sum by(status) (rate(prometheus_http_requests_total{foo="bar"}[6h]))`,
+		expected:  `sum by(grpc_code) (rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[6h])) > 0`,
 	}, {
-		name:      "grpc",
-		objective: objectiveGRPC,
-		timerange: 24 * time.Hour,
-		expected:  `sum by(grpc_code) (rate(grpc_server_handled_total{grpc_method="method",grpc_service="service"}[1d]))`,
+		name:      "operator-ratio",
+		objective: objectiveOperator,
+		timerange: 5 * time.Minute,
+		expected:  `sum(rate(prometheus_operator_reconcile_operations_total[5m])) > 0`,
 	}, {
-		name:      "grpc-custom",
-		objective: objectiveGRPCCustom,
-		timerange: 13 * time.Hour,
-		expected:  `sum by(grpc_code) (rate(grpc_server_handled_total{grpc_method="lightspeed",grpc_service="awesome",job="app"}[13h]))`,
+		name:      "http-latency",
+		objective: objectiveHTTPLatency,
+		timerange: 2 * time.Hour,
+		expected:  `sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[2h]))`,
+	}, {
+		name:      "grpc-latency",
+		objective: objectiveGRPCLatency,
+		timerange: 3 * time.Hour,
+		expected:  `sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[3h]))`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -189,25 +285,30 @@ func TestObjective_ErrorsRange(t *testing.T) {
 		timerange time.Duration
 		expected  string
 	}{{
-		name:      "http",
-		objective: objectiveHTTP,
+		name:      "http-ratio",
+		objective: objectiveHTTPRatio,
 		timerange: 6 * time.Hour,
-		expected:  `sum by(code) (rate(http_requests_total{code=~"5.."}[6h])) / scalar(sum(rate(http_requests_total[6h])))`,
+		expected:  `sum by(code) (rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[6h])) / scalar(sum(rate(http_requests_total{job="thanos-receive-default"}[6h])))`,
 	}, {
-		name:      "http-custom",
-		objective: objectiveHTTPCustom,
+		name:      "grpc-ratio",
+		objective: objectiveGRPCRatio,
 		timerange: 6 * time.Hour,
-		expected:  `sum by(status) (rate(prometheus_http_requests_total{foo="bar",status=~"5.."}[6h])) / scalar(sum(rate(prometheus_http_requests_total{foo="bar"}[6h])))`,
+		expected:  `sum by(grpc_code) (rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[6h])) / scalar(sum(rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[6h])))`,
 	}, {
-		name:      "grpc",
-		objective: objectiveGRPC,
-		timerange: 24 * time.Hour,
-		expected:  `sum by(grpc_code) (rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="method",grpc_service="service"}[1d])) / scalar(sum(rate(grpc_server_handled_total{grpc_method="method",grpc_service="service"}[1d])))`,
+		name:      "operator-ratio",
+		objective: objectiveOperator,
+		timerange: 5 * time.Minute,
+		expected:  `sum(rate(prometheus_operator_reconcile_errors_total[5m])) / scalar(sum(rate(prometheus_operator_reconcile_operations_total[5m])))`,
 	}, {
-		name:      "grpc-custom",
-		objective: objectiveGRPCCustom,
-		timerange: 13 * time.Hour,
-		expected:  `sum by(grpc_code) (rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="lightspeed",grpc_service="awesome",job="app"}[13h])) / scalar(sum(rate(grpc_server_handled_total{grpc_method="lightspeed",grpc_service="awesome",job="app"}[13h])))`,
+		name:      "http-latency",
+		objective: objectiveHTTPLatency,
+		timerange: time.Hour,
+		expected:  `sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1h])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[1h]))`,
+	}, {
+		name:      "grpc-latency",
+		objective: objectiveGRPCLatency,
+		timerange: time.Hour,
+		expected:  `sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1h])) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1h]))`,
 	}}
 
 	for _, tc := range testcases {
