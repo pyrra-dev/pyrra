@@ -21,6 +21,7 @@ go/model_objective_status.go
 go/model_objective_status_availability.go
 go/model_objective_status_budget.go
 go/model_query.go
+go/model_query_matchers.go
 go/model_query_range.go
 go/routers.go
 main.go

@@ -225,7 +225,14 @@ components:
         matchers:
           type: array
           items:
-            type: string
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: string
+              type:
+                type: integer
     ObjectiveStatus:
       type: object
       required:

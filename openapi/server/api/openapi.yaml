@@ -206,27 +206,43 @@ components:
           latency:
             total:
               matchers:
-              - matchers
-              - matchers
+              - name: name
+                type: 1
+                value: value
+              - name: name
+                type: 1
+                value: value
               metric: metric
               name: name
             success:
               matchers:
-              - matchers
-              - matchers
+              - name: name
+                type: 1
+                value: value
+              - name: name
+                type: 1
+                value: value
               metric: metric
               name: name
           ratio:
             total:
               matchers:
-              - matchers
-              - matchers
+              - name: name
+                type: 1
+                value: value
+              - name: name
+                type: 1
+                value: value
               metric: metric
               name: name
             errors:
               matchers:
-              - matchers
-              - matchers
+              - name: name
+                type: 1
+                value: value
+              - name: name
+                type: 1
+                value: value
               metric: metric
               name: name
         name: name
@@ -257,27 +273,43 @@ components:
         latency:
           total:
             matchers:
-            - matchers
-            - matchers
+            - name: name
+              type: 1
+              value: value
+            - name: name
+              type: 1
+              value: value
             metric: metric
             name: name
           success:
             matchers:
-            - matchers
-            - matchers
+            - name: name
+              type: 1
+              value: value
+            - name: name
+              type: 1
+              value: value
             metric: metric
             name: name
         ratio:
           total:
             matchers:
-            - matchers
-            - matchers
+            - name: name
+              type: 1
+              value: value
+            - name: name
+              type: 1
+              value: value
             metric: metric
             name: name
           errors:
             matchers:
-            - matchers
-            - matchers
+            - name: name
+              type: 1
+              value: value
+            - name: name
+              type: 1
+              value: value
             metric: metric
             name: name
       properties:
@@ -289,8 +321,12 @@ components:
     Query:
       example:
         matchers:
-        - matchers
-        - matchers
+        - name: name
+          type: 1
+          value: value
+        - name: name
+          type: 1
+          value: value
         metric: metric
         name: name
       properties:
@@ -300,7 +336,7 @@ components:
           type: string
         matchers:
           items:
-            type: string
+            $ref: '#/components/schemas/Query_matchers'
           type: array
       required:
       - metric
@@ -429,14 +465,22 @@ components:
       example:
         total:
           matchers:
-          - matchers
-          - matchers
+          - name: name
+            type: 1
+            value: value
+          - name: name
+            type: 1
+            value: value
           metric: metric
           name: name
         errors:
           matchers:
-          - matchers
-          - matchers
+          - name: name
+            type: 1
+            value: value
+          - name: name
+            type: 1
+            value: value
           metric: metric
           name: name
       properties:
@@ -452,14 +496,22 @@ components:
       example:
         total:
           matchers:
-          - matchers
-          - matchers
+          - name: name
+            type: 1
+            value: value
+          - name: name
+            type: 1
+            value: value
           metric: metric
           name: name
         success:
           matchers:
-          - matchers
-          - matchers
+          - name: name
+            type: 1
+            value: value
+          - name: name
+            type: 1
+            value: value
           metric: metric
           name: name
       properties:
@@ -470,6 +522,19 @@ components:
       required:
       - success
       - total
+      type: object
+    Query_matchers:
+      example:
+        name: name
+        type: 1
+        value: value
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+        type:
+          type: integer
       type: object
     ObjectiveStatus_availability:
       example:

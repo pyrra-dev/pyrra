@@ -19,6 +19,7 @@ docs/ObjectiveStatusAvailability.md
 docs/ObjectiveStatusBudget.md
 docs/ObjectivesApi.md
 docs/Query.md
+docs/QueryMatchers.md
 docs/QueryRange.md
 git_push.sh
 go.mod
@@ -35,6 +36,7 @@ model_objective_status.go
 model_objective_status_availability.go
 model_objective_status_budget.go
 model_query.go
+model_query_matchers.go
 model_query_range.go
 response.go
 utils.go

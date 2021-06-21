@@ -16,9 +16,9 @@ import (
 
 // Query struct for Query
 type Query struct {
-	Metric   string    `json:"metric"`
-	Name     *string   `json:"name,omitempty"`
-	Matchers *[]string `json:"matchers,omitempty"`
+	Metric   string           `json:"metric"`
+	Name     *string          `json:"name,omitempty"`
+	Matchers *[]QueryMatchers `json:"matchers,omitempty"`
 }
 
 // NewQuery instantiates a new Query object
@@ -96,9 +96,9 @@ func (o *Query) SetName(v string) {
 }
 
 // GetMatchers returns the Matchers field value if set, zero value otherwise.
-func (o *Query) GetMatchers() []string {
+func (o *Query) GetMatchers() []QueryMatchers {
 	if o == nil || o.Matchers == nil {
-		var ret []string
+		var ret []QueryMatchers
 		return ret
 	}
 	return *o.Matchers
@@ -106,7 +106,7 @@ func (o *Query) GetMatchers() []string {
 
 // GetMatchersOk returns a tuple with the Matchers field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *Query) GetMatchersOk() (*[]string, bool) {
+func (o *Query) GetMatchersOk() (*[]QueryMatchers, bool) {
 	if o == nil || o.Matchers == nil {
 		return nil, false
 	}
@@ -122,8 +122,8 @@ func (o *Query) HasMatchers() bool {
 	return false
 }
 
-// SetMatchers gets a reference to the given []string and assigns it to the Matchers field.
-func (o *Query) SetMatchers(v []string) {
+// SetMatchers gets a reference to the given []QueryMatchers and assigns it to the Matchers field.
+func (o *Query) SetMatchers(v []QueryMatchers) {
 	o.Matchers = &v
 }
 

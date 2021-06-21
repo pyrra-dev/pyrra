@@ -9,10 +9,10 @@
 
 package openapi
 
-type Query struct {
-	Metric string `json:"metric"`
-
+type QueryMatchers struct {
 	Name string `json:"name,omitempty"`
 
-	Matchers []QueryMatchers `json:"matchers,omitempty"`
+	Value string `json:"value,omitempty"`
+
+	Type int32 `json:"type,omitempty"`
 }
