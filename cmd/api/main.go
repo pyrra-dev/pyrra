@@ -552,18 +552,27 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startT
 		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
 	}
 
+	valueLength := 0
+	for _, m := range matrix {
+		if len(m.Values) > valueLength {
+			valueLength = len(m.Values)
+		}
+	}
+
 	labels := make([]string, len(matrix))
-	values := make([][]float64, len(matrix[0].Values))
+	values := make([][]float64, valueLength)
+
+	pairLength := len(matrix) + 1 // +1 because the first value is the timestamp
 
 	for i, m := range matrix {
 		labels[i] = model.LabelSet(m.Metric).String()
 
 		for j, pair := range m.Values {
-			if i == 0 {
-				values[j] = make([]float64, len(matrix)+1) // +1 because the first value is the timestamp
-				values[j][0] = float64(pair.Timestamp.Unix())
-				values[j][1] = float64(pair.Value)
+			if cap(values[j]) == 0 {
+				values[j] = make([]float64, pairLength)
 			}
+			values[j][0] = float64(pair.Timestamp.Unix())
+			values[j][1] = float64(pair.Value)
 			values[j][i+1] = float64(pair.Value) // i+1 because the first value is the timestamp
 		}
 	}
