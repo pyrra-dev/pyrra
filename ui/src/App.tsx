@@ -296,8 +296,10 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
 
   const [requests, setRequests] = useState<any[]>([])
   const [requestsLabels, setRequestsLabels] = useState<string[]>([])
+  const [requestsLoading, setRequestsLoading] = useState<boolean>(true)
   const [errors, setErrors] = useState<any[]>([])
   const [errorsLabels, setErrorsLabels] = useState<string[]>([])
+  const [errorsLoading, setErrorsLoading] = useState<boolean>(true)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -354,6 +356,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       })
       .finally(() => setErrorBudgetSamplesLoading(false))
 
+    setRequestsLoading(true)
     APIObjectives.getREDRequests({ name, start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
@@ -368,8 +371,9 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         })
         setRequestsLabels(r.labels)
         setRequests(data)
-      })
+      }).finally(() => setRequestsLoading(false))
 
+    setErrorsLoading(true)
     APIObjectives.getREDErrors({ name, start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
@@ -384,7 +388,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         })
         setErrorsLabels(r.labels)
         setErrors(data)
-      })
+      }).finally(() => setErrorsLoading(false))
 
     return () => {
       // cancel any pending requests.
@@ -590,7 +594,16 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         <br/><br/>
         <Row>
           <Col xs={12} sm={6}>
-            <h4>Requests</h4>
+            <h4>
+              Requests
+              {requestsLoading ? <Spinner animation="border" style={{
+                marginLeft: '1rem',
+                marginBottom: '0.5rem',
+                width: '1rem',
+                height: '1rem',
+                borderWidth: '1px'
+              }}/> : <></>}
+            </h4>
             {requests.length > 0 && requestsLabels.length > 0 ? (
               <ResponsiveContainer height={150}>
                 <AreaChart height={150} data={requests}>
@@ -645,7 +658,16 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             )}
           </Col>
           <Col xs={12} sm={6}>
-            <h4>Errors</h4>
+            <h4>
+              Errors
+              {errorsLoading ? <Spinner animation="border" style={{
+                marginLeft: '1rem',
+                marginBottom: '0.5rem',
+                width: '1rem',
+                height: '1rem',
+                borderWidth: '1px'
+              }}/> : <></>}
+            </h4>
             {errors.length > 0 && errorsLabels.length > 0 ? (
               <ResponsiveContainer height={150}>
                 <AreaChart height={150} data={errors}>
