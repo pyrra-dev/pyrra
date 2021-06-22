@@ -13,56 +13,49 @@
  */
 
 import { exists, mapValues } from '../runtime';
-import {
-    QueryMatchers,
-    QueryMatchersFromJSON,
-    QueryMatchersFromJSONTyped,
-    QueryMatchersToJSON,
-} from './';
-
 /**
  * 
  * @export
- * @interface Query
+ * @interface QueryMatchers
  */
-export interface Query {
+export interface QueryMatchers {
     /**
      * 
      * @type {string}
-     * @memberof Query
-     */
-    metric: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof Query
+     * @memberof QueryMatchers
      */
     name?: string;
     /**
      * 
-     * @type {Array<QueryMatchers>}
-     * @memberof Query
+     * @type {string}
+     * @memberof QueryMatchers
      */
-    matchers?: Array<QueryMatchers>;
+    value?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof QueryMatchers
+     */
+    type?: number;
 }
 
-export function QueryFromJSON(json: any): Query {
-    return QueryFromJSONTyped(json, false);
+export function QueryMatchersFromJSON(json: any): QueryMatchers {
+    return QueryMatchersFromJSONTyped(json, false);
 }
 
-export function QueryFromJSONTyped(json: any, ignoreDiscriminator: boolean): Query {
+export function QueryMatchersFromJSONTyped(json: any, ignoreDiscriminator: boolean): QueryMatchers {
     if ((json === undefined) || (json === null)) {
         return json;
     }
     return {
         
-        'metric': json['metric'],
         'name': !exists(json, 'name') ? undefined : json['name'],
-        'matchers': !exists(json, 'matchers') ? undefined : ((json['matchers'] as Array<any>).map(QueryMatchersFromJSON)),
+        'value': !exists(json, 'value') ? undefined : json['value'],
+        'type': !exists(json, 'type') ? undefined : json['type'],
     };
 }
 
-export function QueryToJSON(value?: Query | null): any {
+export function QueryMatchersToJSON(value?: QueryMatchers | null): any {
     if (value === undefined) {
         return undefined;
     }
@@ -71,9 +64,9 @@ export function QueryToJSON(value?: Query | null): any {
     }
     return {
         
-        'metric': value.metric,
         'name': value.name,
-        'matchers': value.matchers === undefined ? undefined : ((value.matchers as Array<any>).map(QueryMatchersToJSON)),
+        'value': value.value,
+        'type': value.type,
     };
 }
 

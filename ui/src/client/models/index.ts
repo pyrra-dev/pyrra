@@ -10,4 +10,5 @@ export * from './ObjectiveStatus';
 export * from './ObjectiveStatusAvailability';
 export * from './ObjectiveStatusBudget';
 export * from './Query';
+export * from './QueryMatchers';
 export * from './QueryRange';
