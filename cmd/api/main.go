@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,6 +48,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	thanosClient := newThanosClient(client)
+
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
@@ -55,7 +60,7 @@ func main() {
 	}
 	defer cache.Close()
 	promAPI := &promCache{
-		api:   prometheusv1.NewAPI(client),
+		api:   prometheusv1.NewAPI(thanosClient),
 		cache: cache,
 	}
 
@@ -95,6 +100,58 @@ func main() {
 	}
 }
 
+func newThanosClient(client api.Client) api.Client {
+	return &thanosClient{client: client}
+}
+
+// thanosClient wraps the Prometheus Client to inject some headers to disable partial responses
+// and enables querying for downsampled data.
+type thanosClient struct {
+	client api.Client
+}
+
+func (c *thanosClient) URL(ep string, args map[string]string) *url.URL {
+	return c.client.URL(ep, args)
+}
+
+func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, error) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, nil, err
+	}
+	query, err := url.ParseQuery(string(body))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// We don't want partial responses, especially not when calculating error budgets.
+	query.Set("partial_response", "false")
+	r.ContentLength += 23
+
+	if strings.HasSuffix(r.URL.Path, "/api/v1/query_range") {
+		start, err := strconv.ParseFloat(query.Get("start"), 64)
+		if err != nil {
+			return nil, nil, err
+		}
+		end, err := strconv.ParseFloat(query.Get("end"), 64)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if end-start >= 28*24*60*60 { // request 1h downsamples when range > 28d
+			query.Set("max_source_resolution", "1h")
+			r.ContentLength += 25
+		} else if end-start >= 7*24*60*60 { // request 5m downsamples when range > 1w
+			query.Set("max_source_resolution", "5m")
+			r.ContentLength += 25
+		}
+	}
+
+	encoded := query.Encode()
+	r.Body = ioutil.NopCloser(strings.NewReader(encoded))
+	return c.client.Do(ctx, r)
+}
+
 type prometheusAPI interface {
 	// Query performs a query for the given time.
 	Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error)
@@ -111,7 +168,7 @@ func RoundUp(t time.Time, d time.Duration) time.Time {
 }
 
 type promCache struct {
-	api   prometheusv1.API
+	api   prometheusAPI
 	cache *ristretto.Cache
 }
 
