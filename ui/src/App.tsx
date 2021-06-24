@@ -536,7 +536,19 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
           </Col>
         </Row>
         <Row>
-          {errorBudgetSamplesLoading ?
+          <h4>
+            Error Budget
+            {errorBudgetSamplesLoading && errorBudgetSamples.length !== 0 ? (
+              <Spinner animation="border" style={{
+                marginLeft: '1rem',
+                marginBottom: '0.5rem',
+                width: '1rem',
+                height: '1rem',
+                borderWidth: '1px'
+              }}/>
+            ) : <></>}
+          </h4>
+          {errorBudgetSamplesLoading && errorBudgetSamples.length === 0 ?
             <div style={{
               width: '100%',
               height: 230,
