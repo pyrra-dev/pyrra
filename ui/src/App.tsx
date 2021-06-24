@@ -351,7 +351,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         } else if (min >= 1) {
           setErrorBudgetSamplesOffset(1)
         } else {
-          setErrorBudgetSamplesOffset(max / (max - min))
+          setErrorBudgetSamplesOffset(maxRaw / (maxRaw - minRaw))
         }
       })
       .finally(() => setErrorBudgetSamplesLoading(false))
