@@ -40,19 +40,20 @@ const App = () => {
 
 // TableObjective extends Objective to add some more additional (async) properties
 interface TableObjective extends APIObjective {
-  availability?: number
-  budget?: number
+  availability?: number | null
+  budget?: number | null
 }
 
 interface TableState {
   objectives: { [key: string]: TableObjective }
 }
 
-enum TableActionType { SetObjective, SetStatus }
+enum TableActionType { SetObjective, SetStatus, SetStatusNone }
 
 type TableAction =
   | { type: TableActionType.SetObjective, objective: APIObjective }
   | { type: TableActionType.SetStatus, name: string, status: APIObjectiveStatus }
+  | { type: TableActionType.SetStatusNone, name: string }
 
 const tableReducer = (state: TableState, action: TableAction): TableState => {
   switch (action.type) {
@@ -78,6 +79,17 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             ...state.objectives[action.name],
             availability: action.status.availability?.percentage,
             budget: action.status.budget?.remaining
+          }
+        }
+      }
+    case TableActionType.SetStatusNone:
+      return {
+        objectives:{
+          ...state.objectives,
+          [action.name]: {
+            ...state.objectives[action.name],
+            availability: null,
+            budget: null
           }
         }
       }
@@ -131,6 +143,11 @@ const List = () => {
           .then((s: APIObjectiveStatus) => {
             dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
           })
+          .catch((err) => {
+            if (err.status === 404) {
+              dispatchTable({ type: TableActionType.SetStatusNone, name: o.name })
+            }
+          })
       })
 
     // return () => {
@@ -172,24 +189,36 @@ const List = () => {
               return b.target - a.target
             }
           case TableSortType.Availability:
-            if (a.availability !== undefined && b.availability !== undefined) {
+            if (a.availability == null && b.availability != null) {
+              return 1
+            }
+            if (a.availability != null && b.availability == null) {
+              return -1
+            }
+            if (a.availability !== undefined && a.availability != null && b.availability !== undefined && b.availability != null) {
               if (tableSortState.order === TableSortOrder.Ascending) {
                 return a.availability - b.availability
               } else {
                 return b.availability - a.availability
               }
             } else {
-              return 1
+              return 0
             }
           case TableSortType.Budget:
-            if (a.budget !== undefined && b.budget !== undefined) {
+            if (a.budget == null && b.budget != null) {
+              return 1
+            }
+            if (a.budget != null && b.budget == null) {
+              return -1
+            }
+            if (a.budget !== undefined && a.budget != null && b.budget !== undefined && b.budget != null) {
               if (tableSortState.order === TableSortOrder.Ascending) {
                 return a.budget - b.budget
               } else {
                 return b.budget - a.budget
               }
             } else {
-              return 1
+              return 0
             }
         }
         return 0
@@ -200,8 +229,10 @@ const List = () => {
 
   const history = useHistory()
 
+  const objectivePage = (name: string) => `/objectives/${name}`
+
   const handleTableRowClick = (name: string) => () => {
-    history.push(`/objectives/${name}`)
+    history.push(objectivePage(name))
   }
 
   return (
@@ -235,25 +266,34 @@ const List = () => {
         {tableList.map((o: TableObjective) => (
           <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.name)}>
             <td>
-              {o.name}
+              <Link to={objectivePage(o.name)}>
+                {o.name}
+              </Link>
             </td>
             <td>{formatDuration(o.window)}</td>
             <td>
               {(100 * o.target).toFixed(2)}%
             </td>
             <td>
-              {o.availability !== undefined ?
+              {o.availability === undefined ? (
+                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+              ) : <></>}
+              {o.availability === null ? <>-</> : <></>}
+              {o.availability !== undefined && o.availability != null ?
                 <span className={o.availability > o.target ? 'good' : 'bad'}>
                   {(100 * o.availability).toFixed(2)}%
-                </span> :
-                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>}
+                </span> : <></>}
+
             </td>
             <td>
-              {o.budget !== undefined ?
+              {o.budget === undefined ? (
+                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+              ) : <></>}
+              {o.budget === null ? <>-</> : <></>}
+              {o.budget !== undefined && o.budget != null ?
                 <span className={o.budget >= 0 ? 'good' : 'bad'}>
                   {(100 * o.budget).toFixed(2)}%
-                </span> :
-                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>}
+                </span> : <></>}
             </td>
           </tr>
         ))}
@@ -281,8 +321,6 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const timeRangeQuery = query.get('timerange')
   const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
   const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
-
-  // const [timeRange, setTimeRange] = useState<number>(3600 * 1000) // 1h
 
   const [objective, setObjective] = useState<APIObjective | null>(null);
   const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null);
