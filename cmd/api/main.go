@@ -273,6 +273,10 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, name string) 
 		status.Availability.Total = float64(v.Value)
 	}
 
+	if status.Availability.Total == 0 {
+		return openapiserver.ImplResponse{Code: http.StatusNotFound}, nil
+	}
+
 	queryErrors := objective.QueryErrors(objective.Window)
 	log.Println(queryErrors)
 	value, _, err = o.promAPI.Query(ctx, queryErrors, ts)
