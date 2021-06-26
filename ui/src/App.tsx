@@ -1,6 +1,5 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import './App.css';
-import { Button, ButtonGroup, Col, Container, Row, Spinner, Table } from 'react-bootstrap';
 import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory, useLocation } from 'react-router-dom';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
 import {
@@ -15,6 +14,17 @@ import {
   QueryRange
 } from './client'
 import AlertsTable from './components/AlertsTable'
+import {
+  Button,
+  ButtonGroup,
+  Col,
+  Container,
+  OverlayTrigger,
+  Row,
+  Spinner,
+  Table,
+  Tooltip as OverlayTooltip
+} from 'react-bootstrap';
 
 // @ts-ignore - this is passed from the HTML template.
 export const PUBLIC_API: string = window.PUBLIC_API;
@@ -40,8 +50,14 @@ const App = () => {
 
 // TableObjective extends Objective to add some more additional (async) properties
 interface TableObjective extends APIObjective {
-  availability?: number | null
+  availability?: TableAvailability | null
   budget?: number | null
+}
+
+interface TableAvailability {
+  errors: number
+  total: number
+  percentage: number
 }
 
 interface TableState {
@@ -77,7 +93,11 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           ...state.objectives,
           [action.name]: {
             ...state.objectives[action.name],
-            availability: action.status.availability?.percentage,
+            availability: {
+              errors: action.status.availability.errors,
+              total: action.status.availability.total,
+              percentage: action.status.availability.percentage
+            },
             budget: action.status.budget?.remaining
           }
         }
@@ -197,9 +217,9 @@ const List = () => {
             }
             if (a.availability !== undefined && a.availability != null && b.availability !== undefined && b.availability != null) {
               if (tableSortState.order === TableSortOrder.Ascending) {
-                return a.availability - b.availability
+                return a.availability.percentage - b.availability.percentage
               } else {
-                return b.availability - a.availability
+                return b.availability.percentage - a.availability.percentage
               }
             } else {
               return 0
@@ -280,10 +300,19 @@ const List = () => {
               ) : <></>}
               {o.availability === null ? <>-</> : <></>}
               {o.availability !== undefined && o.availability != null ?
-                <span className={o.availability > o.target ? 'good' : 'bad'}>
-                  {(100 * o.availability).toFixed(2)}%
-                </span> : <></>}
-
+                <OverlayTrigger
+                  key={o.name}
+                  overlay={
+                    <OverlayTooltip id={`tooltip-${o.name}`}>
+                      Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
+                      Total: {Math.floor(o.availability.total).toLocaleString()}
+                    </OverlayTooltip>
+                  }>
+                  <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
+                    {(100 * o.availability.percentage).toFixed(2)}%
+                  </span>
+                </OverlayTrigger>
+                : <></>}
             </td>
             <td>
               {o.budget === undefined ? (
@@ -634,7 +663,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             {availability != null ? (
               <>
                 <small>Errors: {Math.floor(availability.errors).toLocaleString()}</small>&nbsp;
-                <small>Volume: {Math.floor(availability.total).toLocaleString()}</small>&nbsp;
+                <small>Total: {Math.floor(availability.total).toLocaleString()}</small>&nbsp;
               </>
             ) : (
               <></>
