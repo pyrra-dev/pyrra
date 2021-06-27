@@ -2,8 +2,13 @@
     margin-top: 50px;
 }
 
+.App .row {
+    margin: 50px 0;
+}
+
 .App .metric {
     text-align: center;
+    margin-bottom: 20px;
 }
 
 .App .metric .good, .App table.table td .good {

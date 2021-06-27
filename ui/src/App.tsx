@@ -538,12 +538,12 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   return (
     <div className="App">
       <Container>
-        <Row style={{ marginBottom: '2em' }}>
+        <Row>
           <Col>
             <Link to="/">⬅️ Overview</Link>
           </Col>
         </Row>
-        <Row style={{ marginBottom: '2em' }}>
+        <Row>
           <Col xs={12}>
             <h1>{objective.name}</h1>
           </Col>
@@ -556,7 +556,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               <></>
             )}
         </Row>
-        <Row style={{ marginBottom: '3em' }}>
+        <Row>
           <Col className="text-right">
             <ButtonGroup aria-label="Basic example">
               {timeRanges.map((t: number, i: number) => (
@@ -566,13 +566,13 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
           </Col>
         </Row>
         <Row>
-          <Col className="metric">
+          <Col xs={12} sm={12} md={4} className="metric">
             <div>
               <h2>{100 * objective.target}%</h2>
               <h6 className="text-muted">Objective in <strong>{formatDuration(objective.window)}</strong></h6>
             </div>
           </Col>
-          <Col className="metric">
+          <Col xs={12} sm={6} md={4} className="metric">
             <div>
               {availability != null ? (
                 <h2 className={availability.percentage > 0 ? 'good' : 'bad'}>
@@ -584,7 +584,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               <h6 className="text-muted">Availability</h6>
             </div>
           </Col>
-          <Col className="metric">
+          <Col xs={12} sm={6} md={4} className="metric">
             <div>
               {errorBudget != null ? (
                 <h2 className={errorBudget.remaining > 0 ? 'good' : 'bad'}>
@@ -597,13 +597,8 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             </div>
           </Col>
         </Row>
-        <br/>
-        <Row>
+        <Row style={{ marginBottom: 0 }}>
           <Col>
-
-          </Col>
-        </Row>
-        <Row>
           <h4>
             Error Budget
             {errorBudgetSamplesLoading && errorBudgetSamples.length !== 0 ? (
@@ -660,6 +655,9 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               </AreaChart>
             </ResponsiveContainer>
           }
+          </Col>
+        </Row>
+        <Row style={{margin: 0}}>
           <Col style={{ textAlign: 'right' }}>
             {availability != null ? (
               <>
@@ -671,7 +669,6 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             )}
           </Col>
         </Row>
-        <br/><br/>
         <Row>
           <Col xs={12} sm={6}>
             <h4>
@@ -785,7 +782,6 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             )}
           </Col>
         </Row>
-        <br/><br/><br/>
         <Row>
           <Col>
             <h4>Multi Burn Rate Alerts</h4>
