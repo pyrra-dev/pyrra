@@ -3,8 +3,6 @@ apis/ObjectivesApi.ts
 apis/index.ts
 index.ts
 models/Burnrate.ts
-models/ErrorBudget.ts
-models/ErrorBudgetPair.ts
 models/Indicator.ts
 models/IndicatorLatency.ts
 models/IndicatorRatio.ts

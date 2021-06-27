@@ -92,7 +92,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorBudget'
+                $ref: '#/components/schemas/QueryRange'
           description: Get ErrorBudget graph sample pairs
       summary: Get ErrorBudget graph sample pairs
       tags:
@@ -364,21 +364,6 @@ components:
       - availability
       - budget
       type: object
-    ErrorBudget:
-      example:
-        pair:
-        - t: 0
-          v: 6.027456183070403
-        - t: 0
-          v: 6.027456183070403
-      properties:
-        pair:
-          items:
-            $ref: '#/components/schemas/ErrorBudget_pair'
-          type: array
-      required:
-      - pair
-      type: object
     MultiBurnrateAlert:
       example:
         severity: severity
@@ -579,19 +564,4 @@ components:
       - max
       - remaining
       - total
-      type: object
-    ErrorBudget_pair:
-      example:
-        t: 0
-        v: 6.027456183070403
-      properties:
-        t:
-          format: int64
-          type: integer
-        v:
-          format: double
-          type: number
-      required:
-      - t
-      - v
       type: object

@@ -7,8 +7,6 @@ api_objectives.go
 client.go
 configuration.go
 docs/Burnrate.md
-docs/ErrorBudget.md
-docs/ErrorBudgetPair.md
 docs/Indicator.md
 docs/IndicatorLatency.md
 docs/IndicatorRatio.md
@@ -25,8 +23,6 @@ git_push.sh
 go.mod
 go.sum
 model_burnrate.go
-model_error_budget.go
-model_error_budget_pair.go
 model_indicator.go
 model_indicator_latency.go
 model_indicator_ratio.go

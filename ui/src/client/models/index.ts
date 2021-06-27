@@ -1,6 +1,4 @@
 export * from './Burnrate';
-export * from './ErrorBudget';
-export * from './ErrorBudgetPair';
 export * from './Indicator';
 export * from './IndicatorLatency';
 export * from './IndicatorRatio';

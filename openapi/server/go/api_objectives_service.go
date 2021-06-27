@@ -53,8 +53,8 @@ func (s *ObjectivesApiService) GetObjectiveErrorBudget(ctx context.Context, name
 	// TODO - update GetObjectiveErrorBudget with the required logic for this service method.
 	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
-	//TODO: Uncomment the next line to return response Response(200, ErrorBudget{}) or use other options such as http.Ok ...
-	//return Response(200, ErrorBudget{}), nil
+	//TODO: Uncomment the next line to return response Response(200, QueryRange{}) or use other options such as http.Ok ...
+	//return Response(200, QueryRange{}), nil
 
 	return Response(http.StatusNotImplemented, nil), errors.New("GetObjectiveErrorBudget method not implemented")
 }

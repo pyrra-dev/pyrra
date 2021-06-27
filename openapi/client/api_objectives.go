@@ -252,7 +252,7 @@ func (r ApiGetObjectiveErrorBudgetRequest) End(end int32) ApiGetObjectiveErrorBu
 	return r
 }
 
-func (r ApiGetObjectiveErrorBudgetRequest) Execute() (ErrorBudget, *_nethttp.Response, error) {
+func (r ApiGetObjectiveErrorBudgetRequest) Execute() (QueryRange, *_nethttp.Response, error) {
 	return r.ApiService.GetObjectiveErrorBudgetExecute(r)
 }
 
@@ -272,16 +272,16 @@ func (a *ObjectivesApiService) GetObjectiveErrorBudget(ctx _context.Context, nam
 
 /*
  * Execute executes the request
- * @return ErrorBudget
+ * @return QueryRange
  */
-func (a *ObjectivesApiService) GetObjectiveErrorBudgetExecute(r ApiGetObjectiveErrorBudgetRequest) (ErrorBudget, *_nethttp.Response, error) {
+func (a *ObjectivesApiService) GetObjectiveErrorBudgetExecute(r ApiGetObjectiveErrorBudgetRequest) (QueryRange, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  ErrorBudget
+		localVarReturnValue  QueryRange
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ObjectivesApiService.GetObjectiveErrorBudget")

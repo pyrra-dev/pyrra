@@ -125,7 +125,7 @@ openapi/client: api.yaml
 	goimports -w $(shell find ./openapi/client/ -name '*.go')
 	touch $@
 
-ui/src/client:
+ui/src/client: api.yaml
 	-rm -rf $@
 	$(OPENAPI) generate -i $(shell pwd)/api.yaml -g typescript-fetch -o $(shell pwd)/ui/src/client
 

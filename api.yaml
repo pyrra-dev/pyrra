@@ -84,7 +84,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorBudget'
+                $ref: '#/components/schemas/QueryRange'
   /objectives/{name}/alerts:
     get:
       summary: Get the MultiBurnrateAlerts for the Objective
@@ -274,23 +274,6 @@ components:
             max:
               type: number
               format: double
-    ErrorBudget:
-      type: object
-      required:
-        - pair
-      properties:
-        pair:
-          type: array
-          items:
-            type: object
-            required: [ t,v ]
-            properties:
-              t:
-                type: integer
-                format: int64
-              v:
-                type: number
-                format: double
     MultiBurnrateAlert:
       type: object
       required:

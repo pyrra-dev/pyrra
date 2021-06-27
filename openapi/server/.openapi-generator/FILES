@@ -10,8 +10,6 @@ go/helpers.go
 go/impl.go
 go/logger.go
 go/model_burnrate.go
-go/model_error_budget.go
-go/model_error_budget_pair.go
 go/model_indicator.go
 go/model_indicator_latency.go
 go/model_indicator_ratio.go

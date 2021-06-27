@@ -15,9 +15,6 @@
 
 import * as runtime from '../runtime';
 import {
-    ErrorBudget,
-    ErrorBudgetFromJSON,
-    ErrorBudgetToJSON,
     MultiBurnrateAlert,
     MultiBurnrateAlertFromJSON,
     MultiBurnrateAlertToJSON,
@@ -130,7 +127,7 @@ export class ObjectivesApi extends runtime.BaseAPI {
     /**
      * Get ErrorBudget graph sample pairs
      */
-    async getObjectiveErrorBudgetRaw(requestParameters: GetObjectiveErrorBudgetRequest): Promise<runtime.ApiResponse<ErrorBudget>> {
+    async getObjectiveErrorBudgetRaw(requestParameters: GetObjectiveErrorBudgetRequest): Promise<runtime.ApiResponse<QueryRange>> {
         if (requestParameters.name === null || requestParameters.name === undefined) {
             throw new runtime.RequiredError('name','Required parameter requestParameters.name was null or undefined when calling getObjectiveErrorBudget.');
         }
@@ -154,13 +151,13 @@ export class ObjectivesApi extends runtime.BaseAPI {
             query: queryParameters,
         });
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ErrorBudgetFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => QueryRangeFromJSON(jsonValue));
     }
 
     /**
      * Get ErrorBudget graph sample pairs
      */
-    async getObjectiveErrorBudget(requestParameters: GetObjectiveErrorBudgetRequest): Promise<ErrorBudget> {
+    async getObjectiveErrorBudget(requestParameters: GetObjectiveErrorBudgetRequest): Promise<QueryRange> {
         const response = await this.getObjectiveErrorBudgetRaw(requestParameters);
         return await response.value();
     }

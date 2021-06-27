@@ -4,8 +4,6 @@ import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory, us
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
 import {
   Configuration,
-  ErrorBudget as APIErrorBudget,
-  ErrorBudgetPair,
   Objective as APIObjective,
   ObjectivesApi,
   ObjectiveStatus as APIObjectiveStatus,
@@ -356,7 +354,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null);
   const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null);
 
-  const [errorBudgetSamples, setErrorBudgetSamples] = useState<ErrorBudgetPair[]>([]);
+  const [errorBudgetSamples, setErrorBudgetSamples] = useState<any[]>([]);
   const [errorBudgetSamplesOffset, setErrorBudgetSamplesOffset] = useState<number>(0)
   const [errorBudgetSamplesMin, setErrorBudgetSamplesMin] = useState<number>(-10000)
   const [errorBudgetSamplesMax, setErrorBudgetSamplesMax] = useState<number>(1)
@@ -390,11 +388,20 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
     const end = Math.floor(now / 1000)
 
     APIObjectives.getObjectiveErrorBudget({ name, start, end })
-      .then((b: APIErrorBudget) => {
-        setErrorBudgetSamples(b.pair)
+      .then((r: QueryRange) => {
+        let data: any[] = []
+        r.values.forEach((v: number[], i: number) => {
+          v.forEach((v: number, j: number) => {
+            if (j === 0) {
+              data[i] = { t: v }
+            } else {
+              data[i].v = v
+            }
+          })
+        })
 
-        const minRaw = Math.min(...b.pair.map((o: ErrorBudgetPair) => o.v))
-        const maxRaw = Math.max(...b.pair.map((o: ErrorBudgetPair) => o.v))
+        const minRaw = Math.min(...data.map((o) => o.v))
+        const maxRaw = Math.max(...data.map((o) => o.v))
         const diff = maxRaw - minRaw
 
         let roundBy = 1
@@ -421,6 +428,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
         } else {
           setErrorBudgetSamplesOffset(maxRaw / (maxRaw - minRaw))
         }
+        setErrorBudgetSamples(data)
       })
       .finally(() => setErrorBudgetSamplesLoading(false))
 
