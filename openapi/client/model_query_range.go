@@ -16,6 +16,7 @@ import (
 
 // QueryRange struct for QueryRange
 type QueryRange struct {
+	Query  string      `json:"query"`
 	Labels []string    `json:"labels"`
 	Values [][]float64 `json:"values"`
 }
@@ -24,8 +25,9 @@ type QueryRange struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewQueryRange(labels []string, values [][]float64) *QueryRange {
+func NewQueryRange(query string, labels []string, values [][]float64) *QueryRange {
 	this := QueryRange{}
+	this.Query = query
 	this.Labels = labels
 	this.Values = values
 	return &this
@@ -37,6 +39,30 @@ func NewQueryRange(labels []string, values [][]float64) *QueryRange {
 func NewQueryRangeWithDefaults() *QueryRange {
 	this := QueryRange{}
 	return &this
+}
+
+// GetQuery returns the Query field value
+func (o *QueryRange) GetQuery() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Query
+}
+
+// GetQueryOk returns a tuple with the Query field value
+// and a boolean to check if the value has been set.
+func (o *QueryRange) GetQueryOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Query, true
+}
+
+// SetQuery sets field value
+func (o *QueryRange) SetQuery(v string) {
+	o.Query = v
 }
 
 // GetLabels returns the Labels field value
@@ -89,6 +115,9 @@ func (o *QueryRange) SetValues(v [][]float64) {
 
 func (o QueryRange) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
+	if true {
+		toSerialize["query"] = o.Query
+	}
 	if true {
 		toSerialize["labels"] = o.Labels
 	}

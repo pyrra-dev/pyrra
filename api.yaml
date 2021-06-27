@@ -320,9 +320,12 @@ components:
     QueryRange:
       type: object
       required:
+        - query
         - labels
         - values
       properties:
+        query:
+          type: string
         labels:
           type: array
           items:

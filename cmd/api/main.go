@@ -369,6 +369,7 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name str
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
 		Body: openapiserver.QueryRange{
+			Query:  query,
 			Labels: nil,
 			Values: values,
 		},
@@ -586,6 +587,7 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, star
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
 		Body: openapiserver.QueryRange{
+			Query:  query,
 			Labels: labels,
 			Values: values,
 		},
@@ -674,6 +676,7 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startT
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
 		Body: openapiserver.QueryRange{
+			Query:  query,
 			Labels: labels,
 			Values: values,
 		},

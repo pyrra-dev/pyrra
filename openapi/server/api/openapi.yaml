@@ -426,6 +426,7 @@ components:
       type: object
     QueryRange:
       example:
+        query: query
         values:
         - - 0.8008281904610115
           - 0.8008281904610115
@@ -435,6 +436,8 @@ components:
         - labels
         - labels
       properties:
+        query:
+          type: string
         labels:
           items:
             type: string
@@ -448,6 +451,7 @@ components:
           type: array
       required:
       - labels
+      - query
       - values
       type: object
     Indicator_ratio:

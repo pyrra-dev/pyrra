@@ -21,6 +21,12 @@ import { exists, mapValues } from '../runtime';
 export interface QueryRange {
     /**
      * 
+     * @type {string}
+     * @memberof QueryRange
+     */
+    query: string;
+    /**
+     * 
      * @type {Array<string>}
      * @memberof QueryRange
      */
@@ -43,6 +49,7 @@ export function QueryRangeFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'query': json['query'],
         'labels': json['labels'],
         'values': json['values'],
     };
@@ -57,6 +64,7 @@ export function QueryRangeToJSON(value?: QueryRange | null): any {
     }
     return {
         
+        'query': value.query,
         'labels': value.labels,
         'values': value.values,
     };

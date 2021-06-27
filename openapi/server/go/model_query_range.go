@@ -10,6 +10,8 @@
 package openapi
 
 type QueryRange struct {
+	Query string `json:"query"`
+
 	Labels []string `json:"labels"`
 
 	Values [][]float64 `json:"values"`
