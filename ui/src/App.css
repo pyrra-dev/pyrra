@@ -23,3 +23,13 @@
 .App table.table tbody tr.table-row-clickable:hover {
     cursor: pointer;
 }
+
+.external-prometheus svg {
+    width: 18px;
+    height: 18px;
+    margin-bottom: 5px;
+    opacity: 0.5;
+}
+.external-prometheus:hover svg {
+    opacity: 1;
+}
