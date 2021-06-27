@@ -52,6 +52,12 @@ export interface Objective {
     window: number;
     /**
      * 
+     * @type {string}
+     * @memberof Objective
+     */
+    config: string;
+    /**
+     * 
      * @type {Indicator}
      * @memberof Objective
      */
@@ -72,6 +78,7 @@ export function ObjectiveFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'description': json['description'],
         'target': json['target'],
         'window': json['window'],
+        'config': json['config'],
         'indicator': !exists(json, 'indicator') ? undefined : IndicatorFromJSON(json['indicator']),
     };
 }
@@ -89,6 +96,7 @@ export function ObjectiveToJSON(value?: Objective | null): any {
         'description': value.description,
         'target': value.target,
         'window': value.window,
+        'config': value.config,
         'indicator': IndicatorToJSON(value.indicator),
     };
 }

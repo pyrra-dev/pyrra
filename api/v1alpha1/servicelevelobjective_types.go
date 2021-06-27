@@ -25,6 +25,7 @@ import (
 	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func init() {
@@ -203,11 +204,21 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 		}
 	}
 
+	inCopy := in.DeepCopy()
+	inCopy.ManagedFields = nil
+	delete(inCopy.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
+
+	config, err := yaml.Marshal(inCopy)
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to marshal resource as config")
+	}
+
 	return slo.Objective{
 		Name:        in.GetName(),
 		Description: in.Spec.Description,
 		Target:      target / 100,
 		Window:      in.Spec.Window,
+		Config:      string(config),
 		Indicator: slo.Indicator{
 			Ratio:   ratio,
 			Latency: latency,

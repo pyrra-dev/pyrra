@@ -18,5 +18,7 @@ type Objective struct {
 
 	Window int64 `json:"window"`
 
+	Config string `json:"config"`
+
 	Indicator Indicator `json:"indicator,omitempty"`
 }

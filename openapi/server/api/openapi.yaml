@@ -248,6 +248,7 @@ components:
         name: name
         description: description
         window: 6
+        config: config
         target: 0.8008281904610115
       properties:
         name:
@@ -260,9 +261,12 @@ components:
         window:
           format: int64
           type: integer
+        config:
+          type: string
         indicator:
           $ref: '#/components/schemas/Indicator'
       required:
+      - config
       - description
       - name
       - target

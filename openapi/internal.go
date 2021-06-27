@@ -59,6 +59,7 @@ func InternalFromClient(o client.Objective) slo.Objective {
 		Description: o.GetDescription(),
 		Target:      o.GetTarget(),
 		Window:      model.Duration(time.Duration(o.GetWindow()) * time.Millisecond),
+		Config:      o.GetConfig(),
 		Indicator: slo.Indicator{
 			Ratio:   ratio,
 			Latency: latency,

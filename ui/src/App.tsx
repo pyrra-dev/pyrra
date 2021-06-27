@@ -82,6 +82,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             description: action.objective.description,
             window: action.objective.window,
             target: action.objective.target,
+            config: action.objective.config,
             availability: undefined,
             budget: undefined
           }
@@ -789,6 +790,16 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
           <Col>
             <h4>Multi Burn Rate Alerts</h4>
             <AlertsTable objective={objective}/>
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <h4>Config</h4>
+            <pre style={{ padding: 20, backgroundColor: '#f8f9fa', borderRadius: 5 }}>
+            <code>
+              {objective.config}
+            </code>
+            </pre>
           </Col>
         </Row>
       </Container>

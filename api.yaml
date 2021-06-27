@@ -177,6 +177,7 @@ components:
         - description
         - target
         - window
+        - config
       properties:
         name:
           type: string
@@ -188,6 +189,8 @@ components:
         window:
           type: integer
           format: int64
+        config:
+          type: string
         indicator:
           $ref: '#/components/schemas/Indicator'
     Indicator:

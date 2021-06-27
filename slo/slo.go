@@ -11,6 +11,7 @@ type Objective struct {
 	Description string
 	Target      float64
 	Window      model.Duration
+	Config      string
 
 	Indicator Indicator
 }

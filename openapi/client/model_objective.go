@@ -20,6 +20,7 @@ type Objective struct {
 	Description string     `json:"description"`
 	Target      float64    `json:"target"`
 	Window      int64      `json:"window"`
+	Config      string     `json:"config"`
 	Indicator   *Indicator `json:"indicator,omitempty"`
 }
 
@@ -27,12 +28,13 @@ type Objective struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewObjective(name string, description string, target float64, window int64) *Objective {
+func NewObjective(name string, description string, target float64, window int64, config string) *Objective {
 	this := Objective{}
 	this.Name = name
 	this.Description = description
 	this.Target = target
 	this.Window = window
+	this.Config = config
 	return &this
 }
 
@@ -140,6 +142,30 @@ func (o *Objective) SetWindow(v int64) {
 	o.Window = v
 }
 
+// GetConfig returns the Config field value
+func (o *Objective) GetConfig() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Config
+}
+
+// GetConfigOk returns a tuple with the Config field value
+// and a boolean to check if the value has been set.
+func (o *Objective) GetConfigOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Config, true
+}
+
+// SetConfig sets field value
+func (o *Objective) SetConfig(v string) {
+	o.Config = v
+}
+
 // GetIndicator returns the Indicator field value if set, zero value otherwise.
 func (o *Objective) GetIndicator() Indicator {
 	if o == nil || o.Indicator == nil {
@@ -185,6 +211,9 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["window"] = o.Window
+	}
+	if true {
+		toSerialize["config"] = o.Config
 	}
 	if o.Indicator != nil {
 		toSerialize["indicator"] = o.Indicator

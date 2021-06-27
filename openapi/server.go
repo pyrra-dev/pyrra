@@ -60,6 +60,7 @@ func ServerFromInternal(objective slo.Objective) server.Objective {
 		Description: objective.Description,
 		Target:      objective.Target,
 		Window:      time.Duration(objective.Window).Milliseconds(),
+		Config:      objective.Config,
 		Indicator: server.Indicator{
 			Ratio:   ratio,
 			Latency: latency,
@@ -118,6 +119,7 @@ func ServerFromClient(o client.Objective) server.Objective {
 		Description: o.GetDescription(),
 		Target:      o.GetTarget(),
 		Window:      o.GetWindow(),
+		Config:      o.GetConfig(),
 		Indicator: server.Indicator{
 			Ratio:   ratio,
 			Latency: latency,
