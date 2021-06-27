@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -348,23 +349,7 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name str
 		}
 	}
 
-	labels := make([]string, len(matrix))
-	values := make([][]float64, valueLength)
-
-	pairLength := len(matrix) + 1 // +1 because the first value is the timestamp
-
-	for i, m := range matrix {
-		labels[i] = model.LabelSet(m.Metric).String()
-
-		for j, pair := range m.Values {
-			if cap(values[j]) == 0 {
-				values[j] = make([]float64, pairLength)
-			}
-			values[j][0] = float64(pair.Timestamp.Unix())
-			values[j][1] = float64(pair.Value)
-			values[j][i+1] = float64(pair.Value) // i+1 because the first value is the timestamp
-		}
-	}
+	values := matrixToValues(matrix)
 
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
@@ -567,22 +552,11 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, star
 	}
 
 	labels := make([]string, len(matrix))
-	values := make([][]float64, valueLength)
-
-	pairLength := len(matrix) + 1 // +1 because the first value is the timestamp
-
-	for i, m := range matrix {
-		labels[i] = model.LabelSet(m.Metric).String()
-
-		for j, pair := range m.Values {
-			if cap(values[j]) == 0 {
-				values[j] = make([]float64, pairLength)
-			}
-			values[j][0] = float64(pair.Timestamp.Unix())
-			values[j][1] = float64(pair.Value)
-			values[j][i+1] = float64(pair.Value) // i+1 because the first value is the timestamp
-		}
+	for i, stream := range matrix {
+		labels[i] = model.LabelSet(stream.Metric).String()
 	}
+
+	values := matrixToValues(matrix)
 
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
@@ -656,22 +630,11 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startT
 	}
 
 	labels := make([]string, len(matrix))
-	values := make([][]float64, valueLength)
-
-	pairLength := len(matrix) + 1 // +1 because the first value is the timestamp
-
-	for i, m := range matrix {
-		labels[i] = model.LabelSet(m.Metric).String()
-
-		for j, pair := range m.Values {
-			if cap(values[j]) == 0 {
-				values[j] = make([]float64, pairLength)
-			}
-			values[j][0] = float64(pair.Timestamp.Unix())
-			values[j][1] = float64(pair.Value)
-			values[j][i+1] = float64(pair.Value) // i+1 because the first value is the timestamp
-		}
+	for i, stream := range matrix {
+		labels[i] = model.LabelSet(stream.Metric).String()
 	}
+
+	values := matrixToValues(matrix)
 
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
@@ -681,4 +644,30 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startT
 			Values: values,
 		},
 	}, nil
+}
+
+func matrixToValues(m model.Matrix) [][]float64 {
+	valuesMap := make(map[int64][]float64, len(m[0].Values))
+
+	for i, stream := range m {
+		for _, pair := range stream.Values {
+			if i == 0 {
+				valuesMap[pair.Timestamp.Unix()] = make([]float64, len(m))
+			}
+			valuesMap[pair.Timestamp.Unix()][i] = float64(pair.Value)
+		}
+	}
+
+	values := make([][]float64, 0, len(m[0].Values))
+	for t, vs := range valuesMap {
+		values = append(values, append([]float64{float64(t)}, vs...))
+	}
+
+	// TODO: Maybe  there's a way to do it without a map and sort
+	// as this sort is super CPU intensive
+	sort.Slice(values, func(i, j int) bool {
+		return values[i][0] < values[j][0]
+	})
+
+	return values
 }
