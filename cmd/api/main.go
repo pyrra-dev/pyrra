@@ -5,7 +5,7 @@ import (
 	"embed"
 	"flag"
 	"fmt"
-	"io"
+	"html/template"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -39,10 +39,16 @@ func main() {
 	}
 
 	prometheusURL := flag.String("prometheus.url", "http://localhost:9090", "The URL to the Prometheus to query.")
+	prometheusExternal := flag.String("prometheus.external", "", "The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url")
 	apiURL := flag.String("api.url", "http://localhost:9444", "The URL to the API service like a Kubernetes Operator.")
 	flag.Parse()
 
+	if *prometheusExternal == "" {
+		prometheusExternal = prometheusURL
+	}
+
 	log.Println("Using Prometheus at", *prometheusURL)
+	log.Println("Using external Prometheus at", *prometheusExternal)
 	log.Println("Using API at", *apiURL)
 
 	client, err := api.NewClient(api.Config{Address: *prometheusURL})
@@ -83,18 +89,38 @@ func main() {
 		}),
 	)
 
+	tmpl, err := template.ParseFS(build, "index.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
 	r.Mount("/api/v1", router)
 	r.Get("/objectives/{name}", func(w http.ResponseWriter, r *http.Request) {
-		file, err := build.Open("index.html")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		if err := tmpl.Execute(w, struct {
+			PrometheusURL string
+		}{
+			PrometheusURL: *prometheusExternal,
+		}); err != nil {
+			log.Println(err)
 			return
 		}
-		_, _ = io.Copy(w, file)
 	})
-	r.Handle("/*", http.FileServer(http.FS(build)))
+	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			if err := tmpl.Execute(w, struct {
+				PrometheusURL string
+			}{
+				PrometheusURL: *prometheusExternal,
+			}); err != nil {
+				log.Println(err)
+			}
+			return
+		}
+
+		http.FileServer(http.FS(build)).ServeHTTP(w, r)
+	}))
 
 	if err := http.ListenAndServe(":9099", r); err != nil {
 		log.Fatal(err)

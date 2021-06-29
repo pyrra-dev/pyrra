@@ -26,6 +26,10 @@ import {
 
 // @ts-ignore - this is passed from the HTML template.
 export const PUBLIC_API: string = window.PUBLIC_API;
+// @ts-ignore - this is passed from the HTML template.
+export const PROMETHEUS_URL: string = window.PROMETHEUS_URL;
+
+
 const APIConfiguration = new Configuration({ basePath: `${PUBLIC_API}api/v1` })
 export const APIObjectives = new ObjectivesApi(APIConfiguration)
 
@@ -629,7 +633,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               {errorBudgetQuery !== '' ? (
                 <a className="external-prometheus"
                    target="_blank"
-                   href={`http://localhost:9999/thanos/graph?g0.expr=${encodeURI(errorBudgetQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
+                   href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(errorBudgetQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
                   <PrometheusLogo/>
                 </a>
               ) : <></>}
@@ -708,7 +712,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               {requestsQuery !== '' ? (
                 <a className="external-prometheus"
                    target="_blank"
-                   href={`http://localhost:9999/thanos/graph?g0.expr=${encodeURI(requestsQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
+                   href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(requestsQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
                   <PrometheusLogo/>
                 </a>
               ) : <></>}
@@ -781,7 +785,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               {errorsQuery !== '' ? (
                 <a className="external-prometheus"
                    target="_blank"
-                   href={`http://localhost:9999/thanos/graph?g0.expr=${encodeURI(errorsQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
+                   href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(errorsQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
                   <PrometheusLogo/>
                 </a>
               ) : <></>}
