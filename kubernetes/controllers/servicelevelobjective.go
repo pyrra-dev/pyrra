@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	athenev1alpha1 "github.com/metalmatze/athene/api/v1alpha1"
+	athenev1alpha1 "github.com/metalmatze/athene/kubernetes/api/v1alpha1"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

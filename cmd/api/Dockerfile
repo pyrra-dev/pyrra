@@ -11,8 +11,6 @@ RUN go mod download
 
 # Copy the go source
 COPY cmd/api/ cmd/api/
-COPY api/ api/
-COPY controllers/ controllers/
 COPY openapi/ openapi/
 COPY slo/ slo/
 

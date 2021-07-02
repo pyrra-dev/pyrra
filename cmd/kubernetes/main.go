@@ -23,8 +23,8 @@ import (
 	"net/http"
 	"os"
 
-	athenev1alpha1 "github.com/metalmatze/athene/api/v1alpha1"
-	"github.com/metalmatze/athene/controllers"
+	athenev1alpha1 "github.com/metalmatze/athene/kubernetes/api/v1alpha1"
+	"github.com/metalmatze/athene/kubernetes/controllers"
 	"github.com/metalmatze/athene/openapi"
 	openapiserver "github.com/metalmatze/athene/openapi/server/go"
 	"github.com/oklog/run"

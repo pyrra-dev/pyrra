@@ -1,4 +1,4 @@
-# Build the manager binary
+# Build the kubernetes binary
 FROM golang:1.16 as builder
 
 WORKDIR /workspace
@@ -10,20 +10,20 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY /cmd/manager/main.go cmd/manager/main.go
-COPY api/ api/
-COPY controllers/ controllers/
+COPY /cmd/kubernetes/main.go cmd/kubernetes/main.go
+COPY kubernetes/api/ kubernetes/api/
+COPY kubernetes/controllers/ kubernetes/controllers/
 COPY openapi/ openapi/
 COPY slo/ slo/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o bin/manager cmd/manager/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o bin/kubernetes cmd/kubernetes/main.go
 
-# Use distroless as minimal base image to package the manager binary
+# Use distroless as minimal base image to package the kubernetes binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /workspace/bin/manager .
+COPY --from=builder /workspace/bin/kubernetes .
 USER nonroot:nonroot
 
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["/kubernetes"]

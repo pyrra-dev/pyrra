@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/metalmatze/athene/api/v1alpha1"
+	"github.com/metalmatze/athene/kubernetes/api/v1alpha1"
 	"github.com/metalmatze/athene/slo"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/pkg/labels"

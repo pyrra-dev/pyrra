@@ -1,6 +1,6 @@
 # Image URL to use all building/pushing image targets
 IMG_API ?= api:latest
-IMG_MANAGER ?= controller:latest
+IMG_KUBERNETES ?= kubernetes:latest
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
@@ -17,23 +17,19 @@ OPENAPI ?= docker run --rm \
 		-v $(shell pwd):$(shell pwd) \
 		openapitools/openapi-generator-cli:v5.1.1
 
-all: manager api
+all: api kubernetes
 
 # Run tests
 test: generate fmt vet manifests
 	go test ./... -coverprofile cover.out
 
-# Build manager binary
-manager: generate fmt vet
-	go build -o bin/manager ./cmd/manager/main.go
+# Build kubernetes binary
+kubernetes: generate fmt vet
+	go build -o bin/kubernetes ./cmd/kubernetes/main.go
 
 # Build api binary
 api: generate fmt vet
 	go build -o bin/api ./cmd/api/main.go
-
-# Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet manifests
-	go run ./cmd/manager/main.go
 
 # Install CRDs into a cluster
 install: manifests
@@ -44,23 +40,23 @@ uninstall: manifests
 	kubectl delete -f ./config/crd/bases/athene.metalmatze.de_servicelevelobjectives.yaml
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests config/api.yaml config/manager.yaml
+deploy: manifests config/api.yaml config/kubernetes.yaml
 	kubectl apply -f ./config/api.yaml
 	kubectl apply -f ./config/rbac/role.yaml -n monitoring
-	kubectl apply -f ./config/manager.yaml
+	kubectl apply -f ./config/kubernetes.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=athene-manager webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=athene-kubernetes webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 
 config/api.yaml: config/api.cue
 	cue fmt -s ./config/
 	cue cmd --inject imageAPI=${IMG_API} "api.yaml" ./config
 
-config/manager.yaml: config/manager.cue
+config/kubernetes.yaml: config/kubernetes.cue
 	cue fmt -s ./config/
-	cue cmd --inject imageManager=${IMG_MANAGER} "manager.yaml" ./config
+	cue cmd --inject imageManager=${IMG_KUBERNETES} "kubernetes.yaml" ./config
 
 # Run go fmt against code
 fmt:
@@ -72,25 +68,25 @@ vet:
 
 # Generate code
 generate: controller-gen manifests
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="kubernetes/hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: docker-build-api docker-build-manager
+docker-build: docker-build-api docker-build-kubernetes
 
 docker-build-api:
 	docker build . -t ${IMG_API} -f ./cmd/api/Dockerfile
 
-docker-build-manager:
-	docker build . -t ${IMG_MANAGER} -f ./cmd/manager/Dockerfile
+docker-build-kubernetes:
+	docker build . -t ${IMG_KUBERNETES} -f ./cmd/kubernetes/Dockerfile
 
 # Push the docker image
-docker-push: docker-push-api docker-push-manager
+docker-push: docker-push-api docker-push-kubernetes
 
 docker-push-api:
 	docker push ${IMG_API}
 
-docker-push-manager:
-	docker push ${IMG_MANAGER}
+docker-push-kubernetes:
+	docker push ${IMG_KUBERNETES}
 
 # find or download controller-gen
 # download controller-gen if necessary

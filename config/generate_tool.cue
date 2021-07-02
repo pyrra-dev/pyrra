@@ -10,7 +10,7 @@ command: "api.yaml": task: write: file.Create & {
 	contents: yaml.MarshalStream([ for o in api {o}])
 }
 
-command: "manager.yaml": task: write: file.Create & {
-	filename: "config/manager.yaml"
+command: "kubernetes.yaml": task: write: file.Create & {
+	filename: "config/kubernetes.yaml"
 	contents: yaml.MarshalStream([ for o in manager {o}])
 }
