@@ -12,6 +12,8 @@ package openapi
 type Objective struct {
 	Name string `json:"name"`
 
+	Namespace string `json:"namespace"`
+
 	Description string `json:"description"`
 
 	Target float64 `json:"target"`

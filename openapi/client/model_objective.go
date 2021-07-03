@@ -17,6 +17,7 @@ import (
 // Objective struct for Objective
 type Objective struct {
 	Name        string     `json:"name"`
+	Namespace   string     `json:"namespace"`
 	Description string     `json:"description"`
 	Target      float64    `json:"target"`
 	Window      int64      `json:"window"`
@@ -28,9 +29,10 @@ type Objective struct {
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewObjective(name string, description string, target float64, window int64, config string) *Objective {
+func NewObjective(name string, namespace string, description string, target float64, window int64, config string) *Objective {
 	this := Objective{}
 	this.Name = name
+	this.Namespace = namespace
 	this.Description = description
 	this.Target = target
 	this.Window = window
@@ -68,6 +70,30 @@ func (o *Objective) GetNameOk() (*string, bool) {
 // SetName sets field value
 func (o *Objective) SetName(v string) {
 	o.Name = v
+}
+
+// GetNamespace returns the Namespace field value
+func (o *Objective) GetNamespace() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Namespace
+}
+
+// GetNamespaceOk returns a tuple with the Namespace field value
+// and a boolean to check if the value has been set.
+func (o *Objective) GetNamespaceOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Namespace, true
+}
+
+// SetNamespace sets field value
+func (o *Objective) SetNamespace(v string) {
+	o.Namespace = v
 }
 
 // GetDescription returns the Description field value
@@ -202,6 +228,9 @@ func (o Objective) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
 		toSerialize["name"] = o.Name
+	}
+	if true {
+		toSerialize["namespace"] = o.Namespace
 	}
 	if true {
 		toSerialize["description"] = o.Description

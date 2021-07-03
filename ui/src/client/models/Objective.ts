@@ -37,6 +37,12 @@ export interface Objective {
      * @type {string}
      * @memberof Objective
      */
+    namespace: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Objective
+     */
     description: string;
     /**
      * 
@@ -75,6 +81,7 @@ export function ObjectiveFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     return {
         
         'name': json['name'],
+        'namespace': json['namespace'],
         'description': json['description'],
         'target': json['target'],
         'window': json['window'],
@@ -93,6 +100,7 @@ export function ObjectiveToJSON(value?: Objective | null): any {
     return {
         
         'name': value.name,
+        'namespace': value.namespace,
         'description': value.description,
         'target': value.target,
         'window': value.window,

@@ -8,6 +8,7 @@ import (
 
 type Objective struct {
 	Name        string
+	Namespace   string
 	Description string
 	Target      float64
 	Window      model.Duration

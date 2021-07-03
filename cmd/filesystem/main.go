@@ -82,7 +82,7 @@ func (f FilesystemObjectiveServer) ListObjectives(ctx context.Context) (openapis
 	}, nil
 }
 
-func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, name string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
 	slo, ok := objectives[name]
 	if !ok {
 		return openapiserver.ImplResponse{Code: http.StatusNotFound}, nil
@@ -99,22 +99,22 @@ func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, name string
 	}, nil
 }
 
-func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, name string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, s string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, s string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, s string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, s string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }

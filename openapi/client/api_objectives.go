@@ -30,6 +30,7 @@ type ObjectivesApiService service
 type ApiGetMultiBurnrateAlertsRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
+	namespace  string
 	name       string
 }
 
@@ -40,13 +41,15 @@ func (r ApiGetMultiBurnrateAlertsRequest) Execute() ([]MultiBurnrateAlert, *_net
 /*
  * GetMultiBurnrateAlerts Get the MultiBurnrateAlerts for the Objective
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ * @param namespace
  * @param name
  * @return ApiGetMultiBurnrateAlertsRequest
  */
-func (a *ObjectivesApiService) GetMultiBurnrateAlerts(ctx _context.Context, name string) ApiGetMultiBurnrateAlertsRequest {
+func (a *ObjectivesApiService) GetMultiBurnrateAlerts(ctx _context.Context, namespace string, name string) ApiGetMultiBurnrateAlertsRequest {
 	return ApiGetMultiBurnrateAlertsRequest{
 		ApiService: a,
 		ctx:        ctx,
+		namespace:  namespace,
 		name:       name,
 	}
 }
@@ -70,7 +73,8 @@ func (a *ObjectivesApiService) GetMultiBurnrateAlertsExecute(r ApiGetMultiBurnra
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{name}/alerts"
+	localVarPath := localBasePath + "/objectives/{namespace}/{name}/alerts"
+	localVarPath = strings.Replace(localVarPath, "{"+"namespace"+"}", _neturl.PathEscape(parameterToString(r.namespace, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"name"+"}", _neturl.PathEscape(parameterToString(r.name, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -134,6 +138,7 @@ func (a *ObjectivesApiService) GetMultiBurnrateAlertsExecute(r ApiGetMultiBurnra
 type ApiGetObjectiveRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
+	namespace  string
 	name       string
 }
 
@@ -144,13 +149,15 @@ func (r ApiGetObjectiveRequest) Execute() (Objective, *_nethttp.Response, error)
 /*
  * GetObjective Get Objective
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ * @param namespace
  * @param name
  * @return ApiGetObjectiveRequest
  */
-func (a *ObjectivesApiService) GetObjective(ctx _context.Context, name string) ApiGetObjectiveRequest {
+func (a *ObjectivesApiService) GetObjective(ctx _context.Context, namespace string, name string) ApiGetObjectiveRequest {
 	return ApiGetObjectiveRequest{
 		ApiService: a,
 		ctx:        ctx,
+		namespace:  namespace,
 		name:       name,
 	}
 }
@@ -174,7 +181,8 @@ func (a *ObjectivesApiService) GetObjectiveExecute(r ApiGetObjectiveRequest) (Ob
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{name}"
+	localVarPath := localBasePath + "/objectives/{namespace}/{name}"
+	localVarPath = strings.Replace(localVarPath, "{"+"namespace"+"}", _neturl.PathEscape(parameterToString(r.namespace, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"name"+"}", _neturl.PathEscape(parameterToString(r.name, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -238,6 +246,7 @@ func (a *ObjectivesApiService) GetObjectiveExecute(r ApiGetObjectiveRequest) (Ob
 type ApiGetObjectiveErrorBudgetRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
+	namespace  string
 	name       string
 	start      *int32
 	end        *int32
@@ -259,13 +268,15 @@ func (r ApiGetObjectiveErrorBudgetRequest) Execute() (QueryRange, *_nethttp.Resp
 /*
  * GetObjectiveErrorBudget Get ErrorBudget graph sample pairs
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ * @param namespace
  * @param name
  * @return ApiGetObjectiveErrorBudgetRequest
  */
-func (a *ObjectivesApiService) GetObjectiveErrorBudget(ctx _context.Context, name string) ApiGetObjectiveErrorBudgetRequest {
+func (a *ObjectivesApiService) GetObjectiveErrorBudget(ctx _context.Context, namespace string, name string) ApiGetObjectiveErrorBudgetRequest {
 	return ApiGetObjectiveErrorBudgetRequest{
 		ApiService: a,
 		ctx:        ctx,
+		namespace:  namespace,
 		name:       name,
 	}
 }
@@ -289,7 +300,8 @@ func (a *ObjectivesApiService) GetObjectiveErrorBudgetExecute(r ApiGetObjectiveE
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{name}/errorbudget"
+	localVarPath := localBasePath + "/objectives/{namespace}/{name}/errorbudget"
+	localVarPath = strings.Replace(localVarPath, "{"+"namespace"+"}", _neturl.PathEscape(parameterToString(r.namespace, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"name"+"}", _neturl.PathEscape(parameterToString(r.name, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -359,6 +371,7 @@ func (a *ObjectivesApiService) GetObjectiveErrorBudgetExecute(r ApiGetObjectiveE
 type ApiGetObjectiveStatusRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
+	namespace  string
 	name       string
 }
 
@@ -369,13 +382,15 @@ func (r ApiGetObjectiveStatusRequest) Execute() (ObjectiveStatus, *_nethttp.Resp
 /*
  * GetObjectiveStatus Get objective status
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ * @param namespace
  * @param name
  * @return ApiGetObjectiveStatusRequest
  */
-func (a *ObjectivesApiService) GetObjectiveStatus(ctx _context.Context, name string) ApiGetObjectiveStatusRequest {
+func (a *ObjectivesApiService) GetObjectiveStatus(ctx _context.Context, namespace string, name string) ApiGetObjectiveStatusRequest {
 	return ApiGetObjectiveStatusRequest{
 		ApiService: a,
 		ctx:        ctx,
+		namespace:  namespace,
 		name:       name,
 	}
 }
@@ -399,7 +414,8 @@ func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatus
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{name}/status"
+	localVarPath := localBasePath + "/objectives/{namespace}/{name}/status"
+	localVarPath = strings.Replace(localVarPath, "{"+"namespace"+"}", _neturl.PathEscape(parameterToString(r.namespace, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"name"+"}", _neturl.PathEscape(parameterToString(r.name, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -463,6 +479,7 @@ func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatus
 type ApiGetREDErrorsRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
+	namespace  string
 	name       string
 	start      *int32
 	end        *int32
@@ -484,13 +501,15 @@ func (r ApiGetREDErrorsRequest) Execute() (QueryRange, *_nethttp.Response, error
 /*
  * GetREDErrors Get a matrix of error percentage by label
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ * @param namespace
  * @param name
  * @return ApiGetREDErrorsRequest
  */
-func (a *ObjectivesApiService) GetREDErrors(ctx _context.Context, name string) ApiGetREDErrorsRequest {
+func (a *ObjectivesApiService) GetREDErrors(ctx _context.Context, namespace string, name string) ApiGetREDErrorsRequest {
 	return ApiGetREDErrorsRequest{
 		ApiService: a,
 		ctx:        ctx,
+		namespace:  namespace,
 		name:       name,
 	}
 }
@@ -514,7 +533,8 @@ func (a *ObjectivesApiService) GetREDErrorsExecute(r ApiGetREDErrorsRequest) (Qu
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{name}/red/errors"
+	localVarPath := localBasePath + "/objectives/{namespace}/{name}/red/errors"
+	localVarPath = strings.Replace(localVarPath, "{"+"namespace"+"}", _neturl.PathEscape(parameterToString(r.namespace, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"name"+"}", _neturl.PathEscape(parameterToString(r.name, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)
@@ -584,6 +604,7 @@ func (a *ObjectivesApiService) GetREDErrorsExecute(r ApiGetREDErrorsRequest) (Qu
 type ApiGetREDRequestsRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
+	namespace  string
 	name       string
 	start      *int32
 	end        *int32
@@ -605,13 +626,15 @@ func (r ApiGetREDRequestsRequest) Execute() (QueryRange, *_nethttp.Response, err
 /*
  * GetREDRequests Get a matrix of requests by label
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+ * @param namespace
  * @param name
  * @return ApiGetREDRequestsRequest
  */
-func (a *ObjectivesApiService) GetREDRequests(ctx _context.Context, name string) ApiGetREDRequestsRequest {
+func (a *ObjectivesApiService) GetREDRequests(ctx _context.Context, namespace string, name string) ApiGetREDRequestsRequest {
 	return ApiGetREDRequestsRequest{
 		ApiService: a,
 		ctx:        ctx,
+		namespace:  namespace,
 		name:       name,
 	}
 }
@@ -635,7 +658,8 @@ func (a *ObjectivesApiService) GetREDRequestsExecute(r ApiGetREDRequestsRequest)
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{name}/red/requests"
+	localVarPath := localBasePath + "/objectives/{namespace}/{name}/red/requests"
+	localVarPath = strings.Replace(localVarPath, "{"+"namespace"+"}", _neturl.PathEscape(parameterToString(r.namespace, "")), -1)
 	localVarPath = strings.Replace(localVarPath, "{"+"name"+"}", _neturl.PathEscape(parameterToString(r.name, "")), -1)
 
 	localVarHeaderParams := make(map[string]string)

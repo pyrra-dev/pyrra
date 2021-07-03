@@ -32,37 +32,37 @@ func (c *ObjectivesApiController) Routes() Routes {
 		{
 			"GetMultiBurnrateAlerts",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{name}/alerts",
+			"/api/v1/objectives/{namespace}/{name}/alerts",
 			c.GetMultiBurnrateAlerts,
 		},
 		{
 			"GetObjective",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{name}",
+			"/api/v1/objectives/{namespace}/{name}",
 			c.GetObjective,
 		},
 		{
 			"GetObjectiveErrorBudget",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{name}/errorbudget",
+			"/api/v1/objectives/{namespace}/{name}/errorbudget",
 			c.GetObjectiveErrorBudget,
 		},
 		{
 			"GetObjectiveStatus",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{name}/status",
+			"/api/v1/objectives/{namespace}/{name}/status",
 			c.GetObjectiveStatus,
 		},
 		{
 			"GetREDErrors",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{name}/red/errors",
+			"/api/v1/objectives/{namespace}/{name}/red/errors",
 			c.GetREDErrors,
 		},
 		{
 			"GetREDRequests",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{name}/red/requests",
+			"/api/v1/objectives/{namespace}/{name}/red/requests",
 			c.GetREDRequests,
 		},
 		{
@@ -77,9 +77,11 @@ func (c *ObjectivesApiController) Routes() Routes {
 // GetMultiBurnrateAlerts - Get the MultiBurnrateAlerts for the Objective
 func (c *ObjectivesApiController) GetMultiBurnrateAlerts(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	namespace := params["namespace"]
+
 	name := params["name"]
 
-	result, err := c.service.GetMultiBurnrateAlerts(r.Context(), name)
+	result, err := c.service.GetMultiBurnrateAlerts(r.Context(), namespace, name)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -93,9 +95,11 @@ func (c *ObjectivesApiController) GetMultiBurnrateAlerts(w http.ResponseWriter, 
 // GetObjective - Get Objective
 func (c *ObjectivesApiController) GetObjective(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	namespace := params["namespace"]
+
 	name := params["name"]
 
-	result, err := c.service.GetObjective(r.Context(), name)
+	result, err := c.service.GetObjective(r.Context(), namespace, name)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -110,6 +114,8 @@ func (c *ObjectivesApiController) GetObjective(w http.ResponseWriter, r *http.Re
 func (c *ObjectivesApiController) GetObjectiveErrorBudget(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	query := r.URL.Query()
+	namespace := params["namespace"]
+
 	name := params["name"]
 
 	start, err := parseInt32Parameter(query.Get("start"), false)
@@ -122,7 +128,7 @@ func (c *ObjectivesApiController) GetObjectiveErrorBudget(w http.ResponseWriter,
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	result, err := c.service.GetObjectiveErrorBudget(r.Context(), name, start, end)
+	result, err := c.service.GetObjectiveErrorBudget(r.Context(), namespace, name, start, end)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -136,9 +142,11 @@ func (c *ObjectivesApiController) GetObjectiveErrorBudget(w http.ResponseWriter,
 // GetObjectiveStatus - Get objective status
 func (c *ObjectivesApiController) GetObjectiveStatus(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	namespace := params["namespace"]
+
 	name := params["name"]
 
-	result, err := c.service.GetObjectiveStatus(r.Context(), name)
+	result, err := c.service.GetObjectiveStatus(r.Context(), namespace, name)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -153,6 +161,8 @@ func (c *ObjectivesApiController) GetObjectiveStatus(w http.ResponseWriter, r *h
 func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	query := r.URL.Query()
+	namespace := params["namespace"]
+
 	name := params["name"]
 
 	start, err := parseInt32Parameter(query.Get("start"), false)
@@ -165,7 +175,7 @@ func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Re
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	result, err := c.service.GetREDErrors(r.Context(), name, start, end)
+	result, err := c.service.GetREDErrors(r.Context(), namespace, name, start, end)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -180,6 +190,8 @@ func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Re
 func (c *ObjectivesApiController) GetREDRequests(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	query := r.URL.Query()
+	namespace := params["namespace"]
+
 	name := params["name"]
 
 	start, err := parseInt32Parameter(query.Get("start"), false)
@@ -192,7 +204,7 @@ func (c *ObjectivesApiController) GetREDRequests(w http.ResponseWriter, r *http.
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	result, err := c.service.GetREDRequests(r.Context(), name, start, end)
+	result, err := c.service.GetREDRequests(r.Context(), namespace, name, start, end)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)

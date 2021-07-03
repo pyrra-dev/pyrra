@@ -57,6 +57,7 @@ func ServerFromInternal(objective slo.Objective) server.Objective {
 
 	return server.Objective{
 		Name:        objective.Name,
+		Namespace:   objective.Namespace,
 		Description: objective.Description,
 		Target:      objective.Target,
 		Window:      time.Duration(objective.Window).Milliseconds(),
@@ -116,6 +117,7 @@ func ServerFromClient(o client.Objective) server.Objective {
 
 	return server.Objective{
 		Name:        o.GetName(),
+		Namespace:   o.GetNamespace(),
 		Description: o.GetDescription(),
 		Target:      o.GetTarget(),
 		Window:      o.GetWindow(),

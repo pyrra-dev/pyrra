@@ -18,10 +18,17 @@ paths:
       summary: List Objectives
       tags:
       - objectives
-  /objectives/{name}:
+  /objectives/{namespace}/{name}:
     get:
       operationId: GetObjective
       parameters:
+      - explode: false
+        in: path
+        name: namespace
+        required: true
+        schema:
+          type: string
+        style: simple
       - explode: false
         in: path
         name: name
@@ -39,10 +46,17 @@ paths:
       summary: Get Objective
       tags:
       - objectives
-  /objectives/{name}/status:
+  /objectives/{namespace}/{name}/status:
     get:
       operationId: GetObjectiveStatus
       parameters:
+      - explode: false
+        in: path
+        name: namespace
+        required: true
+        schema:
+          type: string
+        style: simple
       - explode: false
         in: path
         name: name
@@ -60,10 +74,17 @@ paths:
       summary: Get objective status
       tags:
       - objectives
-  /objectives/{name}/errorbudget:
+  /objectives/{namespace}/{name}/errorbudget:
     get:
       operationId: GetObjectiveErrorBudget
       parameters:
+      - explode: false
+        in: path
+        name: namespace
+        required: true
+        schema:
+          type: string
+        style: simple
       - explode: false
         in: path
         name: name
@@ -97,10 +118,17 @@ paths:
       summary: Get ErrorBudget graph sample pairs
       tags:
       - objectives
-  /objectives/{name}/alerts:
+  /objectives/{namespace}/{name}/alerts:
     get:
       operationId: GetMultiBurnrateAlerts
       parameters:
+      - explode: false
+        in: path
+        name: namespace
+        required: true
+        schema:
+          type: string
+        style: simple
       - explode: false
         in: path
         name: name
@@ -120,10 +148,17 @@ paths:
       summary: Get the MultiBurnrateAlerts for the Objective
       tags:
       - objectives
-  /objectives/{name}/red/requests:
+  /objectives/{namespace}/{name}/red/requests:
     get:
       operationId: GetREDRequests
       parameters:
+      - explode: false
+        in: path
+        name: namespace
+        required: true
+        schema:
+          type: string
+        style: simple
       - explode: false
         in: path
         name: name
@@ -157,10 +192,17 @@ paths:
       summary: Get a matrix of requests by label
       tags:
       - objectives
-  /objectives/{name}/red/errors:
+  /objectives/{namespace}/{name}/red/errors:
     get:
       operationId: GetREDErrors
       parameters:
+      - explode: false
+        in: path
+        name: namespace
+        required: true
+        schema:
+          type: string
+        style: simple
       - explode: false
         in: path
         name: name
@@ -246,12 +288,15 @@ components:
               metric: metric
               name: name
         name: name
+        namespace: namespace
         description: description
         window: 6
         config: config
         target: 0.8008281904610115
       properties:
         name:
+          type: string
+        namespace:
           type: string
         description:
           type: string
@@ -269,6 +314,7 @@ components:
       - config
       - description
       - name
+      - namespace
       - target
       - window
       type: object

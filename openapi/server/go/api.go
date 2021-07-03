@@ -32,11 +32,11 @@ type ObjectivesApiRouter interface {
 // while the service implementation can ignored with the .openapi-generator-ignore file
 // and updated with the logic required for the API.
 type ObjectivesApiServicer interface {
-	GetMultiBurnrateAlerts(context.Context, string) (ImplResponse, error)
-	GetObjective(context.Context, string) (ImplResponse, error)
-	GetObjectiveErrorBudget(context.Context, string, int32, int32) (ImplResponse, error)
-	GetObjectiveStatus(context.Context, string) (ImplResponse, error)
-	GetREDErrors(context.Context, string, int32, int32) (ImplResponse, error)
-	GetREDRequests(context.Context, string, int32, int32) (ImplResponse, error)
+	GetMultiBurnrateAlerts(context.Context, string, string) (ImplResponse, error)
+	GetObjective(context.Context, string, string) (ImplResponse, error)
+	GetObjectiveErrorBudget(context.Context, string, string, int32, int32) (ImplResponse, error)
+	GetObjectiveStatus(context.Context, string, string) (ImplResponse, error)
+	GetREDErrors(context.Context, string, string, int32, int32) (ImplResponse, error)
+	GetREDRequests(context.Context, string, string, int32, int32) (ImplResponse, error)
 	ListObjectives(context.Context) (ImplResponse, error)
 }

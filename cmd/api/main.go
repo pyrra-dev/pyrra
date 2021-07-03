@@ -263,8 +263,8 @@ func (o *ObjectivesServer) ListObjectives(ctx context.Context) (openapiserver.Im
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjective(ctx context.Context, name string) (openapiserver.ImplResponse, error) {
-	objective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
+func (o *ObjectivesServer) GetObjective(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+	objective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -275,8 +275,8 @@ func (o *ObjectivesServer) GetObjective(ctx context.Context, name string) (opena
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, name string) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
+func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -326,8 +326,8 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, name string) 
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
+func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, namespace, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -393,8 +393,8 @@ const (
 	alertstateFiring   = "firing"
 )
 
-func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name string) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
+func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -517,8 +517,8 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, name stri
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
+func (o *ObjectivesServer) GetREDRequests(ctx context.Context, namespace, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -594,8 +594,8 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, name string, star
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDErrors(ctx context.Context, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, name).Execute()
+func (o *ObjectivesServer) GetREDErrors(ctx context.Context, namespace, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}

@@ -44,7 +44,7 @@ const App = () => {
     <BrowserRouter>
       <Switch>
         <Route exact={true} path="/" component={List}/>
-        <Route path="/objectives/:name" component={Details}/>
+        <Route path="/objectives/:namespace/:name" component={Details}/>
       </Switch>
     </BrowserRouter>
   )
@@ -81,6 +81,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           ...state.objectives,
           [action.objective.name]: {
             name: action.objective.name,
+            namespace: action.objective.namespace,
             description: action.objective.description,
             window: action.objective.window,
             target: action.objective.target,
@@ -162,7 +163,7 @@ const List = () => {
       .forEach((o: APIObjective) => {
         dispatchTable({ type: TableActionType.SetObjective, objective: o })
 
-        APIObjectives.getObjectiveStatus({ name: o.name })
+        APIObjectives.getObjectiveStatus({ namespace: o.namespace, name: o.name })
           .then((s: APIObjectiveStatus) => {
             dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
           })
@@ -252,10 +253,10 @@ const List = () => {
 
   const history = useHistory()
 
-  const objectivePage = (name: string) => `/objectives/${name}`
+  const objectivePage = (namespace: string, name: string) => `/objectives/${namespace}/${name}`
 
-  const handleTableRowClick = (name: string) => () => {
-    history.push(objectivePage(name))
+  const handleTableRowClick = (namespace: string, name: string) => () => {
+    history.push(objectivePage(namespace, name))
   }
 
   return (
@@ -287,9 +288,9 @@ const List = () => {
         </thead>
         <tbody>
         {tableList.map((o: TableObjective) => (
-          <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.name)}>
+          <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.namespace, o.name)}>
             <td>
-              <Link to={objectivePage(o.name)}>
+              <Link to={objectivePage(o.namespace, o.name)}>
                 {o.name}
               </Link>
             </td>
@@ -342,10 +343,11 @@ const List = () => {
 
 interface DetailsRouteParams {
   name: string
+  namespace: string
 }
 
 const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
-  const name = params.match.params.name;
+  const { namespace, name } = params.match.params;
 
   const history = useHistory()
   const query = new URLSearchParams(useLocation().search)
@@ -379,10 +381,10 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
 
     document.title = `${name} - Athene`
 
-    APIObjectives.getObjective({ name })
+    APIObjectives.getObjective({namespace, name })
       .then((o: APIObjective) => setObjective(o))
 
-    APIObjectives.getObjectiveStatus({ name })
+    APIObjectives.getObjectiveStatus({ namespace, name })
       .then((s: APIObjectiveStatus) => {
         setAvailability(s.availability)
         setErrorBudget(s.budget)
@@ -394,7 +396,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
     const start = Math.floor((now - timeRange) / 1000)
     const end = Math.floor(now / 1000)
 
-    APIObjectives.getObjectiveErrorBudget({ name, start, end })
+    APIObjectives.getObjectiveErrorBudget({ namespace, name, start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
@@ -441,7 +443,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       .finally(() => setErrorBudgetSamplesLoading(false))
 
     setRequestsLoading(true)
-    APIObjectives.getREDRequests({ name, start, end })
+    APIObjectives.getREDRequests({ namespace, name, start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
@@ -459,7 +461,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       }).finally(() => setRequestsLoading(false))
 
     setErrorsLoading(true)
-    APIObjectives.getREDErrors({ name, start, end })
+    APIObjectives.getREDErrors({ namespace, name, start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
@@ -480,7 +482,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
       // cancel any pending requests.
       controller.abort()
     }
-  }, [name, timeRange])
+  }, [namespace, name, timeRange])
 
   if (objective == null) {
     return (
@@ -550,7 +552,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
   ]
 
   const handleTimeRangeClick = (t: number) => () => {
-    history.push(`/objectives/${name}?timerange=${formatDuration(t)}`)
+    history.push(`/objectives/${namespace}/${name}?timerange=${formatDuration(t)}`)
   }
 
   return (
@@ -633,6 +635,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               {errorBudgetQuery !== '' ? (
                 <a className="external-prometheus"
                    target="_blank"
+                   rel="noreferrer"
                    href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(errorBudgetQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
                   <PrometheusLogo/>
                 </a>
@@ -712,6 +715,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               {requestsQuery !== '' ? (
                 <a className="external-prometheus"
                    target="_blank"
+                   rel="noreferrer"
                    href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(requestsQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
                   <PrometheusLogo/>
                 </a>
@@ -785,6 +789,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
               {errorsQuery !== '' ? (
                 <a className="external-prometheus"
                    target="_blank"
+                   rel="noreferrer"
                    href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(errorsQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
                   <PrometheusLogo/>
                 </a>
