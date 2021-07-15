@@ -30,7 +30,7 @@ spec:
       containers:
       - args:
         - --prometheus.url=http://prometheus-k8s.monitoring.svc.cluster.local:9090
-        - --backend.url=http://pyrra-kubernetes.monitoring.svc.cluster.local:9444
+        - --api.url=http://pyrra-kubernetes.monitoring.svc.cluster.local:9444
         image: api:latest
         name: pyrra-api
         ports:

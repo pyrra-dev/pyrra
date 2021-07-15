@@ -42,7 +42,7 @@ api: {
 				spec: containers: [{
 					args: [
 						"--prometheus.url=http://prometheus-k8s.monitoring.svc.cluster.local:9090",
-						"--backend.url=http://\( kubernetes._name ).\(kubernetes._namespace).svc.cluster.local:\(kubernetes._ports.api)",
+						"--api.url=http://\( kubernetes._name ).\(kubernetes._namespace).svc.cluster.local:\(kubernetes._ports.api)",
 					]
 					image: _image
 					name:  _name

@@ -104,7 +104,6 @@ spec:
                 the given window. float64 are not supported: https://github.com/kubernetes-sigs/controller-tools/issues/245'
               type: string
             window:
-              $ref: '#/definitions/time~0Duration'
               description: Window within which the Target is supposed to be kept.
                 Usually something like 1d, 7d or 28d.
           required:
