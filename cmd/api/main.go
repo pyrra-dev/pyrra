@@ -97,7 +97,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
 	r.Mount("/api/v1", router)
-	r.Get("/objectives/{name}", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/objectives/{namespace}/{name}", func(w http.ResponseWriter, r *http.Request) {
 		if err := tmpl.Execute(w, struct {
 			PrometheusURL string
 		}{
