@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	athenev1alpha1 "github.com/metalmatze/athene/kubernetes/api/v1alpha1"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/common/model"
+	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -16,21 +16,21 @@ import (
 func Test_makePrometheusRule(t *testing.T) {
 	tests := []struct {
 		name      string
-		objective athenev1alpha1.ServiceLevelObjective
+		objective pyrrav1alpha1.ServiceLevelObjective
 		rules     *monitoringv1.PrometheusRule
 	}{{
 		name: "http",
-		objective: athenev1alpha1.ServiceLevelObjective{
+		objective: pyrrav1alpha1.ServiceLevelObjective{
 			ObjectMeta: metav1.ObjectMeta{Name: "http"},
-			Spec: athenev1alpha1.ServiceLevelObjectiveSpec{
+			Spec: pyrrav1alpha1.ServiceLevelObjectiveSpec{
 				Target: "99.5",
 				Window: model.Duration(28 * 24 * time.Hour),
-				ServiceLevelIndicator: athenev1alpha1.ServiceLevelIndicator{
-					Ratio: &athenev1alpha1.RatioIndicator{
-						Errors: athenev1alpha1.Query{
+				ServiceLevelIndicator: pyrrav1alpha1.ServiceLevelIndicator{
+					Ratio: &pyrrav1alpha1.RatioIndicator{
+						Errors: pyrrav1alpha1.Query{
 							Metric: `http_requests_total{job="app",status=~"5.."}`,
 						},
-						Total: athenev1alpha1.Query{
+						Total: pyrrav1alpha1.Query{
 							Metric: `http_requests_total{job="app"}`,
 						},
 					},

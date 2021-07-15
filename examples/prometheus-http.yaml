@@ -1,4 +1,4 @@
-apiVersion: athene.metalmatze.de/v1alpha1
+apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
   name: prometheus-api-query

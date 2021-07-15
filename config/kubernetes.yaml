@@ -1,8 +1,8 @@
 metadata:
-  name: athene-manager
+  name: pyrra-kubernetes
   namespace: monitoring
   labels:
-    app.kubernetes.io/name: athene-manager
+    app.kubernetes.io/name: pyrra-kubernetes
 spec:
   ports:
   - name: internal
@@ -10,31 +10,31 @@ spec:
   - name: api
     port: 9444
   selector:
-    app.kubernetes.io/name: athene-manager
+    app.kubernetes.io/name: pyrra-kubernetes
 kind: Service
 apiVersion: v1
 ---
 metadata:
-  name: athene-manager
+  name: pyrra-kubernetes
   namespace: monitoring
   labels:
-    app.kubernetes.io/name: athene-manager
+    app.kubernetes.io/name: pyrra-kubernetes
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: athene-manager
+      app.kubernetes.io/name: pyrra-kubernetes
   replicas: 1
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: athene-manager
+        app.kubernetes.io/name: pyrra-kubernetes
     spec:
-      serviceAccountName: athene-manager
+      serviceAccountName: pyrra-kubernetes
       containers:
       - command:
-        - /manager
-        image: k3d-k3s-default-registry:41475/controller:latest
-        name: athene-manager
+        - /kubernetes
+        image: kubernetes:latest
+        name: pyrra-kubernetes
         resources:
           limits:
             cpu: 100m
@@ -46,21 +46,21 @@ kind: Deployment
 apiVersion: apps/v1
 ---
 metadata:
-  name: athene-manager
+  name: pyrra-kubernetes
   namespace: monitoring
 kind: ServiceAccount
 apiVersion: v1
 ---
 metadata:
-  name: athene-manager
+  name: pyrra-kubernetes
   namespace: monitoring
 subjects:
 - kind: ServiceAccount
-  name: athene-manager
+  name: pyrra-kubernetes
   namespace: monitoring
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: athene-manager
+  name: pyrra-kubernetes
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

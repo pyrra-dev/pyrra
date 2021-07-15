@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Athene Authors.
+Copyright 2021 Pyrra Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,12 +23,12 @@ import (
 	"net/http"
 	"os"
 
-	athenev1alpha1 "github.com/metalmatze/athene/kubernetes/api/v1alpha1"
-	"github.com/metalmatze/athene/kubernetes/controllers"
-	"github.com/metalmatze/athene/openapi"
-	openapiserver "github.com/metalmatze/athene/openapi/server/go"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
+	"github.com/pyrra-dev/pyrra/kubernetes/controllers"
+	"github.com/pyrra-dev/pyrra/openapi"
+	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -44,7 +44,7 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = athenev1alpha1.AddToScheme(scheme)
+	_ = pyrrav1alpha1.AddToScheme(scheme)
 	_ = monitoringv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -116,7 +116,7 @@ type ObjectiveServer struct {
 }
 
 func (o *ObjectiveServer) ListObjectives(ctx context.Context) (openapiserver.ImplResponse, error) {
-	var list athenev1alpha1.ServiceLevelObjectiveList
+	var list pyrrav1alpha1.ServiceLevelObjectiveList
 	if err := o.client.List(context.Background(), &list); err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -137,7 +137,7 @@ func (o *ObjectiveServer) ListObjectives(ctx context.Context) (openapiserver.Imp
 }
 
 func (o *ObjectiveServer) GetObjective(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
-	var slo athenev1alpha1.ServiceLevelObjective
+	var slo pyrrav1alpha1.ServiceLevelObjective
 	err := o.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &slo)
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err

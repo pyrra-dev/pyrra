@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Athene Authors.
+Copyright 2021 Pyrra Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/metalmatze/athene/slo"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/promql/parser"
+	"github.com/pyrra-dev/pyrra/slo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )

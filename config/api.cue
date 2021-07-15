@@ -6,7 +6,7 @@ import (
 )
 
 api: {
-	_name:      "athene-api"
+	_name:      "pyrra-api"
 	_namespace: "monitoring"
 	_replicas:  1
 	_image:     "api:latest" | string @tag(imageAPI)
@@ -42,7 +42,7 @@ api: {
 				spec: containers: [{
 					args: [
 						"--prometheus.url=http://prometheus-k8s.monitoring.svc.cluster.local:9090",
-						"--backend.url=http://\( manager._name ).\(manager._namespace).svc.cluster.local:\(manager._ports.api)",
+						"--backend.url=http://\( kubernetes._name ).\(kubernetes._namespace).svc.cluster.local:\(kubernetes._ports.api)",
 					]
 					image: _image
 					name:  _name

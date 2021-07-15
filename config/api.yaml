@@ -1,38 +1,38 @@
 metadata:
-  name: athene-api
+  name: pyrra-api
   namespace: monitoring
   labels:
-    app.kubernetes.io/name: athene-api
+    app.kubernetes.io/name: pyrra-api
 spec:
   ports:
   - name: http
     port: 9099
   selector:
-    app.kubernetes.io/name: athene-api
+    app.kubernetes.io/name: pyrra-api
 kind: Service
 apiVersion: v1
 ---
 metadata:
-  name: athene-api
+  name: pyrra-api
   namespace: monitoring
   labels:
-    app.kubernetes.io/name: athene-api
+    app.kubernetes.io/name: pyrra-api
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: athene-api
+      app.kubernetes.io/name: pyrra-api
   replicas: 1
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: athene-api
+        app.kubernetes.io/name: pyrra-api
     spec:
       containers:
       - args:
         - --prometheus.url=http://prometheus-k8s.monitoring.svc.cluster.local:9090
-        - --backend.url=http://athene-manager.monitoring.svc.cluster.local:9444
-        image: k3d-k3s-default-registry:41475/api:latest
-        name: athene-api
+        - --backend.url=http://pyrra-kubernetes.monitoring.svc.cluster.local:9444
+        image: api:latest
+        name: pyrra-api
         ports:
         - name: http
           containerPort: 9099

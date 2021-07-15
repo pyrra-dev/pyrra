@@ -1,4 +1,4 @@
-module github.com/metalmatze/athene
+module github.com/pyrra-dev/pyrra
 
 go 1.16
 

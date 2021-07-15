@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/metalmatze/athene/kubernetes/api/v1alpha1"
-	"github.com/metalmatze/athene/slo"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
+	"github.com/pyrra-dev/pyrra/slo"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
 )
@@ -17,7 +17,7 @@ var examples = []struct {
 	objective slo.Objective
 }{
 	{config: `
-apiVersion: athene.metalmatze.de/v1alpha1
+apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
   name: http-errors
@@ -36,6 +36,7 @@ spec:
         metric: http_requests_total{job="metrics-service-thanos-receive-default"}
 `, objective: slo.Objective{
 		Name:        "http-errors",
+		Namespace:   "monitoring",
 		Description: "",
 		Target:      0.99,
 		Window:      model.Duration(7 * 24 * time.Hour),
@@ -60,7 +61,7 @@ spec:
 		},
 	}}, {
 		config: `
-apiVersion: athene.metalmatze.de/v1alpha1
+apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
  name: grpc-errors
@@ -80,6 +81,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Name:        "grpc-errors",
+			Namespace:   "monitoring",
 			Description: "",
 			Target:      0.9990000000000001, // TODO fix this? maybe not /100?
 			Window:      model.Duration(7 * 24 * time.Hour),
@@ -109,7 +111,7 @@ spec:
 		},
 	}, {
 		config: `
-apiVersion: athene.metalmatze.de/v1alpha1
+apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
  name: http-latency
@@ -128,9 +130,10 @@ spec:
        metric: http_request_duration_seconds_count{job="metrics-service-thanos-receive-default",code=~"2.."}
 `,
 		objective: slo.Objective{
-			Name:   "http-latency",
-			Target: 0.995,
-			Window: model.Duration(28 * 24 * time.Hour),
+			Name:      "http-latency",
+			Namespace: "monitoring",
+			Target:    0.995,
+			Window:    model.Duration(28 * 24 * time.Hour),
 			Indicator: slo.Indicator{
 				Latency: &slo.LatencyIndicator{
 					Success: slo.Metric{
@@ -155,7 +158,7 @@ spec:
 		},
 	}, {
 		config: `
-apiVersion: athene.metalmatze.de/v1alpha1
+apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
  name: grpc-latency
@@ -174,9 +177,10 @@ spec:
        metric: grpc_server_handling_seconds_count{job="api",grpc_service="conprof.WritableProfileStore",grpc_method="Write"}
 `,
 		objective: slo.Objective{
-			Name:   "grpc-latency",
-			Target: 0.995,
-			Window: model.Duration(7 * 24 * time.Hour),
+			Name:      "grpc-latency",
+			Namespace: "monitoring",
+			Target:    0.995,
+			Window:    model.Duration(7 * 24 * time.Hour),
 			Indicator: slo.Indicator{
 				Latency: &slo.LatencyIndicator{
 					Success: slo.Metric{
@@ -203,7 +207,7 @@ spec:
 		},
 	}, {
 		config: `
-apiVersion: athene.metalmatze.de/v1alpha1
+apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
  name: http-errorslatency
@@ -222,9 +226,10 @@ spec:
        metric: nginx_ingress_controller_request_duration_seconds_count{ingress="lastfm",path="/"}
 `,
 		objective: slo.Objective{
-			Name:   "http-errorslatency",
-			Target: 0.99,
-			Window: model.Duration(28 * 24 * time.Hour),
+			Name:      "http-errorslatency",
+			Namespace: "monitoring",
+			Target:    0.99,
+			Window:    model.Duration(28 * 24 * time.Hour),
 			Indicator: slo.Indicator{
 				Latency: &slo.LatencyIndicator{
 					Success: slo.Metric{
@@ -250,7 +255,7 @@ spec:
 		},
 	}, {
 		config: `
-apiVersion: athene.metalmatze.de/v1alpha1
+apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
  name: prometheus-operator-errors
@@ -269,9 +274,10 @@ spec:
        metric: prometheus_operator_reconcile_operations_total
 `,
 		objective: slo.Objective{
-			Name:   "prometheus-operator-errors",
-			Target: 0.99,
-			Window: model.Duration(14 * 24 * time.Hour),
+			Name:      "prometheus-operator-errors",
+			Namespace: "monitoring",
+			Target:    0.99,
+			Window:    model.Duration(14 * 24 * time.Hour),
 			Indicator: slo.Indicator{
 				Ratio: &slo.RatioIndicator{
 					Errors: slo.Metric{
@@ -300,6 +306,7 @@ func TestServiceLevelObjective_Internal(t *testing.T) {
 			require.NoError(t, err)
 
 			internal, err := objective.Internal()
+			internal.Config = "" // Ignore the embedded config for now
 			require.NoError(t, err)
 			require.Equal(t, example.objective, internal)
 		})

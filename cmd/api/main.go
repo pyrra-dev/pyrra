@@ -21,12 +21,12 @@ import (
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/metalmatze/athene/openapi"
-	openapiclient "github.com/metalmatze/athene/openapi/client"
-	openapiserver "github.com/metalmatze/athene/openapi/server/go"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/pyrra-dev/pyrra/openapi"
+	openapiclient "github.com/pyrra-dev/pyrra/openapi/client"
+	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 )
 
 //go:embed ui/build

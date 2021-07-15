@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: servicelevelobjectives.athene.metalmatze.de
+  name: servicelevelobjectives.pyrra.dev
 spec:
-  group: athene.metalmatze.de
+  group: pyrra.dev
   names:
     kind: ServiceLevelObjective
     listKind: ServiceLevelObjectiveList
@@ -104,6 +104,7 @@ spec:
                 the given window. float64 are not supported: https://github.com/kubernetes-sigs/controller-tools/issues/245'
               type: string
             window:
+              $ref: '#/definitions/time~0Duration'
               description: Window within which the Target is supposed to be kept.
                 Usually something like 1d, 7d or 28d.
           required:

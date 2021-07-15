@@ -1,5 +1,5 @@
 /*
-Copyright 2021 Athene Authors.
+Copyright 2021 Pyrra Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	athenev1alpha1 "github.com/metalmatze/athene/kubernetes/api/v1alpha1"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,8 +37,8 @@ type ServiceLevelObjectiveReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=athene.metalmatze.de,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=athene.metalmatze.de,resources=servicelevelobjectives/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules/status,verbs=get
 
@@ -46,7 +46,7 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 	log := r.Log.WithValues("servicelevelobjective", req.NamespacedName)
 	log.Info("reconciling")
 
-	var slo athenev1alpha1.ServiceLevelObjective
+	var slo pyrrav1alpha1.ServiceLevelObjective
 	if err := r.Get(ctx, req.NamespacedName, &slo); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -81,11 +81,11 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 
 func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&athenev1alpha1.ServiceLevelObjective{}).
+		For(&pyrrav1alpha1.ServiceLevelObjective{}).
 		Complete(r)
 }
 
-func makePrometheusRule(kubeObjective athenev1alpha1.ServiceLevelObjective) (*monitoringv1.PrometheusRule, error) {
+func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*monitoringv1.PrometheusRule, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, err

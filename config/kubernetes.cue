@@ -6,11 +6,11 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
-manager: {
-	_name:      "athene-manager"
+kubernetes: {
+	_name:      "pyrra-kubernetes"
 	_namespace: "monitoring"
 	_replicas:  1
-	_image:     "controller:latest" | string @tag(imageManager)
+	_image:     "controller:latest" | string @tag(imageKubernetes)
 	_ports: {
 		internal: 9443
 		api:      9444
@@ -47,7 +47,7 @@ manager: {
 				spec: {
 					serviceAccountName: _name
 					containers: [{
-						command: [ "/manager"]
+						command: [ "/kubernetes"]
 						image: _image
 						name:  _name
 						resources: {

@@ -33,11 +33,11 @@ api: generate fmt vet
 
 # Install CRDs into a cluster
 install: manifests
-	kubectl apply -f ./config/crd/bases/athene.metalmatze.de_servicelevelobjectives.yaml
+	kubectl apply -f ./config/crd/bases/pyrra.pyrra.dev_servicelevelobjectives.yaml
 
 # Uninstall CRDs from a cluster
 uninstall: manifests
-	kubectl delete -f ./config/crd/bases/athene.metalmatze.de_servicelevelobjectives.yaml
+	kubectl delete -f ./config/crd/bases/pyrra.pyrra.dev_servicelevelobjectives.yaml
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests config/api.yaml config/kubernetes.yaml
@@ -47,7 +47,7 @@ deploy: manifests config/api.yaml config/kubernetes.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=athene-kubernetes webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=pyrra-kubernetes webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 
 config/api.yaml: config/api.cue
@@ -56,7 +56,7 @@ config/api.yaml: config/api.cue
 
 config/kubernetes.yaml: config/kubernetes.cue
 	cue fmt -s ./config/
-	cue cmd --inject imageManager=${IMG_KUBERNETES} "kubernetes.yaml" ./config
+	cue cmd --inject imageKubernetes=${IMG_KUBERNETES} "kubernetes.yaml" ./config
 
 # Run go fmt against code
 fmt:

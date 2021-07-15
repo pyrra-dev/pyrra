@@ -4,28 +4,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: athene-kubernetes
+  name: pyrra-kubernetes
 rules:
-- apiGroups:
-  - athene.metalmatze.de
-  resources:
-  - servicelevelobjectives
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - athene.metalmatze.de
-  resources:
-  - servicelevelobjectives/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - monitoring.coreos.com
   resources:
@@ -44,3 +24,23 @@ rules:
   - prometheusrules/status
   verbs:
   - get
+- apiGroups:
+  - pyrra.dev
+  resources:
+  - servicelevelobjectives
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - pyrra.dev
+  resources:
+  - servicelevelobjectives/status
+  verbs:
+  - get
+  - patch
+  - update

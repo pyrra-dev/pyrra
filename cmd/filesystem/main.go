@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/metalmatze/athene/kubernetes/api/v1alpha1"
-	"github.com/metalmatze/athene/openapi"
-	openapiserver "github.com/metalmatze/athene/openapi/server/go"
 	"github.com/oklog/run"
+	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
+	"github.com/pyrra-dev/pyrra/openapi"
+	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"sigs.k8s.io/yaml"
 )
 
@@ -22,7 +22,7 @@ func main() {
 	{
 		ctx, cancel := context.WithCancel(context.Background())
 		gr.Add(func() error {
-			files, err := filepath.Glob("/etc/athene/*.yaml")
+			files, err := filepath.Glob("/etc/pyrra/*.yaml")
 			if err != nil {
 				return err
 			}

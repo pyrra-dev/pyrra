@@ -3,10 +3,10 @@ package openapi
 import (
 	"time"
 
-	client "github.com/metalmatze/athene/openapi/client"
-	"github.com/metalmatze/athene/slo"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/pkg/labels"
+	client "github.com/pyrra-dev/pyrra/openapi/client"
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 func InternalFromClient(o client.Objective) slo.Objective {

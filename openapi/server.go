@@ -3,9 +3,9 @@ package openapi
 import (
 	"time"
 
-	client "github.com/metalmatze/athene/openapi/client"
-	server "github.com/metalmatze/athene/openapi/server/go"
-	"github.com/metalmatze/athene/slo"
+	client "github.com/pyrra-dev/pyrra/openapi/client"
+	server "github.com/pyrra-dev/pyrra/openapi/server/go"
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 func ServerFromInternal(objective slo.Objective) server.Objective {
