@@ -677,7 +677,7 @@ func matrixToValues(m model.Matrix) [][]float64 {
 
 	for i, stream := range m {
 		for _, pair := range stream.Values {
-			if i == 0 {
+			if cap(valuesMap[pair.Timestamp.Unix()]) == 0 {
 				valuesMap[pair.Timestamp.Unix()] = make([]float64, len(m))
 			}
 			valuesMap[pair.Timestamp.Unix()][i] = float64(pair.Value)
@@ -689,7 +689,7 @@ func matrixToValues(m model.Matrix) [][]float64 {
 		values = append(values, append([]float64{float64(t)}, vs...))
 	}
 
-	// TODO: Maybe  there's a way to do it without a map and sort
+	// TODO: Maybe there's a way to do it without a map and sort
 	// as this sort is super CPU intensive
 	sort.Slice(values, func(i, j int) bool {
 		return values[i][0] < values[j][0]
