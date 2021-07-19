@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/cespare/xxhash/v2 v2.1.1
 	github.com/dgraph-io/ristretto v0.0.3
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-chi/chi/v5 v5.0.3
 	github.com/go-chi/cors v1.2.0
 	github.com/go-logr/logr v0.4.0
