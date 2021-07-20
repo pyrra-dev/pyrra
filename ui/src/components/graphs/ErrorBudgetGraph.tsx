@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Col, Spinner } from 'react-bootstrap'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
 
-import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL, PUBLIC_API } from '../App'
-import { Configuration, ObjectivesApi, QueryRange } from '../client'
-import PrometheusLogo from './PrometheusLogo'
-import { greens, reds } from './colors'
+import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL, PUBLIC_API } from '../../App'
+import { Configuration, ObjectivesApi, QueryRange } from '../../client'
+import PrometheusLogo from '../PrometheusLogo'
+import { greens, reds } from '../colors'
 
 interface ErrorBudgetGraphProps {
   namespace: string

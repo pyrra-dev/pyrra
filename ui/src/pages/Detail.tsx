@@ -14,7 +14,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipPr
 import { dateFormatter, dateFormatterFull, formatDuration, parseDuration, PROMETHEUS_URL, PUBLIC_API } from '../App'
 import AlertsTable from '../components/AlertsTable'
 import PrometheusLogo from '../components/PrometheusLogo'
-import ErrorBudgetGraph from '../components/ErrorBudgetGraph'
+import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
 import { blues, greens, reds, yellows } from '../components/colors'
 
 interface DetailRouteParams {
