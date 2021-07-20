@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import { BrowserRouter, Link, Route, RouteComponentProps, Switch, useHistory, useLocation } from 'react-router-dom';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
@@ -11,18 +11,9 @@ import {
   ObjectiveStatusBudget,
   QueryRange
 } from './client'
+import { Button, ButtonGroup, Col, Container, Row, Spinner } from 'react-bootstrap';
+import List from './pages/List'
 import AlertsTable from './components/AlertsTable'
-import {
-  Button,
-  ButtonGroup,
-  Col,
-  Container,
-  OverlayTrigger,
-  Row,
-  Spinner,
-  Table,
-  Tooltip as OverlayTooltip
-} from 'react-bootstrap';
 
 // @ts-ignore - this is passed from the HTML template.
 export const PUBLIC_API: string = window.PUBLIC_API;
@@ -47,297 +38,6 @@ const App = () => {
         <Route path="/objectives/:namespace/:name" component={Details}/>
       </Switch>
     </BrowserRouter>
-  )
-}
-
-// TableObjective extends Objective to add some more additional (async) properties
-interface TableObjective extends APIObjective {
-  availability?: TableAvailability | null
-  budget?: number | null
-}
-
-interface TableAvailability {
-  errors: number
-  total: number
-  percentage: number
-}
-
-interface TableState {
-  objectives: { [key: string]: TableObjective }
-}
-
-enum TableActionType { SetObjective, SetStatus, SetStatusNone }
-
-type TableAction =
-  | { type: TableActionType.SetObjective, objective: APIObjective }
-  | { type: TableActionType.SetStatus, name: string, status: APIObjectiveStatus }
-  | { type: TableActionType.SetStatusNone, name: string }
-
-const tableReducer = (state: TableState, action: TableAction): TableState => {
-  switch (action.type) {
-    case TableActionType.SetObjective:
-      return {
-        objectives: {
-          ...state.objectives,
-          [action.objective.name]: {
-            name: action.objective.name,
-            namespace: action.objective.namespace,
-            description: action.objective.description,
-            window: action.objective.window,
-            target: action.objective.target,
-            config: action.objective.config,
-            availability: undefined,
-            budget: undefined
-          }
-        }
-      }
-    case TableActionType.SetStatus:
-      return {
-        objectives: {
-          ...state.objectives,
-          [action.name]: {
-            ...state.objectives[action.name],
-            availability: {
-              errors: action.status.availability.errors,
-              total: action.status.availability.total,
-              percentage: action.status.availability.percentage
-            },
-            budget: action.status.budget?.remaining
-          }
-        }
-      }
-    case TableActionType.SetStatusNone:
-      return {
-        objectives:{
-          ...state.objectives,
-          [action.name]: {
-            ...state.objectives[action.name],
-            availability: null,
-            budget: null
-          }
-        }
-      }
-    default:
-      return state
-  }
-}
-
-enum TableSortType {
-  Name,
-  Window,
-  Objective,
-  Availability,
-  Budget,
-}
-
-enum TableSortOrder {Ascending, Descending}
-
-interface TableSorting {
-  type: TableSortType
-  order: TableSortOrder
-}
-
-const List = () => {
-  const [objectives, setObjectives] = useState<Array<APIObjective>>([])
-  const initialTableState: TableState = { objectives: {} }
-  const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
-  const [tableSortState, setTableSortState] = useState<TableSorting>({
-    type: TableSortType.Budget,
-    order: TableSortOrder.Ascending
-  })
-
-  useEffect(() => {
-    document.title = 'Objectives - Pyrra'
-
-    APIObjectives.listObjectives()
-      .then((objectives: APIObjective[]) => setObjectives(objectives))
-      .catch((err) => console.log(err))
-  }, [])
-
-  useEffect(() => {
-    // const controller = new AbortController()
-    // const signal = controller.signal // TODO: Pass this to the generated fetch client?
-
-    objectives
-      .sort((a: APIObjective, b: APIObjective) => a.name.localeCompare(b.name))
-      .forEach((o: APIObjective) => {
-        dispatchTable({ type: TableActionType.SetObjective, objective: o })
-
-        APIObjectives.getObjectiveStatus({ namespace: o.namespace, name: o.name })
-          .then((s: APIObjectiveStatus) => {
-            dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
-          })
-          .catch((err) => {
-            if (err.status === 404) {
-              dispatchTable({ type: TableActionType.SetStatusNone, name: o.name })
-            }
-          })
-      })
-
-    // return () => {
-    //   // cancel pending requests if necessary
-    //   controller.abort()
-    // }
-  }, [objectives])
-
-  const handleTableSort = (type: TableSortType): void => {
-    if (tableSortState.type === type) {
-      const order = tableSortState.order === TableSortOrder.Ascending ? TableSortOrder.Descending : TableSortOrder.Ascending
-      setTableSortState({ type: type, order: order })
-    } else {
-      setTableSortState({ type: type, order: TableSortOrder.Ascending })
-    }
-  }
-
-  const tableList = Object.keys(table.objectives)
-    .map((k: string) => table.objectives[k])
-    .sort((a: TableObjective, b: TableObjective) => {
-        // TODO: Make higher order function returning the sort function itself.
-        switch (tableSortState.type) {
-          case TableSortType.Name:
-            if (tableSortState.order === TableSortOrder.Ascending) {
-              return a.name.localeCompare(b.name)
-            } else {
-              return b.name.localeCompare(a.name)
-            }
-          case TableSortType.Window:
-            if (tableSortState.order === TableSortOrder.Ascending) {
-              return a.window - b.window
-            } else {
-              return b.window - a.window
-            }
-          case TableSortType.Objective:
-            if (tableSortState.order === TableSortOrder.Ascending) {
-              return a.target - b.target
-            } else {
-              return b.target - a.target
-            }
-          case TableSortType.Availability:
-            if (a.availability == null && b.availability != null) {
-              return 1
-            }
-            if (a.availability != null && b.availability == null) {
-              return -1
-            }
-            if (a.availability !== undefined && a.availability != null && b.availability !== undefined && b.availability != null) {
-              if (tableSortState.order === TableSortOrder.Ascending) {
-                return a.availability.percentage - b.availability.percentage
-              } else {
-                return b.availability.percentage - a.availability.percentage
-              }
-            } else {
-              return 0
-            }
-          case TableSortType.Budget:
-            if (a.budget == null && b.budget != null) {
-              return 1
-            }
-            if (a.budget != null && b.budget == null) {
-              return -1
-            }
-            if (a.budget !== undefined && a.budget != null && b.budget !== undefined && b.budget != null) {
-              if (tableSortState.order === TableSortOrder.Ascending) {
-                return a.budget - b.budget
-              } else {
-                return b.budget - a.budget
-              }
-            } else {
-              return 0
-            }
-        }
-        return 0
-      }
-    )
-
-  const upDownIcon = tableSortState.order === TableSortOrder.Ascending ? '⬆️' : '⬇️'
-
-  const history = useHistory()
-
-  const objectivePage = (namespace: string, name: string) => `/objectives/${namespace}/${name}`
-
-  const handleTableRowClick = (namespace: string, name: string) => () => {
-    history.push(objectivePage(namespace, name))
-  }
-
-  return (
-    <Container className="App">
-      <Row>
-        <Col>
-          <h1>Objectives</h1>
-        </Col>
-      </Row>
-      <Table hover={true} striped={false}>
-        <thead>
-        <tr>
-          <th onClick={() => handleTableSort(TableSortType.Name)}>
-            Name {tableSortState.type === TableSortType.Name ? upDownIcon : '↕️'}
-          </th>
-          <th onClick={() => handleTableSort(TableSortType.Window)}>
-            Time Window {tableSortState.type === TableSortType.Window ? upDownIcon : '↕️'}
-          </th>
-          <th onClick={() => handleTableSort(TableSortType.Objective)}>
-            Objective {tableSortState.type === TableSortType.Objective ? upDownIcon : '↕️'}
-          </th>
-          <th onClick={() => handleTableSort(TableSortType.Availability)}>
-            Availability {tableSortState.type === TableSortType.Availability ? upDownIcon : '↕️'}
-          </th>
-          <th onClick={() => handleTableSort(TableSortType.Budget)}>
-            Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon : '↕️'}
-          </th>
-        </tr>
-        </thead>
-        <tbody>
-        {tableList.map((o: TableObjective) => (
-          <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.namespace, o.name)}>
-            <td>
-              <Link to={objectivePage(o.namespace, o.name)}>
-                {o.name}
-              </Link>
-            </td>
-            <td>{formatDuration(o.window)}</td>
-            <td>
-              {(100 * o.target).toFixed(2)}%
-            </td>
-            <td>
-              {o.availability === undefined ? (
-                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
-              ) : <></>}
-              {o.availability === null ? <>-</> : <></>}
-              {o.availability !== undefined && o.availability != null ?
-                <OverlayTrigger
-                  key={o.name}
-                  overlay={
-                    <OverlayTooltip id={`tooltip-${o.name}`}>
-                      Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
-                      Total: {Math.floor(o.availability.total).toLocaleString()}
-                    </OverlayTooltip>
-                  }>
-                  <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
-                    {(100 * o.availability.percentage).toFixed(2)}%
-                  </span>
-                </OverlayTrigger>
-                : <></>}
-            </td>
-            <td>
-              {o.budget === undefined ? (
-                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
-              ) : <></>}
-              {o.budget === null ? <>-</> : <></>}
-              {o.budget !== undefined && o.budget != null ?
-                <span className={o.budget >= 0 ? 'good' : 'bad'}>
-                  {(100 * o.budget).toFixed(2)}%
-                </span> : <></>}
-            </td>
-          </tr>
-        ))}
-        </tbody>
-      </Table>
-      <Row>
-        <Col>
-          <small>All availabilities and error budgets are calculated across the entire time window of the objective.</small>
-        </Col>
-      </Row>
-    </Container>
   )
 }
 
@@ -381,7 +81,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
 
     document.title = `${name} - Pyrra`
 
-    APIObjectives.getObjective({namespace, name })
+    APIObjectives.getObjective({ namespace, name })
       .then((o: APIObjective) => setObjective(o))
 
     APIObjectives.getObjectiveStatus({ namespace, name })
@@ -580,7 +280,8 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
           <Col className="text-right">
             <ButtonGroup aria-label="Basic example">
               {timeRanges.map((t: number, i: number) => (
-                <Button key={i} variant="light" onClick={handleTimeRangeClick(t)} active={timeRange === t}>{formatDuration(t)}</Button>
+                <Button key={i} variant="light" onClick={handleTimeRangeClick(t)}
+                        active={timeRange === t}>{formatDuration(t)}</Button>
               ))}
             </ButtonGroup>
           </Col>
@@ -641,53 +342,53 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                 </a>
               ) : <></>}
             </div>
-          {errorBudgetSamplesLoading && errorBudgetSamples.length === 0 ?
-            <div style={{
-              width: '100%',
-              height: 230,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}>
-              <Spinner animation="border" style={{ margin: '0 auto' }}/>
-            </div>
-            : <ResponsiveContainer height={300}>
-              <AreaChart height={300} data={errorBudgetSamples}>
-                <XAxis
-                  type="number"
-                  dataKey="t"
-                  tickCount={7}
-                  tickFormatter={dateFormatter}
-                  domain={[errorBudgetSamples[0].t, errorBudgetSamples[errorBudgetSamples.length - 1].t]}
-                />
-                <YAxis
-                  tickCount={5}
-                  unit="%"
-                  tickFormatter={(v: number) => (100 * v).toFixed(2)}
-                  domain={[errorBudgetSamplesMin, errorBudgetSamplesMax]}
-                />
-                <CartesianGrid strokeDasharray="3 3" />
-                <Tooltip content={<DateTooltip/>}/>
-                <defs>
-                  <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset={errorBudgetSamplesOffset} stopColor={`#${greens[0]}`} stopOpacity={1}/>
-                    <stop offset={errorBudgetSamplesOffset} stopColor={`#${reds[0]}`} stopOpacity={1}/>
-                  </linearGradient>
-                </defs>
-                <Area
-                  dataKey="v"
-                  type="monotone"
-                  connectNulls={false}
-                  animationDuration={250}
-                  strokeWidth={0}
-                  fill="url(#splitColor)"
-                  fillOpacity={1}/>
-              </AreaChart>
-            </ResponsiveContainer>
-          }
+            {errorBudgetSamplesLoading && errorBudgetSamples.length === 0 ?
+              <div style={{
+                width: '100%',
+                height: 230,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <Spinner animation="border" style={{ margin: '0 auto' }}/>
+              </div>
+              : <ResponsiveContainer height={300}>
+                <AreaChart height={300} data={errorBudgetSamples}>
+                  <XAxis
+                    type="number"
+                    dataKey="t"
+                    tickCount={7}
+                    tickFormatter={dateFormatter}
+                    domain={[errorBudgetSamples[0].t, errorBudgetSamples[errorBudgetSamples.length - 1].t]}
+                  />
+                  <YAxis
+                    tickCount={5}
+                    unit="%"
+                    tickFormatter={(v: number) => (100 * v).toFixed(2)}
+                    domain={[errorBudgetSamplesMin, errorBudgetSamplesMax]}
+                  />
+                  <CartesianGrid strokeDasharray="3 3"/>
+                  <Tooltip content={<DateTooltip/>}/>
+                  <defs>
+                    <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset={errorBudgetSamplesOffset} stopColor={`#${greens[0]}`} stopOpacity={1}/>
+                      <stop offset={errorBudgetSamplesOffset} stopColor={`#${reds[0]}`} stopOpacity={1}/>
+                    </linearGradient>
+                  </defs>
+                  <Area
+                    dataKey="v"
+                    type="monotone"
+                    connectNulls={false}
+                    animationDuration={250}
+                    strokeWidth={0}
+                    fill="url(#splitColor)"
+                    fillOpacity={1}/>
+                </AreaChart>
+              </ResponsiveContainer>
+            }
           </Col>
         </Row>
-        <Row style={{margin: 0}}>
+        <Row style={{ margin: 0 }}>
           <Col style={{ textAlign: 'right' }}>
             {availability != null ? (
               <>
@@ -724,7 +425,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             {requests.length > 0 && requestsLabels.length > 0 ? (
               <ResponsiveContainer height={150}>
                 <AreaChart height={150} data={requests}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3"/>
                   <XAxis
                     type="number"
                     dataKey="t"
@@ -739,7 +440,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
                   />
                   {Object.keys(requests[0]).filter((k: string) => k !== 't').map((k: string, i: number) => {
                     const label = requestsLabels[parseInt(k)]
-                    if( label === undefined) {
+                    if (label === undefined) {
                       return <></>
                     }
                     let color = ''
@@ -798,7 +499,7 @@ const Details = (params: RouteComponentProps<DetailsRouteParams>) => {
             {errors.length > 0 && errorsLabels.length > 0 ? (
               <ResponsiveContainer height={150}>
                 <AreaChart height={150} data={errors}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <CartesianGrid strokeDasharray="3 3"/>
                   <XAxis
                     type="number"
                     dataKey="t"
@@ -950,7 +651,8 @@ const yellows = [
 
 const PrometheusLogo = (): JSX.Element => (
   <svg width={24} height={24} viewBox="0 0 114 114">
-    <path fill="#e6522c" d="M 56.667,0.667 C 25.372,0.667 0,26.036 0,57.332 c 0,31.295 25.372,56.666 56.667,56.666 31.295,0 56.666,-25.371 56.666,-56.666 0,-31.296 -25.372,-56.665 -56.666,-56.665 z m 0,106.055 c -8.904,0 -16.123,-5.948 -16.123,-13.283 H 72.79 c 0,7.334 -7.219,13.283 -16.123,13.283 z M 83.297,89.04 H 30.034 V 79.382 H 83.298 V 89.04 Z M 83.106,74.411 H 30.186 C 30.01,74.208 29.83,74.008 29.66,73.802 24.208,67.182 22.924,63.726 21.677,60.204 c -0.021,-0.116 6.611,1.355 11.314,2.413 0,0 2.42,0.56 5.958,1.205 -3.397,-3.982 -5.414,-9.044 -5.414,-14.218 0,-11.359 8.712,-21.285 5.569,-29.308 3.059,0.249 6.331,6.456 6.552,16.161 3.252,-4.494 4.613,-12.701 4.613,-17.733 0,-5.21 3.433,-11.262 6.867,-11.469 -3.061,5.045 0.793,9.37 4.219,20.099 1.285,4.03 1.121,10.812 2.113,15.113 C 63.797,33.534 65.333,20.5 71,16 c -2.5,5.667 0.37,12.758 2.333,16.167 3.167,5.5 5.087,9.667 5.087,17.548 0,5.284 -1.951,10.259 -5.242,14.148 3.742,-0.702 6.326,-1.335 6.326,-1.335 l 12.152,-2.371 c 10e-4,-10e-4 -1.765,7.261 -8.55,14.254 z"/>
+    <path fill="#e6522c"
+          d="M 56.667,0.667 C 25.372,0.667 0,26.036 0,57.332 c 0,31.295 25.372,56.666 56.667,56.666 31.295,0 56.666,-25.371 56.666,-56.666 0,-31.296 -25.372,-56.665 -56.666,-56.665 z m 0,106.055 c -8.904,0 -16.123,-5.948 -16.123,-13.283 H 72.79 c 0,7.334 -7.219,13.283 -16.123,13.283 z M 83.297,89.04 H 30.034 V 79.382 H 83.298 V 89.04 Z M 83.106,74.411 H 30.186 C 30.01,74.208 29.83,74.008 29.66,73.802 24.208,67.182 22.924,63.726 21.677,60.204 c -0.021,-0.116 6.611,1.355 11.314,2.413 0,0 2.42,0.56 5.958,1.205 -3.397,-3.982 -5.414,-9.044 -5.414,-14.218 0,-11.359 8.712,-21.285 5.569,-29.308 3.059,0.249 6.331,6.456 6.552,16.161 3.252,-4.494 4.613,-12.701 4.613,-17.733 0,-5.21 3.433,-11.262 6.867,-11.469 -3.061,5.045 0.793,9.37 4.219,20.099 1.285,4.03 1.121,10.812 2.113,15.113 C 63.797,33.534 65.333,20.5 71,16 c -2.5,5.667 0.37,12.758 2.333,16.167 3.167,5.5 5.087,9.667 5.087,17.548 0,5.284 -1.951,10.259 -5.242,14.148 3.742,-0.702 6.326,-1.335 6.326,-1.335 l 12.152,-2.371 c 10e-4,-10e-4 -1.765,7.261 -8.55,14.254 z"/>
   </svg>
 )
 
