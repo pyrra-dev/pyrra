@@ -1,23 +1,20 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Col, Spinner } from 'react-bootstrap'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
 
-import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL, PUBLIC_API } from '../../App'
-import { Configuration, ObjectivesApi, QueryRange } from '../../client'
+import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
+import { ObjectivesApi, QueryRange } from '../../client'
 import PrometheusLogo from '../PrometheusLogo'
 import { greens, reds } from '../colors'
 
 interface ErrorBudgetGraphProps {
+  api: ObjectivesApi
   namespace: string
   name: string
   timeRange: number
 }
 
-const ErrorBudgetGraph = ({ namespace, name, timeRange }: ErrorBudgetGraphProps): JSX.Element => {
-  const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
-  }, [])
-
+const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphProps): JSX.Element => {
   const [samples, setSamples] = useState<any[]>([]);
   const [samplesOffset, setSamplesOffset] = useState<number>(0)
   const [samplesMin, setSamplesMin] = useState<number>(-10000)

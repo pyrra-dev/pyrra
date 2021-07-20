@@ -246,6 +246,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
         <Row style={{ marginBottom: 0 }}>
           <Col>
             <ErrorBudgetGraph
+              api={api}
               namespace={namespace}
               name={name}
               timeRange={timeRange}
