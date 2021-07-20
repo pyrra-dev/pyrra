@@ -1,7 +1,9 @@
 import { Link, RouteComponentProps, useHistory, useLocation } from 'react-router-dom'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
+  Configuration,
   Objective as APIObjective,
+  ObjectivesApi,
   ObjectiveStatus as APIObjectiveStatus,
   ObjectiveStatusAvailability,
   ObjectiveStatusBudget,
@@ -9,8 +11,11 @@ import {
 } from '../client'
 import { Button, ButtonGroup, Col, Container, Row, Spinner } from 'react-bootstrap'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
+import { dateFormatter, dateFormatterFull, formatDuration, parseDuration, PROMETHEUS_URL, PUBLIC_API } from '../App'
 import AlertsTable from '../components/AlertsTable'
-import { APIObjectives, dateFormatter, dateFormatterFull, formatDuration, parseDuration, PROMETHEUS_URL } from '../App'
+import PrometheusLogo from '../components/PrometheusLogo'
+import ErrorBudgetGraph from '../components/ErrorBudgetGraph'
+import { blues, greens, reds, yellows } from '../components/colors'
 
 interface DetailRouteParams {
   name: string
@@ -23,6 +28,10 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
   const history = useHistory()
   const query = new URLSearchParams(useLocation().search)
 
+  const api = useMemo(() => {
+    return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
+  }, [])
+
   const timeRangeQuery = query.get('timerange')
   const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
   const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
@@ -30,13 +39,6 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
   const [objective, setObjective] = useState<APIObjective | null>(null);
   const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null);
   const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null);
-
-  const [errorBudgetSamples, setErrorBudgetSamples] = useState<any[]>([]);
-  const [errorBudgetSamplesOffset, setErrorBudgetSamplesOffset] = useState<number>(0)
-  const [errorBudgetSamplesMin, setErrorBudgetSamplesMin] = useState<number>(-10000)
-  const [errorBudgetSamplesMax, setErrorBudgetSamplesMax] = useState<number>(1)
-  const [errorBudgetQuery, setErrorBudgetQuery] = useState<string>('')
-  const [errorBudgetSamplesLoading, setErrorBudgetSamplesLoading] = useState<boolean>(true)
 
   const [requests, setRequests] = useState<any[]>([])
   const [requestsQuery, setRequestsQuery] = useState<string>('')
@@ -52,69 +54,21 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
 
     document.title = `${name} - Pyrra`
 
-    APIObjectives.getObjective({ namespace, name })
+    api.getObjective({ namespace, name })
       .then((o: APIObjective) => setObjective(o))
 
-    APIObjectives.getObjectiveStatus({ namespace, name })
+    api.getObjectiveStatus({ namespace, name })
       .then((s: APIObjectiveStatus) => {
         setAvailability(s.availability)
         setErrorBudget(s.budget)
       })
 
-    setErrorBudgetSamplesLoading(true)
-
     const now = Date.now()
     const start = Math.floor((now - timeRange) / 1000)
     const end = Math.floor(now / 1000)
 
-    APIObjectives.getObjectiveErrorBudget({ namespace, name, start, end })
-      .then((r: QueryRange) => {
-        let data: any[] = []
-        r.values.forEach((v: number[], i: number) => {
-          v.forEach((v: number, j: number) => {
-            if (j === 0) {
-              data[i] = { t: v }
-            } else {
-              data[i].v = v
-            }
-          })
-        })
-
-        const minRaw = Math.min(...data.map((o) => o.v))
-        const maxRaw = Math.max(...data.map((o) => o.v))
-        const diff = maxRaw - minRaw
-
-        let roundBy = 1
-        if (diff < 1) {
-          roundBy = 10
-        }
-        if (diff < 0.1) {
-          roundBy = 100
-        }
-        if (diff < 0.01) {
-          roundBy = 1_000
-        }
-
-        // Calculate the offset to split the error budget into green and red areas
-        const min = Math.floor(minRaw * roundBy) / roundBy;
-        const max = Math.ceil(maxRaw * roundBy) / roundBy;
-
-        setErrorBudgetSamplesMin(min === 1 ? 0 : min)
-        setErrorBudgetSamplesMax(max)
-        if (max <= 0) {
-          setErrorBudgetSamplesOffset(0)
-        } else if (min >= 1) {
-          setErrorBudgetSamplesOffset(1)
-        } else {
-          setErrorBudgetSamplesOffset(maxRaw / (maxRaw - minRaw))
-        }
-        setErrorBudgetSamples(data)
-        setErrorBudgetQuery(r.query)
-      })
-      .finally(() => setErrorBudgetSamplesLoading(false))
-
     setRequestsLoading(true)
-    APIObjectives.getREDRequests({ namespace, name, start, end })
+    api.getREDRequests({ namespace, name, start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
@@ -132,7 +86,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
       }).finally(() => setRequestsLoading(false))
 
     setErrorsLoading(true)
-    APIObjectives.getREDErrors({ namespace, name, start, end })
+    api.getREDErrors({ namespace, name, start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
@@ -153,7 +107,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
       // cancel any pending requests.
       controller.abort()
     }
-  }, [namespace, name, timeRange])
+  }, [api, namespace, name, timeRange])
 
   if (objective == null) {
     return (
@@ -291,72 +245,11 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
         </Row>
         <Row style={{ marginBottom: 0 }}>
           <Col>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h4>
-                Error Budget
-                {errorBudgetSamplesLoading && errorBudgetSamples.length !== 0 ? (
-                  <Spinner animation="border" style={{
-                    marginLeft: '1rem',
-                    marginBottom: '0.5rem',
-                    width: '1rem',
-                    height: '1rem',
-                    borderWidth: '1px'
-                  }}/>
-                ) : <></>}
-              </h4>
-              {errorBudgetQuery !== '' ? (
-                <a className="external-prometheus"
-                   target="_blank"
-                   rel="noreferrer"
-                   href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(errorBudgetQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
-                  <PrometheusLogo/>
-                </a>
-              ) : <></>}
-            </div>
-            {errorBudgetSamplesLoading && errorBudgetSamples.length === 0 ?
-              <div style={{
-                width: '100%',
-                height: 230,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
-                <Spinner animation="border" style={{ margin: '0 auto' }}/>
-              </div>
-              : <ResponsiveContainer height={300}>
-                <AreaChart height={300} data={errorBudgetSamples}>
-                  <XAxis
-                    type="number"
-                    dataKey="t"
-                    tickCount={7}
-                    tickFormatter={dateFormatter}
-                    domain={[errorBudgetSamples[0].t, errorBudgetSamples[errorBudgetSamples.length - 1].t]}
-                  />
-                  <YAxis
-                    tickCount={5}
-                    unit="%"
-                    tickFormatter={(v: number) => (100 * v).toFixed(2)}
-                    domain={[errorBudgetSamplesMin, errorBudgetSamplesMax]}
-                  />
-                  <CartesianGrid strokeDasharray="3 3"/>
-                  <Tooltip content={<DateTooltip/>}/>
-                  <defs>
-                    <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset={errorBudgetSamplesOffset} stopColor={`#${greens[0]}`} stopOpacity={1}/>
-                      <stop offset={errorBudgetSamplesOffset} stopColor={`#${reds[0]}`} stopOpacity={1}/>
-                    </linearGradient>
-                  </defs>
-                  <Area
-                    dataKey="v"
-                    type="monotone"
-                    connectNulls={false}
-                    animationDuration={250}
-                    strokeWidth={0}
-                    fill="url(#splitColor)"
-                    fillOpacity={1}/>
-                </AreaChart>
-              </ResponsiveContainer>
-            }
+            <ErrorBudgetGraph
+              namespace={namespace}
+              name={name}
+              timeRange={timeRange}
+            />
           </Col>
         </Row>
         <Row style={{ margin: 0 }}>
@@ -526,24 +419,3 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
 };
 
 export default Detail
-
-const DateTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
-  const style = {
-    padding: 10,
-    paddingTop: 5,
-    paddingBottom: 5,
-    backgroundColor: 'white',
-    border: '1px solid #666',
-    borderRadius: 3
-  }
-  if (payload !== undefined && payload?.length > 0) {
-    return (
-      <div className="area-chart-tooltip" style={style}>
-        Date: {dateFormatterFull(payload[0].payload.t)}<br/>
-        Value: {(100 * payload[0].payload.v).toFixed(3)}%
-      </div>
-    )
-  }
-  return <></>
-}
-
