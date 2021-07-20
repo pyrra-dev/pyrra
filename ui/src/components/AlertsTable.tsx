@@ -1,25 +1,29 @@
 import { Table } from 'react-bootstrap'
-import React, { useEffect, useState } from 'react'
-import { APIObjectives, formatDuration } from '../App'
-import { MultiBurnrateAlert, Objective } from '../client'
+import React, { useEffect, useMemo, useState } from 'react'
+import { formatDuration, PUBLIC_API } from '../App'
+import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
 
 interface AlertsTableProps {
   objective: Objective
 }
 
 const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
+  const api = useMemo(() => {
+    return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
+  }, [])
+
   const [alerts, setAlerts] = useState<MultiBurnrateAlert[]>([])
 
   useEffect(() => {
     const controller = new AbortController()
 
-    APIObjectives.getMultiBurnrateAlerts({ namespace:objective.namespace, name: objective.name })
+    api.getMultiBurnrateAlerts({ namespace: objective.namespace, name: objective.name })
       .then((alerts: MultiBurnrateAlert[]) => setAlerts(alerts))
 
     return () => {
       controller.abort()
     }
-  }, [objective])
+  }, [api, objective])
 
   return (
     <Table hover size="sm">

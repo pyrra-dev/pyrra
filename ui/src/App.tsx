@@ -1,7 +1,6 @@
 import React from 'react';
 import './App.css';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
-import { Configuration, ObjectivesApi } from './client'
 import List from './pages/List'
 import Detail from './pages/Detail'
 
@@ -10,8 +9,6 @@ export const PUBLIC_API: string = window.PUBLIC_API;
 // @ts-ignore - this is passed from the HTML template.
 export const PROMETHEUS_URL: string = window.PROMETHEUS_URL;
 
-const APIConfiguration = new Configuration({ basePath: `${PUBLIC_API}api/v1` })
-export const APIObjectives = new ObjectivesApi(APIConfiguration)
 
 const App = () => {
   return (

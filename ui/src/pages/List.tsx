@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState } from 'react'
+import React, { useEffect, useMemo, useReducer, useState } from 'react'
 import { Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
 import { Configuration, Objective, ObjectivesApi, ObjectiveStatus } from '../client'
 import { formatDuration, PUBLIC_API } from '../App'
@@ -92,8 +92,9 @@ interface TableSorting {
 }
 
 const List = () => {
-  const APIConfiguration = new Configuration({ basePath: `${PUBLIC_API}api/v1` })
-  const APIObjectives = new ObjectivesApi(APIConfiguration)
+  const api = useMemo(() => {
+    return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
+  }, [])
 
   const history = useHistory()
   const [objectives, setObjectives] = useState<Array<Objective>>([])
@@ -107,10 +108,10 @@ const List = () => {
   useEffect(() => {
     document.title = 'Objectives - Pyrra'
 
-    APIObjectives.listObjectives()
+    api.listObjectives()
       .then((objectives: Objective[]) => setObjectives(objectives))
       .catch((err) => console.log(err))
-  }, [])
+  }, [api])
 
   useEffect(() => {
     // const controller = new AbortController()
@@ -121,7 +122,7 @@ const List = () => {
       .forEach((o: Objective) => {
         dispatchTable({ type: TableActionType.SetObjective, objective: o })
 
-        APIObjectives.getObjectiveStatus({ namespace: o.namespace, name: o.name })
+        api.getObjectiveStatus({ namespace: o.namespace, name: o.name })
           .then((s: ObjectiveStatus) => {
             dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
           })
@@ -136,7 +137,7 @@ const List = () => {
     //   // cancel pending requests if necessary
     //   controller.abort()
     // }
-  }, [objectives])
+  }, [api, objectives])
 
   const handleTableSort = (type: TableSortType): void => {
     if (tableSortState.type === type) {
