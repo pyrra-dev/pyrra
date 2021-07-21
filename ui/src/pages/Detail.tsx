@@ -103,16 +103,6 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
             )}
         </Row>
         <Row>
-          <Col className="text-right">
-            <ButtonGroup aria-label="Basic example">
-              {timeRanges.map((t: number, i: number) => (
-                <Button key={i} variant="light" onClick={handleTimeRangeClick(t)}
-                        active={timeRange === t}>{formatDuration(t)}</Button>
-              ))}
-            </ButtonGroup>
-          </Col>
-        </Row>
-        <Row>
           <Col xs={12} sm={12} md={4} className="metric">
             <div>
               <h2>{100 * objective.target}%</h2>
@@ -142,6 +132,20 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
               )}
               <h6 className="text-muted">Error Budget</h6>
             </div>
+          </Col>
+        </Row>
+        <Row>
+          <Col className="text-right">
+            <ButtonGroup aria-label="Basic example">
+              {timeRanges.map((t: number, i: number) => (
+                <Button
+                  key={i}
+                  variant="light"
+                  onClick={handleTimeRangeClick(t)}
+                  active={timeRange === t}
+                >{formatDuration(t)}</Button>
+              ))}
+            </ButtonGroup>
           </Col>
         </Row>
         <Row style={{ marginBottom: 0 }}>
