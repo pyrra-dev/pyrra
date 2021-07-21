@@ -1,4 +1,4 @@
-import { Table } from 'react-bootstrap'
+import { OverlayTrigger, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDuration, PUBLIC_API } from '../App'
 import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
@@ -32,8 +32,8 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
         <th>Severity</th>
         <th>For</th>
         <th>Threshold</th>
-        <th>Short</th>
-        <th>Long</th>
+        <th>Short Burnrate</th>
+        <th>Long Burnrate</th>
         <th>State</th>
       </tr>
       </thead>
@@ -56,7 +56,7 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
           longCurrent = a._long.current.toFixed(3)
         }
 
-        let stateColor = '#1B5E20'
+        let stateColor = ''
         if (a.state === 'firing') {
           stateColor = '#B71C1C'
         }
@@ -69,9 +69,15 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
             <td>{a.severity}</td>
             <td>{formatDuration(a._for)}</td>
             <td>
-            <span title={`${a.factor} * (1 - ${objective?.target})`}>
-              {(a.factor * (1 - objective?.target)).toFixed(3)}
-            </span>
+              <OverlayTrigger
+                key={i}
+                overlay={
+                  <OverlayTooltip id={`tooltip-${i}`}>
+                    {a.factor} * (1 - {objective.target})
+                  </OverlayTooltip>
+                }>
+                <span>{(a.factor * (1 - objective?.target)).toFixed(3)}</span>
+              </OverlayTrigger>
             </td>
             <td>
               {shortCurrent} ({formatDuration(a._short.window)})
