@@ -1,7 +1,8 @@
 import { OverlayTrigger, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
 import React, { useEffect, useMemo, useState } from 'react'
-import { formatDuration, PUBLIC_API } from '../App'
+import { formatDuration, PROMETHEUS_URL, PUBLIC_API } from '../App'
 import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
+import PrometheusLogo from './PrometheusLogo'
 
 interface AlertsTableProps {
   objective: Objective
@@ -29,12 +30,15 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
     <Table hover size="sm">
       <thead>
       <tr>
-        <th>Severity</th>
-        <th>For</th>
-        <th>Threshold</th>
-        <th>Short Burnrate</th>
-        <th>Long Burnrate</th>
-        <th>State</th>
+        <th style={{ width: '10%' }}>State</th>
+        <th style={{ width: '10%' }}>Severity</th>
+        <th style={{ width: '5%', textAlign: 'right' }}>For</th>
+        <th style={{ width: '15%', textAlign: 'right' }}>Threshold</th>
+        <th style={{ width: '10%' }}/>
+        <th style={{ width: '15%', textAlign: 'left' }}>Short Burnrate</th>
+        <th style={{ width: '10%' }}/>
+        <th style={{ width: '15%', textAlign: 'left' }}>Long Burnrate</th>
+        <th style={{ width: '5%' }}/>
       </tr>
       </thead>
       <tbody>
@@ -66,10 +70,11 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
 
         return (
           <tr key={i}>
+            <td><span style={{ color: stateColor }}>{a.state}</span></td>
             <td>{a.severity}</td>
-            <td>{formatDuration(a._for)}</td>
-            <td>
-              <OverlayTrigger
+            <td style={{ textAlign: 'right' }}>{formatDuration(a._for)}</td>
+            <td style={{ textAlign: 'right' }}>
+            <OverlayTrigger
                 key={i}
                 overlay={
                   <OverlayTooltip id={`tooltip-${i}`}>
@@ -79,13 +84,26 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
                 <span>{(a.factor * (1 - objective?.target)).toFixed(3)}</span>
               </OverlayTrigger>
             </td>
-            <td>
+            <td style={{ textAlign: 'center' }}>
+            <small style={{ opacity: 0.5 }}>&gt;</small>
+            </td>
+            <td style={{ textAlign: 'left' }}>
               {shortCurrent} ({formatDuration(a._short.window)})
             </td>
-            <td>
+            <td style={{ textAlign: 'left' }}>
+              <small style={{ opacity: 0.5 }}>and</small>
+            </td>
+            <td style={{ textAlign: 'left' }}>
               {longCurrent} ({formatDuration(a._long.window)})
             </td>
-            <td><span style={{ color: stateColor }}>{a.state}</span></td>
+            <td>
+              <a className="external-prometheus"
+                 target="_blank"
+                 rel="noreferrer"
+                 href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(a._long.query)}&g0.tab=0&g1.expr=${encodeURIComponent(a._short.query)}&g1.tab=0`}>
+                <PrometheusLogo/>
+              </a>
+            </td>
           </tr>
         )
       })}
