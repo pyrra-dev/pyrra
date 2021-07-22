@@ -60,7 +60,8 @@ const ErrorsGraph = ({ api, namespace, name, timeRange }: ErrorsGraphProps): JSX
           Date: {dateFormatterFull(payload[0].payload.t)}<br/>
           {Object.keys(payload[0].payload).filter((k) => k !== 't').map((k: string, i: number) => (
             <div key={i}>
-              {errorsLabels[i]}: {(payload[0].payload[k]).toFixed(2)}%
+              {errorsLabels[i] !== '{}' ? `${errorsLabels[i]}:` : ''}
+              {(payload[0].payload[k]).toFixed(2)}%
             </div>
           ))}
         </div>

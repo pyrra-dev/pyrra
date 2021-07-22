@@ -59,7 +59,8 @@ const RequestsGraph = ({ api, namespace, name, timeRange }: RequestsGraphProps):
           Date: {dateFormatterFull(payload[0].payload.t)}<br/>
           {Object.keys(payload[0].payload).filter((k) => k !== 't').map((k: string, i: number) => (
             <div key={i}>
-              {requestsLabels[i]}: {(payload[0].payload[k]).toFixed(2)} req/s
+              {requestsLabels[i] !== '{}' ? `${requestsLabels[i]}:` : ''}
+              {(payload[0].payload[k]).toFixed(2)} req/s
             </div>
           ))}
         </div>
@@ -112,6 +113,9 @@ const RequestsGraph = ({ api, namespace, name, timeRange }: RequestsGraphProps):
                 return <></>
               }
               let color = ''
+              if (label === '{}') {
+                color = greens[i]
+              }
               if (label.match(/"(2\d{2}|OK)"/) != null) {
                 color = greens[i]
               }
