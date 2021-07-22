@@ -32,12 +32,13 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
       <tr>
         <th style={{ width: '10%' }}>State</th>
         <th style={{ width: '10%' }}>Severity</th>
-        <th style={{ width: '5%', textAlign: 'right' }}>For</th>
+        <th style={{ width: '10%', textAlign: 'right' }}>Exhaustion</th>
         <th style={{ width: '15%', textAlign: 'right' }}>Threshold</th>
         <th style={{ width: '10%' }}/>
-        <th style={{ width: '15%', textAlign: 'left' }}>Short Burnrate</th>
+        <th style={{ width: '15%', textAlign: 'left' }}>Short Burn Rate</th>
         <th style={{ width: '10%' }}/>
-        <th style={{ width: '15%', textAlign: 'left' }}>Long Burnrate</th>
+        <th style={{ width: '15%', textAlign: 'left' }}>Long Burn Rate</th>
+        <th style={{ width: '5%', textAlign: 'right' }}>For</th>
         <th style={{ width: '5%' }}/>
       </tr>
       </thead>
@@ -72,9 +73,19 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
           <tr key={i}>
             <td><span style={{ color: stateColor }}>{a.state}</span></td>
             <td>{a.severity}</td>
-            <td style={{ textAlign: 'right' }}>{formatDuration(a._for)}</td>
             <td style={{ textAlign: 'right' }}>
-            <OverlayTrigger
+              <OverlayTrigger
+                key={i}
+                overlay={
+                  <OverlayTooltip id={`tooltip-${i}`}>
+                    If this alert is firing, the entire Error Budget can be burnt within that time frame.
+                  </OverlayTooltip>
+                }>
+                <span>{formatDuration(objective.window / a.factor)}</span>
+              </OverlayTrigger>
+            </td>
+            <td style={{ textAlign: 'right' }}>
+              <OverlayTrigger
                 key={i}
                 overlay={
                   <OverlayTooltip id={`tooltip-${i}`}>
@@ -85,7 +96,7 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
               </OverlayTrigger>
             </td>
             <td style={{ textAlign: 'center' }}>
-            <small style={{ opacity: 0.5 }}>&gt;</small>
+              <small style={{ opacity: 0.5 }}>&gt;</small>
             </td>
             <td style={{ textAlign: 'left' }}>
               {shortCurrent} ({formatDuration(a._short.window)})
@@ -96,6 +107,7 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
             <td style={{ textAlign: 'left' }}>
               {longCurrent} ({formatDuration(a._long.window)})
             </td>
+            <td style={{ textAlign: 'right' }}>{formatDuration(a._for)}</td>
             <td>
               <a className="external-prometheus"
                  target="_blank"
