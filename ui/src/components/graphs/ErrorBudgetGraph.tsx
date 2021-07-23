@@ -76,6 +76,26 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
       .finally(() => setLoading(false))
   }, [api, namespace, name, timeRange])
 
+  const DateTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
+    const style = {
+      padding: 10,
+      paddingTop: 5,
+      paddingBottom: 5,
+      backgroundColor: 'white',
+      border: '1px solid #666',
+      borderRadius: 3
+    }
+    if (payload !== undefined && payload?.length > 0) {
+      return (
+        <div className="area-chart-tooltip" style={style}>
+          Date: {dateFormatterFull(payload[0].payload.t)}<br/>
+          Value: {(100 * payload[0].payload.v).toFixed(3)}%
+        </div>
+      )
+    }
+    return <></>
+  }
+
   return (
     <>
       <Col>
@@ -117,7 +137,7 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
                 type="number"
                 dataKey="t"
                 tickCount={7}
-                tickFormatter={dateFormatter}
+                tickFormatter={dateFormatter(timeRange)}
                 domain={[samples[0].t, samples[samples.length - 1].t]}
               />
               <YAxis
@@ -148,26 +168,6 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
       </Col>
     </>
   )
-}
-
-const DateTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
-  const style = {
-    padding: 10,
-    paddingTop: 5,
-    paddingBottom: 5,
-    backgroundColor: 'white',
-    border: '1px solid #666',
-    borderRadius: 3
-  }
-  if (payload !== undefined && payload?.length > 0) {
-    return (
-      <div className="area-chart-tooltip" style={style}>
-        Date: {dateFormatterFull(payload[0].payload.t)}<br/>
-        Value: {(100 * payload[0].payload.v).toFixed(3)}%
-      </div>
-    )
-  }
-  return <></>
 }
 
 export default ErrorBudgetGraph

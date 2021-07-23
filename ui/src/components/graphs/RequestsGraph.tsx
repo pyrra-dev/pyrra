@@ -98,8 +98,8 @@ const RequestsGraph = ({ api, namespace, name, timeRange }: RequestsGraphProps):
             <XAxis
               type="number"
               dataKey="t"
-              tickCount={3}
-              tickFormatter={dateFormatter}
+              tickCount={4}
+              tickFormatter={dateFormatter(timeRange)}
               domain={[requests[0].t, requests[requests.length - 1].t]}
             />
             <YAxis
@@ -150,6 +150,5 @@ const RequestsGraph = ({ api, namespace, name, timeRange }: RequestsGraphProps):
     </>
   )
 }
-
 
 export default RequestsGraph

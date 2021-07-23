@@ -99,8 +99,8 @@ const ErrorsGraph = ({ api, namespace, name, timeRange }: ErrorsGraphProps): JSX
             <XAxis
               type="number"
               dataKey="t"
-              tickCount={3}
-              tickFormatter={dateFormatter}
+              tickCount={4}
+              tickFormatter={dateFormatter(timeRange)}
               domain={[errors[0].t, errors[errors.length - 1].t]}
             />
             <YAxis
