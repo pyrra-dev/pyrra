@@ -17,7 +17,10 @@ OPENAPI ?= docker run --rm \
 		-v $(shell pwd):$(shell pwd) \
 		openapitools/openapi-generator-cli:v5.1.1
 
-all: api kubernetes
+all: ui api kubernetes filesystem
+
+install:
+	cd ui && npm install
 
 # Run tests
 test: generate fmt vet manifests
@@ -27,17 +30,13 @@ test: generate fmt vet manifests
 kubernetes: generate fmt vet
 	go build -o bin/kubernetes ./cmd/kubernetes/main.go
 
+# Build kubernetes binary
+filesystem: generate fmt vet
+	go build -o bin/filesystem ./cmd/filesystem/main.go
+
 # Build api binary
-api: generate fmt vet
+api: fmt vet
 	go build -o bin/api ./cmd/api/main.go
-
-# Install CRDs into a cluster
-install: manifests
-	kubectl apply -f ./config/crd/bases/pyrra.dev_servicelevelobjectives.yaml
-
-# Uninstall CRDs from a cluster
-uninstall: manifests
-	kubectl delete -f ./config/crd/bases/pyrra.dev_servicelevelobjectives.yaml
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests config/api.yaml config/kubernetes.yaml
