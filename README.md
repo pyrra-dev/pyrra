@@ -162,7 +162,7 @@ It depends on the topology of your infrastructure, however, we think that alerti
 
 For now, we try to accomplish and easy to set up workflow for the most common SLOs.
 It is still possible to write these more complex SLOs manually and deploy them to Prometheus along those generated.
-It probably makes sense to base your more complex SLOs on the output of one SLO from this tool.
+You can base more complex SLOs on the output of one SLO from this tool.
 
 #### Why is the objective target a string not a float?
 
