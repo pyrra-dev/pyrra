@@ -156,7 +156,7 @@ The queries even dynamically add headers for downsampling and disable partial re
 
 #### How many instances should I deploy?
 
-It obviously depends on the topology of your infrastructure, however, we think that alerting should still happen within each individual Prometheus and therefore running one instance with one Prometheus (pair) makes most sense.
+It depends on the topology of your infrastructure, however, we think that alerting should still happen within each individual Prometheus and therefore running one instance with one Prometheus (pair) makes the most sense. Pyrra itself only needs one instance per Prometheus (pair).
 
 #### Why don't you support more complex SLOs?
 
