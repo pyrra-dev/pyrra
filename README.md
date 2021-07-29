@@ -160,7 +160,7 @@ It depends on the topology of your infrastructure, however, we think that alerti
 
 #### Why don't you support more complex SLOs?
 
-For now, we try to accomplish and easy to set up workflow for the most common SLOs.
+For now, we try to accomplish an easy-to-setup workflow for the most common SLOs.
 It is still possible to write these more complex SLOs manually and deploy them to Prometheus along those generated.
 You can base more complex SLOs on the output of one SLO from this tool.
 
