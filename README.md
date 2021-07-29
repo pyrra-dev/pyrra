@@ -1,6 +1,6 @@
 # Pyrra
 
-Pyrra is the ultimate Service Level Objectives (SLOs) tool for Prometheus presenting the most important facts at a glance!
+Making SLOs with Prometheus manageable, accessible, and easy to use for everyone!
 
 ## Features
 
