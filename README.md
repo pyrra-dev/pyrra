@@ -147,7 +147,7 @@ Right now we could have used Grafana indeed. In upcoming releases, we plan to ad
 
 #### Do I still need Grafana?
 
-Yes, Grafana is still an amazing visualization tool for Prometheus metrics. You can create your own custom dashboards and dive a lot deeper into each component while debugging.
+Yes, Grafana is an amazing data visualization tool for Prometheus metrics. You can create your own custom dashboards and dive a lot deeper into each component while debugging.
 
 #### Does it work with Thanos too?
 
