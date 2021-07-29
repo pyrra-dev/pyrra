@@ -13,7 +13,7 @@ Pyrra is the ultimate Service Level Objectives (SLOs) tool for Prometheus presen
 - Page with details for a Service Level Objective
 
   - Objective, Availability, Error Budget highlighted as 3 most important numbers
-  - Error budget graph to see how it develops over time
+  - Graph to see how the error budget develops over time
   - Time range picker to change graphs
   - Request, Errors, Duration (RED) graphs for the underlying service
   - Multi Burn Rate Alerts overview table
