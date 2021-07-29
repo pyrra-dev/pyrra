@@ -143,7 +143,7 @@ Please adhere to this project's `code of conduct`.
 
 #### Why not use Grafana in this particular use case?
 
-Right now we could have simply used Grafana indeed. In the next releases we plan to add more interactive features to give you a lot better context when coming up with new SLOs. This is something we couldn't do with Grafana.
+Right now we could have used Grafana indeed. In upcoming releases, we plan to add more interactive features to give you better context when coming up with new SLOs. This is something we couldn't do with Grafana.
 
 #### Do I still need Grafana?
 
