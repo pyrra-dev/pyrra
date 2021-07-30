@@ -4,7 +4,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipPr
 
 import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
 import { ObjectivesApi, QueryRange } from '../../client'
-import PrometheusLogo from '../PrometheusLogo'
+import { IconExternal } from '../Icons'
 import { greens, reds } from '../colors'
 
 interface ErrorBudgetGraphProps {
@@ -99,7 +99,7 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
   return (
     <>
       <Col>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
           <h4>
             Error Budget
             {loading && samples.length !== 0 ? (
@@ -117,10 +117,12 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
                target="_blank"
                rel="noreferrer"
                href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(query)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
-              <PrometheusLogo/>
+              <IconExternal height={20} width={20}/>
+              Prometheus
             </a>
           ) : <></>}
         </div>
+        <div><p>What percentage of the error budget is left over time?</p></div>
         {loading && samples.length === 0 ?
           <div style={{
             width: '100%',
@@ -141,6 +143,7 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
                 domain={[samples[0].t, samples[samples.length - 1].t]}
               />
               <YAxis
+                width={50}
                 tickCount={5}
                 unit="%"
                 tickFormatter={(v: number) => (100 * v).toFixed(2)}

@@ -2,7 +2,7 @@ import { OverlayTrigger, Table, Tooltip as OverlayTooltip } from 'react-bootstra
 import React, { useEffect, useMemo, useState } from 'react'
 import { formatDuration, PROMETHEUS_URL, PUBLIC_API } from '../App'
 import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
-import PrometheusLogo from './PrometheusLogo'
+import { IconExternal } from './Icons'
 
 interface AlertsTableProps {
   objective: Objective
@@ -27,19 +27,19 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
   }, [api, objective])
 
   return (
-    <Table hover size="sm">
+    <Table className="table-alerts">
       <thead>
       <tr>
         <th style={{ width: '10%' }}>State</th>
         <th style={{ width: '10%' }}>Severity</th>
         <th style={{ width: '10%', textAlign: 'right' }}>Exhaustion</th>
-        <th style={{ width: '15%', textAlign: 'right' }}>Threshold</th>
-        <th style={{ width: '10%' }}/>
-        <th style={{ width: '15%', textAlign: 'left' }}>Short Burn Rate</th>
-        <th style={{ width: '10%' }}/>
-        <th style={{ width: '15%', textAlign: 'left' }}>Long Burn Rate</th>
-        <th style={{ width: '5%', textAlign: 'right' }}>For</th>
+        <th style={{ width: '12%', textAlign: 'right' }}>Threshold</th>
         <th style={{ width: '5%' }}/>
+        <th style={{ width: '10%', textAlign: 'left' }}>Short Burn</th>
+        <th style={{ width: '5%' }}/>
+        <th style={{ width: '10%', textAlign: 'left' }}>Long Burn</th>
+        <th style={{ width: '5%', textAlign: 'right' }}>For</th>
+        <th style={{ width: '10%', textAlign: 'left' }}>Prometheus</th>
       </tr>
       </thead>
       <tbody>
@@ -61,17 +61,9 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
           longCurrent = a._long.current.toFixed(3)
         }
 
-        let stateColor = ''
-        if (a.state === 'firing') {
-          stateColor = '#B71C1C'
-        }
-        if (a.state === 'pending') {
-          stateColor = '#F57F17'
-        }
-
         return (
-          <tr key={i}>
-            <td><span style={{ color: stateColor }}>{a.state}</span></td>
+          <tr key={i} className={a.state}>
+            <td>{a.state}</td>
             <td>{a.severity}</td>
             <td style={{ textAlign: 'right' }}>
               <OverlayTrigger
@@ -113,7 +105,7 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
                  target="_blank"
                  rel="noreferrer"
                  href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(a._long.query)}&g0.tab=0&g1.expr=${encodeURIComponent(a._short.query)}&g1.tab=0`}>
-                <PrometheusLogo/>
+                <IconExternal height={20} width={20}/>
               </a>
             </td>
           </tr>

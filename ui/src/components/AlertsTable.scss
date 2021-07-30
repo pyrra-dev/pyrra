@@ -1,0 +1,17 @@
+.table-alerts {
+  tr.inactive {
+    border-left: 5px solid rgba(0, 0, 0, 0); // none
+  }
+
+  tr.pending {
+    background-color: $yellow-text;
+    border-left: 5px solid $yellow;
+    color: darken($yellow, 25%);
+  }
+
+  tr.firing {
+    background-color: $red-text;
+    border-left: 5px solid $red;
+    color: darken($red, 40%);
+  }
+}

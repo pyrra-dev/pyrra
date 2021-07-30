@@ -1,0 +1,31 @@
+.content.list {
+  table th {
+    color: $gray-700;
+
+    &:hover {
+      cursor: pointer;
+      color: $gray-900;
+    }
+
+    &.active {
+      color: $gray-900;
+      svg path {
+        stroke: $gray-900;
+      }
+    }
+
+    svg {
+      margin-top: -4px;
+      height: 16px;
+      width: 16px;
+
+      path {
+        stroke: $gray-700;
+      }
+    }
+  }
+
+  tr:hover {
+    cursor: pointer;
+  }
+}

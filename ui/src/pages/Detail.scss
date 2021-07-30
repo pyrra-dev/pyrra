@@ -1,0 +1,55 @@
+.content.detail {
+  .container .row {
+    margin-bottom: 100px;
+  }
+
+  .metrics {
+    width: 100%;
+    margin-left: 50px;
+    margin-right: 50px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 75px;
+    justify-items: center;
+
+    div {
+      padding: 35px;
+      background-color: $gray-300;
+      color: $gray-900;
+      border-radius: 8px;
+
+      h2, h6 {
+        font-weight: normal;
+        font-family: $font-family-sans-serif;
+      }
+
+      h2 {
+        font-size: 40px;
+      }
+
+      h6 {
+        font-size: 20px;
+      }
+
+      &.good {
+        background-color: $green;
+        color: $green-text;
+      }
+
+      &.bad {
+        background-color: $red;
+        color: $red-text;
+      }
+    }
+  }
+
+  .timerange {
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0) 45%, $gray-300 50%, rgba(0, 0, 0, 0) 55%);
+
+    .inner {
+      width: 30%;
+      margin: 0 auto;
+      background-color: $body-bg;
+    }
+  }
+}

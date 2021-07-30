@@ -4,7 +4,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipPr
 
 import { ObjectivesApi, QueryRange } from '../../client'
 import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
-import PrometheusLogo from '../PrometheusLogo'
+import { IconExternal } from '../Icons'
 import { reds } from '../colors'
 
 interface ErrorsGraphProps {
@@ -72,7 +72,7 @@ const ErrorsGraph = ({ api, namespace, name, timeRange }: ErrorsGraphProps): JSX
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <h4>
           Errors
           {errorsLoading ? <Spinner animation="border" style={{
@@ -88,9 +88,13 @@ const ErrorsGraph = ({ api, namespace, name, timeRange }: ErrorsGraphProps): JSX
              target="_blank"
              rel="noreferrer"
              href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(errorsQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
-            <PrometheusLogo/>
+            <IconExternal height={20} width={20}/>
+            Prometheus
           </a>
         ) : <></>}
+      </div>
+      <div>
+        <p>What percentage of requests were errors?</p>
       </div>
       {errors.length > 0 && errorsLabels.length > 0 ? (
         <ResponsiveContainer height={150}>
@@ -104,6 +108,7 @@ const ErrorsGraph = ({ api, namespace, name, timeRange }: ErrorsGraphProps): JSX
               domain={[errors[0].t, errors[errors.length - 1].t]}
             />
             <YAxis
+              width={20}
               tickCount={3}
               unit="%"
               // tickFormatter={(v: number) => (100 * v).toFixed(2)}

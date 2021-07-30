@@ -1,4 +1,6 @@
 export const greens = [
+  '32B67A',
+  // Update to the actual color palette
   '1B5E20',
   '2E7D32',
   '388E3C',
@@ -10,6 +12,8 @@ export const greens = [
   'C8E6C9'
 ]
 export const blues = [
+  '005397',
+  // Update to the actual color palette
   "0D47A1",
   "1565C0",
   "1976D2",
@@ -21,6 +25,8 @@ export const blues = [
   "BBDEFB"
 ]
 export const reds = [
+  'F46363',
+  // Update to the actual color palette
   "B71C1C",
   "C62828",
   "D32F2F",
@@ -32,6 +38,8 @@ export const reds = [
   "FFCDD2"
 ]
 export const yellows = [
+  'F4A32A',
+  // Update to the actual color palette
   "F57F17",
   "F9A825",
   "FBC02D",

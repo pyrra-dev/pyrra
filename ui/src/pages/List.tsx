@@ -3,6 +3,8 @@ import { Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as Overlay
 import { Configuration, Objective, ObjectivesApi, ObjectiveStatus } from '../client'
 import { formatDuration, PUBLIC_API } from '../App'
 import { Link, useHistory } from 'react-router-dom'
+import Navbar from '../components/Navbar'
+import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '../components/Icons'
 
 // TableObjective extends Objective to add some more additional (async) properties
 interface TableObjective extends Objective {
@@ -208,7 +210,7 @@ const List = () => {
       }
     )
 
-  const upDownIcon = tableSortState.order === TableSortOrder.Ascending ? '⬆️' : '⬇️'
+  const upDownIcon = tableSortState.order === TableSortOrder.Ascending ? <IconArrowUp/> : <IconArrowDown/>
 
   const objectivePage = (namespace: string, name: string) => `/objectives/${namespace}/${name}`
 
@@ -217,85 +219,95 @@ const List = () => {
   }
 
   return (
-    <Container className="App">
-      <Row>
-        <Col>
-          <h1>Objectives</h1>
-        </Col>
-      </Row>
-      <Table hover={true} striped={false}>
-        <thead>
-        <tr>
-          <th onClick={() => handleTableSort(TableSortType.Name)}>
-            Name {tableSortState.type === TableSortType.Name ? upDownIcon : '↕️'}
-          </th>
-          <th onClick={() => handleTableSort(TableSortType.Window)}>
-            Time Window {tableSortState.type === TableSortType.Window ? upDownIcon : '↕️'}
-          </th>
-          <th onClick={() => handleTableSort(TableSortType.Objective)}>
-            Objective {tableSortState.type === TableSortType.Objective ? upDownIcon : '↕️'}
-          </th>
-          <th onClick={() => handleTableSort(TableSortType.Availability)}>
-            Availability {tableSortState.type === TableSortType.Availability ? upDownIcon : '↕️'}
-          </th>
-          <th onClick={() => handleTableSort(TableSortType.Budget)}>
-            Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon : '↕️'}
-          </th>
-        </tr>
-        </thead>
-        <tbody>
-        {tableList.map((o: TableObjective) => (
-          <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.namespace, o.name)}>
-            <td>
-              <Link to={objectivePage(o.namespace, o.name)}>
-                {o.name}
-              </Link>
-            </td>
-            <td>{formatDuration(o.window)}</td>
-            <td>
-              {(100 * o.target).toFixed(2)}%
-            </td>
-            <td>
-              {o.availability === undefined ? (
-                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
-              ) : <></>}
-              {o.availability === null ? <>-</> : <></>}
-              {o.availability !== undefined && o.availability != null ?
-                <OverlayTrigger
-                  key={o.name}
-                  overlay={
-                    <OverlayTooltip id={`tooltip-${o.name}`}>
-                      Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
-                      Total: {Math.floor(o.availability.total).toLocaleString()}
-                    </OverlayTooltip>
-                  }>
+    <>
+      <Navbar>
+        <></>
+      </Navbar>
+      <Container className="content list">
+        <Row>
+          <Col>
+            <h3>Objectives</h3>
+          </Col>
+          <Table hover={true} striped={false}>
+            <thead>
+            <tr>
+              <th
+                className={tableSortState.type === TableSortType.Name ? 'active' : ''}
+                onClick={() => handleTableSort(TableSortType.Name)}
+              >Name {tableSortState.type === TableSortType.Name ? upDownIcon : <IconArrowUpDown/>}</th>
+              <th
+                className={tableSortState.type === TableSortType.Window ? 'active' : ''}
+                onClick={() => handleTableSort(TableSortType.Window)}
+              >Time Window {tableSortState.type === TableSortType.Window ? upDownIcon : <IconArrowUpDown/>}</th>
+              <th
+                className={tableSortState.type === TableSortType.Objective ? 'active' : ''}
+                onClick={() => handleTableSort(TableSortType.Objective)}
+              >Objective {tableSortState.type === TableSortType.Objective ? upDownIcon : <IconArrowUpDown/>}</th>
+              <th
+                className={tableSortState.type === TableSortType.Availability ? 'active' : ''}
+                onClick={() => handleTableSort(TableSortType.Availability)}
+              >Availability {tableSortState.type === TableSortType.Availability ? upDownIcon : <IconArrowUpDown/>}</th>
+              <th
+                className={tableSortState.type === TableSortType.Budget ? 'active' : ''}
+                onClick={() => handleTableSort(TableSortType.Budget)}
+              >Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon : <IconArrowUpDown/>}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {tableList.map((o: TableObjective) => (
+              <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.namespace, o.name)}>
+                <td>
+                  <Link to={objectivePage(o.namespace, o.name)} className="text-reset">
+                    {o.name}
+                  </Link>
+                </td>
+                <td>{formatDuration(o.window)}</td>
+                <td>
+                  {(100 * o.target).toFixed(2)}%
+                </td>
+                <td>
+                  {o.availability === undefined ? (
+                    <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+                  ) : <></>}
+                  {o.availability === null ? <>-</> : <></>}
+                  {o.availability !== undefined && o.availability != null ?
+                    <OverlayTrigger
+                      key={o.name}
+                      overlay={
+                        <OverlayTooltip id={`tooltip-${o.name}`}>
+                          Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
+                          Total: {Math.floor(o.availability.total).toLocaleString()}
+                        </OverlayTooltip>
+                      }>
                   <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
                     {(100 * o.availability.percentage).toFixed(2)}%
                   </span>
-                </OverlayTrigger>
-                : <></>}
-            </td>
-            <td>
-              {o.budget === undefined ? (
-                <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
-              ) : <></>}
-              {o.budget === null ? <>-</> : <></>}
-              {o.budget !== undefined && o.budget != null ?
-                <span className={o.budget >= 0 ? 'good' : 'bad'}>
+                    </OverlayTrigger>
+                    : <></>}
+                </td>
+                <td>
+                  {o.budget === undefined ? (
+                    <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+                  ) : <></>}
+                  {o.budget === null ? <>-</> : <></>}
+                  {o.budget !== undefined && o.budget != null ?
+                    <span className={o.budget >= 0 ? 'good' : 'bad'}>
                   {(100 * o.budget).toFixed(2)}%
                 </span> : <></>}
-            </td>
-          </tr>
-        ))}
-        </tbody>
-      </Table>
-      <Row>
-        <Col>
-          <small>All availabilities and error budgets are calculated across the entire time window of the
-            objective.</small>
-        </Col>
-      </Row>
-    </Container>
+                </td>
+              </tr>
+            ))}
+            </tbody>
+          </Table>
+        </Row>
+        <Row>
+          <Col>
+            <small>All availabilities and error budgets are calculated across the entire time window of the
+              objective.</small>
+          </Col>
+        </Row>
+      </Container>
+    </>
   )
 }
 

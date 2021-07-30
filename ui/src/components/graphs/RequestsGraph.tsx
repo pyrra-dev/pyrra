@@ -4,7 +4,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipPr
 
 import { ObjectivesApi, QueryRange } from '../../client'
 import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
-import PrometheusLogo from '../PrometheusLogo'
+import { IconExternal } from '../Icons'
 import { blues, greens, reds, yellows } from '../colors'
 
 interface RequestsGraphProps {
@@ -71,7 +71,7 @@ const RequestsGraph = ({ api, namespace, name, timeRange }: RequestsGraphProps):
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <h4>
           Requests
           {requestsLoading ? <Spinner animation="border" style={{
@@ -87,9 +87,13 @@ const RequestsGraph = ({ api, namespace, name, timeRange }: RequestsGraphProps):
              target="_blank"
              rel="noreferrer"
              href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(requestsQuery)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
-            <PrometheusLogo/>
+            <IconExternal height={20} width={20}/>
+            <span>Prometheus</span>
           </a>
         ) : <></>}
+      </div>
+      <div>
+        <p>How many requests per second have there been?</p>
       </div>
       {requests.length > 0 && requestsLabels.length > 0 ? (
         <ResponsiveContainer height={150}>
@@ -104,6 +108,7 @@ const RequestsGraph = ({ api, namespace, name, timeRange }: RequestsGraphProps):
             />
             <YAxis
               tickCount={3}
+              width={30}
               // tickFormatter={(v: number) => (100 * v).toFixed(2)}
               // domain={[0, 10]}
             />

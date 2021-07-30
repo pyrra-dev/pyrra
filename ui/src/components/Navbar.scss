@@ -1,0 +1,29 @@
+.navbar {
+  height: 56px;
+
+  .breadcrumb {
+    font-size: 18px;
+
+    a {
+      color: $gray-700;
+
+      &:hover {
+        color: $gray-900;
+        text-decoration: none;
+      }
+    }
+
+    span {
+      color: $gray-900;
+      font-weight: 700;
+    }
+  }
+
+  .logo {
+    width: 40px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+  }
+}

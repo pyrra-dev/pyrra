@@ -1,0 +1,136 @@
+$gray-100: #FAFAFA;
+$gray-200: #F5F5F5;
+$gray-300: #F0F0F0;
+$gray-400: #DEDEDE;
+$gray-500: #C2C2C2;
+$gray-600: #979797;
+$gray-700: #818181;
+$gray-800: #606060;
+$gray-900: #3C3C3C;
+
+$blue: #005397;
+$blue-text: lighten($blue, 65%);
+$red: #F46363;
+$red-text: lighten($red, 30%);
+$yellow: #F4A32A;
+$yellow-text: lighten($yellow, 40%);
+$green: #32B67A;
+$green-text: lighten($green, 50%);
+
+$light: $gray-300;
+
+$body-bg: $gray-100;
+
+$font-family-sans-serif: 'Inter';
+
+$headings-font-family: 'Lato';
+$headings-font-weight: 700;
+$headings-margin-bottom: 1rem * 0.75;
+
+$table-th-font-weight: 600;
+
+// Import all bootstrap modules manually and comment out the ones we don't need.
+// The diff should make it easier to upgrade in the future too.
+@import "~bootstrap/scss/functions";
+@import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/mixins";
+@import "~bootstrap/scss/root";
+@import "~bootstrap/scss/reboot";
+@import "~bootstrap/scss/type";
+//@import "~bootstrap/scss/images";
+@import "~bootstrap/scss/code";
+@import "~bootstrap/scss/grid";
+@import "~bootstrap/scss/tables";
+//@import "~bootstrap/scss/forms";
+@import "~bootstrap/scss/buttons";
+//@import "~bootstrap/scss/transitions";
+//@import "~bootstrap/scss/dropdown";
+@import "~bootstrap/scss/button-group";
+//@import "~bootstrap/scss/input-group";
+//@import "~bootstrap/scss/custom-forms";
+//@import "~bootstrap/scss/nav";
+@import "~bootstrap/scss/navbar";
+//@import "~bootstrap/scss/card";
+//@import "~bootstrap/scss/breadcrumb";
+//@import "~bootstrap/scss/pagination";
+//@import "~bootstrap/scss/badge";
+@import "~bootstrap/scss/jumbotron";
+@import "~bootstrap/scss/alert";
+//@import "~bootstrap/scss/progress";
+@import "~bootstrap/scss/media";
+//@import "~bootstrap/scss/list-group";
+@import "~bootstrap/scss/close";
+@import "~bootstrap/scss/toasts";
+//@import "~bootstrap/scss/modal";
+@import "~bootstrap/scss/tooltip";
+//@import "~bootstrap/scss/popover";
+//@import "~bootstrap/scss/carousel";
+@import "~bootstrap/scss/spinners";
+@import "~bootstrap/scss/utilities";
+@import "~bootstrap/scss/print";
+
+// Add our application specific overwrites.
+
+.navbar {
+  background-color: $gray-300;
+}
+
+.table thead th {
+  font-size: 14px;
+  color: $gray-700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-top: 0;
+}
+
+.btn-light:not(:disabled):not(.disabled):active,
+.btn-light:not(:disabled):not(.disabled).active {
+  background-color: $gray-900;
+  border-color: $gray-900;
+  color: $gray-100;
+}
+
+.btn-light:not(:disabled):not(.disabled):active:focus,
+.btn-light:not(:disabled):not(.disabled).active:focus {
+  box-shadow: 0 0 0 0.2rem $gray-900;
+}
+
+.btn-group {
+  box-shadow: 0 1px 3px $gray-400;
+  border-radius: $border-radius;
+}
+
+pre {
+  background-color: $gray-300;
+}
+
+
+// Add some generic global application CSS
+
+.content {
+  margin: 100px auto;
+}
+
+a.external-prometheus {
+  color: $gray-900;
+  text-decoration: none;
+
+  svg {
+    margin-top: -2px;
+    margin-right: 4px;
+  }
+}
+
+.recharts-responsive-container {
+  font-size: 12px;
+
+  .recharts-text {
+    fill: $gray-700;
+  }
+}
+
+// Import our own components now
+@import "pages/List";
+@import "pages/Detail";
+@import "components/Navbar";
+@import "components/AlertsTable";
