@@ -1,6 +1,11 @@
-# Pyrra
+<p align="center">
+  <img src="ui/src/logo.svg" alt="Pyrra: SLOs with Prometheus" height="75">
+</p>
 
-Making SLOs with Prometheus manageable, accessible, and easy to use for everyone!
+<p align="center">Making SLOs with Prometheus manageable, accessible, and easy to use for everyone!
+</p>
+<p align="center"><img src="docs/screenshot-readme.png" width=700 alt="Screenshot of Pyrra"></p>
+
 
 ## Features
 
@@ -28,9 +33,11 @@ We would love to learn what you think!
 
 ## Acknowledgements
 
-[Aditya Konarde](https://github.com/aditya-konarde), [Christian Bargmann](https://github.com/cbrgm), [Frederic Branczyk](https://github.com/brancz), [Ganesh Vernekar](https://github.com/codesome), [Guus van Weelden](https://github.com/guusvw), [Jimmy Zelinskie](https://github.com/jzelinskie), [Kemal Akkoyun](https://github.com/kakkoyun), [Lennart Oldenburg](https://github.com/numbleroot), [Lili Cosic](https://github.com/lilic), [Maria Franke](), [Markus Ressel](https://github.com/markusressel), [Max Inden](https://github.com/mxinden), [Max Rosin](https://github.com/ekeih), [Morre Meyer](https://github.com/morremeyer), [Paweł Krupa](https://github.com/paulfantom), [Rick Rackow](https://github.com/RiRa12621), [Thomas Boerger](https://github.com/tboerger)
+[@aditya-konarde](https://github.com/aditya-konarde), [@brancz](https://github.com/brancz), [@cbrgm](https://github.com/cbrgm), [@codesome](https://github.com/codesome), [@ekeih](https://github.com/ekeih), [@guusvw](https://github.com/guusvw), [@jzelinskie](https://github.com/jzelinskie), [@kakkoyun](https://github.com/kakkoyun), [@lilic](https://github.com/lilic), [@markusressel](https://github.com/markusressel), [@morremeyer](https://github.com/morremeyer), [@mxinden](https://github.com/mxinden), [@numbleroot](https://github.com/numbleroot), [@paulfantom](https://github.com/paulfantom), [@RiRa12621](https://github.com/RiRa12621), [@tboerger](https://github.com/tboerger) and [Maria Franke](),
 
-While [Nadine](https://github.com/nadinevehling) and [Matthias](https://github.com/metalmatze) were working on Pyrra in private these amazing people helped us with a look of feedback and some even took an extra hour for a in-depth testing! Thank you all so much! 
+While we were working on Pyrra in private these amazing people helped us with a look of feedback and some even took an extra hour for a in-depth testing! Thank you all so much!
+
+Additionally, [@metalmatze](https://github.com/metalmatze) would like to thank [Polar Signals](https://www.polarsignals.com/) for allowing us to work on this project in his 20% time.
 
 ## Installation
 
@@ -138,6 +145,14 @@ Contributions are always welcome!
 See `contributing.md` for ways to get started.
 
 Please adhere to this project's `code of conduct`.
+
+## Maintainers
+| Name           | Area        | GitHub                                             | Twitter                                             |    Company    |
+| :------------- | :---------- | :------------------------------------------------- | :-------------------------------------------------- | :------------ |
+| Nadine Vehling | UI / UX | [@nadinevehling](https://github.com/nadinevehling) | [@nadinevehling](https://twitter.com/nadinevehling) |               |
+| Matthias Loibl | Engineering | [@metalmatze](https://github.com/metalmatze)       | [@metalmatze](https://twitter.com/MetalMatze)       | Polar Signals |
+
+We are mostly maintaining Pyrra in our free time.
 
 ## FAQ
 
