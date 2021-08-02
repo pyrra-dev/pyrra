@@ -127,4 +127,4 @@ ui/src/client: api.yaml
 .PHONY: ui
 ui:
 	cd ui && npm run build
-	rm -rf ./cmd/api/ui/build && cp -r ./ui/build/ ./cmd/api/ui/
+	rm -rf ./cmd/api/ui/build && cp -r ./ui/build ./cmd/api/ui/

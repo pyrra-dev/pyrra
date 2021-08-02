@@ -33,7 +33,7 @@ import (
 var ui embed.FS
 
 func main() {
-	build, err := fs.Sub(ui, "ui/build")
+	build, err := fs.Sub(ui, "cmd/ui/build")
 	if err != nil {
 		log.Fatal(err)
 	}
