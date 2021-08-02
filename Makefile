@@ -24,7 +24,7 @@ clean:
 
 # Run tests
 test: generate fmt vet manifests
-	go test ./... -coverprofile cover.out
+	go test -race ./... -coverprofile cover.out
 
 build: kubernetes filesystem api
 
