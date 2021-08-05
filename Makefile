@@ -14,17 +14,19 @@ endif
 
 OPENAPI ?= docker run --rm \
 		--user=$(shell id -u $(USER)):$(shell id -g $(USER)) \
-		-v $(shell pwd):$(shell pwd) \
+		-v ${PWD}:${PWD} \
 		openapitools/openapi-generator-cli:v5.1.1
 
-all: ui api kubernetes filesystem
+all: ui build lint
 
-install:
-	cd ui && npm install
+clean:
+	rm -rf ui/build ui/node_modules cmd/api/ui/build
 
 # Run tests
 test: generate fmt vet manifests
 	go test ./... -coverprofile cover.out
+
+build: kubernetes filesystem api
 
 # Build kubernetes binary
 kubernetes: generate fmt vet
@@ -48,7 +50,6 @@ deploy: manifests config/api.yaml config/kubernetes.yaml
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=pyrra-kubernetes webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-
 config/api.yaml: config/api.cue
 	cue fmt -s ./config/
 	cue cmd --inject imageAPI=${IMG_API} "api.yaml" ./config
@@ -56,6 +57,9 @@ config/api.yaml: config/api.cue
 config/kubernetes.yaml: config/kubernetes.cue
 	cue fmt -s ./config/
 	cue cmd --inject imageKubernetes=${IMG_KUBERNETES} "kubernetes.yaml" ./config
+
+# Run code linters
+lint: fmt vet
 
 # Run go fmt against code
 fmt:
@@ -104,27 +108,40 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
+.PHONY: openapi
 openapi: openapi/server openapi/client ui/src/client
 
 openapi/server: api.yaml
-	-rm -rf $@
-	$(OPENAPI) generate -i $(shell pwd)/api.yaml -g go-server -o $(shell pwd)/openapi/server
+	-rm -f $@
+	$(OPENAPI) generate -i ${PWD}/api.yaml -g go-server -o ${PWD}/openapi/server
 	-rm -rf $@/{Dockerfile,go.mod,main.go,README.md}
 	goimports -w $(shell find ./openapi/server/ -name '*.go')
 	touch $@
 
 openapi/client: api.yaml
-	-rm -rf $@
-	$(OPENAPI) generate -i $(shell pwd)/api.yaml -g go -o $(shell pwd)/openapi/client
+	-rm -f $@
+	$(OPENAPI) generate -i ${PWD}/api.yaml -g go -o ${PWD}/openapi/client
 	-rm -rf $@/{docs,.travis.yml,git_push.sh,go.mod,go.sum,README.md}
 	goimports -w $(shell find ./openapi/client/ -name '*.go')
 	touch $@
 
 ui/src/client: api.yaml
-	-rm -rf $@
-	$(OPENAPI) generate -i $(shell pwd)/api.yaml -g typescript-fetch -o $(shell pwd)/ui/src/client
+	-rm -f $@
+	$(OPENAPI) generate -i ${PWD}/api.yaml -g typescript-fetch -o ${PWD}/ui/src/client
+
+.PHONY: install
+install: ui/node_modules
+
+ui/node_modules:
+	cd ui && npm install
 
 .PHONY: ui
-ui:
+ui: cmd/api/ui/build
+
+ui/build:
 	cd ui && npm run build
-	rm -rf ./cmd/api/ui/build && cp -r ./ui/build ./cmd/api/ui/
+
+cmd/api/ui/build: ui/build
+	rm -rf ./cmd/api/ui
+	mkdir -p ./cmd/api/ui/
+	cp -r ./ui/build ./cmd/api/ui/
