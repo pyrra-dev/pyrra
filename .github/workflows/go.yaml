@@ -13,15 +13,9 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 jobs:
   go:
-    needs:
-      - node
     runs-on: ubuntu-latest
     name: Go
     steps:
-      - name: Download UI for Go API
-        uses: actions/download-artifact@v2
-        with:
-          name: ui
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
