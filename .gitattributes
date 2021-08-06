@@ -1,2 +1,4 @@
 cue.mod/** linguist-vendored
-
+openapi/client/** linguist-generated
+openapi/server/** linguist-generated
+ui/src/client/** linguist-generated
