@@ -1,0 +1,7 @@
+.github/
+config/
+cue.mod/
+docs/
+examples/
+ui/build/
+ui/node_modules/

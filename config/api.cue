@@ -9,7 +9,7 @@ api: {
 	_name:      "pyrra-api"
 	_namespace: "monitoring"
 	_replicas:  1
-	_image:     "api:latest" | string @tag(imageAPI)
+	_image:     "pyrra:latest" | string @tag(image)
 	_ports: http: 9099
 
 	service: corev1.#Service & {
@@ -41,6 +41,7 @@ api: {
 				metadata: labels: "app.kubernetes.io/name": _name
 				spec: containers: [{
 					args: [
+						"api",
 						"--prometheus.url=http://prometheus-k8s.monitoring.svc.cluster.local:9090",
 						"--api.url=http://\( kubernetes._name ).\(kubernetes._namespace).svc.cluster.local:\(kubernetes._ports.api)",
 					]
