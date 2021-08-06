@@ -30,9 +30,7 @@ COPY --from=uibuilder /workspace/ui/build /workspace/cmd/api/ui/build
 RUN go mod download
 RUN make api
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM alpine
+FROM alpine:3.14
 WORKDIR /
 COPY --from=builder /workspace/bin/api /usr/bin/api
 
