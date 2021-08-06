@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"embed"
-	"flag"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -17,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alecthomas/kong"
 	"github.com/cespare/xxhash/v2"
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
@@ -32,26 +32,50 @@ import (
 //go:embed ui/build
 var ui embed.FS
 
+var CLI struct {
+	API struct {
+		PrometheusURL         *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
+		PrometheusExternalURL *url.URL `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
+		ApiURL                *url.URL `default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
+	} `cmd:"" help:"Runs Pyrra's API and UI."`
+	Filesystem struct {
+		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		PrometheusFolder string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
+	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
+	Kubernetes struct {
+		MetricsAddr string `default:":8080" help:"The address the metric endpoint binds to."`
+	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
+}
+
 func main() {
+	ctx := kong.Parse(&CLI)
+	switch ctx.Command() {
+	case "api":
+		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.ApiURL)
+	case "filesystem":
+		cmdFilesystem(CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
+	case "kubernetes":
+		cmdKubernetes(CLI.Kubernetes.MetricsAddr)
+	}
+
+	return
+}
+
+func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL) {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	prometheusURL := flag.String("prometheus.url", "http://localhost:9090", "The URL to the Prometheus to query.")
-	prometheusExternal := flag.String("prometheus.external", "", "The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url")
-	apiURL := flag.String("api.url", "http://localhost:9444", "The URL to the API service like a Kubernetes Operator.")
-	flag.Parse()
-
-	if *prometheusExternal == "" {
+	if prometheusExternal == nil {
 		prometheusExternal = prometheusURL
 	}
 
-	log.Println("Using Prometheus at", *prometheusURL)
-	log.Println("Using external Prometheus at", *prometheusExternal)
-	log.Println("Using API at", *apiURL)
+	log.Println("Using Prometheus at", prometheusURL.String())
+	log.Println("Using external Prometheus at", prometheusExternal.String())
+	log.Println("Using API at", apiURL.String())
 
-	client, err := api.NewClient(api.Config{Address: *prometheusURL})
+	client, err := api.NewClient(api.Config{Address: prometheusURL.String()})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,15 +95,9 @@ func main() {
 		cache: cache,
 	}
 
-	parsedAPIURL, err := url.Parse(*apiURL)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
 	apiConfig := openapiclient.NewConfiguration()
-	apiConfig.Scheme = parsedAPIURL.Scheme
-	apiConfig.Host = parsedAPIURL.Host
+	apiConfig.Scheme = apiURL.Scheme
+	apiConfig.Host = apiURL.Host
 	apiClient := openapiclient.NewAPIClient(apiConfig)
 
 	router := openapiserver.NewRouter(
@@ -101,7 +119,7 @@ func main() {
 		if err := tmpl.Execute(w, struct {
 			PrometheusURL string
 		}{
-			PrometheusURL: *prometheusExternal,
+			PrometheusURL: prometheusExternal.String(),
 		}); err != nil {
 			log.Println(err)
 			return
@@ -112,7 +130,7 @@ func main() {
 			if err := tmpl.Execute(w, struct {
 				PrometheusURL string
 			}{
-				PrometheusURL: *prometheusExternal,
+				PrometheusURL: prometheusExternal.String(),
 			}); err != nil {
 				log.Println(err)
 			}

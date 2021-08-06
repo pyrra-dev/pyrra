@@ -16,22 +16,21 @@ FROM golang:1.16 as builder
 
 WORKDIR /workspace
 
-COPY cmd/api/ cmd/api/
 COPY kubernetes/ kubernetes/
 COPY openapi/ openapi/
 COPY slo/ slo/
-COPY slo/ slo/
-COPY go.mod go.mod
-COPY go.sum go.sum
+COPY *.go ./
+COPY go.mod ./
+COPY go.sum ./
 COPY Makefile Makefile
-COPY --from=uibuilder /workspace/ui/build /workspace/cmd/api/ui/build
+COPY --from=uibuilder /workspace/ui/build /workspace/ui/build
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
-RUN make api
+RUN make pyrra
 
 FROM alpine:3.14
 WORKDIR /
-COPY --from=builder /workspace/bin/api /usr/bin/api
+COPY --from=builder /workspace/pyrra /usr/bin/pyrra
 
-ENTRYPOINT ["/usr/bin/api"]
+ENTRYPOINT ["/usr/bin/pyrra"]

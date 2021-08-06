@@ -22,4 +22,4 @@ bin
 *.swo
 *~
 
-/cmd/api/ui/
+/pyrra

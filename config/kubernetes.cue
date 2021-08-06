@@ -10,7 +10,7 @@ kubernetes: {
 	_name:      "pyrra-kubernetes"
 	_namespace: "monitoring"
 	_replicas:  1
-	_image:     "controller:latest" | string @tag(imageKubernetes)
+	_image:     "pyrra:latest" | string @tag(image)
 	_ports: {
 		internal: 9443
 		api:      9444

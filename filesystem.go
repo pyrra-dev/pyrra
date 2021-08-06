@@ -20,7 +20,7 @@ import (
 
 var objectives = map[string]slo.Objective{}
 
-func main() {
+func cmdFilesystem(configFiles, prometheusFolder string) {
 	var gr run.Group
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -29,7 +29,7 @@ func main() {
 	{
 		gr.Add(func() error {
 			// Initially read all files and send them to be processed and added to the in memory store.
-			filenames, err := filepath.Glob("/etc/pyrra/*.yaml")
+			filenames, err := filepath.Glob(configFiles)
 			if err != nil {
 				return err
 			}
@@ -43,12 +43,15 @@ func main() {
 		})
 	}
 	{
+		dir := filepath.Dir(configFiles)
+		log.Println("watching directory for changes", dir)
+
 		watcher, err := fsnotify.NewWatcher()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		err = watcher.Add("/etc/pyrra")
+		err = watcher.Add(dir)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -110,7 +113,7 @@ func main() {
 					}
 
 					_, file := filepath.Split(f)
-					if err := ioutil.WriteFile(filepath.Join("/etc/prometheus/pyrra/", file), bytes, 0644); err != nil {
+					if err := ioutil.WriteFile(filepath.Join(prometheusFolder, file), bytes, 0644); err != nil {
 						return err
 					}
 

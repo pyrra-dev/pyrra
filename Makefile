@@ -1,6 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG_API ?= api:latest
-IMG_KUBERNETES ?= kubernetes:latest
+IMG ?= ghcr.io/pyrra-dev/pyrra:main
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
@@ -17,28 +16,23 @@ OPENAPI ?= docker run --rm \
 		-v ${PWD}:${PWD} \
 		openapitools/openapi-generator-cli:v5.1.1
 
-all: ui build lint
+all: ui/build build lint
+
+.PHONY: install
+install: ui/node_modules
 
 clean:
-	rm -rf ui/build ui/node_modules cmd/api/ui/build
+	rm -rf ui/build ui/node_modules
 
 # Run tests
 test: generate fmt vet manifests
 	go test -race ./... -coverprofile cover.out
 
-build: kubernetes filesystem api
-
-# Build kubernetes binary
-kubernetes: generate fmt vet
-	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/kubernetes ./cmd/kubernetes/main.go
-
-# Build kubernetes binary
-filesystem: generate fmt vet
-	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/filesystem ./cmd/filesystem/main.go
+build: pyrra
 
 # Build api binary
-api: fmt vet
-	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/api ./cmd/api/main.go
+pyrra: fmt vet
+	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o pyrra
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests config/api.yaml config/kubernetes.yaml
@@ -50,13 +44,15 @@ deploy: manifests config/api.yaml config/kubernetes.yaml
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=pyrra-kubernetes webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
+config: config/api.yaml config/kubernetes.yaml
+
 config/api.yaml: config/api.cue
 	cue fmt -s ./config/
-	cue cmd --inject imageAPI=${IMG_API} "api.yaml" ./config
+	cue cmd --inject image=${IMG} "api.yaml" ./config
 
 config/kubernetes.yaml: config/kubernetes.cue
 	cue fmt -s ./config/
-	cue cmd --inject imageKubernetes=${IMG_KUBERNETES} "kubernetes.yaml" ./config
+	cue cmd --inject image=${IMG} "kubernetes.yaml" ./config
 
 # Run code linters
 lint: fmt vet
@@ -73,23 +69,11 @@ vet:
 generate: controller-gen manifests
 	$(CONTROLLER_GEN) object:headerFile="kubernetes/hack/boilerplate.go.txt" paths="./..."
 
-# Build the docker image
-docker-build: docker-build-api docker-build-kubernetes
+docker-build:
+	docker build . -t ${IMG}
 
-docker-build-api:
-	docker build . -t ${IMG_API} -f ./cmd/api/Dockerfile
-
-docker-build-kubernetes:
-	docker build . -t ${IMG_KUBERNETES} -f ./cmd/kubernetes/Dockerfile
-
-# Push the docker image
-docker-push: docker-push-api docker-push-kubernetes
-
-docker-push-api:
-	docker push ${IMG_API}
-
-docker-push-kubernetes:
-	docker push ${IMG_KUBERNETES}
+docker-push:
+	docker push ${IMG}
 
 # find or download controller-gen
 # download controller-gen if necessary
@@ -129,19 +113,8 @@ ui/src/client: api.yaml
 	-rm -f $@
 	$(OPENAPI) generate -i ${PWD}/api.yaml -g typescript-fetch -o ${PWD}/ui/src/client
 
-.PHONY: install
-install: ui/node_modules
-
 ui/node_modules:
 	cd ui && npm install
 
-.PHONY: ui
-ui: cmd/api/ui/build
-
 ui/build:
 	cd ui && npm run build
-
-cmd/api/ui/build: ui/build
-	rm -rf ./cmd/api/ui
-	mkdir -p ./cmd/api/ui/
-	cp -r ./ui/build ./cmd/api/ui/
