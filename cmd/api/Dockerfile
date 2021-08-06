@@ -20,7 +20,6 @@ COPY cmd/api/ cmd/api/
 COPY kubernetes/ kubernetes/
 COPY openapi/ openapi/
 COPY slo/ slo/
-COPY slo/ slo/
 COPY go.mod go.mod
 COPY go.sum go.sum
 COPY Makefile Makefile

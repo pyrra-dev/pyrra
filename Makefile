@@ -1,6 +1,5 @@
 # Image URL to use all building/pushing image targets
 IMG_API ?= api:latest
-IMG_KUBERNETES ?= kubernetes:latest
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true"
@@ -26,19 +25,11 @@ clean:
 test: generate fmt vet manifests
 	go test -race ./... -coverprofile cover.out
 
-build: kubernetes filesystem api
-
-# Build kubernetes binary
-kubernetes: generate fmt vet
-	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/kubernetes ./cmd/kubernetes/main.go
-
-# Build kubernetes binary
-filesystem: generate fmt vet
-	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/filesystem ./cmd/filesystem/main.go
+build: api
 
 # Build api binary
 api: fmt vet
-	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/api ./cmd/api/main.go
+	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/api ./cmd/api
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests config/api.yaml config/kubernetes.yaml
@@ -74,22 +65,16 @@ generate: controller-gen manifests
 	$(CONTROLLER_GEN) object:headerFile="kubernetes/hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
-docker-build: docker-build-api docker-build-kubernetes
+docker-build: docker-build-api
 
 docker-build-api:
 	docker build . -t ${IMG_API} -f ./cmd/api/Dockerfile
 
-docker-build-kubernetes:
-	docker build . -t ${IMG_KUBERNETES} -f ./cmd/kubernetes/Dockerfile
-
 # Push the docker image
-docker-push: docker-push-api docker-push-kubernetes
+docker-push: docker-push-api
 
 docker-push-api:
 	docker push ${IMG_API}
-
-docker-push-kubernetes:
-	docker push ${IMG_KUBERNETES}
 
 # find or download controller-gen
 # download controller-gen if necessary
