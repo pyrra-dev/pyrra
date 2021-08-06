@@ -1,0 +1,25 @@
+name: Go
+on:
+  pull_request:
+  push:
+    branches:
+      - 'release-*'
+      - 'main'
+    tags:
+      - 'v*'
+env:
+  golang-version: '1.16'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    name: Go
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.golang-version }}
+      - run: mkdir -p cmd/api/ui/build && touch cmd/api/ui/build/empty
+      - run: make test
+      - run: make api kubernetes filesystem

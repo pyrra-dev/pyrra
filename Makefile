@@ -24,21 +24,21 @@ clean:
 
 # Run tests
 test: generate fmt vet manifests
-	go test ./... -coverprofile cover.out
+	go test -race ./... -coverprofile cover.out
 
 build: kubernetes filesystem api
 
 # Build kubernetes binary
 kubernetes: generate fmt vet
-	go build -o bin/kubernetes ./cmd/kubernetes/main.go
+	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/kubernetes ./cmd/kubernetes/main.go
 
 # Build kubernetes binary
 filesystem: generate fmt vet
-	go build -o bin/filesystem ./cmd/filesystem/main.go
+	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/filesystem ./cmd/filesystem/main.go
 
 # Build api binary
 api: fmt vet
-	go build -o bin/api ./cmd/api/main.go
+	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o bin/api ./cmd/api/main.go
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests config/api.yaml config/kubernetes.yaml
