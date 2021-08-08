@@ -47,7 +47,7 @@ kubernetes: {
 				spec: {
 					serviceAccountName: _name
 					containers: [{
-						command: [ "/kubernetes"]
+						args: ["kubernetes"]
 						image: _image
 						name:  _name
 						resources: {

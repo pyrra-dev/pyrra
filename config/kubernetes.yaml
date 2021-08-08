@@ -31,8 +31,8 @@ spec:
     spec:
       serviceAccountName: pyrra-kubernetes
       containers:
-      - command:
-        - /kubernetes
+      - args:
+        - kubernetes
         image: ghcr.io/pyrra-dev/pyrra:main
         name: pyrra-kubernetes
         resources:
