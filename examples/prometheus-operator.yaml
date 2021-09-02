@@ -8,9 +8,10 @@ metadata:
     role: alert-rules
 spec:
   target: '95.0'
-  window: 168h # 7d
-  serviceLevelIndicator:
-    http:
-      metric: prometheus_operator_kubernetes_client_http_requests_total
-      errorMatchers:
-        - 'status_code=~"5.."'
+  window: 7d
+  indicator:
+    ratio:
+      errors:
+        metric: prometheus_operator_kubernetes_client_http_requests_total{status_code=~"5.."}
+      total:
+        metric: prometheus_operator_kubernetes_client_http_requests_total

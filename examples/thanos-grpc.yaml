@@ -9,10 +9,9 @@ metadata:
 spec:
   target: '99.5'
   window: 7d
-  serviceLevelIndicator:
-    grpc:
-      service: thanos.Store
-      method: Series
-      matchers:
-        - namespace="monitoring"
-        - job="thanos-store"
+  indicator:
+    ratio:
+      errors:
+        metric: grpc_server_handled_total{grpc_service="thanos.Store",grpc_method="Series",namespace="monitoring",job="thanos-store",grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"}
+      total:
+        metric: grpc_server_handled_total{grpc_service="thanos.Store",grpc_method="Series",namespace="monitoring",job="thanos-store"}
