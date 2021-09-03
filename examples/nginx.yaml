@@ -8,16 +8,13 @@ metadata:
     role: alert-rules
 spec:
   target: '99.9'
-  window: 672h
-  serviceLevelIndicator:
-    http:
-      metric: nginx_ingress_controller_requests
-      matchers:
-        - namespace="lastfm"
-        - ingress="lastfm"
-        - service="lastfm"
-      errorMatchers:
-        - status=~"5.."
+  window: 4w
+  indicator:
+    ratio:
+      errors:
+        metric: nginx_ingress_controller_requests{namespace="lastfm",ingress="lastfm",service="lastfm",status=~"5.."}
+      total:
+        metric: nginx_ingress_controller_requests{namespace="lastfm",ingress="lastfm",service="lastfm"}
 ---
 # Latency
 apiVersion: pyrra.dev/v1alpha1
@@ -28,13 +25,10 @@ metadata:
 spec:
   target: '90' # 90% of requests should be faster than 1s
   latency: '1' # le="1" needs to be available on _bucket metric
-  window: 672h
-  serviceLevelIndicator:
-    http:
-      metric: nginx_ingress_controller_request_duration_seconds_bucket
-      matchers:
-        - namespace="lastfm"
-        - ingress="lastfm"
-        - service="lastfm"
-      errorMatchers:
-        - status=~"5.."
+  window: 4w
+  indicator:
+    latency:
+      success:
+        metric: nginx_ingress_controller_request_duration_seconds_bucket{namespace="lastfm",ingress="lastfm",service="lastfm",status=~"5.."}
+      total:
+        metric: nginx_ingress_controller_request_duration_seconds_count{namespace="lastfm",ingress="lastfm",service="lastfm"}
