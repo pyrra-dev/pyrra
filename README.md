@@ -33,24 +33,30 @@ We would love to learn what you think!
 
 ## Acknowledgements
 
-[@aditya-konarde](https://github.com/aditya-konarde), [@brancz](https://github.com/brancz), [@cbrgm](https://github.com/cbrgm), [@codesome](https://github.com/codesome), [@ekeih](https://github.com/ekeih), [@guusvw](https://github.com/guusvw), [@jzelinskie](https://github.com/jzelinskie), [@kakkoyun](https://github.com/kakkoyun), [@lilic](https://github.com/lilic), [@markusressel](https://github.com/markusressel), [@morremeyer](https://github.com/morremeyer), [@mxinden](https://github.com/mxinden), [@numbleroot](https://github.com/numbleroot), [@paulfantom](https://github.com/paulfantom), [@RiRa12621](https://github.com/RiRa12621), [@tboerger](https://github.com/tboerger) and [Maria Franke](),
+[@aditya-konarde](https://github.com/aditya-konarde), [@brancz](https://github.com/brancz), [@cbrgm](https://github.com/cbrgm), [@codesome](https://github.com/codesome), [@ekeih](https://github.com/ekeih), [@guusvw](https://github.com/guusvw), [@jzelinskie](https://github.com/jzelinskie), [@kakkoyun](https://github.com/kakkoyun), [@lilic](https://github.com/lilic), [@markusressel](https://github.com/markusressel), [@morremeyer](https://github.com/morremeyer), [@mxinden](https://github.com/mxinden), [@numbleroot](https://github.com/numbleroot), [@paulfantom](https://github.com/paulfantom), [@RiRa12621](https://github.com/RiRa12621), [@tboerger](https://github.com/tboerger), and Maria Franke.
 
 While we were working on Pyrra in private these amazing people helped us with a look of feedback and some even took an extra hour for a in-depth testing! Thank you all so much!
 
 Additionally, [@metalmatze](https://github.com/metalmatze) would like to thank [Polar Signals](https://www.polarsignals.com/) for allowing us to work on this project in his 20% time.
 
+## Demo
+
+Check out our live demo on [demo.pyrra.dev](https://demo.pyrra.dev)!
+
+Feel free to give it a try there!
+
 ## Installation
 
-Install Pyrra
+There are pre-build container images available:
 
 ```bash
-# TODO
+docker pull ghcr.io/pyrra-dev/pyrra:main
 ```
 
-## Documentation
+While running Pyrra on its own works there won't be any SLO configured nor will there be any data from a Prometheus to work with.
 
-[Documentation](https://linktodocumentation)
-
+Therefore, you can find a docker-compose example in [examples/docker-compose](examples/docker-compose).  
+This stack comes with Pyrra and Prometheus pre-configured, as well as [some SLOs](examples/docker-compose/pyrra).
 
 ## Tech Stack
 
@@ -149,7 +155,7 @@ Please adhere to this project's `code of conduct`.
 ## Maintainers
 | Name           | Area        | GitHub                                             | Twitter                                             |    Company    |
 | :------------- | :---------- | :------------------------------------------------- | :-------------------------------------------------- | :------------ |
-| Nadine Vehling | UI / UX | [@nadinevehling](https://github.com/nadinevehling) | [@nadinevehling](https://twitter.com/nadinevehling) |               |
+| Nadine Vehling | UI / UX     | [@nadinevehling](https://github.com/nadinevehling) | [@nadinevehling](https://twitter.com/nadinevehling) | Grafana Labs  |
 | Matthias Loibl | Engineering | [@metalmatze](https://github.com/metalmatze)       | [@metalmatze](https://twitter.com/MetalMatze)       | Polar Signals |
 
 We are mostly maintaining Pyrra in our free time.
