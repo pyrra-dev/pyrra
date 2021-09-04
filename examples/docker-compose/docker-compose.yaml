@@ -1,0 +1,47 @@
+version: "3"
+
+networks:
+  pyrra:
+
+volumes:
+  prometheus_pyrra: {}
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.29.2
+    restart: always
+    networks:
+      - pyrra
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=33d
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_pyrra:/etc/prometheus/pyrra
+
+  pyrra-api:
+    image: ghcr.io/pyrra-dev/pyrra:main
+    restart: always
+    command:
+      - api
+      - --prometheus-url=http://prometheus:9090
+      - --prometheus-external-url=http://localhost:9090
+      - --api-url=http://pyrra-filesystem:9444
+    ports:
+      - "9099:9099"
+    networks:
+      - pyrra
+
+  pyrra-filesystem:
+    image: ghcr.io/pyrra-dev/pyrra:main
+    restart: always
+    command:
+      - filesystem
+    networks:
+      - pyrra
+    volumes:
+      - ./pyrra:/etc/pyrra
+      - prometheus_pyrra:/etc/prometheus/pyrra
