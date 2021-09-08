@@ -1,0 +1,18 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: apiserver-read-resource-request-latency
+  namespace: monitoring
+spec:
+  description: ""
+  indicator:
+    latency:
+      success:
+        metric: apiserver_request_duration_seconds_bucket{job="apiserver",scope=~"resource|",verb=~"LIST|GET",le="1"}
+      total:
+        metric: apiserver_request_duration_seconds_count{job="apiserver",scope=~"resource|",verb=~"LIST|GET"}
+  target: "99"
+  window: 2w
