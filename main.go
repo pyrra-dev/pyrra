@@ -23,6 +23,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	promconfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiclient "github.com/pyrra-dev/pyrra/openapi/client"
@@ -34,9 +35,10 @@ var ui embed.FS
 
 var CLI struct {
 	API struct {
-		PrometheusURL         *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
-		PrometheusExternalURL *url.URL `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
-		ApiURL                *url.URL `default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
+		PrometheusURL             *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
+		PrometheusExternalURL     *url.URL `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
+		ApiURL                    *url.URL `default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
+		PrometheusBearerTokenPath string   `default:"" help:"Bearer token path"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
@@ -51,7 +53,7 @@ func main() {
 	ctx := kong.Parse(&CLI)
 	switch ctx.Command() {
 	case "api":
-		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.ApiURL)
+		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.ApiURL, CLI.API.PrometheusBearerTokenPath)
 	case "filesystem":
 		cmdFilesystem(CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
 	case "kubernetes":
@@ -61,7 +63,7 @@ func main() {
 	return
 }
 
-func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL) {
+func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearerTokenPath string) {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
 		log.Fatal(err)
@@ -75,7 +77,12 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL) {
 	log.Println("Using external Prometheus at", prometheusExternal.String())
 	log.Println("Using API at", apiURL.String())
 
-	client, err := api.NewClient(api.Config{Address: prometheusURL.String()})
+	config := api.Config{Address: prometheusURL.String()}
+	if len(prometheusBearerTokenPath) > 0 {
+		config.RoundTripper = promconfig.NewAuthorizationCredentialsFileRoundTripper("Bearer", prometheusBearerTokenPath, api.DefaultRoundTripper)
+	}
+
+	client, err := api.NewClient(config)
 	if err != nil {
 		log.Fatal(err)
 	}
