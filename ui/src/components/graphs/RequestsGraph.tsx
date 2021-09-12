@@ -108,7 +108,7 @@ const RequestsGraph = ({ api, namespace, name, timeRange }: RequestsGraphProps):
             />
             <YAxis
               tickCount={3}
-              width={30}
+              width={35}
               // tickFormatter={(v: number) => (100 * v).toFixed(2)}
               // domain={[0, 10]}
             />
