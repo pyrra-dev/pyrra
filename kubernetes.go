@@ -48,7 +48,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func cmdKubernetes(metricsAddr string) {
+func cmdKubernetes(metricsAddr string, namespace string) {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
@@ -58,6 +58,7 @@ func cmdKubernetes(metricsAddr string) {
 		Port:               9443,
 		LeaderElection:     false,
 		LeaderElectionID:   "9d76195a.metalmatze.de",
+		Namespace:          namespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
