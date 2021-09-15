@@ -121,7 +121,14 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
               ) : (
                 <div>
                   <h6>Availability</h6>
-                  <h2>&nbsp;</h2>
+                  <Spinner animation={'border'} style={{
+                    width: 50,
+                    height: 50,
+                    padding: 0,
+                    borderRadius: 50,
+                    borderWidth: 2,
+                    opacity: 0.25
+                  }}/>
                 </div>
               )}
               {errorBudget != null ? (
@@ -134,7 +141,14 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
               ) : (
                 <div>
                   <h6>Error Budget</h6>
-                  <h2>&nbsp;</h2>
+                  <Spinner animation={'border'} style={{
+                    width: 50,
+                    height: 50,
+                    padding: 0,
+                    borderRadius: 50,
+                    borderWidth: 2,
+                    opacity: 0.25
+                  }}/>
                 </div>
               )}
             </div>
