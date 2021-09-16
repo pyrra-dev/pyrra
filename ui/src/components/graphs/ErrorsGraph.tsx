@@ -108,7 +108,7 @@ const ErrorsGraph = ({ api, namespace, name, timeRange }: ErrorsGraphProps): JSX
               domain={[errors[0].t, errors[errors.length - 1].t]}
             />
             <YAxis
-              width={35}
+              width={40}
               tickCount={3}
               unit="%"
               // tickFormatter={(v: number) => (100 * v).toFixed(2)}
