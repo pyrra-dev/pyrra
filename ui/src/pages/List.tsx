@@ -220,9 +220,7 @@ const List = () => {
 
   return (
     <>
-      <Navbar>
-        <></>
-      </Navbar>
+      <Navbar></Navbar>
       <Container className="content list">
         <Row>
           <Col>
