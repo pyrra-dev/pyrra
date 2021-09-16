@@ -142,7 +142,7 @@ Most likely you need to update the `window.PUBLIC_API` constant in `ui/public/in
 
 ## Roadmap
 
-Best to check the [Projects board](https://github.com/pyrra-dev/pyrra/projects/1) and if you cannot find what you're looking for feel free to open an issue!
+Best to check the [Projects board](https://github.com/pyrra-dev/pyrra/projects) and if you cannot find what you're looking for feel free to open an issue!
 
 ## Contributing
 
@@ -155,7 +155,7 @@ Please adhere to this project's `code of conduct`.
 ## Maintainers
 | Name           | Area        | GitHub                                             | Twitter                                             |    Company    |
 | :------------- | :---------- | :------------------------------------------------- | :-------------------------------------------------- | :------------ |
-| Nadine Vehling | UI / UX     | [@nadinevehling](https://github.com/nadinevehling) | [@nadinevehling](https://twitter.com/nadinevehling) | Grafana Labs  |
+| Nadine Vehling | UX/UI       | [@nadinevehling](https://github.com/nadinevehling) | [@nadinevehling](https://twitter.com/nadinevehling) | Grafana Labs  |
 | Matthias Loibl | Engineering | [@metalmatze](https://github.com/metalmatze)       | [@metalmatze](https://twitter.com/MetalMatze)       | Polar Signals |
 
 We are mostly maintaining Pyrra in our free time.
