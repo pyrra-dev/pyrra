@@ -62,9 +62,12 @@
     background: linear-gradient(0deg, rgba(0, 0, 0, 0) 45%, $gray-300 50%, rgba(0, 0, 0, 0) 55%);
 
     .inner {
-      width: 30%;
       margin: 0 auto;
       background-color: $body-bg;
+
+      @media (min-width: 576px) {
+        width: 30%;
+      }
     }
   }
 }
