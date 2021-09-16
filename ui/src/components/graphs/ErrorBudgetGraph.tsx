@@ -143,7 +143,7 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
                 domain={[samples[0].t, samples[samples.length - 1].t]}
               />
               <YAxis
-                width={50}
+                width={70}
                 tickCount={5}
                 unit="%"
                 tickFormatter={(v: number) => (100 * v).toFixed(2)}
