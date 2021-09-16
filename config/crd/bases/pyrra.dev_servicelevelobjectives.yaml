@@ -108,8 +108,7 @@ spec:
               window:
                 description: Window within which the Target is supposed to be kept.
                   Usually something like 1d, 7d or 28d.
-                format: int64
-                type: integer
+                type: string
             required:
             - indicator
             - target
