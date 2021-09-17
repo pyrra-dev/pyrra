@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import logo from '../logo.svg'
 
 interface NavbarProps {
-  children: ReactNode
+  children?: ReactNode
 }
 
 const Navbar = ({ children }: NavbarProps): JSX.Element => {
