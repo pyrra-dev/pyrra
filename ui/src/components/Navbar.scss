@@ -1,8 +1,19 @@
 .navbar {
   height: 56px;
 
+  &.navbar-tall {
+    height: 2 * 56px;
+    align-items: flex-end;
+
+    @media (min-width: 992px) {
+      height: 56px;
+      align-items: center;
+    }
+  }
+
   .breadcrumb {
     font-size: 18px;
+    margin-left: 16px;
 
     a {
       color: $gray-700;
@@ -20,8 +31,10 @@
   }
 
   .logo {
-    width: 40px;
+    display: block;
+    text-align: center;
     position: absolute;
+    top: 8px;
     left: 0;
     right: 0;
     margin: 0 auto;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Col, Spinner } from 'react-bootstrap'
+import { Spinner } from 'react-bootstrap'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
 
 import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
@@ -98,77 +98,75 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
 
   return (
     <>
-      <Col>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h4>
-            Error Budget
-            {loading && samples.length !== 0 ? (
-              <Spinner animation="border" style={{
-                marginLeft: '1rem',
-                marginBottom: '0.5rem',
-                width: '1rem',
-                height: '1rem',
-                borderWidth: '1px'
-              }}/>
-            ) : <></>}
-          </h4>
-          {query !== '' ? (
-            <a className="external-prometheus"
-               target="_blank"
-               rel="noreferrer"
-               href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(query)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
-              <IconExternal height={20} width={20}/>
-              Prometheus
-            </a>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <h4>
+          Error Budget
+          {loading && samples.length !== 0 ? (
+            <Spinner animation="border" style={{
+              marginLeft: '1rem',
+              marginBottom: '0.5rem',
+              width: '1rem',
+              height: '1rem',
+              borderWidth: '1px'
+            }}/>
           ) : <></>}
+        </h4>
+        {query !== '' ? (
+          <a className="external-prometheus"
+             target="_blank"
+             rel="noreferrer"
+             href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(query)}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
+            <IconExternal height={20} width={20}/>
+            Prometheus
+          </a>
+        ) : <></>}
+      </div>
+      <div><p>What percentage of the error budget is left over time?</p></div>
+      {loading && samples.length === 0 ?
+        <div style={{
+          width: '100%',
+          height: 230,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Spinner animation="border" style={{ margin: '0 auto' }}/>
         </div>
-        <div><p>What percentage of the error budget is left over time?</p></div>
-        {loading && samples.length === 0 ?
-          <div style={{
-            width: '100%',
-            height: 230,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <Spinner animation="border" style={{ margin: '0 auto' }}/>
-          </div>
-          : <ResponsiveContainer height={300}>
-            <AreaChart height={300} data={samples}>
-              <XAxis
-                type="number"
-                dataKey="t"
-                tickCount={7}
-                tickFormatter={dateFormatter(timeRange)}
-                domain={[samples[0].t, samples[samples.length - 1].t]}
-              />
-              <YAxis
-                width={70}
-                tickCount={5}
-                unit="%"
-                tickFormatter={(v: number) => (100 * v).toFixed(2)}
-                domain={[samplesMin, samplesMax]}
-              />
-              <CartesianGrid strokeDasharray="3 3"/>
-              <Tooltip content={<DateTooltip/>}/>
-              <defs>
-                <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset={samplesOffset} stopColor={`#${greens[0]}`} stopOpacity={1}/>
-                  <stop offset={samplesOffset} stopColor={`#${reds[0]}`} stopOpacity={1}/>
-                </linearGradient>
-              </defs>
-              <Area
-                dataKey="v"
-                type="monotone"
-                connectNulls={false}
-                animationDuration={250}
-                strokeWidth={0}
-                fill="url(#splitColor)"
-                fillOpacity={1}/>
-            </AreaChart>
-          </ResponsiveContainer>
-        }
-      </Col>
+        : <ResponsiveContainer height={300}>
+          <AreaChart height={300} data={samples}>
+            <XAxis
+              type="number"
+              dataKey="t"
+              tickCount={7}
+              tickFormatter={dateFormatter(timeRange)}
+              domain={[samples[0].t, samples[samples.length - 1].t]}
+            />
+            <YAxis
+              width={70}
+              tickCount={5}
+              unit="%"
+              tickFormatter={(v: number) => (100 * v).toFixed(2)}
+              domain={[samplesMin, samplesMax]}
+            />
+            <CartesianGrid strokeDasharray="3 3"/>
+            <Tooltip content={<DateTooltip/>}/>
+            <defs>
+              <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
+                <stop offset={samplesOffset} stopColor={`#${greens[0]}`} stopOpacity={1}/>
+                <stop offset={samplesOffset} stopColor={`#${reds[0]}`} stopOpacity={1}/>
+              </linearGradient>
+            </defs>
+            <Area
+              dataKey="v"
+              type="monotone"
+              connectNulls={false}
+              animationDuration={250}
+              strokeWidth={0}
+              fill="url(#splitColor)"
+              fillOpacity={1}/>
+          </AreaChart>
+        </ResponsiveContainer>
+      }
     </>
   )
 }

@@ -5,12 +5,26 @@
 
   .metrics {
     width: 100%;
-    margin-left: 50px;
-    margin-right: 50px;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    column-gap: 75px;
-    justify-items: center;
+    margin: 0 15px;
+    grid-template-columns: repeat(1, 1fr);
+    column-gap: 25px;
+    row-gap: 25px;
+    justify-items: stretch;
+
+    @media (min-width: 576px) {
+      grid-template-columns: repeat(2, 1fr);
+      column-gap: 50px;
+      row-gap: 50px;
+    }
+    @media (min-width: 992px) {
+      grid-template-columns: repeat(3, 1fr);
+      column-gap: 75px;
+      row-gap: 75px;
+    }
+    @media (min-width: 1200px) {
+      margin: 0 75px;
+    }
 
     div {
       padding: 35px;
@@ -25,6 +39,7 @@
 
       h2 {
         font-size: 40px;
+        margin-bottom: 0;
       }
 
       h6 {
@@ -47,9 +62,12 @@
     background: linear-gradient(0deg, rgba(0, 0, 0, 0) 45%, $gray-300 50%, rgba(0, 0, 0, 0) 55%);
 
     .inner {
-      width: 30%;
       margin: 0 auto;
       background-color: $body-bg;
+
+      @media (min-width: 576px) {
+        width: 30%;
+      }
     }
   }
 }

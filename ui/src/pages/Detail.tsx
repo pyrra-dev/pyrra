@@ -112,7 +112,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
                 <h2>{(100 * objective.target).toFixed(3)}%</h2>
               </div>
               {availability != null ? (
-                <div className={availability.percentage > 0 ? 'good' : 'bad'}>
+                <div className={availability.percentage > objective.target ? 'good' : 'bad'}>
                   <h6>Availability</h6>
                   <h2>
                     {(100 * availability.percentage).toFixed(3)}%

@@ -220,85 +220,86 @@ const List = () => {
 
   return (
     <>
-      <Navbar>
-        <></>
-      </Navbar>
+      <Navbar></Navbar>
       <Container className="content list">
         <Row>
           <Col>
             <h3>Objectives</h3>
           </Col>
-          <Table hover={true} striped={false}>
-            <thead>
-            <tr>
-              <th
-                className={tableSortState.type === TableSortType.Name ? 'active' : ''}
-                onClick={() => handleTableSort(TableSortType.Name)}
-              >Name {tableSortState.type === TableSortType.Name ? upDownIcon : <IconArrowUpDown/>}</th>
-              <th
-                className={tableSortState.type === TableSortType.Window ? 'active' : ''}
-                onClick={() => handleTableSort(TableSortType.Window)}
-              >Time Window {tableSortState.type === TableSortType.Window ? upDownIcon : <IconArrowUpDown/>}</th>
-              <th
-                className={tableSortState.type === TableSortType.Objective ? 'active' : ''}
-                onClick={() => handleTableSort(TableSortType.Objective)}
-              >Objective {tableSortState.type === TableSortType.Objective ? upDownIcon : <IconArrowUpDown/>}</th>
-              <th
-                className={tableSortState.type === TableSortType.Availability ? 'active' : ''}
-                onClick={() => handleTableSort(TableSortType.Availability)}
-              >Availability {tableSortState.type === TableSortType.Availability ? upDownIcon : <IconArrowUpDown/>}</th>
-              <th
-                className={tableSortState.type === TableSortType.Budget ? 'active' : ''}
-                onClick={() => handleTableSort(TableSortType.Budget)}
-              >Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon : <IconArrowUpDown/>}</th>
-            </tr>
-            </thead>
-            <tbody>
-            {tableList.map((o: TableObjective) => (
-              <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.namespace, o.name)}>
-                <td>
-                  <Link to={objectivePage(o.namespace, o.name)} className="text-reset">
-                    {o.name}
-                  </Link>
-                </td>
-                <td>{formatDuration(o.window)}</td>
-                <td>
-                  {(100 * o.target).toFixed(2)}%
-                </td>
-                <td>
-                  {o.availability === undefined ? (
-                    <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
-                  ) : <></>}
-                  {o.availability === null ? <>-</> : <></>}
-                  {o.availability !== undefined && o.availability != null ?
-                    <OverlayTrigger
-                      key={o.name}
-                      overlay={
-                        <OverlayTooltip id={`tooltip-${o.name}`}>
-                          Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
-                          Total: {Math.floor(o.availability.total).toLocaleString()}
-                        </OverlayTooltip>
-                      }>
+          <div className="table-responsive">
+            <Table hover={true} striped={false}>
+              <thead>
+              <tr>
+                <th
+                  className={tableSortState.type === TableSortType.Name ? 'active' : ''}
+                  onClick={() => handleTableSort(TableSortType.Name)}
+                >Name {tableSortState.type === TableSortType.Name ? upDownIcon : <IconArrowUpDown/>}</th>
+                <th
+                  className={tableSortState.type === TableSortType.Window ? 'active' : ''}
+                  onClick={() => handleTableSort(TableSortType.Window)}
+                >Time Window {tableSortState.type === TableSortType.Window ? upDownIcon : <IconArrowUpDown/>}</th>
+                <th
+                  className={tableSortState.type === TableSortType.Objective ? 'active' : ''}
+                  onClick={() => handleTableSort(TableSortType.Objective)}
+                >Objective {tableSortState.type === TableSortType.Objective ? upDownIcon : <IconArrowUpDown/>}</th>
+                <th
+                  className={tableSortState.type === TableSortType.Availability ? 'active' : ''}
+                  onClick={() => handleTableSort(TableSortType.Availability)}
+                >Availability {tableSortState.type === TableSortType.Availability ? upDownIcon :
+                  <IconArrowUpDown/>}</th>
+                <th
+                  className={tableSortState.type === TableSortType.Budget ? 'active' : ''}
+                  onClick={() => handleTableSort(TableSortType.Budget)}
+                >Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon : <IconArrowUpDown/>}</th>
+              </tr>
+              </thead>
+              <tbody>
+              {tableList.map((o: TableObjective) => (
+                <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.namespace, o.name)}>
+                  <td>
+                    <Link to={objectivePage(o.namespace, o.name)} className="text-reset">
+                      {o.name}
+                    </Link>
+                  </td>
+                  <td>{formatDuration(o.window)}</td>
+                  <td>
+                    {(100 * o.target).toFixed(2)}%
+                  </td>
+                  <td>
+                    {o.availability === undefined ? (
+                      <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+                    ) : <></>}
+                    {o.availability === null ? <>-</> : <></>}
+                    {o.availability !== undefined && o.availability != null ?
+                      <OverlayTrigger
+                        key={o.name}
+                        overlay={
+                          <OverlayTooltip id={`tooltip-${o.name}`}>
+                            Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
+                            Total: {Math.floor(o.availability.total).toLocaleString()}
+                          </OverlayTooltip>
+                        }>
                   <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
                     {(100 * o.availability.percentage).toFixed(2)}%
                   </span>
-                    </OverlayTrigger>
-                    : <></>}
-                </td>
-                <td>
-                  {o.budget === undefined ? (
-                    <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
-                  ) : <></>}
-                  {o.budget === null ? <>-</> : <></>}
-                  {o.budget !== undefined && o.budget != null ?
-                    <span className={o.budget >= 0 ? 'good' : 'bad'}>
+                      </OverlayTrigger>
+                      : <></>}
+                  </td>
+                  <td>
+                    {o.budget === undefined ? (
+                      <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+                    ) : <></>}
+                    {o.budget === null ? <>-</> : <></>}
+                    {o.budget !== undefined && o.budget != null ?
+                      <span className={o.budget >= 0 ? 'good' : 'bad'}>
                   {(100 * o.budget).toFixed(2)}%
                 </span> : <></>}
-                </td>
-              </tr>
-            ))}
-            </tbody>
-          </Table>
+                  </td>
+                </tr>
+              ))}
+              </tbody>
+            </Table>
+          </div>
         </Row>
         <Row>
           <Col>
