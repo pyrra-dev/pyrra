@@ -400,9 +400,9 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr str
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
 	}
 
-	if len(matrix) != 1 {
-		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
-	}
+	//if len(matrix) != 1 {
+	//	return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+	//}
 
 	if len(matrix) == 0 {
 		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")

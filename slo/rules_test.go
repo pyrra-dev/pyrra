@@ -16,7 +16,7 @@ func TestObjective_Burnrates(t *testing.T) {
 		rules monitoringv1.RuleGroup
 	}{{
 		name: "http-ratio", // super similar to gRPC and therefore only HTTP
-		slo:  objectiveHTTPRatio,
+		slo:  objectiveHTTPRatio(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-errors",
 			Interval: "30s",
@@ -97,7 +97,7 @@ func TestObjective_Burnrates(t *testing.T) {
 		},
 	}, {
 		name: "operator-ratio",
-		slo:  objectiveOperator,
+		slo:  objectiveOperator(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-prometheus-operator-errors",
 			Interval: "30s",
@@ -157,7 +157,7 @@ func TestObjective_Burnrates(t *testing.T) {
 		},
 	}, {
 		name: "http-latency", // super similar to gRPC and therefore only HTTP
-		slo:  objectiveHTTPLatency,
+		slo:  objectiveHTTPLatency(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-latency",
 			Interval: "30s",
@@ -269,7 +269,7 @@ func TestObjective_Alerts(t *testing.T) {
 		alerts []MultiBurnRateAlert
 	}{{
 		name: "http-ratio",
-		slo:  objectiveHTTPRatio,
+		slo:  objectiveHTTPRatio(),
 		alerts: []MultiBurnRateAlert{{
 			Severity:   "critical",
 			Short:      5 * time.Minute,
@@ -305,7 +305,7 @@ func TestObjective_Alerts(t *testing.T) {
 		}},
 	}, {
 		name: "http-latency",
-		slo:  objectiveHTTPLatency,
+		slo:  objectiveHTTPLatency(),
 		alerts: []MultiBurnRateAlert{{
 			Severity:   "critical",
 			Short:      5 * time.Minute,

@@ -194,6 +194,10 @@ components:
               $ref: '#/components/schemas/Query'
             total:
               $ref: '#/components/schemas/Query'
+            grouping:
+              type: array
+              items:
+                type: string
         latency:
           type: object
           required:
@@ -204,6 +208,10 @@ components:
               $ref: '#/components/schemas/Query'
             total:
               $ref: '#/components/schemas/Query'
+            grouping:
+              type: array
+              items:
+                type: string
     Query:
       type: object
       required:

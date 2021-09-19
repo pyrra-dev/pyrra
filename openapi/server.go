@@ -16,6 +16,8 @@ import (
 func ServerFromInternal(objective slo.Objective) server.Objective {
 	var ratio server.IndicatorRatio
 	if objective.Indicator.Ratio != nil {
+		ratio.Grouping = objective.Indicator.Ratio.Grouping
+
 		ratio.Total.Name = objective.Indicator.Ratio.Total.Name
 		for _, m := range objective.Indicator.Ratio.Total.LabelMatchers {
 			ratio.Total.Matchers = append(ratio.Total.Matchers, server.QueryMatchers{
@@ -39,6 +41,8 @@ func ServerFromInternal(objective slo.Objective) server.Objective {
 
 	var latency server.IndicatorLatency
 	if objective.Indicator.Latency != nil {
+		latency.Grouping = objective.Indicator.Latency.Grouping
+
 		latency.Total.Name = objective.Indicator.Latency.Total.Name
 		for _, m := range objective.Indicator.Latency.Total.LabelMatchers {
 			latency.Total.Matchers = append(latency.Total.Matchers, server.QueryMatchers{

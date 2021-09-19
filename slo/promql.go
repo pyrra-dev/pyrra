@@ -11,26 +11,30 @@ import (
 
 // QueryTotal returns a PromQL query to get the total amount of requests served during the window.
 func (o Objective) QueryTotal(window model.Duration) string {
-	expr, err := parser.ParseExpr(`sum(increase(metric{}[1s]))`)
+	expr, err := parser.ParseExpr(`sum by (grouping) (increase(metric{}[1s]))`)
 	if err != nil {
 		return ""
 	}
 
 	var metric string
 	var matchers []*labels.Matcher
+	var grouping []string
 
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
 		metric = o.Indicator.Ratio.Total.Name
 		matchers = o.Indicator.Ratio.Total.LabelMatchers
+		grouping = o.Indicator.Ratio.Grouping
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		metric = o.Indicator.Latency.Total.Name
 		matchers = o.Indicator.Latency.Total.LabelMatchers
+		grouping = o.Indicator.Latency.Grouping
 	}
 
 	objectiveReplacer{
 		metric:   metric,
 		matchers: matchers,
+		grouping: grouping,
 		window:   time.Duration(window),
 	}.replace(expr)
 
@@ -40,7 +44,7 @@ func (o Objective) QueryTotal(window model.Duration) string {
 // QueryErrors returns a PromQL query to get the amount of request errors during the window.
 func (o Objective) QueryErrors(window model.Duration) string {
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum(increase(metric{}[1s]))`)
+		expr, err := parser.ParseExpr(`sum by(grouping) (increase(metric{}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -48,6 +52,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		objectiveReplacer{
 			metric:   o.Indicator.Ratio.Errors.Name,
 			matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			grouping: o.Indicator.Ratio.Grouping,
 			window:   time.Duration(window),
 		}.replace(expr)
 
@@ -55,7 +60,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum(increase(metric{matchers="total"}[1s])) - sum(increase(errorMetric{matchers="errors"}[1s]))`)
+		expr, err := parser.ParseExpr(`sum by(grouping) (increase(metric{matchers="total"}[1s])) - sum by(grouping) (increase(errorMetric{matchers="errors"}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -65,6 +70,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			grouping:      o.Indicator.Latency.Grouping,
 			window:        time.Duration(window),
 		}.replace(expr)
 
@@ -81,9 +87,9 @@ func (o Objective) QueryErrorBudget() string {
   (1 - 0.696969)
   -
   (
-    sum(increase(errorMetric{matchers="errors"}[1s]) or vector(0))
+    sum by(job, handler) (increase(errorMetric{matchers="errors"}[1s]) or vector(0))
     /
-    sum(increase(metric{matchers="total"}[1s]))
+    sum by(job, handler) (increase(metric{matchers="total"}[1s]))
   )
 )
 /
@@ -98,6 +104,7 @@ func (o Objective) QueryErrorBudget() string {
 			matchers:      o.Indicator.Ratio.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Ratio.Errors.Name,
 			errorMatchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			grouping:      o.Indicator.Ratio.Grouping,
 			window:        time.Duration(o.Window),
 			target:        o.Target,
 		}.replace(expr)
@@ -129,6 +136,7 @@ func (o Objective) QueryErrorBudget() string {
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			grouping:      o.Indicator.Latency.Grouping,
 			window:        time.Duration(o.Window),
 			target:        o.Target,
 		}.replace(expr)

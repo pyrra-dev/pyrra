@@ -13,4 +13,6 @@ type IndicatorRatio struct {
 	Errors Query `json:"errors"`
 
 	Total Query `json:"total"`
+
+	Grouping []string `json:"grouping"`
 }

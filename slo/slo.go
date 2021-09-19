@@ -22,13 +22,15 @@ type Indicator struct {
 }
 
 type RatioIndicator struct {
-	Errors Metric
-	Total  Metric
+	Errors   Metric
+	Total    Metric
+	Grouping []string
 }
 
 type LatencyIndicator struct {
-	Success Metric
-	Total   Metric
+	Success  Metric
+	Total    Metric
+	Grouping []string
 }
 
 type Metric struct {
