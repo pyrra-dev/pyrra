@@ -326,6 +326,14 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 		Budget:       openapiserver.ObjectiveStatusBudget{},
 	}
 
+	type availability struct {
+		Metric     model.Metric `json:"metric"`
+		Total      float64      `json:"total"`
+		Errors     float64      `json:"errors"`
+		Percentage float64      `json:"percentage"`
+	}
+	statuses := map[model.Fingerprint]*availability{}
+
 	queryTotal := objective.QueryTotal(objective.Window)
 	log.Println(queryTotal)
 	value, _, err := o.promAPI.Query(ctx, queryTotal, ts)
@@ -334,11 +342,12 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 	}
 	vec := value.(model.Vector)
 	for _, v := range vec {
+		statuses[v.Metric.Fingerprint()] = &availability{
+			Metric:     v.Metric,
+			Total:      float64(v.Value),
+			Percentage: 1,
+		}
 		status.Availability.Total = float64(v.Value)
-	}
-
-	if status.Availability.Total == 0 {
-		return openapiserver.ImplResponse{Code: http.StatusNotFound}, nil
 	}
 
 	queryErrors := objective.QueryErrors(objective.Window)
@@ -348,6 +357,10 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 	for _, v := range value.(model.Vector) {
+		s := statuses[v.Metric.Fingerprint()]
+		s.Errors = float64(v.Value)
+		s.Percentage = 1 - (s.Errors / s.Total)
+
 		status.Availability.Errors = float64(v.Value)
 	}
 
@@ -359,7 +372,7 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
-		Body: status,
+		Body: statuses,
 	}, nil
 }
 

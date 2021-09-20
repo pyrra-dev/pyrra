@@ -159,6 +159,7 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 				Name:          totalVec.Name,
 				LabelMatchers: totalVec.LabelMatchers,
 			},
+			Grouping: in.Spec.ServiceLevelIndicator.Ratio.Grouping,
 		}
 	}
 
@@ -205,6 +206,7 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 				Name:          totalVec.Name,
 				LabelMatchers: totalMatchers,
 			},
+			Grouping: in.Spec.ServiceLevelIndicator.Latency.Grouping,
 		}
 	}
 
