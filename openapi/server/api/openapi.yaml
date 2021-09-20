@@ -211,6 +211,9 @@ components:
                 value: value
               metric: metric
               name: name
+            grouping:
+            - grouping
+            - grouping
           ratio:
             total:
               matchers:
@@ -222,6 +225,9 @@ components:
                 value: value
               metric: metric
               name: name
+            grouping:
+            - grouping
+            - grouping
             errors:
               matchers:
               - name: name
@@ -285,6 +291,9 @@ components:
               value: value
             metric: metric
             name: name
+          grouping:
+          - grouping
+          - grouping
         ratio:
           total:
             matchers:
@@ -296,6 +305,9 @@ components:
               value: value
             metric: metric
             name: name
+          grouping:
+          - grouping
+          - grouping
           errors:
             matchers:
             - name: name
@@ -456,6 +468,9 @@ components:
             value: value
           metric: metric
           name: name
+        grouping:
+        - grouping
+        - grouping
         errors:
           matchers:
           - name: name
@@ -471,6 +486,10 @@ components:
           $ref: '#/components/schemas/Query'
         total:
           $ref: '#/components/schemas/Query'
+        grouping:
+          items:
+            type: string
+          type: array
       required:
       - errors
       - total
@@ -497,11 +516,18 @@ components:
             value: value
           metric: metric
           name: name
+        grouping:
+        - grouping
+        - grouping
       properties:
         success:
           $ref: '#/components/schemas/Query'
         total:
           $ref: '#/components/schemas/Query'
+        grouping:
+          items:
+            type: string
+          type: array
       required:
       - success
       - total

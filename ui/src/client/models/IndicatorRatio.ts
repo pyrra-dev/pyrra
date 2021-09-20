@@ -38,6 +38,12 @@ export interface IndicatorRatio {
      * @memberof IndicatorRatio
      */
     total: Query;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof IndicatorRatio
+     */
+    grouping?: Array<string>;
 }
 
 export function IndicatorRatioFromJSON(json: any): IndicatorRatio {
@@ -52,6 +58,7 @@ export function IndicatorRatioFromJSONTyped(json: any, ignoreDiscriminator: bool
         
         'errors': QueryFromJSON(json['errors']),
         'total': QueryFromJSON(json['total']),
+        'grouping': !exists(json, 'grouping') ? undefined : json['grouping'],
     };
 }
 
@@ -66,6 +73,7 @@ export function IndicatorRatioToJSON(value?: IndicatorRatio | null): any {
         
         'errors': QueryToJSON(value.errors),
         'total': QueryToJSON(value.total),
+        'grouping': value.grouping,
     };
 }
 

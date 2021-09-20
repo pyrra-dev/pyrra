@@ -38,6 +38,12 @@ export interface IndicatorLatency {
      * @memberof IndicatorLatency
      */
     total: Query;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof IndicatorLatency
+     */
+    grouping?: Array<string>;
 }
 
 export function IndicatorLatencyFromJSON(json: any): IndicatorLatency {
@@ -52,6 +58,7 @@ export function IndicatorLatencyFromJSONTyped(json: any, ignoreDiscriminator: bo
         
         'success': QueryFromJSON(json['success']),
         'total': QueryFromJSON(json['total']),
+        'grouping': !exists(json, 'grouping') ? undefined : json['grouping'],
     };
 }
 
@@ -66,6 +73,7 @@ export function IndicatorLatencyToJSON(value?: IndicatorLatency | null): any {
         
         'success': QueryToJSON(value.success),
         'total': QueryToJSON(value.total),
+        'grouping': value.grouping,
     };
 }
 

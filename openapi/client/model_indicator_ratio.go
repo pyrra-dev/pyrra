@@ -16,8 +16,9 @@ import (
 
 // IndicatorRatio struct for IndicatorRatio
 type IndicatorRatio struct {
-	Errors Query `json:"errors"`
-	Total  Query `json:"total"`
+	Errors   Query     `json:"errors"`
+	Total    Query     `json:"total"`
+	Grouping *[]string `json:"grouping,omitempty"`
 }
 
 // NewIndicatorRatio instantiates a new IndicatorRatio object
@@ -87,6 +88,38 @@ func (o *IndicatorRatio) SetTotal(v Query) {
 	o.Total = v
 }
 
+// GetGrouping returns the Grouping field value if set, zero value otherwise.
+func (o *IndicatorRatio) GetGrouping() []string {
+	if o == nil || o.Grouping == nil {
+		var ret []string
+		return ret
+	}
+	return *o.Grouping
+}
+
+// GetGroupingOk returns a tuple with the Grouping field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *IndicatorRatio) GetGroupingOk() (*[]string, bool) {
+	if o == nil || o.Grouping == nil {
+		return nil, false
+	}
+	return o.Grouping, true
+}
+
+// HasGrouping returns a boolean if a field has been set.
+func (o *IndicatorRatio) HasGrouping() bool {
+	if o != nil && o.Grouping != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetGrouping gets a reference to the given []string and assigns it to the Grouping field.
+func (o *IndicatorRatio) SetGrouping(v []string) {
+	o.Grouping = &v
+}
+
 func (o IndicatorRatio) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -94,6 +127,9 @@ func (o IndicatorRatio) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["total"] = o.Total
+	}
+	if o.Grouping != nil {
+		toSerialize["grouping"] = o.Grouping
 	}
 	return json.Marshal(toSerialize)
 }

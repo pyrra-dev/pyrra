@@ -13,8 +13,9 @@ func InternalFromClient(o client.Objective) slo.Objective {
 	var ratio *slo.RatioIndicator
 	if o.HasIndicator() && o.Indicator.HasRatio() {
 		ratio = &slo.RatioIndicator{
-			Errors: slo.Metric{Name: o.Indicator.Ratio.Errors.GetName()},
-			Total:  slo.Metric{Name: o.Indicator.Ratio.Total.GetName()},
+			Errors:   slo.Metric{Name: o.Indicator.Ratio.Errors.GetName()},
+			Total:    slo.Metric{Name: o.Indicator.Ratio.Total.GetName()},
+			Grouping: o.Indicator.Ratio.GetGrouping(),
 		}
 		for _, m := range o.Indicator.Ratio.Errors.GetMatchers() {
 			ratio.Errors.LabelMatchers = append(ratio.Errors.LabelMatchers, &labels.Matcher{
@@ -35,8 +36,9 @@ func InternalFromClient(o client.Objective) slo.Objective {
 	var latency *slo.LatencyIndicator
 	if o.HasIndicator() && o.Indicator.HasLatency() {
 		latency = &slo.LatencyIndicator{
-			Success: slo.Metric{Name: o.Indicator.Latency.Success.GetName()},
-			Total:   slo.Metric{Name: o.Indicator.Latency.Total.GetName()},
+			Success:  slo.Metric{Name: o.Indicator.Latency.Success.GetName()},
+			Total:    slo.Metric{Name: o.Indicator.Latency.Total.GetName()},
+			Grouping: o.Indicator.Latency.GetGrouping(),
 		}
 		for _, m := range o.Indicator.Latency.Success.GetMatchers() {
 			latency.Success.LabelMatchers = append(latency.Success.LabelMatchers, &labels.Matcher{

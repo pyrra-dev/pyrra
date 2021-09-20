@@ -14,5 +14,5 @@ type IndicatorRatio struct {
 
 	Total Query `json:"total"`
 
-	Grouping []string `json:"grouping"`
+	Grouping []string `json:"grouping,omitempty"`
 }
