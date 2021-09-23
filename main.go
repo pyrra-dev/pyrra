@@ -23,6 +23,8 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	promconfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"github.com/pyrra-dev/pyrra/openapi"
@@ -77,6 +79,8 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearer
 	log.Println("Using external Prometheus at", prometheusExternal.String())
 	log.Println("Using API at", apiURL.String())
 
+	reg := prometheus.NewRegistry()
+
 	config := api.Config{Address: prometheusURL.String()}
 	if len(prometheusBearerTokenPath) > 0 {
 		config.RoundTripper = promconfig.NewAuthorizationCredentialsFileRoundTripper("Bearer", prometheusBearerTokenPath, api.DefaultRoundTripper)
@@ -113,6 +117,7 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearer
 			apiclient: apiClient,
 		}),
 	)
+	router.Use(openapi.MiddlewareMetrics(reg))
 
 	tmpl, err := template.ParseFS(build, "index.html")
 	if err != nil {
@@ -122,6 +127,7 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearer
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
 	r.Mount("/api/v1", router)
+	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 	r.Get("/objectives/{namespace}/{name}", func(w http.ResponseWriter, r *http.Request) {
 		if err := tmpl.Execute(w, struct {
 			PrometheusURL string

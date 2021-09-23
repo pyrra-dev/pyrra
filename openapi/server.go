@@ -1,8 +1,13 @@
 package openapi
 
 import (
+	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	client "github.com/pyrra-dev/pyrra/openapi/client"
 	server "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"github.com/pyrra-dev/pyrra/slo"
@@ -127,4 +132,44 @@ func ServerFromClient(o client.Objective) server.Objective {
 			Latency: latency,
 		},
 	}
+}
+
+func MiddlewareMetrics(reg *prometheus.Registry) mux.MiddlewareFunc {
+	requests := promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "http_requests_total",
+		Help: "Total amount of requests sent to an openapi endpoint",
+	}, []string{"route", "code"})
+	duration := promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "http_requests_duration_second",
+		Help: "Duration of requests by route",
+	}, []string{"route"})
+
+	reg.MustRegister(requests, duration)
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+
+			rw := NewResponseWriter(w)
+			next.ServeHTTP(rw, r)
+
+			routeName := mux.CurrentRoute(r).GetName()
+			duration.WithLabelValues(routeName).Observe(time.Since(start).Seconds())
+			requests.WithLabelValues(routeName, strconv.Itoa(rw.statusCode)).Inc()
+		})
+	}
+}
+
+func NewResponseWriter(w http.ResponseWriter) *responseWriter {
+	return &responseWriter{w, http.StatusOK}
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
 }

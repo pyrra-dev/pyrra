@@ -11,6 +11,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
@@ -22,6 +24,23 @@ var objectives = map[string]slo.Objective{}
 
 func cmdFilesystem(configFiles, prometheusFolder string) {
 	var gr run.Group
+
+	reg := prometheus.NewRegistry()
+
+	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "pyrra_filesystem_reconciles_total",
+		Help: "The total amount of reconciles.",
+	})
+	reconcilesErrors := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "pyrra_filesystem_reconciles_errors_total",
+		Help: "The total amount of errors during reconciles.",
+	})
+
+	reg.MustRegister(
+		prometheus.NewGoCollector(),
+		reconcilesTotal,
+		reconcilesErrors,
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	files := make(chan string, 16)
@@ -84,22 +103,27 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 				case <-ctx.Done():
 					return nil
 				case f := <-files:
+					reconcilesTotal.Inc()
 					log.Println("reading", f)
 					bytes, err := ioutil.ReadFile(f)
 					if err != nil {
+						reconcilesErrors.Inc()
 						return err
 					}
 					var config v1alpha1.ServiceLevelObjective
 					if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
+						reconcilesErrors.Inc()
 						return err
 					}
 					objective, err := config.Internal()
 					if err != nil {
+						reconcilesErrors.Inc()
 						return err
 					}
 
 					burnrates, err := objective.Burnrates()
 					if err != nil {
+						reconcilesErrors.Inc()
 						return err
 					}
 
@@ -109,11 +133,13 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 
 					bytes, err = yaml.Marshal(rule)
 					if err != nil {
+						reconcilesErrors.Inc()
 						return err
 					}
 
 					_, file := filepath.Split(f)
 					if err := ioutil.WriteFile(filepath.Join(prometheusFolder, file), bytes, 0644); err != nil {
+						reconcilesErrors.Inc()
 						return err
 					}
 
@@ -128,6 +154,8 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 		router := openapiserver.NewRouter(
 			openapiserver.NewObjectivesApiController(&FilesystemObjectiveServer{}),
 		)
+		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+
 		server := http.Server{Addr: ":9444", Handler: router}
 
 		gr.Add(func() error {
