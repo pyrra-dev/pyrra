@@ -1,0 +1,18 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: pyrra-filesystem-errors
+  namespace: parca
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: '99'
+  window: 1w
+  description: The reconciles when reading Pyrra configuration and generating their corresponding recording and alerting rules.
+  indicator:
+    ratio:
+      errors:
+        metric: pyrra_filesystem_reconciles_errors_total
+      total:
+        metric: pyrra_filesystem_reconciles_total
