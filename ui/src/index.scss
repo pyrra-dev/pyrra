@@ -12,6 +12,7 @@ $blue: #005397;
 $blue-text: lighten($blue, 65%);
 $red: #F46363;
 $red-text: lighten($red, 30%);
+$red-text-dark: darken($red, 30%);
 $yellow: #F4A32A;
 $yellow-text: lighten($yellow, 40%);
 $green: #32B67A;

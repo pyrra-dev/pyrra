@@ -28,4 +28,12 @@
   tr:hover {
     cursor: pointer;
   }
+
+  td span.error {
+    color: $red-text-dark;
+  }
+  td span.bad {
+    color: $red-text-dark;
+    font-weight: bold;
+  }
 }

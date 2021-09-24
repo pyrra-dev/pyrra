@@ -76,6 +76,13 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
       .finally(() => setLoading(false))
   }, [api, namespace, name, timeRange])
 
+  if (!loading && samples.length === 0) {
+    return <>
+      <h4>Error Budget</h4>
+      <div><p>What percentage of the error budget is left over time?</p></div>
+    </>
+  }
+
   const DateTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
     const style = {
       padding: 10,
