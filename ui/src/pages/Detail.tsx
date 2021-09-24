@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Button, ButtonGroup, Col, Container, Row, Spinner } from 'react-bootstrap'
 import {
   Configuration,
-  Objective as APIObjective,
+  Objective,
   ObjectivesApi,
   ObjectiveStatus as APIObjectiveStatus,
   ObjectiveStatusAvailability,
@@ -35,10 +35,10 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
   const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
   const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
 
-  const [objective, setObjective] = useState<APIObjective | null>(null);
+  const [error, setError] = useState<string>('');
+  const [objective, setObjective] = useState<Objective | null>(null);
   const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null);
   const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null);
-
 
   useEffect(() => {
     const controller = new AbortController()
@@ -46,19 +46,44 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
     document.title = `${name} - Pyrra`
 
     api.getObjective({ namespace, name })
-      .then((o: APIObjective) => setObjective(o))
+      .then((o: Objective) => setObjective(o))
+      .catch((resp) => {
+        if (resp.status !== undefined) {
+          resp.text().then((err: string) => (setError(err)))
+        } else {
+          setError(resp.message)
+        }
+      })
 
     api.getObjectiveStatus({ namespace, name })
       .then((s: APIObjectiveStatus) => {
         setAvailability(s.availability)
         setErrorBudget(s.budget)
       })
+      .catch(() => null)
 
     return () => {
       // cancel any pending requests.
       controller.abort()
     }
   }, [api, namespace, name, timeRange])
+
+  if (error !== '') {
+    return (
+      <>
+        <Navbar/>
+        <Container>
+          <div style={{ margin: '50px 0' }}>
+            <h3>{error}</h3>
+            <br/>
+            <Link to="/" className="btn btn-light">
+              Go Back
+            </Link>
+          </div>
+        </Container>
+      </>
+    )
+  }
 
   if (objective == null) {
     return (

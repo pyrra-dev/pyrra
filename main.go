@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -297,6 +298,12 @@ func (o *ObjectivesServer) ListObjectives(ctx context.Context) (openapiserver.Im
 func (o *ObjectivesServer) GetObjective(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
 	objective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
 	if err != nil {
+		var apiErr openapiclient.GenericOpenAPIError
+		if errors.As(err, &apiErr) {
+			if strings.HasPrefix(apiErr.Error(), strconv.Itoa(http.StatusNotFound)) {
+				return openapiserver.ImplResponse{Code: http.StatusNotFound}, apiErr
+			}
+		}
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
@@ -309,6 +316,13 @@ func (o *ObjectivesServer) GetObjective(ctx context.Context, namespace, name str
 func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
 	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
 	if err != nil {
+		var apiErr openapiclient.GenericOpenAPIError
+		if errors.As(err, &apiErr) {
+			if strings.HasPrefix(apiErr.Error(), strconv.Itoa(http.StatusNotFound)) {
+				return openapiserver.ImplResponse{Code: http.StatusNotFound}, apiErr
+			}
+		}
+
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 	objective := openapi.InternalFromClient(clientObjective)
