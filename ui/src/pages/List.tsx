@@ -251,7 +251,7 @@ const List = () => {
           <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
         )
       case TableObjectiveState.NoData:
-        return <>-</>
+        return <>No data</>
       case TableObjectiveState.Error:
         return <span className='error'>Error</span>
       case TableObjectiveState.Success:
@@ -282,7 +282,7 @@ const List = () => {
           <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
         )
       case TableObjectiveState.NoData:
-        return <>-</>
+        return <>No data</>
       case TableObjectiveState.Error:
         return <span className='error'>Error</span>
       case TableObjectiveState.Success:

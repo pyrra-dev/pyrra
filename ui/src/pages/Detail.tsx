@@ -151,7 +151,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
           return (
             <div>
               {headline}
-              <h2>-</h2>
+              <h2>No data</h2>
             </div>
           )
         case StatusState.Success:
@@ -195,7 +195,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
           return (
             <div>
               {headline}
-              <h2>-</h2>
+              <h2>No data</h2>
             </div>
           )
         case StatusState.Success:
