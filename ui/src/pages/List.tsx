@@ -6,8 +6,16 @@ import { Link, useHistory } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '../components/Icons'
 
+enum TableObjectiveState {
+  Unknown,
+  Success,
+  NoData,
+  Error,
+}
+
 // TableObjective extends Objective to add some more additional (async) properties
 interface TableObjective extends Objective {
+  state: TableObjectiveState
   availability?: TableAvailability | null
   budget?: number | null
 }
@@ -22,12 +30,13 @@ interface TableState {
   objectives: { [key: string]: TableObjective }
 }
 
-enum TableActionType { SetObjective, SetStatus, SetStatusNone }
+enum TableActionType { SetObjective, SetStatus, SetStatusNone, SetStatusError }
 
 type TableAction =
   | { type: TableActionType.SetObjective, objective: Objective }
   | { type: TableActionType.SetStatus, name: string, status: ObjectiveStatus }
   | { type: TableActionType.SetStatusNone, name: string }
+  | { type: TableActionType.SetStatusError, name: string }
 
 const tableReducer = (state: TableState, action: TableAction): TableState => {
   switch (action.type) {
@@ -42,6 +51,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             window: action.objective.window,
             target: action.objective.target,
             config: action.objective.config,
+            state: TableObjectiveState.Unknown,
             availability: undefined,
             budget: undefined
           }
@@ -53,6 +63,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           ...state.objectives,
           [action.name]: {
             ...state.objectives[action.name],
+            state: TableObjectiveState.Success,
             availability: {
               errors: action.status.availability.errors,
               total: action.status.availability.total,
@@ -68,6 +79,19 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           ...state.objectives,
           [action.name]: {
             ...state.objectives[action.name],
+            state: TableObjectiveState.NoData,
+            availability: null,
+            budget: null
+          }
+        }
+      }
+    case TableActionType.SetStatusError:
+      return {
+        objectives: {
+          ...state.objectives,
+          [action.name]: {
+            ...state.objectives[action.name],
+            state: TableObjectiveState.Error,
             availability: null,
             budget: null
           }
@@ -131,6 +155,8 @@ const List = () => {
           .catch((err) => {
             if (err.status === 404) {
               dispatchTable({ type: TableActionType.SetStatusNone, name: o.name })
+            } else {
+              dispatchTable({ type: TableActionType.SetStatusError, name: o.name })
             }
           })
       })
@@ -218,9 +244,62 @@ const List = () => {
     history.push(objectivePage(namespace, name))
   }
 
+  const renderAvailability = (o: TableObjective) => {
+    switch (o.state) {
+      case TableObjectiveState.Unknown:
+        return (
+          <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+        )
+      case TableObjectiveState.NoData:
+        return <>No data</>
+      case TableObjectiveState.Error:
+        return <span className='error'>Error</span>
+      case TableObjectiveState.Success:
+        if (o.availability === null || o.availability === undefined) {
+          return <></>
+        }
+        return (
+          <OverlayTrigger
+            key={o.name}
+            overlay={
+              <OverlayTooltip id={`tooltip-${o.name}`}>
+                Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
+                Total: {Math.floor(o.availability.total).toLocaleString()}
+              </OverlayTooltip>
+            }>
+          <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
+            {(100 * o.availability.percentage).toFixed(2)}%
+          </span>
+          </OverlayTrigger>
+        )
+    }
+  }
+
+  const renderErrorBudget = (o: TableObjective) => {
+    switch (o.state) {
+      case TableObjectiveState.Unknown:
+        return (
+          <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+        )
+      case TableObjectiveState.NoData:
+        return <>No data</>
+      case TableObjectiveState.Error:
+        return <span className='error'>Error</span>
+      case TableObjectiveState.Success:
+        if (o.budget === null || o.budget === undefined) {
+          return <></>
+        }
+        return (
+          <span className={o.budget >= 0 ? 'good' : 'bad'}>
+            {(100 * o.budget).toFixed(2)}%
+          </span>
+        )
+    }
+  }
+
   return (
     <>
-      <Navbar></Navbar>
+      <Navbar/>
       <Container className="content list">
         <Row>
           <Col>
@@ -266,34 +345,10 @@ const List = () => {
                     {(100 * o.target).toFixed(2)}%
                   </td>
                   <td>
-                    {o.availability === undefined ? (
-                      <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
-                    ) : <></>}
-                    {o.availability === null ? <>-</> : <></>}
-                    {o.availability !== undefined && o.availability != null ?
-                      <OverlayTrigger
-                        key={o.name}
-                        overlay={
-                          <OverlayTooltip id={`tooltip-${o.name}`}>
-                            Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
-                            Total: {Math.floor(o.availability.total).toLocaleString()}
-                          </OverlayTooltip>
-                        }>
-                  <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
-                    {(100 * o.availability.percentage).toFixed(2)}%
-                  </span>
-                      </OverlayTrigger>
-                      : <></>}
+                    {renderAvailability(o)}
                   </td>
                   <td>
-                    {o.budget === undefined ? (
-                      <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
-                    ) : <></>}
-                    {o.budget === null ? <>-</> : <></>}
-                    {o.budget !== undefined && o.budget != null ?
-                      <span className={o.budget >= 0 ? 'good' : 'bad'}>
-                  {(100 * o.budget).toFixed(2)}%
-                </span> : <></>}
+                    {renderErrorBudget(o)}
                   </td>
                 </tr>
               ))}
