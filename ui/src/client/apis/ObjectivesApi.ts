@@ -143,7 +143,7 @@ export class ObjectivesApi extends runtime.BaseAPI {
     /**
      * Get objective status
      */
-    async getObjectiveStatusRaw(requestParameters: GetObjectiveStatusRequest): Promise<runtime.ApiResponse<ObjectiveStatus>> {
+    async getObjectiveStatusRaw(requestParameters: GetObjectiveStatusRequest): Promise<runtime.ApiResponse<Array<ObjectiveStatus>>> {
         if (requestParameters.expr === null || requestParameters.expr === undefined) {
             throw new runtime.RequiredError('expr','Required parameter requestParameters.expr was null or undefined when calling getObjectiveStatus.');
         }
@@ -163,13 +163,13 @@ export class ObjectivesApi extends runtime.BaseAPI {
             query: queryParameters,
         });
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ObjectiveStatusFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ObjectiveStatusFromJSON));
     }
 
     /**
      * Get objective status
      */
-    async getObjectiveStatus(requestParameters: GetObjectiveStatusRequest): Promise<ObjectiveStatus> {
+    async getObjectiveStatus(requestParameters: GetObjectiveStatusRequest): Promise<Array<ObjectiveStatus>> {
         const response = await this.getObjectiveStatusRaw(requestParameters);
         return await response.value();
     }

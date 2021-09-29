@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
@@ -321,33 +322,28 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 
 	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
 
-	status := openapiserver.ObjectiveStatus{
-		Availability: openapiserver.ObjectiveStatusAvailability{},
-		Budget:       openapiserver.ObjectiveStatusBudget{},
-	}
-
-	type availability struct {
-		Metric     model.Metric `json:"metric"`
-		Total      float64      `json:"total"`
-		Errors     float64      `json:"errors"`
-		Percentage float64      `json:"percentage"`
-	}
-	statuses := map[model.Fingerprint]*availability{}
-
 	queryTotal := objective.QueryTotal(objective.Window)
 	log.Println(queryTotal)
 	value, _, err := o.promAPI.Query(ctx, queryTotal, ts)
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
-	vec := value.(model.Vector)
-	for _, v := range vec {
-		statuses[v.Metric.Fingerprint()] = &availability{
-			Metric:     v.Metric,
-			Total:      float64(v.Value),
-			Percentage: 1,
+
+	statuses := map[model.Fingerprint]*openapiserver.ObjectiveStatus{}
+
+	for _, v := range value.(model.Vector) {
+		labels := make(map[string]string)
+		for k, v := range v.Metric {
+			labels[string(k)] = string(v)
 		}
-		status.Availability.Total = float64(v.Value)
+
+		statuses[v.Metric.Fingerprint()] = &openapiserver.ObjectiveStatus{
+			Labels: labels,
+			Availability: openapiserver.ObjectiveStatusAvailability{
+				Percentage: 1,
+				Total:      float64(v.Value),
+			},
+		}
 	}
 
 	queryErrors := objective.QueryErrors(objective.Window)
@@ -358,21 +354,27 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 	}
 	for _, v := range value.(model.Vector) {
 		s := statuses[v.Metric.Fingerprint()]
-		s.Errors = float64(v.Value)
-		s.Percentage = 1 - (s.Errors / s.Total)
-
-		status.Availability.Errors = float64(v.Value)
+		s.Availability.Errors = float64(v.Value)
+		s.Availability.Percentage = 1 - (s.Availability.Errors / s.Availability.Total)
 	}
 
-	status.Availability.Percentage = 1 - (status.Availability.Errors / status.Availability.Total)
+	statusSlice := make([]openapiserver.ObjectiveStatus, 0, len(statuses))
 
-	status.Budget.Total = 1 - objective.Target
-	status.Budget.Remaining = (status.Budget.Total - (status.Availability.Errors / status.Availability.Total)) / status.Budget.Total
-	status.Budget.Max = status.Budget.Total * status.Availability.Total
+	for _, s := range statuses {
+		s.Budget.Total = 1 - objective.Target
+		s.Budget.Remaining = (s.Budget.Total - (s.Availability.Errors / s.Availability.Total)) / s.Budget.Total
+		s.Budget.Max = s.Budget.Total * s.Availability.Total
+
+		if math.IsNaN(s.Budget.Remaining) {
+			s.Budget.Remaining = 0
+		}
+
+		statusSlice = append(statusSlice, *s)
+	}
 
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
-		Body: statuses,
+		Body: statusSlice,
 	}, nil
 }
 

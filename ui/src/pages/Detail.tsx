@@ -63,11 +63,11 @@ const Detail = () => {
       })
 
     api.getObjectiveStatus({expr: expr})
-      .then((s: ObjectiveStatus) => {
+      .then((s: ObjectiveStatus[]) => s.forEach((s: ObjectiveStatus) => {
         setAvailability(s.availability)
         setErrorBudget(s.budget)
         setStatusState(StatusState.Success)
-      })
+      }))
       .catch((resp) => {
         if (resp.status === 404) {
           setStatusState(StatusState.NoData)

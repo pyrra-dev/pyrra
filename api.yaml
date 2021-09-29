@@ -41,7 +41,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ObjectiveStatus'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ObjectiveStatus'
   /objectives/errorbudget:
     get:
       summary: Get ErrorBudget graph sample pairs
@@ -238,6 +240,8 @@ components:
         - availability
         - budget
       properties:
+        labels:
+          type: object
         availability:
           type: object
           required:

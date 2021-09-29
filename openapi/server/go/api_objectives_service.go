@@ -53,8 +53,8 @@ func (s *ObjectivesApiService) GetObjectiveStatus(ctx context.Context, expr stri
 	// TODO - update GetObjectiveStatus with the required logic for this service method.
 	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
-	//TODO: Uncomment the next line to return response Response(200, ObjectiveStatus{}) or use other options such as http.Ok ...
-	//return Response(200, ObjectiveStatus{}), nil
+	//TODO: Uncomment the next line to return response Response(200, []ObjectiveStatus{}) or use other options such as http.Ok ...
+	//return Response(200, []ObjectiveStatus{}), nil
 
 	return Response(http.StatusNotImplemented, nil), errors.New("GetObjectiveStatus method not implemented")
 }

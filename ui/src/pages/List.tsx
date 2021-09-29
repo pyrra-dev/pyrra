@@ -1,11 +1,11 @@
-import React, {useEffect, useMemo, useReducer, useState} from 'react'
-import {Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
-import {Configuration, Objective, ObjectivesApi, ObjectiveStatus} from '../client'
-import {formatDuration, PUBLIC_API} from '../App'
-import {Link, useHistory} from 'react-router-dom'
+import React, { useEffect, useMemo, useReducer, useState } from 'react'
+import { Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
+import { Configuration, Objective, ObjectivesApi, ObjectiveStatus } from '../client'
+import { formatDuration, PUBLIC_API } from '../App'
+import { Link, useHistory } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import {IconArrowDown, IconArrowUp, IconArrowUpDown} from '../components/Icons'
-import {labelsString} from "../labels";
+import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '../components/Icons'
+import { labelsString } from "../labels";
 
 enum TableObjectiveState {
   Unknown,
@@ -151,8 +151,10 @@ const List = () => {
         dispatchTable({type: TableActionType.SetObjective, objective: o})
 
         api.getObjectiveStatus({expr: labelsString(o.labels)})
-          .then((s: ObjectiveStatus) => {
-            dispatchTable({type: TableActionType.SetStatus, name: labelsString(o.labels), status: s})
+          .then((s: ObjectiveStatus[]) => {
+            s.forEach((s: ObjectiveStatus) => {
+              dispatchTable({ type: TableActionType.SetStatus, name: labelsString(o.labels), status: s })
+            })
           })
           .catch((err) => {
             if (err.status === 404) {

@@ -10,6 +10,8 @@
 package openapi
 
 type ObjectiveStatus struct {
+	Labels map[string]string `json:"labels,omitempty"`
+
 	Availability ObjectiveStatusAvailability `json:"availability"`
 
 	Budget ObjectiveStatusBudget `json:"budget"`

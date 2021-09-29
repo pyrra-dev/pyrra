@@ -273,7 +273,7 @@ func (r ApiGetObjectiveStatusRequest) Expr(expr string) ApiGetObjectiveStatusReq
 	return r
 }
 
-func (r ApiGetObjectiveStatusRequest) Execute() (ObjectiveStatus, *_nethttp.Response, error) {
+func (r ApiGetObjectiveStatusRequest) Execute() ([]ObjectiveStatus, *_nethttp.Response, error) {
 	return r.ApiService.GetObjectiveStatusExecute(r)
 }
 
@@ -291,16 +291,16 @@ func (a *ObjectivesApiService) GetObjectiveStatus(ctx _context.Context) ApiGetOb
 
 /*
  * Execute executes the request
- * @return ObjectiveStatus
+ * @return []ObjectiveStatus
  */
-func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatusRequest) (ObjectiveStatus, *_nethttp.Response, error) {
+func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatusRequest) ([]ObjectiveStatus, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  ObjectiveStatus
+		localVarReturnValue  []ObjectiveStatus
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ObjectivesApiService.GetObjectiveStatus")

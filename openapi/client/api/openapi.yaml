@@ -42,7 +42,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ObjectiveStatus'
+                items:
+                  $ref: '#/components/schemas/ObjectiveStatus'
+                type: array
           description: Get objective status
       summary: Get objective status
       tags:
@@ -353,11 +355,14 @@ components:
           total: 6.027456183070403
           percentage: 0.8008281904610115
           errors: 1.4658129805029452
+        labels: '{}'
         budget:
           total: 5.962133916683182
           max: 2.3021358869347655
           remaining: 5.637376656633329
       properties:
+        labels:
+          type: object
         availability:
           $ref: '#/components/schemas/ObjectiveStatus_availability'
         budget:
