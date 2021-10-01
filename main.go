@@ -29,6 +29,7 @@ import (
 	promconfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiclient "github.com/pyrra-dev/pyrra/openapi/client"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
@@ -63,8 +64,6 @@ func main() {
 	case "kubernetes":
 		cmdKubernetes(CLI.Kubernetes.MetricsAddr)
 	}
-
-	return
 }
 
 func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearerTokenPath string) {
@@ -279,8 +278,15 @@ type ObjectivesServer struct {
 	apiclient *openapiclient.APIClient
 }
 
-func (o *ObjectivesServer) ListObjectives(ctx context.Context) (openapiserver.ImplResponse, error) {
-	objectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Execute()
+func (o *ObjectivesServer) ListObjectives(ctx context.Context, query string) (openapiserver.ImplResponse, error) {
+	if query != "" {
+		// We'll parse the query matchers already to make sure it's valid before passing on to the backend.
+		if _, err := parser.ParseMetricSelector(query); err != nil {
+			return openapiserver.ImplResponse{Code: http.StatusBadRequest}, err
+		}
+	}
+
+	objectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx, query).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -315,7 +321,7 @@ func (o *ObjectivesServer) GetObjective(ctx context.Context, expr string) (opena
 }
 
 func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
+	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx, expr).Execute()
 	if err != nil {
 		var apiErr openapiclient.GenericOpenAPIError
 		if errors.As(err, &apiErr) {
@@ -326,7 +332,11 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
-	objective := openapi.InternalFromClient(clientObjective)
+	if len(clientObjectives) != 1 {
+		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches not exactly one SLO, it matches: %d", len(clientObjectives))
+	}
+
+	objective := openapi.InternalFromClient(clientObjectives[0])
 
 	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
 
