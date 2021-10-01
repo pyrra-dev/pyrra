@@ -18,7 +18,7 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
   useEffect(() => {
     const controller = new AbortController()
 
-    api.getMultiBurnrateAlerts({ namespace: objective.namespace, name: objective.name })
+    api.getMultiBurnrateAlerts({ expr: '' })
       .then((alerts: MultiBurnrateAlert[]) => setAlerts(alerts))
 
     return () => {

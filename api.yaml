@@ -18,7 +18,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Objectives"
-  /objectives/{namespace}/{name}:
+  /objectives/{expr}:
     get:
       summary: Get Objective
       operationId: GetObjective
@@ -26,12 +26,7 @@ paths:
         - objectives
       parameters:
         - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+          name: expr
           required: true
           schema:
             type: string
@@ -42,7 +37,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Objective'
-  /objectives/{namespace}/{name}/status:
+  /objectives/{expr}/status:
     get:
       summary: Get objective status
       operationId: GetObjectiveStatus
@@ -50,12 +45,7 @@ paths:
         - objectives
       parameters:
         - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+          name: expr
           required: true
           schema:
             type: string
@@ -66,7 +56,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ObjectiveStatus'
-  /objectives/{namespace}/{name}/errorbudget:
+  /objectives/{expr}/errorbudget:
     get:
       summary: Get ErrorBudget graph sample pairs
       operationId: GetObjectiveErrorBudget
@@ -74,12 +64,7 @@ paths:
         - objectives
       parameters:
         - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+          name: expr
           required: true
           schema:
             type: string
@@ -100,7 +85,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryRange'
-  /objectives/{namespace}/{name}/alerts:
+  /objectives/{expr}/alerts:
     get:
       summary: Get the MultiBurnrateAlerts for the Objective
       operationId: GetMultiBurnrateAlerts
@@ -108,12 +93,7 @@ paths:
         - objectives
       parameters:
         - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+          name: expr
           required: true
           schema:
             type: string
@@ -126,7 +106,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/MultiBurnrateAlert'
-  /objectives/{namespace}/{name}/red/requests:
+  /objectives/{expr}/red/requests:
     get:
       summary: Get a matrix of requests by label
       operationId: GetREDRequests
@@ -134,12 +114,7 @@ paths:
         - objectives
       parameters:
         - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+          name: expr
           required: true
           schema:
             type: string
@@ -160,7 +135,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryRange'
-  /objectives/{namespace}/{name}/red/errors:
+  /objectives/{expr}/red/errors:
     get:
       summary: Get a matrix of error percentage by label
       operationId: GetREDErrors
@@ -168,12 +143,7 @@ paths:
         - objectives
       parameters:
         - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+          name: expr
           required: true
           schema:
             type: string
@@ -204,16 +174,15 @@ components:
       type: object
       required:
         - name
-        - namespace
         - description
         - target
         - window
         - config
       properties:
-        name:
-          type: string
-        namespace:
-          type: string
+        labels:
+          type: object
+          additionalProperties:
+            type: string
         description:
           type: string
         target:

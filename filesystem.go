@@ -143,7 +143,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 						return err
 					}
 
-					objectives[objective.Name] = objective
+					objectives[objective.Labels.String()] = objective
 				}
 			}
 		}, func(err error) {
@@ -186,8 +186,9 @@ func (f FilesystemObjectiveServer) ListObjectives(ctx context.Context) (openapis
 	}, nil
 }
 
-func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
-	objective, ok := objectives[name]
+func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+	// TODO: Parse expr to match properly
+	objective, ok := objectives[expr]
 	if !ok {
 		return openapiserver.ImplResponse{Code: http.StatusNotFound}, nil
 	}
@@ -198,22 +199,22 @@ func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, namespace, 
 	}, nil
 }
 
-func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }

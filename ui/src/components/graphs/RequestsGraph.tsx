@@ -26,7 +26,7 @@ const RequestsGraph = ({ api, namespace, name, timeRange }: RequestsGraphProps):
     const end = Math.floor(now / 1000)
 
     setRequestsLoading(true)
-    api.getREDRequests({ namespace, name, start, end })
+    api.getREDRequests({ expr: '', start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {

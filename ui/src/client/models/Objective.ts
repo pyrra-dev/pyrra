@@ -28,16 +28,10 @@ import {
 export interface Objective {
     /**
      * 
-     * @type {string}
+     * @type {{ [key: string]: string; }}
      * @memberof Objective
      */
-    name: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof Objective
-     */
-    namespace: string;
+    labels?: { [key: string]: string; };
     /**
      * 
      * @type {string}
@@ -80,8 +74,7 @@ export function ObjectiveFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     }
     return {
         
-        'name': json['name'],
-        'namespace': json['namespace'],
+        'labels': !exists(json, 'labels') ? undefined : json['labels'],
         'description': json['description'],
         'target': json['target'],
         'window': json['window'],
@@ -99,8 +92,7 @@ export function ObjectiveToJSON(value?: Objective | null): any {
     }
     return {
         
-        'name': value.name,
-        'namespace': value.namespace,
+        'labels': value.labels,
         'description': value.description,
         'target': value.target,
         'window': value.window,

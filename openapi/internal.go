@@ -55,8 +55,7 @@ func InternalFromClient(o client.Objective) slo.Objective {
 	}
 
 	return slo.Objective{
-		Name:        o.GetName(),
-		Namespace:   o.GetNamespace(),
+		//Name:        o.GetName(),
 		Description: o.GetDescription(),
 		Target:      o.GetTarget(),
 		Window:      model.Duration(time.Duration(o.GetWindow()) * time.Millisecond),

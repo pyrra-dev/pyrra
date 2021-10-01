@@ -26,7 +26,7 @@ const ErrorsGraph = ({ api, namespace, name, timeRange }: ErrorsGraphProps): JSX
     const end = Math.floor(now / 1000)
 
     setErrorsLoading(true)
-    api.getREDErrors({ namespace, name, start, end })
+    api.getREDErrors({ expr: '', start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {

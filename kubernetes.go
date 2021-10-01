@@ -127,9 +127,11 @@ func (o *ObjectiveServer) ListObjectives(ctx context.Context) (openapiserver.Imp
 	}, nil
 }
 
-func (o *ObjectiveServer) GetObjective(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetObjective(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+	// TODO: Parse expr for namespace
+
 	var slo pyrrav1alpha1.ServiceLevelObjective
-	err := o.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &slo)
+	err := o.client.Get(ctx, client.ObjectKey{Namespace: expr, Name: expr}, &slo)
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -144,22 +146,22 @@ func (o *ObjectiveServer) GetObjective(ctx context.Context, namespace, name stri
 	}, nil
 }
 
-func (o *ObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (o *ObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (o *ObjectiveServer) GetObjectiveStatus(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (o *ObjectiveServer) GetREDErrors(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetREDErrors(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (o *ObjectiveServer) GetREDRequests(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetREDRequests(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }

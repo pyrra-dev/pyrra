@@ -28,6 +28,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	promconfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiclient "github.com/pyrra-dev/pyrra/openapi/client"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
@@ -129,7 +130,7 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearer
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
 	r.Mount("/api/v1", router)
 	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-	r.Get("/objectives/{namespace}/{name}", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/objectives/{expr}", func(w http.ResponseWriter, r *http.Request) {
 		if err := tmpl.Execute(w, struct {
 			PrometheusURL string
 		}{
@@ -295,8 +296,8 @@ func (o *ObjectivesServer) ListObjectives(ctx context.Context) (openapiserver.Im
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjective(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
-	objective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
+func (o *ObjectivesServer) GetObjective(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+	objective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
 	if err != nil {
 		var apiErr openapiclient.GenericOpenAPIError
 		if errors.As(err, &apiErr) {
@@ -313,8 +314,8 @@ func (o *ObjectivesServer) GetObjective(ctx context.Context, namespace, name str
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
+func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
 	if err != nil {
 		var apiErr openapiclient.GenericOpenAPIError
 		if errors.As(err, &apiErr) {
@@ -371,8 +372,8 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, namespace, na
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, namespace, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
+func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -438,8 +439,8 @@ const (
 	alertstateFiring   = "firing"
 )
 
-func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
+func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -542,7 +543,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, namespace
 			if as == alertstateFiring {
 				alertstate = alertstateFiring
 			}
-		}(objective.Name, short.Window, long.Window)
+		}(objective.Labels.Get(labels.MetricName), short.Window, long.Window)
 
 		wg.Wait()
 
@@ -562,8 +563,8 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, namespace
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDRequests(ctx context.Context, namespace, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
+func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -639,8 +640,8 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, namespace, name s
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDErrors(ctx context.Context, namespace, name string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, namespace, name).Execute()
+func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}

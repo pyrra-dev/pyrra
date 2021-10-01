@@ -6,6 +6,26 @@ import { Link, useHistory } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '../components/Icons'
 
+const labelsString = (lset: { [key: string]: string; } | undefined): string => {
+  if (lset === undefined) {
+    return ''
+  }
+
+  let s = '';
+
+  if (lset['__name__'] !== '') {
+    s += lset['__name__']
+  }
+
+  s += '{'
+  s += Object.entries(lset)
+    .filter((l) => l[0] !== '__name__')
+    .map((l) => `${l[0]}="${l[1]}"`)
+    .join(', ')
+  s += '}'
+  return s
+}
+
 enum TableObjectiveState {
   Unknown,
   Success,
@@ -44,9 +64,8 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
       return {
         objectives: {
           ...state.objectives,
-          [action.objective.name]: {
-            name: action.objective.name,
-            namespace: action.objective.namespace,
+          [labelsString(action.objective.labels)]: {
+            labels: action.objective.labels,
             description: action.objective.description,
             window: action.objective.window,
             target: action.objective.target,
@@ -143,20 +162,22 @@ const List = () => {
     // const controller = new AbortController()
     // const signal = controller.signal // TODO: Pass this to the generated fetch client?
 
+    objectives.map((o) => console.log('lset', labelsString(o.labels)))
+
     objectives
-      .sort((a: Objective, b: Objective) => a.name.localeCompare(b.name))
+      .sort((a: Objective, b: Objective) => labelsString(a.labels).localeCompare(labelsString(b.labels)))
       .forEach((o: Objective) => {
         dispatchTable({ type: TableActionType.SetObjective, objective: o })
 
-        api.getObjectiveStatus({ namespace: o.namespace, name: o.name })
+        api.getObjectiveStatus({ expr: labelsString(o.labels) })
           .then((s: ObjectiveStatus) => {
-            dispatchTable({ type: TableActionType.SetStatus, name: o.name, status: s })
+            dispatchTable({ type: TableActionType.SetStatus, name: labelsString(o.labels), status: s })
           })
           .catch((err) => {
             if (err.status === 404) {
-              dispatchTable({ type: TableActionType.SetStatusNone, name: o.name })
+              dispatchTable({ type: TableActionType.SetStatusNone, name: labelsString(o.labels) })
             } else {
-              dispatchTable({ type: TableActionType.SetStatusError, name: o.name })
+              dispatchTable({ type: TableActionType.SetStatusError, name: labelsString(o.labels) })
             }
           })
       })
@@ -183,9 +204,9 @@ const List = () => {
         switch (tableSortState.type) {
           case TableSortType.Name:
             if (tableSortState.order === TableSortOrder.Ascending) {
-              return a.name.localeCompare(b.name)
+              return labelsString(a.labels).localeCompare(labelsString(b.labels))
             } else {
-              return b.name.localeCompare(a.name)
+              return labelsString(b.labels).localeCompare(labelsString(a.labels))
             }
           case TableSortType.Window:
             if (tableSortState.order === TableSortOrder.Ascending) {
@@ -238,10 +259,10 @@ const List = () => {
 
   const upDownIcon = tableSortState.order === TableSortOrder.Ascending ? <IconArrowUp/> : <IconArrowDown/>
 
-  const objectivePage = (namespace: string, name: string) => `/objectives/${namespace}/${name}`
+  const objectivePage = (lset: string) => `/objectives?${lset}`
 
-  const handleTableRowClick = (namespace: string, name: string) => () => {
-    history.push(objectivePage(namespace, name))
+  const handleTableRowClick = (lset: string) => () => {
+    history.push(objectivePage(lset))
   }
 
   const renderAvailability = (o: TableObjective) => {
@@ -253,16 +274,16 @@ const List = () => {
       case TableObjectiveState.NoData:
         return <>No data</>
       case TableObjectiveState.Error:
-        return <span className='error'>Error</span>
+        return <span className="error">Error</span>
       case TableObjectiveState.Success:
         if (o.availability === null || o.availability === undefined) {
           return <></>
         }
         return (
           <OverlayTrigger
-            key={o.name}
+            key={labelsString(o.labels)}
             overlay={
-              <OverlayTooltip id={`tooltip-${o.name}`}>
+              <OverlayTooltip id={`tooltip-${labelsString(o.labels)}`}>
                 Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
                 Total: {Math.floor(o.availability.total).toLocaleString()}
               </OverlayTooltip>
@@ -284,7 +305,7 @@ const List = () => {
       case TableObjectiveState.NoData:
         return <>No data</>
       case TableObjectiveState.Error:
-        return <span className='error'>Error</span>
+        return <span className="error">Error</span>
       case TableObjectiveState.Success:
         if (o.budget === null || o.budget === undefined) {
           return <></>
@@ -334,10 +355,11 @@ const List = () => {
               </thead>
               <tbody>
               {tableList.map((o: TableObjective) => (
-                <tr key={o.name} className="table-row-clickable" onClick={handleTableRowClick(o.namespace, o.name)}>
+                <tr key={labelsString(o.labels)} className="table-row-clickable"
+                    onClick={handleTableRowClick(labelsString(o.labels))}>
                   <td>
-                    <Link to={objectivePage(o.namespace, o.name)} className="text-reset">
-                      {o.name}
+                    <Link to={objectivePage(labelsString(o.labels))} className="text-reset">
+                      {labelsString(o.labels)}
                     </Link>
                   </td>
                   <td>{formatDuration(o.window)}</td>

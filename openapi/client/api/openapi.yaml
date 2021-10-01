@@ -18,20 +18,13 @@ paths:
       summary: List Objectives
       tags:
       - objectives
-  /objectives/{namespace}/{name}:
+  /objectives/{expr}:
     get:
       operationId: GetObjective
       parameters:
       - explode: false
         in: path
-        name: namespace
-        required: true
-        schema:
-          type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
+        name: expr
         required: true
         schema:
           type: string
@@ -46,20 +39,13 @@ paths:
       summary: Get Objective
       tags:
       - objectives
-  /objectives/{namespace}/{name}/status:
+  /objectives/{expr}/status:
     get:
       operationId: GetObjectiveStatus
       parameters:
       - explode: false
         in: path
-        name: namespace
-        required: true
-        schema:
-          type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
+        name: expr
         required: true
         schema:
           type: string
@@ -74,20 +60,13 @@ paths:
       summary: Get objective status
       tags:
       - objectives
-  /objectives/{namespace}/{name}/errorbudget:
+  /objectives/{expr}/errorbudget:
     get:
       operationId: GetObjectiveErrorBudget
       parameters:
       - explode: false
         in: path
-        name: namespace
-        required: true
-        schema:
-          type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
+        name: expr
         required: true
         schema:
           type: string
@@ -118,20 +97,13 @@ paths:
       summary: Get ErrorBudget graph sample pairs
       tags:
       - objectives
-  /objectives/{namespace}/{name}/alerts:
+  /objectives/{expr}/alerts:
     get:
       operationId: GetMultiBurnrateAlerts
       parameters:
       - explode: false
         in: path
-        name: namespace
-        required: true
-        schema:
-          type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
+        name: expr
         required: true
         schema:
           type: string
@@ -148,20 +120,13 @@ paths:
       summary: Get the MultiBurnrateAlerts for the Objective
       tags:
       - objectives
-  /objectives/{namespace}/{name}/red/requests:
+  /objectives/{expr}/red/requests:
     get:
       operationId: GetREDRequests
       parameters:
       - explode: false
         in: path
-        name: namespace
-        required: true
-        schema:
-          type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
+        name: expr
         required: true
         schema:
           type: string
@@ -192,20 +157,13 @@ paths:
       summary: Get a matrix of requests by label
       tags:
       - objectives
-  /objectives/{namespace}/{name}/red/errors:
+  /objectives/{expr}/red/errors:
     get:
       operationId: GetREDErrors
       parameters:
       - explode: false
         in: path
-        name: namespace
-        required: true
-        schema:
-          type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
+        name: expr
         required: true
         schema:
           type: string
@@ -287,17 +245,17 @@ components:
                 value: value
               metric: metric
               name: name
-        name: name
-        namespace: namespace
         description: description
         window: 6
         config: config
+        labels:
+          key: labels
         target: 0.8008281904610115
       properties:
-        name:
-          type: string
-        namespace:
-          type: string
+        labels:
+          additionalProperties:
+            type: string
+          type: object
         description:
           type: string
         target:
@@ -314,7 +272,6 @@ components:
       - config
       - description
       - name
-      - namespace
       - target
       - window
       type: object

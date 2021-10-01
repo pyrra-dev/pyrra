@@ -54,7 +54,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
 
       document.title = `${name} - Pyrra`
 
-      api.getObjective({ namespace, name })
+      api.getObjective({ expr: '' })
         .then((o: Objective) => setObjective(o))
         .catch((resp) => {
           if (resp.status !== undefined) {
@@ -64,7 +64,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
           }
         })
 
-      api.getObjectiveStatus({ namespace, name })
+      api.getObjectiveStatus({ expr: '' })
         .then((s: APIObjectiveStatus) => {
           setAvailability(s.availability)
           setErrorBudget(s.budget)
@@ -215,7 +215,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
       <>
         <Navbar>
           <div>
-            <Link to="/">Objectives</Link> &gt; <span>{objective.name}</span>
+            <Link to="/">Objectives</Link> &gt; <span>{objective.labels}</span>
           </div>
         </Navbar>
 
@@ -223,7 +223,7 @@ const Detail = (params: RouteComponentProps<DetailRouteParams>) => {
           <Container>
             <Row>
               <Col xs={12}>
-                <h3>{objective.name}</h3>
+                <h3>{objective.labels}</h3>
               </Col>
               {objective.description !== undefined && objective.description !== '' ? (
                   <Col xs={12} md={6}>

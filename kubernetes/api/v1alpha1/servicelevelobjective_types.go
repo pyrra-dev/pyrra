@@ -214,8 +214,10 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 	}
 
 	return slo.Objective{
-		Name:        in.GetName(),
-		Namespace:   in.GetNamespace(),
+		Labels: labels.FromStrings(
+			labels.MetricName, in.GetName(),
+			"namespace", in.GetNamespace(),
+		),
 		Description: in.Spec.Description,
 		Target:      target / 100,
 		Window:      in.Spec.Window,

@@ -29,7 +29,7 @@ const ErrorBudgetGraph = ({ api, namespace, name, timeRange }: ErrorBudgetGraphP
     const start = Math.floor((now - timeRange) / 1000)
     const end = Math.floor(now / 1000)
 
-    api.getObjectiveErrorBudget({ namespace, name, start, end })
+    api.getObjectiveErrorBudget({ expr: '', start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
