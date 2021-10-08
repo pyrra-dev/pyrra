@@ -1,30 +1,11 @@
-import React, { useEffect, useMemo, useReducer, useState } from 'react'
-import { Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
-import { Configuration, Objective, ObjectivesApi, ObjectiveStatus } from '../client'
-import { formatDuration, PUBLIC_API } from '../App'
-import { Link, useHistory } from 'react-router-dom'
+import React, {useEffect, useMemo, useReducer, useState} from 'react'
+import {Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
+import {Configuration, Objective, ObjectivesApi, ObjectiveStatus} from '../client'
+import {formatDuration, PUBLIC_API} from '../App'
+import {Link, useHistory} from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '../components/Icons'
-
-const labelsString = (lset: { [key: string]: string; } | undefined): string => {
-  if (lset === undefined) {
-    return ''
-  }
-
-  let s = '';
-
-  if (lset['__name__'] !== '') {
-    s += lset['__name__']
-  }
-
-  s += '{'
-  s += Object.entries(lset)
-    .filter((l) => l[0] !== '__name__')
-    .map((l) => `${l[0]}="${l[1]}"`)
-    .join(', ')
-  s += '}'
-  return s
-}
+import {IconArrowDown, IconArrowUp, IconArrowUpDown} from '../components/Icons'
+import {labelsString} from "../labels";
 
 enum TableObjectiveState {
   Unknown,
@@ -138,12 +119,12 @@ interface TableSorting {
 
 const List = () => {
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
+    return new ObjectivesApi(new Configuration({basePath: `${PUBLIC_API}api/v1`}))
   }, [])
 
   const history = useHistory()
   const [objectives, setObjectives] = useState<Array<Objective>>([])
-  const initialTableState: TableState = { objectives: {} }
+  const initialTableState: TableState = {objectives: {}}
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
   const [tableSortState, setTableSortState] = useState<TableSorting>({
     type: TableSortType.Budget,
@@ -153,7 +134,7 @@ const List = () => {
   useEffect(() => {
     document.title = 'Objectives - Pyrra'
 
-    api.listObjectives()
+    api.listObjectives({expr: ''})
       .then((objectives: Objective[]) => setObjectives(objectives))
       .catch((err) => console.log(err))
   }, [api])
@@ -167,17 +148,17 @@ const List = () => {
     objectives
       .sort((a: Objective, b: Objective) => labelsString(a.labels).localeCompare(labelsString(b.labels)))
       .forEach((o: Objective) => {
-        dispatchTable({ type: TableActionType.SetObjective, objective: o })
+        dispatchTable({type: TableActionType.SetObjective, objective: o})
 
-        api.getObjectiveStatus({ expr: labelsString(o.labels) })
+        api.getObjectiveStatus({expr: labelsString(o.labels)})
           .then((s: ObjectiveStatus) => {
-            dispatchTable({ type: TableActionType.SetStatus, name: labelsString(o.labels), status: s })
+            dispatchTable({type: TableActionType.SetStatus, name: labelsString(o.labels), status: s})
           })
           .catch((err) => {
             if (err.status === 404) {
-              dispatchTable({ type: TableActionType.SetStatusNone, name: labelsString(o.labels) })
+              dispatchTable({type: TableActionType.SetStatusNone, name: labelsString(o.labels)})
             } else {
-              dispatchTable({ type: TableActionType.SetStatusError, name: labelsString(o.labels) })
+              dispatchTable({type: TableActionType.SetStatusError, name: labelsString(o.labels)})
             }
           })
       })
@@ -191,9 +172,9 @@ const List = () => {
   const handleTableSort = (type: TableSortType): void => {
     if (tableSortState.type === type) {
       const order = tableSortState.order === TableSortOrder.Ascending ? TableSortOrder.Descending : TableSortOrder.Ascending
-      setTableSortState({ type: type, order: order })
+      setTableSortState({type: type, order: order})
     } else {
-      setTableSortState({ type: type, order: TableSortOrder.Ascending })
+      setTableSortState({type: type, order: TableSortOrder.Ascending})
     }
   }
 
@@ -259,7 +240,7 @@ const List = () => {
 
   const upDownIcon = tableSortState.order === TableSortOrder.Ascending ? <IconArrowUp/> : <IconArrowDown/>
 
-  const objectivePage = (lset: string) => `/objectives?${lset}`
+  const objectivePage = (lset: string) => `/objectives?expr=${lset}`
 
   const handleTableRowClick = (lset: string) => () => {
     history.push(objectivePage(lset))
@@ -269,7 +250,7 @@ const List = () => {
     switch (o.state) {
       case TableObjectiveState.Unknown:
         return (
-          <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+          <Spinner animation={'border'} style={{width: 20, height: 20, borderWidth: 2, opacity: 0.1}}/>
         )
       case TableObjectiveState.NoData:
         return <>No data</>
@@ -300,7 +281,7 @@ const List = () => {
     switch (o.state) {
       case TableObjectiveState.Unknown:
         return (
-          <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+          <Spinner animation={'border'} style={{width: 20, height: 20, borderWidth: 2, opacity: 0.1}}/>
         )
       case TableObjectiveState.NoData:
         return <>No data</>
@@ -388,6 +369,5 @@ const List = () => {
     </>
   )
 }
-
 
 export default List

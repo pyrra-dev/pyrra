@@ -1,0 +1,17 @@
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+
+[ui/**.{js,tsx}]
+charset = utf-8
+indent_style = space
+indent_size = 2
+
+# Matches the exact files either package.json or .travis.yml
+[ui/package.json]
+indent_style = space
+indent_size = 2

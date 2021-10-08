@@ -33,10 +33,6 @@ export interface GetMultiBurnrateAlertsRequest {
     expr: string;
 }
 
-export interface GetObjectiveRequest {
-    expr: string;
-}
-
 export interface GetObjectiveErrorBudgetRequest {
     expr: string;
     start?: number;
@@ -59,6 +55,10 @@ export interface GetREDRequestsRequest {
     end?: number;
 }
 
+export interface ListObjectivesRequest {
+    expr?: string;
+}
+
 /**
  * 
  */
@@ -74,10 +74,14 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{expr}/alerts`.replace(`{${"expr"}}`, encodeURIComponent(String(requestParameters.expr))),
+            path: `/objectives/alerts`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -95,36 +99,6 @@ export class ObjectivesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get Objective
-     */
-    async getObjectiveRaw(requestParameters: GetObjectiveRequest): Promise<runtime.ApiResponse<Objective>> {
-        if (requestParameters.expr === null || requestParameters.expr === undefined) {
-            throw new runtime.RequiredError('expr','Required parameter requestParameters.expr was null or undefined when calling getObjective.');
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        const response = await this.request({
-            path: `/objectives/{expr}`.replace(`{${"expr"}}`, encodeURIComponent(String(requestParameters.expr))),
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        });
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => ObjectiveFromJSON(jsonValue));
-    }
-
-    /**
-     * Get Objective
-     */
-    async getObjective(requestParameters: GetObjectiveRequest): Promise<Objective> {
-        const response = await this.getObjectiveRaw(requestParameters);
-        return await response.value();
-    }
-
-    /**
      * Get ErrorBudget graph sample pairs
      */
     async getObjectiveErrorBudgetRaw(requestParameters: GetObjectiveErrorBudgetRequest): Promise<runtime.ApiResponse<QueryRange>> {
@@ -133,6 +107,10 @@ export class ObjectivesApi extends runtime.BaseAPI {
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
 
         if (requestParameters.start !== undefined) {
             queryParameters['start'] = requestParameters.start;
@@ -145,7 +123,7 @@ export class ObjectivesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{expr}/errorbudget`.replace(`{${"expr"}}`, encodeURIComponent(String(requestParameters.expr))),
+            path: `/objectives/errorbudget`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -172,10 +150,14 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{expr}/status`.replace(`{${"expr"}}`, encodeURIComponent(String(requestParameters.expr))),
+            path: `/objectives/status`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -202,6 +184,10 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
+
         if (requestParameters.start !== undefined) {
             queryParameters['start'] = requestParameters.start;
         }
@@ -213,7 +199,7 @@ export class ObjectivesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{expr}/red/errors`.replace(`{${"expr"}}`, encodeURIComponent(String(requestParameters.expr))),
+            path: `/objectives/red/errors`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -240,6 +226,10 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         const queryParameters: any = {};
 
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
+
         if (requestParameters.start !== undefined) {
             queryParameters['start'] = requestParameters.start;
         }
@@ -251,7 +241,7 @@ export class ObjectivesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{expr}/red/requests`.replace(`{${"expr"}}`, encodeURIComponent(String(requestParameters.expr))),
+            path: `/objectives/red/requests`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -271,8 +261,12 @@ export class ObjectivesApi extends runtime.BaseAPI {
     /**
      * List Objectives
      */
-    async listObjectivesRaw(): Promise<runtime.ApiResponse<Array<Objective>>> {
+    async listObjectivesRaw(requestParameters: ListObjectivesRequest): Promise<runtime.ApiResponse<Array<Objective>>> {
         const queryParameters: any = {};
+
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -289,8 +283,8 @@ export class ObjectivesApi extends runtime.BaseAPI {
     /**
      * List Objectives
      */
-    async listObjectives(): Promise<Array<Objective>> {
-        const response = await this.listObjectivesRaw();
+    async listObjectives(requestParameters: ListObjectivesRequest): Promise<Array<Objective>> {
+        const response = await this.listObjectivesRaw(requestParameters);
         return await response.value();
     }
 

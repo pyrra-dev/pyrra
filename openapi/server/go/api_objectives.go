@@ -12,8 +12,6 @@ package openapi
 import (
 	"net/http"
 	"strings"
-
-	"github.com/gorilla/mux"
 )
 
 // A ObjectivesApiController binds http requests to an api service and writes the service results to the http response
@@ -32,37 +30,31 @@ func (c *ObjectivesApiController) Routes() Routes {
 		{
 			"GetMultiBurnrateAlerts",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{expr}/alerts",
+			"/api/v1/objectives/alerts",
 			c.GetMultiBurnrateAlerts,
-		},
-		{
-			"GetObjective",
-			strings.ToUpper("Get"),
-			"/api/v1/objectives/{expr}",
-			c.GetObjective,
 		},
 		{
 			"GetObjectiveErrorBudget",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{expr}/errorbudget",
+			"/api/v1/objectives/errorbudget",
 			c.GetObjectiveErrorBudget,
 		},
 		{
 			"GetObjectiveStatus",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{expr}/status",
+			"/api/v1/objectives/status",
 			c.GetObjectiveStatus,
 		},
 		{
 			"GetREDErrors",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{expr}/red/errors",
+			"/api/v1/objectives/red/errors",
 			c.GetREDErrors,
 		},
 		{
 			"GetREDRequests",
 			strings.ToUpper("Get"),
-			"/api/v1/objectives/{expr}/red/requests",
+			"/api/v1/objectives/red/requests",
 			c.GetREDRequests,
 		},
 		{
@@ -76,26 +68,9 @@ func (c *ObjectivesApiController) Routes() Routes {
 
 // GetMultiBurnrateAlerts - Get the MultiBurnrateAlerts for the Objective
 func (c *ObjectivesApiController) GetMultiBurnrateAlerts(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	expr := params["expr"]
-
+	query := r.URL.Query()
+	expr := query.Get("expr")
 	result, err := c.service.GetMultiBurnrateAlerts(r.Context(), expr)
-	// If an error occurred, encode the error with the status code
-	if err != nil {
-		EncodeJSONResponse(err.Error(), &result.Code, w)
-		return
-	}
-	// If no error, encode the body and the result code
-	EncodeJSONResponse(result.Body, &result.Code, w)
-
-}
-
-// GetObjective - Get Objective
-func (c *ObjectivesApiController) GetObjective(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	expr := params["expr"]
-
-	result, err := c.service.GetObjective(r.Context(), expr)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -108,10 +83,8 @@ func (c *ObjectivesApiController) GetObjective(w http.ResponseWriter, r *http.Re
 
 // GetObjectiveErrorBudget - Get ErrorBudget graph sample pairs
 func (c *ObjectivesApiController) GetObjectiveErrorBudget(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 	query := r.URL.Query()
-	expr := params["expr"]
-
+	expr := query.Get("expr")
 	start, err := parseInt32Parameter(query.Get("start"), false)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -135,9 +108,8 @@ func (c *ObjectivesApiController) GetObjectiveErrorBudget(w http.ResponseWriter,
 
 // GetObjectiveStatus - Get objective status
 func (c *ObjectivesApiController) GetObjectiveStatus(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	expr := params["expr"]
-
+	query := r.URL.Query()
+	expr := query.Get("expr")
 	result, err := c.service.GetObjectiveStatus(r.Context(), expr)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
@@ -151,10 +123,8 @@ func (c *ObjectivesApiController) GetObjectiveStatus(w http.ResponseWriter, r *h
 
 // GetREDErrors - Get a matrix of error percentage by label
 func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 	query := r.URL.Query()
-	expr := params["expr"]
-
+	expr := query.Get("expr")
 	start, err := parseInt32Parameter(query.Get("start"), false)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -178,10 +148,8 @@ func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Re
 
 // GetREDRequests - Get a matrix of requests by label
 func (c *ObjectivesApiController) GetREDRequests(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 	query := r.URL.Query()
-	expr := params["expr"]
-
+	expr := query.Get("expr")
 	start, err := parseInt32Parameter(query.Get("start"), false)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -205,7 +173,9 @@ func (c *ObjectivesApiController) GetREDRequests(w http.ResponseWriter, r *http.
 
 // ListObjectives - List Objectives
 func (c *ObjectivesApiController) ListObjectives(w http.ResponseWriter, r *http.Request) {
-	result, err := c.service.ListObjectives(r.Context())
+	query := r.URL.Query()
+	expr := query.Get("expr")
+	result, err := c.service.ListObjectives(r.Context(), expr)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)

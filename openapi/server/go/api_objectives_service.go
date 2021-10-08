@@ -37,17 +37,6 @@ func (s *ObjectivesApiService) GetMultiBurnrateAlerts(ctx context.Context, expr 
 	return Response(http.StatusNotImplemented, nil), errors.New("GetMultiBurnrateAlerts method not implemented")
 }
 
-// GetObjective - Get Objective
-func (s *ObjectivesApiService) GetObjective(ctx context.Context, expr string) (ImplResponse, error) {
-	// TODO - update GetObjective with the required logic for this service method.
-	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
-
-	//TODO: Uncomment the next line to return response Response(200, Objective{}) or use other options such as http.Ok ...
-	//return Response(200, Objective{}), nil
-
-	return Response(http.StatusNotImplemented, nil), errors.New("GetObjective method not implemented")
-}
-
 // GetObjectiveErrorBudget - Get ErrorBudget graph sample pairs
 func (s *ObjectivesApiService) GetObjectiveErrorBudget(ctx context.Context, expr string, start int32, end int32) (ImplResponse, error) {
 	// TODO - update GetObjectiveErrorBudget with the required logic for this service method.
@@ -93,7 +82,7 @@ func (s *ObjectivesApiService) GetREDRequests(ctx context.Context, expr string, 
 }
 
 // ListObjectives - List Objectives
-func (s *ObjectivesApiService) ListObjectives(ctx context.Context) (ImplResponse, error) {
+func (s *ObjectivesApiService) ListObjectives(ctx context.Context, expr string) (ImplResponse, error) {
 	// TODO - update ListObjectives with the required logic for this service method.
 	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 

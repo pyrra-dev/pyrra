@@ -11,6 +11,11 @@ paths:
       operationId: ListObjectives
       tags:
         - objectives
+      parameters:
+        - in: query
+          name: expr
+          schema:
+            type: string
       responses:
         '200':
           description: List Objectives
@@ -18,33 +23,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Objectives"
-  /objectives/{expr}:
-    get:
-      summary: Get Objective
-      operationId: GetObjective
-      tags:
-        - objectives
-      parameters:
-        - in: path
-          name: expr
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Get Objective
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Objective'
-  /objectives/{expr}/status:
+  /objectives/status:
     get:
       summary: Get objective status
       operationId: GetObjectiveStatus
       tags:
         - objectives
       parameters:
-        - in: path
+        - in: query
           name: expr
           required: true
           schema:
@@ -56,14 +42,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ObjectiveStatus'
-  /objectives/{expr}/errorbudget:
+  /objectives/errorbudget:
     get:
       summary: Get ErrorBudget graph sample pairs
       operationId: GetObjectiveErrorBudget
       tags:
         - objectives
       parameters:
-        - in: path
+        - in: query
           name: expr
           required: true
           schema:
@@ -85,14 +71,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryRange'
-  /objectives/{expr}/alerts:
+  /objectives/alerts:
     get:
       summary: Get the MultiBurnrateAlerts for the Objective
       operationId: GetMultiBurnrateAlerts
       tags:
         - objectives
       parameters:
-        - in: path
+        - in: query
           name: expr
           required: true
           schema:
@@ -106,14 +92,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/MultiBurnrateAlert'
-  /objectives/{expr}/red/requests:
+  /objectives/red/requests:
     get:
       summary: Get a matrix of requests by label
       operationId: GetREDRequests
       tags:
         - objectives
       parameters:
-        - in: path
+        - in: query
           name: expr
           required: true
           schema:
@@ -135,14 +121,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryRange'
-  /objectives/{expr}/red/errors:
+  /objectives/red/errors:
     get:
       summary: Get a matrix of error percentage by label
       operationId: GetREDErrors
       tags:
         - objectives
       parameters:
-        - in: path
+        - in: query
           name: expr
           required: true
           schema:

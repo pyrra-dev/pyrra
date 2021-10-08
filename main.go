@@ -286,7 +286,7 @@ func (o *ObjectivesServer) ListObjectives(ctx context.Context, query string) (op
 		}
 	}
 
-	objectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx, query).Execute()
+	objectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(query).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
@@ -302,26 +302,8 @@ func (o *ObjectivesServer) ListObjectives(ctx context.Context, query string) (op
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjective(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
-	objective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
-	if err != nil {
-		var apiErr openapiclient.GenericOpenAPIError
-		if errors.As(err, &apiErr) {
-			if strings.HasPrefix(apiErr.Error(), strconv.Itoa(http.StatusNotFound)) {
-				return openapiserver.ImplResponse{Code: http.StatusNotFound}, apiErr
-			}
-		}
-		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
-	}
-
-	return openapiserver.ImplResponse{
-		Code: http.StatusCreated,
-		Body: openapi.ServerFromClient(objective),
-	}, nil
-}
-
 func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
-	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx, expr).Execute()
+	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		var apiErr openapiclient.GenericOpenAPIError
 		if errors.As(err, &apiErr) {
@@ -329,11 +311,10 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 				return openapiserver.ImplResponse{Code: http.StatusNotFound}, apiErr
 			}
 		}
-
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 	if len(clientObjectives) != 1 {
-		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches not exactly one SLO, it matches: %d", len(clientObjectives))
+		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches more than one SLO, it matches: %d", len(clientObjectives))
 	}
 
 	objective := openapi.InternalFromClient(clientObjectives[0])
@@ -383,11 +364,14 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 }
 
 func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
+	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
-	objective := openapi.InternalFromClient(clientObjective)
+	if len(clientObjectives) != 1 {
+		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches more than one SLO, it matches: %d", len(clientObjectives))
+	}
+	objective := openapi.InternalFromClient(clientObjectives[0])
 
 	now := time.Now()
 	start := now.Add(-1 * time.Hour)
@@ -450,11 +434,15 @@ const (
 )
 
 func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
+	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
-	objective := openapi.InternalFromClient(clientObjective)
+	if len(clientObjectives) != 1 {
+		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches not exactly one SLO")
+	}
+
+	objective := openapi.InternalFromClient(clientObjectives[0])
 
 	baseAlerts, err := objective.Alerts()
 	if err != nil {
@@ -574,11 +562,14 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr stri
 }
 
 func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
+	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
-	objective := openapi.InternalFromClient(clientObjective)
+	if len(clientObjectives) != 1 {
+		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches not exactly one SLO")
+	}
+	objective := openapi.InternalFromClient(clientObjectives[0])
 
 	now := time.Now()
 	start := now.Add(-1 * time.Hour)
@@ -651,11 +642,14 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, star
 }
 
 func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
-	clientObjective, _, err := o.apiclient.ObjectivesApi.GetObjective(ctx, expr).Execute()
+	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
-	objective := openapi.InternalFromClient(clientObjective)
+	if len(clientObjectives) != 1 {
+		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches not exactly one SLO")
+	}
+	objective := openapi.InternalFromClient(clientObjectives[0])
 
 	now := time.Now()
 	start := now.Add(-1 * time.Hour)

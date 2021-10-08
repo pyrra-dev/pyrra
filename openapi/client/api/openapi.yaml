@@ -8,6 +8,14 @@ paths:
   /objectives:
     get:
       operationId: ListObjectives
+      parameters:
+      - explode: true
+        in: query
+        name: expr
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -18,38 +26,17 @@ paths:
       summary: List Objectives
       tags:
       - objectives
-  /objectives/{expr}:
-    get:
-      operationId: GetObjective
-      parameters:
-      - explode: false
-        in: path
-        name: expr
-        required: true
-        schema:
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Objective'
-          description: Get Objective
-      summary: Get Objective
-      tags:
-      - objectives
-  /objectives/{expr}/status:
+  /objectives/status:
     get:
       operationId: GetObjectiveStatus
       parameters:
-      - explode: false
-        in: path
+      - explode: true
+        in: query
         name: expr
         required: true
         schema:
           type: string
-        style: simple
+        style: form
       responses:
         "200":
           content:
@@ -60,17 +47,17 @@ paths:
       summary: Get objective status
       tags:
       - objectives
-  /objectives/{expr}/errorbudget:
+  /objectives/errorbudget:
     get:
       operationId: GetObjectiveErrorBudget
       parameters:
-      - explode: false
-        in: path
+      - explode: true
+        in: query
         name: expr
         required: true
         schema:
           type: string
-        style: simple
+        style: form
       - description: The timestamp to start the query range at
         explode: true
         in: query
@@ -97,17 +84,17 @@ paths:
       summary: Get ErrorBudget graph sample pairs
       tags:
       - objectives
-  /objectives/{expr}/alerts:
+  /objectives/alerts:
     get:
       operationId: GetMultiBurnrateAlerts
       parameters:
-      - explode: false
-        in: path
+      - explode: true
+        in: query
         name: expr
         required: true
         schema:
           type: string
-        style: simple
+        style: form
       responses:
         "200":
           content:
@@ -120,17 +107,17 @@ paths:
       summary: Get the MultiBurnrateAlerts for the Objective
       tags:
       - objectives
-  /objectives/{expr}/red/requests:
+  /objectives/red/requests:
     get:
       operationId: GetREDRequests
       parameters:
-      - explode: false
-        in: path
+      - explode: true
+        in: query
         name: expr
         required: true
         schema:
           type: string
-        style: simple
+        style: form
       - description: The timestamp to start the query range at
         explode: true
         in: query
@@ -157,17 +144,17 @@ paths:
       summary: Get a matrix of requests by label
       tags:
       - objectives
-  /objectives/{expr}/red/errors:
+  /objectives/red/errors:
     get:
       operationId: GetREDErrors
       parameters:
-      - explode: false
-        in: path
+      - explode: true
+        in: query
         name: expr
         required: true
         schema:
           type: string
-        style: simple
+        style: form
       - description: The timestamp to start the query range at
         explode: true
         in: query

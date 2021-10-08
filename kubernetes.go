@@ -106,7 +106,7 @@ type ObjectiveServer struct {
 	client client.Client
 }
 
-func (o *ObjectiveServer) ListObjectives(ctx context.Context) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) ListObjectives(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
 	var list pyrrav1alpha1.ServiceLevelObjectiveList
 	if err := o.client.List(context.Background(), &list); err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err

@@ -50,14 +50,15 @@ func (os *Objectives) Match(ms []*labels.Matcher) []slo.Objective {
 
 	var objectives []slo.Objective
 
+Objectives:
 	for _, o := range os.objectives {
 		for _, m := range ms {
 			v := o.Labels.Get(m.Name)
 			if !m.Matches(v) {
-				continue
+				continue Objectives
 			}
-			objectives = append(objectives, o)
 		}
+		objectives = append(objectives, o)
 	}
 
 	return objectives

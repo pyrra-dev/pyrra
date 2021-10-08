@@ -16,7 +16,6 @@ import (
 	_ioutil "io/ioutil"
 	_nethttp "net/http"
 	_neturl "net/url"
-	"strings"
 )
 
 // Linger please
@@ -30,7 +29,12 @@ type ObjectivesApiService service
 type ApiGetMultiBurnrateAlertsRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
-	expr       string
+	expr       *string
+}
+
+func (r ApiGetMultiBurnrateAlertsRequest) Expr(expr string) ApiGetMultiBurnrateAlertsRequest {
+	r.expr = &expr
+	return r
 }
 
 func (r ApiGetMultiBurnrateAlertsRequest) Execute() ([]MultiBurnrateAlert, *_nethttp.Response, error) {
@@ -40,14 +44,12 @@ func (r ApiGetMultiBurnrateAlertsRequest) Execute() ([]MultiBurnrateAlert, *_net
 /*
  * GetMultiBurnrateAlerts Get the MultiBurnrateAlerts for the Objective
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- * @param expr
  * @return ApiGetMultiBurnrateAlertsRequest
  */
-func (a *ObjectivesApiService) GetMultiBurnrateAlerts(ctx _context.Context, expr string) ApiGetMultiBurnrateAlertsRequest {
+func (a *ObjectivesApiService) GetMultiBurnrateAlerts(ctx _context.Context) ApiGetMultiBurnrateAlertsRequest {
 	return ApiGetMultiBurnrateAlertsRequest{
 		ApiService: a,
 		ctx:        ctx,
-		expr:       expr,
 	}
 }
 
@@ -70,117 +72,16 @@ func (a *ObjectivesApiService) GetMultiBurnrateAlertsExecute(r ApiGetMultiBurnra
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{expr}/alerts"
-	localVarPath = strings.Replace(localVarPath, "{"+"expr"+"}", _neturl.PathEscape(parameterToString(r.expr, "")), -1)
+	localVarPath := localBasePath + "/objectives/alerts"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
-
-	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
-
-	// set Content-Type header
-	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
-	if localVarHTTPContentType != "" {
-		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	if r.expr == nil {
+		return localVarReturnValue, nil, reportError("expr is required and must be specified")
 	}
 
-	// to determine the Accept header
-	localVarHTTPHeaderAccepts := []string{"application/json"}
-
-	// set Accept header
-	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
-	if localVarHTTPHeaderAccept != "" {
-		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
-	}
-	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, localVarFormFileName, localVarFileName, localVarFileBytes)
-	if err != nil {
-		return localVarReturnValue, nil, err
-	}
-
-	localVarHTTPResponse, err := a.client.callAPI(req)
-	if err != nil || localVarHTTPResponse == nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	localVarBody, err := _ioutil.ReadAll(localVarHTTPResponse.Body)
-	localVarHTTPResponse.Body.Close()
-	localVarHTTPResponse.Body = _ioutil.NopCloser(bytes.NewBuffer(localVarBody))
-	if err != nil {
-		return localVarReturnValue, localVarHTTPResponse, err
-	}
-
-	if localVarHTTPResponse.StatusCode >= 300 {
-		newErr := GenericOpenAPIError{
-			body:  localVarBody,
-			error: localVarHTTPResponse.Status,
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
-	if err != nil {
-		newErr := GenericOpenAPIError{
-			body:  localVarBody,
-			error: err.Error(),
-		}
-		return localVarReturnValue, localVarHTTPResponse, newErr
-	}
-
-	return localVarReturnValue, localVarHTTPResponse, nil
-}
-
-type ApiGetObjectiveRequest struct {
-	ctx        _context.Context
-	ApiService *ObjectivesApiService
-	expr       string
-}
-
-func (r ApiGetObjectiveRequest) Execute() (Objective, *_nethttp.Response, error) {
-	return r.ApiService.GetObjectiveExecute(r)
-}
-
-/*
- * GetObjective Get Objective
- * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- * @param expr
- * @return ApiGetObjectiveRequest
- */
-func (a *ObjectivesApiService) GetObjective(ctx _context.Context, expr string) ApiGetObjectiveRequest {
-	return ApiGetObjectiveRequest{
-		ApiService: a,
-		ctx:        ctx,
-		expr:       expr,
-	}
-}
-
-/*
- * Execute executes the request
- * @return Objective
- */
-func (a *ObjectivesApiService) GetObjectiveExecute(r ApiGetObjectiveRequest) (Objective, *_nethttp.Response, error) {
-	var (
-		localVarHTTPMethod   = _nethttp.MethodGet
-		localVarPostBody     interface{}
-		localVarFormFileName string
-		localVarFileName     string
-		localVarFileBytes    []byte
-		localVarReturnValue  Objective
-	)
-
-	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ObjectivesApiService.GetObjective")
-	if err != nil {
-		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
-	}
-
-	localVarPath := localBasePath + "/objectives/{expr}"
-	localVarPath = strings.Replace(localVarPath, "{"+"expr"+"}", _neturl.PathEscape(parameterToString(r.expr, "")), -1)
-
-	localVarHeaderParams := make(map[string]string)
-	localVarQueryParams := _neturl.Values{}
-	localVarFormParams := _neturl.Values{}
-
+	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -238,11 +139,15 @@ func (a *ObjectivesApiService) GetObjectiveExecute(r ApiGetObjectiveRequest) (Ob
 type ApiGetObjectiveErrorBudgetRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
-	expr       string
+	expr       *string
 	start      *int32
 	end        *int32
 }
 
+func (r ApiGetObjectiveErrorBudgetRequest) Expr(expr string) ApiGetObjectiveErrorBudgetRequest {
+	r.expr = &expr
+	return r
+}
 func (r ApiGetObjectiveErrorBudgetRequest) Start(start int32) ApiGetObjectiveErrorBudgetRequest {
 	r.start = &start
 	return r
@@ -259,14 +164,12 @@ func (r ApiGetObjectiveErrorBudgetRequest) Execute() (QueryRange, *_nethttp.Resp
 /*
  * GetObjectiveErrorBudget Get ErrorBudget graph sample pairs
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- * @param expr
  * @return ApiGetObjectiveErrorBudgetRequest
  */
-func (a *ObjectivesApiService) GetObjectiveErrorBudget(ctx _context.Context, expr string) ApiGetObjectiveErrorBudgetRequest {
+func (a *ObjectivesApiService) GetObjectiveErrorBudget(ctx _context.Context) ApiGetObjectiveErrorBudgetRequest {
 	return ApiGetObjectiveErrorBudgetRequest{
 		ApiService: a,
 		ctx:        ctx,
-		expr:       expr,
 	}
 }
 
@@ -289,13 +192,16 @@ func (a *ObjectivesApiService) GetObjectiveErrorBudgetExecute(r ApiGetObjectiveE
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{expr}/errorbudget"
-	localVarPath = strings.Replace(localVarPath, "{"+"expr"+"}", _neturl.PathEscape(parameterToString(r.expr, "")), -1)
+	localVarPath := localBasePath + "/objectives/errorbudget"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
+	if r.expr == nil {
+		return localVarReturnValue, nil, reportError("expr is required and must be specified")
+	}
 
+	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
 	if r.start != nil {
 		localVarQueryParams.Add("start", parameterToString(*r.start, ""))
 	}
@@ -359,7 +265,12 @@ func (a *ObjectivesApiService) GetObjectiveErrorBudgetExecute(r ApiGetObjectiveE
 type ApiGetObjectiveStatusRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
-	expr       string
+	expr       *string
+}
+
+func (r ApiGetObjectiveStatusRequest) Expr(expr string) ApiGetObjectiveStatusRequest {
+	r.expr = &expr
+	return r
 }
 
 func (r ApiGetObjectiveStatusRequest) Execute() (ObjectiveStatus, *_nethttp.Response, error) {
@@ -369,14 +280,12 @@ func (r ApiGetObjectiveStatusRequest) Execute() (ObjectiveStatus, *_nethttp.Resp
 /*
  * GetObjectiveStatus Get objective status
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- * @param expr
  * @return ApiGetObjectiveStatusRequest
  */
-func (a *ObjectivesApiService) GetObjectiveStatus(ctx _context.Context, expr string) ApiGetObjectiveStatusRequest {
+func (a *ObjectivesApiService) GetObjectiveStatus(ctx _context.Context) ApiGetObjectiveStatusRequest {
 	return ApiGetObjectiveStatusRequest{
 		ApiService: a,
 		ctx:        ctx,
-		expr:       expr,
 	}
 }
 
@@ -399,13 +308,16 @@ func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatus
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{expr}/status"
-	localVarPath = strings.Replace(localVarPath, "{"+"expr"+"}", _neturl.PathEscape(parameterToString(r.expr, "")), -1)
+	localVarPath := localBasePath + "/objectives/status"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
+	if r.expr == nil {
+		return localVarReturnValue, nil, reportError("expr is required and must be specified")
+	}
 
+	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -463,11 +375,15 @@ func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatus
 type ApiGetREDErrorsRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
-	expr       string
+	expr       *string
 	start      *int32
 	end        *int32
 }
 
+func (r ApiGetREDErrorsRequest) Expr(expr string) ApiGetREDErrorsRequest {
+	r.expr = &expr
+	return r
+}
 func (r ApiGetREDErrorsRequest) Start(start int32) ApiGetREDErrorsRequest {
 	r.start = &start
 	return r
@@ -484,14 +400,12 @@ func (r ApiGetREDErrorsRequest) Execute() (QueryRange, *_nethttp.Response, error
 /*
  * GetREDErrors Get a matrix of error percentage by label
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- * @param expr
  * @return ApiGetREDErrorsRequest
  */
-func (a *ObjectivesApiService) GetREDErrors(ctx _context.Context, expr string) ApiGetREDErrorsRequest {
+func (a *ObjectivesApiService) GetREDErrors(ctx _context.Context) ApiGetREDErrorsRequest {
 	return ApiGetREDErrorsRequest{
 		ApiService: a,
 		ctx:        ctx,
-		expr:       expr,
 	}
 }
 
@@ -514,13 +428,16 @@ func (a *ObjectivesApiService) GetREDErrorsExecute(r ApiGetREDErrorsRequest) (Qu
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{expr}/red/errors"
-	localVarPath = strings.Replace(localVarPath, "{"+"expr"+"}", _neturl.PathEscape(parameterToString(r.expr, "")), -1)
+	localVarPath := localBasePath + "/objectives/red/errors"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
+	if r.expr == nil {
+		return localVarReturnValue, nil, reportError("expr is required and must be specified")
+	}
 
+	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
 	if r.start != nil {
 		localVarQueryParams.Add("start", parameterToString(*r.start, ""))
 	}
@@ -584,11 +501,15 @@ func (a *ObjectivesApiService) GetREDErrorsExecute(r ApiGetREDErrorsRequest) (Qu
 type ApiGetREDRequestsRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
-	expr       string
+	expr       *string
 	start      *int32
 	end        *int32
 }
 
+func (r ApiGetREDRequestsRequest) Expr(expr string) ApiGetREDRequestsRequest {
+	r.expr = &expr
+	return r
+}
 func (r ApiGetREDRequestsRequest) Start(start int32) ApiGetREDRequestsRequest {
 	r.start = &start
 	return r
@@ -605,14 +526,12 @@ func (r ApiGetREDRequestsRequest) Execute() (QueryRange, *_nethttp.Response, err
 /*
  * GetREDRequests Get a matrix of requests by label
  * @param ctx _context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
- * @param expr
  * @return ApiGetREDRequestsRequest
  */
-func (a *ObjectivesApiService) GetREDRequests(ctx _context.Context, expr string) ApiGetREDRequestsRequest {
+func (a *ObjectivesApiService) GetREDRequests(ctx _context.Context) ApiGetREDRequestsRequest {
 	return ApiGetREDRequestsRequest{
 		ApiService: a,
 		ctx:        ctx,
-		expr:       expr,
 	}
 }
 
@@ -635,13 +554,16 @@ func (a *ObjectivesApiService) GetREDRequestsExecute(r ApiGetREDRequestsRequest)
 		return localVarReturnValue, nil, GenericOpenAPIError{error: err.Error()}
 	}
 
-	localVarPath := localBasePath + "/objectives/{expr}/red/requests"
-	localVarPath = strings.Replace(localVarPath, "{"+"expr"+"}", _neturl.PathEscape(parameterToString(r.expr, "")), -1)
+	localVarPath := localBasePath + "/objectives/red/requests"
 
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
+	if r.expr == nil {
+		return localVarReturnValue, nil, reportError("expr is required and must be specified")
+	}
 
+	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
 	if r.start != nil {
 		localVarQueryParams.Add("start", parameterToString(*r.start, ""))
 	}
@@ -705,6 +627,12 @@ func (a *ObjectivesApiService) GetREDRequestsExecute(r ApiGetREDRequestsRequest)
 type ApiListObjectivesRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
+	expr       *string
+}
+
+func (r ApiListObjectivesRequest) Expr(expr string) ApiListObjectivesRequest {
+	r.expr = &expr
+	return r
 }
 
 func (r ApiListObjectivesRequest) Execute() ([]Objective, *_nethttp.Response, error) {
@@ -748,6 +676,9 @@ func (a *ObjectivesApiService) ListObjectivesExecute(r ApiListObjectivesRequest)
 	localVarQueryParams := _neturl.Values{}
 	localVarFormParams := _neturl.Values{}
 
+	if r.expr != nil {
+		localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
