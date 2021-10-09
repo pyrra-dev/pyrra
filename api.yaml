@@ -159,7 +159,7 @@ components:
     Objective:
       type: object
       required:
-        - name
+        - labels
         - description
         - target
         - window

@@ -258,7 +258,7 @@ components:
       required:
       - config
       - description
-      - name
+      - labels
       - target
       - window
       type: object

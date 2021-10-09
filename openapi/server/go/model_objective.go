@@ -10,7 +10,7 @@
 package openapi
 
 type Objective struct {
-	Labels map[string]string `json:"labels,omitempty"`
+	Labels map[string]string `json:"labels"`
 
 	Description string `json:"description"`
 

@@ -31,7 +31,7 @@ export interface Objective {
      * @type {{ [key: string]: string; }}
      * @memberof Objective
      */
-    labels?: { [key: string]: string; };
+    labels: { [key: string]: string; };
     /**
      * 
      * @type {string}
@@ -74,7 +74,7 @@ export function ObjectiveFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     }
     return {
         
-        'labels': !exists(json, 'labels') ? undefined : json['labels'],
+        'labels': json['labels'],
         'description': json['description'],
         'target': json['target'],
         'window': json['window'],

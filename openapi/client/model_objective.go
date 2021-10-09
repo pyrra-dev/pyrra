@@ -16,20 +16,21 @@ import (
 
 // Objective struct for Objective
 type Objective struct {
-	Labels      *map[string]string `json:"labels,omitempty"`
-	Description string             `json:"description"`
-	Target      float64            `json:"target"`
-	Window      int64              `json:"window"`
-	Config      string             `json:"config"`
-	Indicator   *Indicator         `json:"indicator,omitempty"`
+	Labels      map[string]string `json:"labels"`
+	Description string            `json:"description"`
+	Target      float64           `json:"target"`
+	Window      int64             `json:"window"`
+	Config      string            `json:"config"`
+	Indicator   *Indicator        `json:"indicator,omitempty"`
 }
 
 // NewObjective instantiates a new Objective object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewObjective(description string, target float64, window int64, config string) *Objective {
+func NewObjective(labels map[string]string, description string, target float64, window int64, config string) *Objective {
 	this := Objective{}
+	this.Labels = labels
 	this.Description = description
 	this.Target = target
 	this.Window = window
@@ -45,36 +46,28 @@ func NewObjectiveWithDefaults() *Objective {
 	return &this
 }
 
-// GetLabels returns the Labels field value if set, zero value otherwise.
+// GetLabels returns the Labels field value
 func (o *Objective) GetLabels() map[string]string {
-	if o == nil || o.Labels == nil {
+	if o == nil {
 		var ret map[string]string
 		return ret
 	}
-	return *o.Labels
+
+	return o.Labels
 }
 
-// GetLabelsOk returns a tuple with the Labels field value if set, nil otherwise
+// GetLabelsOk returns a tuple with the Labels field value
 // and a boolean to check if the value has been set.
 func (o *Objective) GetLabelsOk() (*map[string]string, bool) {
-	if o == nil || o.Labels == nil {
+	if o == nil {
 		return nil, false
 	}
-	return o.Labels, true
+	return &o.Labels, true
 }
 
-// HasLabels returns a boolean if a field has been set.
-func (o *Objective) HasLabels() bool {
-	if o != nil && o.Labels != nil {
-		return true
-	}
-
-	return false
-}
-
-// SetLabels gets a reference to the given map[string]string and assigns it to the Labels field.
+// SetLabels sets field value
 func (o *Objective) SetLabels(v map[string]string) {
-	o.Labels = &v
+	o.Labels = v
 }
 
 // GetDescription returns the Description field value
@@ -207,7 +200,7 @@ func (o *Objective) SetIndicator(v Indicator) {
 
 func (o Objective) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
-	if o.Labels != nil {
+	if true {
 		toSerialize["labels"] = o.Labels
 	}
 	if true {
