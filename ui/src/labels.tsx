@@ -5,9 +5,6 @@ export const labelsString = (lset: { [key: string]: string; } | undefined): stri
 
   let s = '';
 
-  // if (lset['__name__'] !== '') {
-  //   s += lset['__name__']
-  // }
 
   s += '{'
   s += Object.entries(lset)

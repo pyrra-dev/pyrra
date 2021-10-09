@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useReducer, useState} from 'react'
-import {Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
+import {Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
 import {Configuration, Objective, ObjectivesApi, ObjectiveStatus} from '../client'
 import {formatDuration, PUBLIC_API} from '../App'
 import {Link, useHistory} from 'react-router-dom'
@@ -335,26 +335,35 @@ const List = () => {
               </tr>
               </thead>
               <tbody>
-              {tableList.map((o: TableObjective) => (
-                <tr key={labelsString(o.labels)} className="table-row-clickable"
-                    onClick={handleTableRowClick(labelsString(o.labels))}>
-                  <td>
-                    <Link to={objectivePage(labelsString(o.labels))} className="text-reset">
-                      {labelsString(o.labels)}
-                    </Link>
-                  </td>
-                  <td>{formatDuration(o.window)}</td>
-                  <td>
-                    {(100 * o.target).toFixed(2)}%
-                  </td>
-                  <td>
-                    {renderAvailability(o)}
-                  </td>
-                  <td>
-                    {renderErrorBudget(o)}
-                  </td>
-                </tr>
-              ))}
+              {tableList.map((o: TableObjective) => {
+                const name = o.labels['__name__']
+                const labels = Object.entries(o.labels)
+                  .filter((l: [string, string]) => l[0] !== '__name__')
+                  .map((l: [string, string]) => (
+                    <Badge variant={"light"}>{l[0]}={l[1]}</Badge>
+                  ))
+                return (
+                  <tr key={labelsString(o.labels)} className="table-row-clickable"
+                      onClick={handleTableRowClick(labelsString(o.labels))}>
+                    <td>
+                      <Link to={objectivePage(labelsString(o.labels))} className="text-reset" style={{marginRight: 5}}>
+                        {name}
+                      </Link>
+                      {labels}
+                    </td>
+                    <td>{formatDuration(o.window)}</td>
+                    <td>
+                      {(100 * o.target).toFixed(2)}%
+                    </td>
+                    <td>
+                      {renderAvailability(o)}
+                    </td>
+                    <td>
+                      {renderErrorBudget(o)}
+                    </td>
+                  </tr>
+                )
+              })}
               </tbody>
             </Table>
           </div>
