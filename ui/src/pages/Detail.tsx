@@ -1,6 +1,6 @@
 import {Link, useHistory, useLocation} from 'react-router-dom'
 import React, {useEffect, useMemo, useState} from 'react'
-import {Button, ButtonGroup, Col, Container, Row, Spinner} from 'react-bootstrap'
+import {Badge, Button, ButtonGroup, Col, Container, Row, Spinner} from 'react-bootstrap'
 import {
   Configuration,
   Objective,
@@ -215,11 +215,17 @@ const Detail = () => {
     }
   }
 
+  const labelBadges = Object.entries(objective.labels)
+    .filter((l: [string, string]) => l[0] !== '__name__')
+    .map((l: [string, string]) => (
+      <Badge variant={"light"}>{l[0]}={l[1]}</Badge>
+    ))
+
   return (
     <>
       <Navbar>
         <div>
-          <Link to="/">Objectives</Link> &gt; <span>{objective.labels['__name__']}</span>
+          <Link to="/">Objectives</Link> &gt; <span>{name}</span>
         </div>
       </Navbar>
 
@@ -227,7 +233,8 @@ const Detail = () => {
         <Container>
           <Row>
             <Col xs={12}>
-              <h3>{objective.labels['__name__']}</h3>
+              <h3>{name}</h3>
+              {labelBadges}
             </Col>
             {objective.description !== undefined && objective.description !== '' ? (
                 <Col xs={12} md={6}>
