@@ -11,7 +11,7 @@ import (
 
 var (
 	objectiveHTTPRatio = Objective{
-		Name:   "monitoring-http-errors",
+		Labels: labels.FromStrings(labels.MetricName, "monitoring-http-errors"),
 		Target: 0.99,
 		Window: model.Duration(28 * 24 * time.Hour),
 		Indicator: Indicator{
@@ -21,21 +21,21 @@ var (
 					LabelMatchers: []*labels.Matcher{
 						{Type: labels.MatchEqual, Name: "job", Value: "thanos-receive-default"},
 						{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
-						{Type: labels.MatchEqual, Name: "__name__", Value: "http_requests_total"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
 					},
 				},
 				Total: Metric{
 					Name: "http_requests_total",
 					LabelMatchers: []*labels.Matcher{
 						{Type: labels.MatchEqual, Name: "job", Value: "thanos-receive-default"},
-						{Type: labels.MatchEqual, Name: "__name__", Value: "http_requests_total"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
 					},
 				},
 			},
 		},
 	}
 	objectiveGRPCRatio = Objective{
-		Name:        "monitoring-grpc-errors",
+		Labels:      labels.FromStrings(labels.MetricName, "monitoring-grpc-errors"),
 		Description: "",
 		Target:      0.999,
 		Window:      model.Duration(28 * 24 * time.Hour),
@@ -48,7 +48,7 @@ var (
 						{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 						{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 						{Type: labels.MatchRegexp, Name: "grpc_code", Value: "Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"},
-						{Type: labels.MatchEqual, Name: "__name__", Value: "grpc_server_handled_total"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
 					},
 				},
 				Total: Metric{
@@ -57,14 +57,14 @@ var (
 						{Type: labels.MatchEqual, Name: "job", Value: "api"},
 						{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 						{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
-						{Type: labels.MatchEqual, Name: "__name__", Value: "grpc_server_handled_total"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
 					},
 				},
 			},
 		},
 	}
 	objectiveHTTPLatency = Objective{
-		Name:   "monitoring-http-latency",
+		Labels: labels.FromStrings(labels.MetricName, "monitoring-http-latency"),
 		Target: 0.995,
 		Window: model.Duration(28 * 24 * time.Hour),
 		Indicator: Indicator{
@@ -75,7 +75,7 @@ var (
 						{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 						{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
 						{Type: labels.MatchEqual, Name: "le", Value: "1"},
-						{Type: labels.MatchEqual, Name: "__name__", Value: "http_request_duration_seconds_bucket"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_bucket"},
 					},
 				},
 				Total: Metric{
@@ -83,14 +83,14 @@ var (
 					LabelMatchers: []*labels.Matcher{
 						{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 						{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
-						{Type: labels.MatchEqual, Name: "__name__", Value: "http_request_duration_seconds_count"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_count"},
 					},
 				},
 			},
 		},
 	}
 	objectiveGRPCLatency = Objective{
-		Name:   "monitoring-grpc-latency",
+		Labels: labels.FromStrings(labels.MetricName, "monitoring-grpc-latency"),
 		Target: 0.995,
 		Window: model.Duration(7 * 24 * time.Hour),
 		Indicator: Indicator{
@@ -102,7 +102,7 @@ var (
 						{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 						{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 						{Type: labels.MatchEqual, Name: "le", Value: "0.6"},
-						{Type: labels.MatchEqual, Name: "__name__", Value: "grpc_server_handling_seconds_bucket"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_bucket"},
 					},
 				},
 				Total: Metric{
@@ -111,14 +111,14 @@ var (
 						{Type: labels.MatchEqual, Name: "job", Value: "api"},
 						{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 						{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
-						{Type: labels.MatchEqual, Name: "__name__", Value: "grpc_server_handling_seconds_count"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_count"},
 					},
 				},
 			},
 		},
 	}
 	objectiveOperator = Objective{
-		Name:   "monitoring-prometheus-operator-errors",
+		Labels: labels.FromStrings(labels.MetricName, "monitoring-prometheus-operator-errors"),
 		Target: 0.99,
 		Window: model.Duration(14 * 24 * time.Hour),
 		Indicator: Indicator{
@@ -126,13 +126,13 @@ var (
 				Errors: Metric{
 					Name: "prometheus_operator_reconcile_errors_total",
 					LabelMatchers: []*labels.Matcher{
-						{Type: labels.MatchEqual, Name: "__name__", Value: "prometheus_operator_reconcile_errors_total"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_errors_total"},
 					},
 				},
 				Total: Metric{
 					Name: "prometheus_operator_reconcile_operations_total",
 					LabelMatchers: []*labels.Matcher{
-						{Type: labels.MatchEqual, Name: "__name__", Value: "prometheus_operator_reconcile_operations_total"},
+						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_operations_total"},
 					},
 				},
 			},
