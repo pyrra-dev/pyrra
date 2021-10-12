@@ -30,39 +30,33 @@ import {
 } from '../models';
 
 export interface GetMultiBurnrateAlertsRequest {
-    namespace: string;
-    name: string;
-}
-
-export interface GetObjectiveRequest {
-    namespace: string;
-    name: string;
+    expr: string;
 }
 
 export interface GetObjectiveErrorBudgetRequest {
-    namespace: string;
-    name: string;
+    expr: string;
     start?: number;
     end?: number;
 }
 
 export interface GetObjectiveStatusRequest {
-    namespace: string;
-    name: string;
+    expr: string;
 }
 
 export interface GetREDErrorsRequest {
-    namespace: string;
-    name: string;
+    expr: string;
     start?: number;
     end?: number;
 }
 
 export interface GetREDRequestsRequest {
-    namespace: string;
-    name: string;
+    expr: string;
     start?: number;
     end?: number;
+}
+
+export interface ListObjectivesRequest {
+    expr?: string;
 }
 
 /**
@@ -74,20 +68,20 @@ export class ObjectivesApi extends runtime.BaseAPI {
      * Get the MultiBurnrateAlerts for the Objective
      */
     async getMultiBurnrateAlertsRaw(requestParameters: GetMultiBurnrateAlertsRequest): Promise<runtime.ApiResponse<Array<MultiBurnrateAlert>>> {
-        if (requestParameters.namespace === null || requestParameters.namespace === undefined) {
-            throw new runtime.RequiredError('namespace','Required parameter requestParameters.namespace was null or undefined when calling getMultiBurnrateAlerts.');
-        }
-
-        if (requestParameters.name === null || requestParameters.name === undefined) {
-            throw new runtime.RequiredError('name','Required parameter requestParameters.name was null or undefined when calling getMultiBurnrateAlerts.');
+        if (requestParameters.expr === null || requestParameters.expr === undefined) {
+            throw new runtime.RequiredError('expr','Required parameter requestParameters.expr was null or undefined when calling getMultiBurnrateAlerts.');
         }
 
         const queryParameters: any = {};
 
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{namespace}/{name}/alerts`.replace(`{${"namespace"}}`, encodeURIComponent(String(requestParameters.namespace))).replace(`{${"name"}}`, encodeURIComponent(String(requestParameters.name))),
+            path: `/objectives/alerts`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -105,52 +99,18 @@ export class ObjectivesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get Objective
-     */
-    async getObjectiveRaw(requestParameters: GetObjectiveRequest): Promise<runtime.ApiResponse<Objective>> {
-        if (requestParameters.namespace === null || requestParameters.namespace === undefined) {
-            throw new runtime.RequiredError('namespace','Required parameter requestParameters.namespace was null or undefined when calling getObjective.');
-        }
-
-        if (requestParameters.name === null || requestParameters.name === undefined) {
-            throw new runtime.RequiredError('name','Required parameter requestParameters.name was null or undefined when calling getObjective.');
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        const response = await this.request({
-            path: `/objectives/{namespace}/{name}`.replace(`{${"namespace"}}`, encodeURIComponent(String(requestParameters.namespace))).replace(`{${"name"}}`, encodeURIComponent(String(requestParameters.name))),
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        });
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => ObjectiveFromJSON(jsonValue));
-    }
-
-    /**
-     * Get Objective
-     */
-    async getObjective(requestParameters: GetObjectiveRequest): Promise<Objective> {
-        const response = await this.getObjectiveRaw(requestParameters);
-        return await response.value();
-    }
-
-    /**
      * Get ErrorBudget graph sample pairs
      */
     async getObjectiveErrorBudgetRaw(requestParameters: GetObjectiveErrorBudgetRequest): Promise<runtime.ApiResponse<QueryRange>> {
-        if (requestParameters.namespace === null || requestParameters.namespace === undefined) {
-            throw new runtime.RequiredError('namespace','Required parameter requestParameters.namespace was null or undefined when calling getObjectiveErrorBudget.');
-        }
-
-        if (requestParameters.name === null || requestParameters.name === undefined) {
-            throw new runtime.RequiredError('name','Required parameter requestParameters.name was null or undefined when calling getObjectiveErrorBudget.');
+        if (requestParameters.expr === null || requestParameters.expr === undefined) {
+            throw new runtime.RequiredError('expr','Required parameter requestParameters.expr was null or undefined when calling getObjectiveErrorBudget.');
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
 
         if (requestParameters.start !== undefined) {
             queryParameters['start'] = requestParameters.start;
@@ -163,7 +123,7 @@ export class ObjectivesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{namespace}/{name}/errorbudget`.replace(`{${"namespace"}}`, encodeURIComponent(String(requestParameters.namespace))).replace(`{${"name"}}`, encodeURIComponent(String(requestParameters.name))),
+            path: `/objectives/errorbudget`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -184,20 +144,20 @@ export class ObjectivesApi extends runtime.BaseAPI {
      * Get objective status
      */
     async getObjectiveStatusRaw(requestParameters: GetObjectiveStatusRequest): Promise<runtime.ApiResponse<ObjectiveStatus>> {
-        if (requestParameters.namespace === null || requestParameters.namespace === undefined) {
-            throw new runtime.RequiredError('namespace','Required parameter requestParameters.namespace was null or undefined when calling getObjectiveStatus.');
-        }
-
-        if (requestParameters.name === null || requestParameters.name === undefined) {
-            throw new runtime.RequiredError('name','Required parameter requestParameters.name was null or undefined when calling getObjectiveStatus.');
+        if (requestParameters.expr === null || requestParameters.expr === undefined) {
+            throw new runtime.RequiredError('expr','Required parameter requestParameters.expr was null or undefined when calling getObjectiveStatus.');
         }
 
         const queryParameters: any = {};
 
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{namespace}/{name}/status`.replace(`{${"namespace"}}`, encodeURIComponent(String(requestParameters.namespace))).replace(`{${"name"}}`, encodeURIComponent(String(requestParameters.name))),
+            path: `/objectives/status`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -218,15 +178,15 @@ export class ObjectivesApi extends runtime.BaseAPI {
      * Get a matrix of error percentage by label
      */
     async getREDErrorsRaw(requestParameters: GetREDErrorsRequest): Promise<runtime.ApiResponse<QueryRange>> {
-        if (requestParameters.namespace === null || requestParameters.namespace === undefined) {
-            throw new runtime.RequiredError('namespace','Required parameter requestParameters.namespace was null or undefined when calling getREDErrors.');
-        }
-
-        if (requestParameters.name === null || requestParameters.name === undefined) {
-            throw new runtime.RequiredError('name','Required parameter requestParameters.name was null or undefined when calling getREDErrors.');
+        if (requestParameters.expr === null || requestParameters.expr === undefined) {
+            throw new runtime.RequiredError('expr','Required parameter requestParameters.expr was null or undefined when calling getREDErrors.');
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
 
         if (requestParameters.start !== undefined) {
             queryParameters['start'] = requestParameters.start;
@@ -239,7 +199,7 @@ export class ObjectivesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{namespace}/{name}/red/errors`.replace(`{${"namespace"}}`, encodeURIComponent(String(requestParameters.namespace))).replace(`{${"name"}}`, encodeURIComponent(String(requestParameters.name))),
+            path: `/objectives/red/errors`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -260,15 +220,15 @@ export class ObjectivesApi extends runtime.BaseAPI {
      * Get a matrix of requests by label
      */
     async getREDRequestsRaw(requestParameters: GetREDRequestsRequest): Promise<runtime.ApiResponse<QueryRange>> {
-        if (requestParameters.namespace === null || requestParameters.namespace === undefined) {
-            throw new runtime.RequiredError('namespace','Required parameter requestParameters.namespace was null or undefined when calling getREDRequests.');
-        }
-
-        if (requestParameters.name === null || requestParameters.name === undefined) {
-            throw new runtime.RequiredError('name','Required parameter requestParameters.name was null or undefined when calling getREDRequests.');
+        if (requestParameters.expr === null || requestParameters.expr === undefined) {
+            throw new runtime.RequiredError('expr','Required parameter requestParameters.expr was null or undefined when calling getREDRequests.');
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
 
         if (requestParameters.start !== undefined) {
             queryParameters['start'] = requestParameters.start;
@@ -281,7 +241,7 @@ export class ObjectivesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/objectives/{namespace}/{name}/red/requests`.replace(`{${"namespace"}}`, encodeURIComponent(String(requestParameters.namespace))).replace(`{${"name"}}`, encodeURIComponent(String(requestParameters.name))),
+            path: `/objectives/red/requests`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
@@ -301,8 +261,12 @@ export class ObjectivesApi extends runtime.BaseAPI {
     /**
      * List Objectives
      */
-    async listObjectivesRaw(): Promise<runtime.ApiResponse<Array<Objective>>> {
+    async listObjectivesRaw(requestParameters: ListObjectivesRequest): Promise<runtime.ApiResponse<Array<Objective>>> {
         const queryParameters: any = {};
+
+        if (requestParameters.expr !== undefined) {
+            queryParameters['expr'] = requestParameters.expr;
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -319,8 +283,8 @@ export class ObjectivesApi extends runtime.BaseAPI {
     /**
      * List Objectives
      */
-    async listObjectives(): Promise<Array<Objective>> {
-        const response = await this.listObjectivesRaw();
+    async listObjectives(requestParameters: ListObjectivesRequest): Promise<Array<Objective>> {
+        const response = await this.listObjectivesRaw(requestParameters);
         return await response.value();
     }
 

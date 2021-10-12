@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { formatDuration, PROMETHEUS_URL, PUBLIC_API } from '../App'
 import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
 import { IconExternal } from './Icons'
+import {labelsString} from "../labels";
 
 interface AlertsTableProps {
   objective: Objective
@@ -18,7 +19,7 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
   useEffect(() => {
     const controller = new AbortController()
 
-    api.getMultiBurnrateAlerts({ namespace: objective.namespace, name: objective.name })
+    api.getMultiBurnrateAlerts({ expr: labelsString(objective.labels) })
       .then((alerts: MultiBurnrateAlert[]) => setAlerts(alerts))
 
     return () => {

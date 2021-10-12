@@ -8,6 +8,14 @@ paths:
   /objectives:
     get:
       operationId: ListObjectives
+      parameters:
+      - explode: true
+        in: query
+        name: expr
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -18,52 +26,17 @@ paths:
       summary: List Objectives
       tags:
       - objectives
-  /objectives/{namespace}/{name}:
-    get:
-      operationId: GetObjective
-      parameters:
-      - explode: false
-        in: path
-        name: namespace
-        required: true
-        schema:
-          type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
-        required: true
-        schema:
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Objective'
-          description: Get Objective
-      summary: Get Objective
-      tags:
-      - objectives
-  /objectives/{namespace}/{name}/status:
+  /objectives/status:
     get:
       operationId: GetObjectiveStatus
       parameters:
-      - explode: false
-        in: path
-        name: namespace
+      - explode: true
+        in: query
+        name: expr
         required: true
         schema:
           type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
-        required: true
-        schema:
-          type: string
-        style: simple
+        style: form
       responses:
         "200":
           content:
@@ -74,24 +47,17 @@ paths:
       summary: Get objective status
       tags:
       - objectives
-  /objectives/{namespace}/{name}/errorbudget:
+  /objectives/errorbudget:
     get:
       operationId: GetObjectiveErrorBudget
       parameters:
-      - explode: false
-        in: path
-        name: namespace
+      - explode: true
+        in: query
+        name: expr
         required: true
         schema:
           type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
-        required: true
-        schema:
-          type: string
-        style: simple
+        style: form
       - description: The timestamp to start the query range at
         explode: true
         in: query
@@ -118,24 +84,17 @@ paths:
       summary: Get ErrorBudget graph sample pairs
       tags:
       - objectives
-  /objectives/{namespace}/{name}/alerts:
+  /objectives/alerts:
     get:
       operationId: GetMultiBurnrateAlerts
       parameters:
-      - explode: false
-        in: path
-        name: namespace
+      - explode: true
+        in: query
+        name: expr
         required: true
         schema:
           type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
-        required: true
-        schema:
-          type: string
-        style: simple
+        style: form
       responses:
         "200":
           content:
@@ -148,24 +107,17 @@ paths:
       summary: Get the MultiBurnrateAlerts for the Objective
       tags:
       - objectives
-  /objectives/{namespace}/{name}/red/requests:
+  /objectives/red/requests:
     get:
       operationId: GetREDRequests
       parameters:
-      - explode: false
-        in: path
-        name: namespace
+      - explode: true
+        in: query
+        name: expr
         required: true
         schema:
           type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
-        required: true
-        schema:
-          type: string
-        style: simple
+        style: form
       - description: The timestamp to start the query range at
         explode: true
         in: query
@@ -192,24 +144,17 @@ paths:
       summary: Get a matrix of requests by label
       tags:
       - objectives
-  /objectives/{namespace}/{name}/red/errors:
+  /objectives/red/errors:
     get:
       operationId: GetREDErrors
       parameters:
-      - explode: false
-        in: path
-        name: namespace
+      - explode: true
+        in: query
+        name: expr
         required: true
         schema:
           type: string
-        style: simple
-      - explode: false
-        in: path
-        name: name
-        required: true
-        schema:
-          type: string
-        style: simple
+        style: form
       - description: The timestamp to start the query range at
         explode: true
         in: query
@@ -287,17 +232,17 @@ components:
                 value: value
               metric: metric
               name: name
-        name: name
-        namespace: namespace
         description: description
         window: 6
         config: config
+        labels:
+          key: labels
         target: 0.8008281904610115
       properties:
-        name:
-          type: string
-        namespace:
-          type: string
+        labels:
+          additionalProperties:
+            type: string
+          type: object
         description:
           type: string
         target:
@@ -313,8 +258,7 @@ components:
       required:
       - config
       - description
-      - name
-      - namespace
+      - labels
       - target
       - window
       type: object

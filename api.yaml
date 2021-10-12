@@ -11,6 +11,11 @@ paths:
       operationId: ListObjectives
       tags:
         - objectives
+      parameters:
+        - in: query
+          name: expr
+          schema:
+            type: string
       responses:
         '200':
           description: List Objectives
@@ -18,44 +23,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Objectives"
-  /objectives/{namespace}/{name}:
-    get:
-      summary: Get Objective
-      operationId: GetObjective
-      tags:
-        - objectives
-      parameters:
-        - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Get Objective
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Objective'
-  /objectives/{namespace}/{name}/status:
+  /objectives/status:
     get:
       summary: Get objective status
       operationId: GetObjectiveStatus
       tags:
         - objectives
       parameters:
-        - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+        - in: query
+          name: expr
           required: true
           schema:
             type: string
@@ -66,20 +42,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ObjectiveStatus'
-  /objectives/{namespace}/{name}/errorbudget:
+  /objectives/errorbudget:
     get:
       summary: Get ErrorBudget graph sample pairs
       operationId: GetObjectiveErrorBudget
       tags:
         - objectives
       parameters:
-        - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+        - in: query
+          name: expr
           required: true
           schema:
             type: string
@@ -100,20 +71,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryRange'
-  /objectives/{namespace}/{name}/alerts:
+  /objectives/alerts:
     get:
       summary: Get the MultiBurnrateAlerts for the Objective
       operationId: GetMultiBurnrateAlerts
       tags:
         - objectives
       parameters:
-        - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+        - in: query
+          name: expr
           required: true
           schema:
             type: string
@@ -126,20 +92,15 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/MultiBurnrateAlert'
-  /objectives/{namespace}/{name}/red/requests:
+  /objectives/red/requests:
     get:
       summary: Get a matrix of requests by label
       operationId: GetREDRequests
       tags:
         - objectives
       parameters:
-        - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+        - in: query
+          name: expr
           required: true
           schema:
             type: string
@@ -160,20 +121,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryRange'
-  /objectives/{namespace}/{name}/red/errors:
+  /objectives/red/errors:
     get:
       summary: Get a matrix of error percentage by label
       operationId: GetREDErrors
       tags:
         - objectives
       parameters:
-        - in: path
-          name: namespace
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: name
+        - in: query
+          name: expr
           required: true
           schema:
             type: string
@@ -203,17 +159,16 @@ components:
     Objective:
       type: object
       required:
-        - name
-        - namespace
+        - labels
         - description
         - target
         - window
         - config
       properties:
-        name:
-          type: string
-        namespace:
-          type: string
+        labels:
+          type: object
+          additionalProperties:
+            type: string
         description:
           type: string
         target:

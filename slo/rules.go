@@ -61,7 +61,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 				}
 			}
 		}
-		matcherLabels["slo"] = o.Name
+		matcherLabels["slo"] = o.Labels.Get(labels.MetricName)
 
 		matcherLabelsString := func(ml map[string]string) string {
 			var s []string
@@ -121,7 +121,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 				}
 			}
 		}
-		matcherLabels["slo"] = o.Name
+		matcherLabels["slo"] = o.Labels.Get(labels.MetricName)
 
 		matcherLabelsString := func(ml map[string]string) string {
 			var s []string
@@ -174,7 +174,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	}
 
 	return monitoringv1.RuleGroup{
-		Name:     o.Name,
+		Name:     o.Labels.Get(labels.MetricName),
 		Interval: "30s", // TODO: Increase or decrease based on availability target
 		Rules:    rules,
 	}, nil

@@ -7,12 +7,15 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"sync"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
@@ -20,11 +23,48 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-var objectives = map[string]slo.Objective{}
+type Objectives struct {
+	mu         sync.RWMutex
+	objectives map[string]slo.Objective
+}
+
+func (os *Objectives) Set(o slo.Objective) {
+	os.mu.Lock()
+	os.objectives[o.Labels.String()] = o
+	os.mu.Unlock()
+}
+
+func (os *Objectives) Match(ms []*labels.Matcher) []slo.Objective {
+	if ms == nil || len(ms) == 0 {
+		os.mu.RLock()
+		objectives := make([]slo.Objective, 0, len(os.objectives))
+		for _, o := range os.objectives {
+			objectives = append(objectives, o)
+		}
+		os.mu.RUnlock()
+		return objectives
+	}
+
+	os.mu.RLock()
+	defer os.mu.RUnlock()
+
+	var objectives []slo.Objective
+
+Objectives:
+	for _, o := range os.objectives {
+		for _, m := range ms {
+			v := o.Labels.Get(m.Name)
+			if !m.Matches(v) {
+				continue Objectives
+			}
+		}
+		objectives = append(objectives, o)
+	}
+
+	return objectives
+}
 
 func cmdFilesystem(configFiles, prometheusFolder string) {
-	var gr run.Group
-
 	reg := prometheus.NewRegistry()
 
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
@@ -43,8 +83,10 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())
+	objectives := &Objectives{objectives: map[string]slo.Objective{}}
 	files := make(chan string, 16)
 
+	var gr run.Group
 	{
 		gr.Add(func() error {
 			// Initially read all files and send them to be processed and added to the in memory store.
@@ -143,7 +185,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 						return err
 					}
 
-					objectives[objective.Name] = objective
+					objectives.Set(objective)
 				}
 			}
 		}, func(err error) {
@@ -152,7 +194,9 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 	}
 	{
 		router := openapiserver.NewRouter(
-			openapiserver.NewObjectivesApiController(&FilesystemObjectiveServer{}),
+			openapiserver.NewObjectivesApiController(&FilesystemObjectiveServer{
+				objectives: objectives,
+			}),
 		)
 		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
@@ -172,12 +216,24 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 	}
 }
 
-type FilesystemObjectiveServer struct{}
+type FilesystemObjectiveServer struct {
+	objectives *Objectives
+}
 
-func (f FilesystemObjectiveServer) ListObjectives(ctx context.Context) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) ListObjectives(ctx context.Context, query string) (openapiserver.ImplResponse, error) {
+	var matchers []*labels.Matcher
+	if query != "" {
+		var err error
+		matchers, err = parser.ParseMetricSelector(query)
+		if err != nil {
+			return openapiserver.ImplResponse{Code: http.StatusBadRequest}, err
+		}
+	}
+
+	objectives := f.objectives.Match(matchers)
 	list := make([]openapiserver.Objective, 0, len(objectives))
-	for _, objective := range objectives {
-		list = append(list, openapi.ServerFromInternal(objective))
+	for _, o := range objectives {
+		list = append(list, openapi.ServerFromInternal(o))
 	}
 
 	return openapiserver.ImplResponse{
@@ -186,8 +242,12 @@ func (f FilesystemObjectiveServer) ListObjectives(ctx context.Context) (openapis
 	}, nil
 }
 
-func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
-	objective, ok := objectives[name]
+func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+	// TODO: Parse expr to match properly
+
+	f.objectives.mu.RLock()
+	objective, ok := f.objectives.objectives[expr]
+	f.objectives.mu.RUnlock()
 	if !ok {
 		return openapiserver.ImplResponse{Code: http.StatusNotFound}, nil
 	}
@@ -198,22 +258,22 @@ func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, namespace, 
 	}, nil
 }
 
-func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }

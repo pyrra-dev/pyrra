@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
+import {BrowserRouter, Route, Switch} from 'react-router-dom';
 import List from './pages/List'
 import Detail from './pages/Detail'
 
@@ -14,7 +14,7 @@ const App = () => {
     <BrowserRouter>
       <Switch>
         <Route exact={true} path="/" component={List}/>
-        <Route path="/objectives/:namespace/:name" component={Detail}/>
+        <Route path="/objectives" component={Detail}/>
       </Switch>
     </BrowserRouter>
   )

@@ -19,7 +19,6 @@ import (
 // pass the data to a ObjectivesApiServicer to perform the required actions, then write the service results to the http response.
 type ObjectivesApiRouter interface {
 	GetMultiBurnrateAlerts(http.ResponseWriter, *http.Request)
-	GetObjective(http.ResponseWriter, *http.Request)
 	GetObjectiveErrorBudget(http.ResponseWriter, *http.Request)
 	GetObjectiveStatus(http.ResponseWriter, *http.Request)
 	GetREDErrors(http.ResponseWriter, *http.Request)
@@ -32,11 +31,10 @@ type ObjectivesApiRouter interface {
 // while the service implementation can ignored with the .openapi-generator-ignore file
 // and updated with the logic required for the API.
 type ObjectivesApiServicer interface {
-	GetMultiBurnrateAlerts(context.Context, string, string) (ImplResponse, error)
-	GetObjective(context.Context, string, string) (ImplResponse, error)
-	GetObjectiveErrorBudget(context.Context, string, string, int32, int32) (ImplResponse, error)
-	GetObjectiveStatus(context.Context, string, string) (ImplResponse, error)
-	GetREDErrors(context.Context, string, string, int32, int32) (ImplResponse, error)
-	GetREDRequests(context.Context, string, string, int32, int32) (ImplResponse, error)
-	ListObjectives(context.Context) (ImplResponse, error)
+	GetMultiBurnrateAlerts(context.Context, string) (ImplResponse, error)
+	GetObjectiveErrorBudget(context.Context, string, int32, int32) (ImplResponse, error)
+	GetObjectiveStatus(context.Context, string) (ImplResponse, error)
+	GetREDErrors(context.Context, string, int32, int32) (ImplResponse, error)
+	GetREDRequests(context.Context, string, int32, int32) (ImplResponse, error)
+	ListObjectives(context.Context, string) (ImplResponse, error)
 }

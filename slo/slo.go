@@ -7,8 +7,7 @@ import (
 )
 
 type Objective struct {
-	Name        string
-	Namespace   string
+	Labels      labels.Labels
 	Description string
 	Target      float64
 	Window      model.Duration

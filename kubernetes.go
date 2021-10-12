@@ -24,6 +24,8 @@ import (
 
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/kubernetes/controllers"
 	"github.com/pyrra-dev/pyrra/openapi"
@@ -102,18 +104,63 @@ func cmdKubernetes(metricsAddr string) {
 	}
 }
 
-type ObjectiveServer struct {
-	client client.Client
+type KubernetesClient interface {
+	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error
 }
 
-func (o *ObjectiveServer) ListObjectives(ctx context.Context) (openapiserver.ImplResponse, error) {
+type ObjectiveServer struct {
+	client KubernetesClient
+}
+
+func (o *ObjectiveServer) ListObjectives(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+	var (
+		matchers         []*labels.Matcher
+		nameMatcher      *labels.Matcher
+		namespaceMatcher *labels.Matcher
+	)
+
+	if expr != "" {
+		var err error
+		matchers, err = parser.ParseMetricSelector(expr)
+		if err != nil {
+			return openapiserver.ImplResponse{Code: http.StatusBadRequest}, err
+		}
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				nameMatcher = m
+			}
+			if m.Name == "namespace" {
+				namespaceMatcher = m
+			}
+		}
+	}
+
+	listOpts := client.ListOptions{}
+	for _, m := range matchers {
+		if m.Name == "namespace" && m.Type == labels.MatchEqual {
+			listOpts.Namespace = m.Value
+			break
+		}
+	}
+
 	var list pyrrav1alpha1.ServiceLevelObjectiveList
-	if err := o.client.List(context.Background(), &list); err != nil {
+	if err := o.client.List(ctx, &list, &listOpts); err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	objectives := make([]openapiserver.Objective, 0, len(list.Items))
 	for _, s := range list.Items {
+		if nameMatcher != nil {
+			if !nameMatcher.Matches(s.GetName()) {
+				continue
+			}
+		}
+		if namespaceMatcher != nil {
+			if !namespaceMatcher.Matches(s.GetNamespace()) {
+				continue
+			}
+		}
+
 		internal, err := s.Internal()
 		if err != nil {
 			return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -127,39 +174,22 @@ func (o *ObjectiveServer) ListObjectives(ctx context.Context) (openapiserver.Imp
 	}, nil
 }
 
-func (o *ObjectiveServer) GetObjective(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
-	var slo pyrrav1alpha1.ServiceLevelObjective
-	err := o.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &slo)
-	if err != nil {
-		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
-	}
-	objective, err := slo.Internal()
-	if err != nil {
-		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
-	}
-
-	return openapiserver.ImplResponse{
-		Code: http.StatusOK,
-		Body: openapi.ServerFromInternal(objective),
-	}, nil
-}
-
-func (o *ObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (o *ObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (o *ObjectiveServer) GetObjectiveStatus(ctx context.Context, namespace, name string) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (o *ObjectiveServer) GetREDErrors(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetREDErrors(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (o *ObjectiveServer) GetREDRequests(ctx context.Context, namespace, name string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetREDRequests(ctx context.Context, expr string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
