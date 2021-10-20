@@ -16,7 +16,7 @@ import (
 
 // ObjectiveStatus struct for ObjectiveStatus
 type ObjectiveStatus struct {
-	Labels       *map[string]interface{}     `json:"labels,omitempty"`
+	Labels       *map[string]string          `json:"labels,omitempty"`
 	Availability ObjectiveStatusAvailability `json:"availability"`
 	Budget       ObjectiveStatusBudget       `json:"budget"`
 }
@@ -41,9 +41,9 @@ func NewObjectiveStatusWithDefaults() *ObjectiveStatus {
 }
 
 // GetLabels returns the Labels field value if set, zero value otherwise.
-func (o *ObjectiveStatus) GetLabels() map[string]interface{} {
+func (o *ObjectiveStatus) GetLabels() map[string]string {
 	if o == nil || o.Labels == nil {
-		var ret map[string]interface{}
+		var ret map[string]string
 		return ret
 	}
 	return *o.Labels
@@ -51,7 +51,7 @@ func (o *ObjectiveStatus) GetLabels() map[string]interface{} {
 
 // GetLabelsOk returns a tuple with the Labels field value if set, nil otherwise
 // and a boolean to check if the value has been set.
-func (o *ObjectiveStatus) GetLabelsOk() (*map[string]interface{}, bool) {
+func (o *ObjectiveStatus) GetLabelsOk() (*map[string]string, bool) {
 	if o == nil || o.Labels == nil {
 		return nil, false
 	}
@@ -67,8 +67,8 @@ func (o *ObjectiveStatus) HasLabels() bool {
 	return false
 }
 
-// SetLabels gets a reference to the given map[string]interface{} and assigns it to the Labels field.
-func (o *ObjectiveStatus) SetLabels(v map[string]interface{}) {
+// SetLabels gets a reference to the given map[string]string and assigns it to the Labels field.
+func (o *ObjectiveStatus) SetLabels(v map[string]string) {
 	o.Labels = &v
 }
 

@@ -1,20 +1,21 @@
-import React, {useEffect, useState} from 'react'
-import {Spinner} from 'react-bootstrap'
-import {Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis} from 'recharts'
+import React, { useEffect, useState } from 'react'
+import { Spinner } from 'react-bootstrap'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
 
-import {dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL} from '../../App'
-import {ObjectivesApi, QueryRange} from '../../client'
-import {IconExternal} from '../Icons'
-import {greens, reds} from '../colors'
-import {labelsString} from "../../labels";
+import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
+import { ObjectivesApi, QueryRange } from '../../client'
+import { IconExternal } from '../Icons'
+import { greens, reds } from '../colors'
+import { labelsString } from "../../labels";
 
 interface ErrorBudgetGraphProps {
     api: ObjectivesApi
     labels: { [key: string]: string }
+    grouping: { [key: string]: string }
     timeRange: number
 }
 
-const ErrorBudgetGraph = ({ api, labels, timeRange }: ErrorBudgetGraphProps): JSX.Element => {
+const ErrorBudgetGraph = ({ api, labels, grouping, timeRange }: ErrorBudgetGraphProps): JSX.Element => {
   const [samples, setSamples] = useState<any[]>([]);
   const [samplesOffset, setSamplesOffset] = useState<number>(0)
   const [samplesMin, setSamplesMin] = useState<number>(-10000)
@@ -29,7 +30,7 @@ const ErrorBudgetGraph = ({ api, labels, timeRange }: ErrorBudgetGraphProps): JS
     const start = Math.floor((now - timeRange) / 1000)
     const end = Math.floor(now / 1000)
 
-    api.getObjectiveErrorBudget({expr: labelsString(labels), start, end})
+    api.getObjectiveErrorBudget({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
@@ -74,7 +75,7 @@ const ErrorBudgetGraph = ({ api, labels, timeRange }: ErrorBudgetGraphProps): JS
         setQuery(r.query)
       })
       .finally(() => setLoading(false))
-  }, [api, labels, timeRange])
+  }, [api, labels, grouping, timeRange])
 
   if (!loading && samples.length === 0) {
     return <>

@@ -31,10 +31,12 @@ import {
 
 export interface GetMultiBurnrateAlertsRequest {
     expr: string;
+    grouping?: string;
 }
 
 export interface GetObjectiveErrorBudgetRequest {
     expr: string;
+    grouping?: string;
     start?: number;
     end?: number;
 }
@@ -45,12 +47,14 @@ export interface GetObjectiveStatusRequest {
 
 export interface GetREDErrorsRequest {
     expr: string;
+    grouping?: string;
     start?: number;
     end?: number;
 }
 
 export interface GetREDRequestsRequest {
     expr: string;
+    grouping?: string;
     start?: number;
     end?: number;
 }
@@ -76,6 +80,10 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         if (requestParameters.expr !== undefined) {
             queryParameters['expr'] = requestParameters.expr;
+        }
+
+        if (requestParameters.grouping !== undefined) {
+            queryParameters['grouping'] = requestParameters.grouping;
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -110,6 +118,10 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         if (requestParameters.expr !== undefined) {
             queryParameters['expr'] = requestParameters.expr;
+        }
+
+        if (requestParameters.grouping !== undefined) {
+            queryParameters['grouping'] = requestParameters.grouping;
         }
 
         if (requestParameters.start !== undefined) {
@@ -188,6 +200,10 @@ export class ObjectivesApi extends runtime.BaseAPI {
             queryParameters['expr'] = requestParameters.expr;
         }
 
+        if (requestParameters.grouping !== undefined) {
+            queryParameters['grouping'] = requestParameters.grouping;
+        }
+
         if (requestParameters.start !== undefined) {
             queryParameters['start'] = requestParameters.start;
         }
@@ -228,6 +244,10 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         if (requestParameters.expr !== undefined) {
             queryParameters['expr'] = requestParameters.expr;
+        }
+
+        if (requestParameters.grouping !== undefined) {
+            queryParameters['grouping'] = requestParameters.grouping;
         }
 
         if (requestParameters.start !== undefined) {

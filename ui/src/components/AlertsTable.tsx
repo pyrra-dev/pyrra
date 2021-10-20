@@ -7,6 +7,7 @@ import {labelsString} from "../labels";
 
 interface AlertsTableProps {
   objective: Objective
+  grouping: { [key: string]: string }
 }
 
 const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {

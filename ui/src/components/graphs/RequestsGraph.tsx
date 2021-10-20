@@ -6,15 +6,16 @@ import { ObjectivesApi, QueryRange } from '../../client'
 import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
 import { IconExternal } from '../Icons'
 import { blues, greens, reds, yellows } from '../colors'
-import {labelsString} from "../../labels";
+import { labelsString } from "../../labels";
 
 interface RequestsGraphProps {
   api: ObjectivesApi
   labels: { [key: string]: string }
+  grouping: { [key: string]: string }
   timeRange: number
 }
 
-const RequestsGraph = ({ api, labels, timeRange }: RequestsGraphProps): JSX.Element => {
+const RequestsGraph = ({ api, labels, grouping, timeRange }: RequestsGraphProps): JSX.Element => {
   const [requests, setRequests] = useState<any[]>([])
   const [requestsQuery, setRequestsQuery] = useState<string>('')
   const [requestsLabels, setRequestsLabels] = useState<string[]>([])
@@ -26,7 +27,7 @@ const RequestsGraph = ({ api, labels, timeRange }: RequestsGraphProps): JSX.Elem
     const end = Math.floor(now / 1000)
 
     setRequestsLoading(true)
-    api.getREDRequests({ expr: labelsString(labels), start, end })
+    api.getREDRequests({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
@@ -42,7 +43,7 @@ const RequestsGraph = ({ api, labels, timeRange }: RequestsGraphProps): JSX.Elem
         setRequestsQuery(r.query)
         setRequests(data)
       }).finally(() => setRequestsLoading(false))
-  }, [api, labels, timeRange])
+  }, [api, labels, grouping, timeRange])
 
   const RequestTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
     const style = {

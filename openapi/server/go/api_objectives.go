@@ -70,7 +70,8 @@ func (c *ObjectivesApiController) Routes() Routes {
 func (c *ObjectivesApiController) GetMultiBurnrateAlerts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	expr := query.Get("expr")
-	result, err := c.service.GetMultiBurnrateAlerts(r.Context(), expr)
+	grouping := query.Get("grouping")
+	result, err := c.service.GetMultiBurnrateAlerts(r.Context(), expr, grouping)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -85,6 +86,7 @@ func (c *ObjectivesApiController) GetMultiBurnrateAlerts(w http.ResponseWriter, 
 func (c *ObjectivesApiController) GetObjectiveErrorBudget(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	expr := query.Get("expr")
+	grouping := query.Get("grouping")
 	start, err := parseInt32Parameter(query.Get("start"), false)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -95,7 +97,7 @@ func (c *ObjectivesApiController) GetObjectiveErrorBudget(w http.ResponseWriter,
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	result, err := c.service.GetObjectiveErrorBudget(r.Context(), expr, start, end)
+	result, err := c.service.GetObjectiveErrorBudget(r.Context(), expr, grouping, start, end)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -125,6 +127,7 @@ func (c *ObjectivesApiController) GetObjectiveStatus(w http.ResponseWriter, r *h
 func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	expr := query.Get("expr")
+	grouping := query.Get("grouping")
 	start, err := parseInt32Parameter(query.Get("start"), false)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -135,7 +138,7 @@ func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Re
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	result, err := c.service.GetREDErrors(r.Context(), expr, start, end)
+	result, err := c.service.GetREDErrors(r.Context(), expr, grouping, start, end)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)
@@ -150,6 +153,7 @@ func (c *ObjectivesApiController) GetREDErrors(w http.ResponseWriter, r *http.Re
 func (c *ObjectivesApiController) GetREDRequests(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	expr := query.Get("expr")
+	grouping := query.Get("grouping")
 	start, err := parseInt32Parameter(query.Get("start"), false)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -160,7 +164,7 @@ func (c *ObjectivesApiController) GetREDRequests(w http.ResponseWriter, r *http.
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	result, err := c.service.GetREDRequests(r.Context(), expr, start, end)
+	result, err := c.service.GetREDRequests(r.Context(), expr, grouping, start, end)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)

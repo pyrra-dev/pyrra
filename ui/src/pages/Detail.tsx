@@ -1,6 +1,6 @@
-import {Link, useHistory, useLocation} from 'react-router-dom'
-import React, {useEffect, useMemo, useState} from 'react'
-import {Badge, Button, ButtonGroup, Col, Container, Row, Spinner} from 'react-bootstrap'
+import { Link, useHistory, useLocation } from 'react-router-dom'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Badge, Button, ButtonGroup, Col, Container, Row, Spinner } from 'react-bootstrap'
 import {
   Configuration,
   Objective,
@@ -9,9 +9,9 @@ import {
   ObjectiveStatusAvailability,
   ObjectiveStatusBudget
 } from '../client'
-import {formatDuration, parseDuration, PUBLIC_API} from '../App'
+import { formatDuration, parseDuration, PUBLIC_API } from '../App'
 import Navbar from '../components/Navbar'
-import {parseLabels} from "../labels";
+import { parseLabels } from "../labels";
 import ErrorBudgetGraph from "../components/graphs/ErrorBudgetGraph";
 import RequestsGraph from "../components/graphs/RequestsGraph";
 import ErrorsGraph from "../components/graphs/ErrorsGraph";
@@ -22,12 +22,14 @@ const Detail = () => {
   const query = new URLSearchParams(useLocation().search)
 
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({basePath: `${PUBLIC_API}api/v1`}))
+    return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
   }, [])
 
   const queryExpr = query.get('expr')
+  const groupingExpr = query.get('grouping')
   const expr = queryExpr == null ? '' : queryExpr
   const labels = parseLabels(expr)
+  const grouping = parseLabels(groupingExpr)
   const name: string = labels['__name__']
 
   const timeRangeQuery = query.get('timerange')
@@ -52,7 +54,7 @@ const Detail = () => {
     // const controller = new AbortController()
     document.title = `${name} - Pyrra`
 
-    api.listObjectives({expr: expr})
+    api.listObjectives({ expr: expr })
       .then((os: Objective[]) => os.length === 1 ? setObjective(os[0]) : setObjective(null))
       .catch((resp) => {
         if (resp.status !== undefined) {
@@ -62,7 +64,7 @@ const Detail = () => {
         }
       })
 
-    api.getObjectiveStatus({expr: expr})
+    api.getObjectiveStatus({ expr: expr })
       .then((s: ObjectiveStatus[]) => s.forEach((s: ObjectiveStatus) => {
         setAvailability(s.availability)
         setErrorBudget(s.budget)
@@ -80,14 +82,14 @@ const Detail = () => {
     //     // cancel any pending requests.
     //     controller.abort()
     // }
-  }, [api, name, expr, timeRange, StatusState.Error, StatusState.NoData, StatusState.Success])
+  }, [api, name, expr, groupingExpr, timeRange, StatusState.Error, StatusState.NoData, StatusState.Success])
 
   if (objectiveError !== '') {
     return (
       <>
         <Navbar/>
         <Container>
-          <div style={{margin: '50px 0'}}>
+          <div style={{ margin: '50px 0' }}>
             <h3>{objectiveError}</h3>
             <br/>
             <Link to="/" className="btn btn-light">
@@ -101,7 +103,7 @@ const Detail = () => {
 
   if (objective == null) {
     return (
-      <div style={{marginTop: '50px', textAlign: 'center'}}>
+      <div style={{ marginTop: '50px', textAlign: 'center' }}>
         <Spinner animation="border" role="status">
           <span className="sr-only">Loading...</span>
         </Spinner>
@@ -124,7 +126,7 @@ const Detail = () => {
   ]
 
   const handleTimeRangeClick = (t: number) => () => {
-    history.push(`/objectives/?expr=${expr}&timerange=${formatDuration(t)}`)
+    history.push(`/objectives/?expr=${expr}&grouping=${groupingExpr}&timerange=${formatDuration(t)}`)
   }
 
   const renderAvailability = () => {
@@ -215,7 +217,7 @@ const Detail = () => {
     }
   }
 
-  const labelBadges = Object.entries(objective.labels)
+  const labelBadges = Object.entries({ ...objective.labels, ...grouping })
     .filter((l: [string, string]) => l[0] !== '__name__')
     .map((l: [string, string]) => (
       <Badge variant={"light"}>{l[0]}={l[1]}</Badge>
@@ -272,17 +274,18 @@ const Detail = () => {
               </div>
             </Col>
           </Row>
-          <Row style={{marginBottom: 0}}>
+          <Row style={{ marginBottom: 0 }}>
             <Col>
               <ErrorBudgetGraph
                 api={api}
                 labels={labels}
+                grouping={grouping}
                 timeRange={timeRange}
               />
             </Col>
           </Row>
           <Row>
-            <Col style={{textAlign: 'right'}}>
+            <Col style={{ textAlign: 'right' }}>
               {availability != null ? (
                 <>
                   <small>Errors: {Math.floor(availability.errors).toLocaleString()}</small>&nbsp;
@@ -298,6 +301,7 @@ const Detail = () => {
               <RequestsGraph
                 api={api}
                 labels={labels}
+                grouping={grouping}
                 timeRange={timeRange}
               />
             </Col>
@@ -305,6 +309,7 @@ const Detail = () => {
               <ErrorsGraph
                 api={api}
                 labels={labels}
+                grouping={grouping}
                 timeRange={timeRange}
               />
             </Col>
@@ -312,13 +317,16 @@ const Detail = () => {
           <Row>
             <Col>
               <h4>Multi Burn Rate Alerts</h4>
-              <AlertsTable objective={objective}/>
+              <AlertsTable
+                objective={objective}
+                grouping={grouping}
+              />
             </Col>
           </Row>
           <Row>
             <Col>
               <h4>Config</h4>
-              <pre style={{padding: 20, borderRadius: 4}}>
+              <pre style={{ padding: 20, borderRadius: 4 }}>
                 <code>{objective.config}</code>
               </pre>
             </Col>

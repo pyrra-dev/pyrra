@@ -16,6 +16,8 @@ enum TableObjectiveState {
 
 // TableObjective extends Objective to add some more additional (async) properties
 interface TableObjective extends Objective {
+  lset: string
+  groupingLabels: { [key: string]: string; };
   state: TableObjectiveState
   availability?: TableAvailability | null
   budget?: number | null
@@ -31,13 +33,22 @@ interface TableState {
   objectives: { [key: string]: TableObjective }
 }
 
-enum TableActionType { SetObjective, SetStatus, SetStatusNone, SetStatusError }
+enum TableActionType {
+  SetObjective,
+  DeleteObjective,
+  SetStatus,
+  SetObjectiveWithStatus,
+  SetStatusNone,
+  SetStatusError,
+}
 
 type TableAction =
-  | { type: TableActionType.SetObjective, objective: Objective }
-  | { type: TableActionType.SetStatus, name: string, status: ObjectiveStatus }
-  | { type: TableActionType.SetStatusNone, name: string }
-  | { type: TableActionType.SetStatusError, name: string }
+  | { type: TableActionType.SetObjective, lset: string, objective: Objective }
+  | { type: TableActionType.DeleteObjective, lset: string }
+  | { type: TableActionType.SetStatus, lset: string, status: ObjectiveStatus }
+  | { type: TableActionType.SetObjectiveWithStatus, lset: string, statusLabels: { [key: string]: string }, objective: Objective, status: ObjectiveStatus }
+  | { type: TableActionType.SetStatusNone, lset: string }
+  | { type: TableActionType.SetStatusError, lset: string }
 
 const tableReducer = (state: TableState, action: TableAction): TableState => {
   switch (action.type) {
@@ -45,8 +56,10 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
       return {
         objectives: {
           ...state.objectives,
-          [labelsString(action.objective.labels)]: {
+          [action.lset]: {
+            lset: action.lset,
             labels: action.objective.labels,
+            groupingLabels: {},
             description: action.objective.description,
             window: action.objective.window,
             target: action.objective.target,
@@ -57,12 +70,39 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           }
         }
       }
+    case TableActionType.DeleteObjective:
+      const { [action.lset]: value, ...cleanedObjective } = state.objectives
+      return {
+        objectives: { ...cleanedObjective }
+      }
     case TableActionType.SetStatus:
       return {
         objectives: {
           ...state.objectives,
-          [action.name]: {
-            ...state.objectives[action.name],
+          [action.lset]: {
+            ...state.objectives[action.lset],
+            state: TableObjectiveState.Success,
+            availability: {
+              errors: action.status.availability.errors,
+              total: action.status.availability.total,
+              percentage: action.status.availability.percentage
+            },
+            budget: action.status.budget?.remaining
+          }
+        }
+      }
+    case TableActionType.SetObjectiveWithStatus:
+      return {
+        objectives: {
+          ...state.objectives,
+          [action.lset]: {
+            lset: action.lset,
+            labels: action.objective.labels,
+            groupingLabels: action.statusLabels,
+            description: action.objective.description,
+            window: action.objective.window,
+            target: action.objective.target,
+            config: action.objective.config,
             state: TableObjectiveState.Success,
             availability: {
               errors: action.status.availability.errors,
@@ -77,8 +117,8 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
       return {
         objectives: {
           ...state.objectives,
-          [action.name]: {
-            ...state.objectives[action.name],
+          [action.lset]: {
+            ...state.objectives[action.lset],
             state: TableObjectiveState.NoData,
             availability: null,
             budget: null
@@ -89,8 +129,8 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
       return {
         objectives: {
           ...state.objectives,
-          [action.name]: {
-            ...state.objectives[action.name],
+          [action.lset]: {
+            ...state.objectives[action.lset],
             state: TableObjectiveState.Error,
             availability: null,
             budget: null
@@ -119,12 +159,12 @@ interface TableSorting {
 
 const List = () => {
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({basePath: `${PUBLIC_API}api/v1`}))
+    return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
   }, [])
 
   const history = useHistory()
   const [objectives, setObjectives] = useState<Array<Objective>>([])
-  const initialTableState: TableState = {objectives: {}}
+  const initialTableState: TableState = { objectives: {} }
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
   const [tableSortState, setTableSortState] = useState<TableSorting>({
     type: TableSortType.Budget,
@@ -134,7 +174,7 @@ const List = () => {
   useEffect(() => {
     document.title = 'Objectives - Pyrra'
 
-    api.listObjectives({expr: ''})
+    api.listObjectives({ expr: '' })
       .then((objectives: Objective[]) => setObjectives(objectives))
       .catch((err) => console.log(err))
   }, [api])
@@ -143,25 +183,39 @@ const List = () => {
     // const controller = new AbortController()
     // const signal = controller.signal // TODO: Pass this to the generated fetch client?
 
-    objectives.map((o) => console.log('lset', labelsString(o.labels)))
-
     objectives
       .sort((a: Objective, b: Objective) => labelsString(a.labels).localeCompare(labelsString(b.labels)))
       .forEach((o: Objective) => {
-        dispatchTable({type: TableActionType.SetObjective, objective: o})
+        dispatchTable({ type: TableActionType.SetObjective, lset: labelsString(o.labels), objective: o })
 
-        api.getObjectiveStatus({expr: labelsString(o.labels)})
+        api.getObjectiveStatus({ expr: labelsString(o.labels) })
           .then((s: ObjectiveStatus[]) => {
-            s.forEach((s: ObjectiveStatus) => {
-              dispatchTable({ type: TableActionType.SetStatus, name: labelsString(o.labels), status: s })
-            })
+            if (s.length === 0) {
+              dispatchTable({ type: TableActionType.SetStatusNone, lset: labelsString(o.labels) })
+            } else if (s.length === 1) {
+              dispatchTable({ type: TableActionType.SetStatus, lset: labelsString(o.labels), status: s[0] })
+            } else {
+              dispatchTable({ type: TableActionType.DeleteObjective, lset: labelsString(o.labels) })
+
+              s.forEach((s: ObjectiveStatus) => {
+                // Copy the objective
+                const so = { ...o }
+                // Identify by the combined labels
+                const sLabels = s.labels !== undefined ? s.labels : {}
+                const soLabels = { ...o.labels, ...sLabels }
+
+                dispatchTable({
+                  type: TableActionType.SetObjectiveWithStatus,
+                  lset: labelsString(soLabels),
+                  statusLabels: sLabels,
+                  objective: so,
+                  status: s
+                })
+              })
+            }
           })
           .catch((err) => {
-            if (err.status === 404) {
-              dispatchTable({type: TableActionType.SetStatusNone, name: labelsString(o.labels)})
-            } else {
-              dispatchTable({type: TableActionType.SetStatusError, name: labelsString(o.labels)})
-            }
+            dispatchTable({ type: TableActionType.SetStatusError, lset: labelsString(o.labels) })
           })
       })
 
@@ -174,9 +228,9 @@ const List = () => {
   const handleTableSort = (type: TableSortType): void => {
     if (tableSortState.type === type) {
       const order = tableSortState.order === TableSortOrder.Ascending ? TableSortOrder.Descending : TableSortOrder.Ascending
-      setTableSortState({type: type, order: order})
+      setTableSortState({ type: type, order: order })
     } else {
-      setTableSortState({type: type, order: TableSortOrder.Ascending})
+      setTableSortState({ type: type, order: TableSortOrder.Ascending })
     }
   }
 
@@ -187,9 +241,9 @@ const List = () => {
         switch (tableSortState.type) {
           case TableSortType.Name:
             if (tableSortState.order === TableSortOrder.Ascending) {
-              return labelsString(a.labels).localeCompare(labelsString(b.labels))
+              return a.lset.localeCompare(b.lset)
             } else {
-              return labelsString(b.labels).localeCompare(labelsString(a.labels))
+              return b.lset.localeCompare(a.lset)
             }
           case TableSortType.Window:
             if (tableSortState.order === TableSortOrder.Ascending) {
@@ -242,17 +296,25 @@ const List = () => {
 
   const upDownIcon = tableSortState.order === TableSortOrder.Ascending ? <IconArrowUp/> : <IconArrowDown/>
 
-  const objectivePage = (lset: string) => `/objectives?expr=${lset}`
+  const objectivePage = (
+    labels: { [key: string]: string },
+    grouping: { [key: string]: string }
+  ) => {
+    return `/objectives?expr=${labelsString(labels)}&grouping=${labelsString(grouping)}`
+  }
 
-  const handleTableRowClick = (lset: string) => () => {
-    history.push(objectivePage(lset))
+  const handleTableRowClick = (
+    labels: { [key: string]: string },
+    grouping: { [key: string]: string }
+  ) => () => {
+    history.push(objectivePage(labels, grouping))
   }
 
   const renderAvailability = (o: TableObjective) => {
     switch (o.state) {
       case TableObjectiveState.Unknown:
         return (
-          <Spinner animation={'border'} style={{width: 20, height: 20, borderWidth: 2, opacity: 0.1}}/>
+          <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
         )
       case TableObjectiveState.NoData:
         return <>No data</>
@@ -283,7 +345,7 @@ const List = () => {
     switch (o.state) {
       case TableObjectiveState.Unknown:
         return (
-          <Spinner animation={'border'} style={{width: 20, height: 20, borderWidth: 2, opacity: 0.1}}/>
+          <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
         )
       case TableObjectiveState.NoData:
         return <>No data</>
@@ -337,21 +399,21 @@ const List = () => {
               </tr>
               </thead>
               <tbody>
-              {tableList.map((o: TableObjective) => {
+              {tableList.map((o: TableObjective, i: number) => {
                 const name = o.labels['__name__']
-                const labels = Object.entries(o.labels)
+                const labelBadges = Object.entries({ ...o.labels, ...o.groupingLabels })
                   .filter((l: [string, string]) => l[0] !== '__name__')
                   .map((l: [string, string]) => (
                     <Badge variant={"light"}>{l[0]}={l[1]}</Badge>
                   ))
+
                 return (
-                  <tr key={labelsString(o.labels)} className="table-row-clickable"
-                      onClick={handleTableRowClick(labelsString(o.labels))}>
+                  <tr key={i} className="table-row-clickable" onClick={handleTableRowClick(o.labels, o.groupingLabels)}>
                     <td>
-                      <Link to={objectivePage(labelsString(o.labels))} className="text-reset" style={{marginRight: 5}}>
+                      <Link to={objectivePage(o.labels, o.groupingLabels)} className="text-reset" style={{ marginRight: 5 }}>
                         {name}
                       </Link>
-                      {labels}
+                      {labelBadges}
                     </td>
                     <td>{formatDuration(o.window)}</td>
                     <td>

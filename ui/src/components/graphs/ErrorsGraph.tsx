@@ -6,15 +6,16 @@ import { ObjectivesApi, QueryRange } from '../../client'
 import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
 import { IconExternal } from '../Icons'
 import { reds } from '../colors'
-import {labelsString} from "../../labels";
+import { labelsString } from "../../labels";
 
 interface ErrorsGraphProps {
   api: ObjectivesApi
   labels: { [key: string]: string }
+  grouping: { [key: string]: string }
   timeRange: number
 }
 
-const ErrorsGraph = ({ api, labels, timeRange }: ErrorsGraphProps): JSX.Element => {
+const ErrorsGraph = ({ api, labels, grouping, timeRange }: ErrorsGraphProps): JSX.Element => {
   const [errors, setErrors] = useState<any[]>([])
   const [errorsQuery, setErrorsQuery] = useState<string>('')
   const [errorsLabels, setErrorsLabels] = useState<string[]>([])
@@ -26,7 +27,7 @@ const ErrorsGraph = ({ api, labels, timeRange }: ErrorsGraphProps): JSX.Element 
     const end = Math.floor(now / 1000)
 
     setErrorsLoading(true)
-    api.getREDErrors({ expr: labelsString(labels), start, end })
+    api.getREDErrors({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
       .then((r: QueryRange) => {
         let data: any[] = []
         r.values.forEach((v: number[], i: number) => {
@@ -43,7 +44,7 @@ const ErrorsGraph = ({ api, labels, timeRange }: ErrorsGraphProps): JSX.Element 
         setErrors(data)
       }).finally(() => setErrorsLoading(false))
 
-  }, [api, labels, timeRange])
+  }, [api, labels, grouping, timeRange])
 
   const ErrorsTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
     const style = {

@@ -57,6 +57,10 @@ paths:
           schema:
             type: string
         - in: query
+          name: grouping
+          schema:
+            type: string
+        - in: query
           name: start
           schema:
             type: integer
@@ -85,6 +89,10 @@ paths:
           required: true
           schema:
             type: string
+        - in: query
+          name: grouping
+          schema:
+            type: string
       responses:
         '200':
           description: Get GetMultiBurnrateAlerts for the Objective
@@ -104,6 +112,10 @@ paths:
         - in: query
           name: expr
           required: true
+          schema:
+            type: string
+        - in: query
+          name: grouping
           schema:
             type: string
         - in: query
@@ -133,6 +145,10 @@ paths:
         - in: query
           name: expr
           required: true
+          schema:
+            type: string
+        - in: query
+          name: grouping
           schema:
             type: string
         - in: query
@@ -242,6 +258,8 @@ components:
       properties:
         labels:
           type: object
+          additionalProperties:
+            type: string
         availability:
           type: object
           required:

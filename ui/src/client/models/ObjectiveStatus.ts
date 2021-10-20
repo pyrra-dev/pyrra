@@ -32,10 +32,10 @@ import {
 export interface ObjectiveStatus {
     /**
      * 
-     * @type {object}
+     * @type {{ [key: string]: string; }}
      * @memberof ObjectiveStatus
      */
-    labels?: object;
+    labels?: { [key: string]: string; };
     /**
      * 
      * @type {ObjectiveStatusAvailability}
