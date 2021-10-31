@@ -219,11 +219,17 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 		return slo.Objective{}, fmt.Errorf("failed to marshal resource as config")
 	}
 
+	ls := labels.Labels{{
+		Name: labels.MetricName, Value: in.GetName(),
+	}}
+	if in.GetNamespace() != "" {
+		ls = append(ls, labels.Label{
+			Name: "namespace", Value: in.GetNamespace(),
+		})
+	}
+
 	return slo.Objective{
-		Labels: labels.FromStrings(
-			labels.MetricName, in.GetName(),
-			"namespace", in.GetNamespace(),
-		),
+		Labels:      ls,
 		Description: in.Spec.Description,
 		Target:      target / 100,
 		Window:      in.Spec.Window,
