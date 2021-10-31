@@ -282,10 +282,15 @@ type ApiGetObjectiveStatusRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
 	expr       *string
+	grouping   *string
 }
 
 func (r ApiGetObjectiveStatusRequest) Expr(expr string) ApiGetObjectiveStatusRequest {
 	r.expr = &expr
+	return r
+}
+func (r ApiGetObjectiveStatusRequest) Grouping(grouping string) ApiGetObjectiveStatusRequest {
+	r.grouping = &grouping
 	return r
 }
 
@@ -334,6 +339,9 @@ func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatus
 	}
 
 	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
+	if r.grouping != nil {
+		localVarQueryParams.Add("grouping", parameterToString(*r.grouping, ""))
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 

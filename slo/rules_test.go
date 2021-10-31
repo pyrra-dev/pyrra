@@ -96,6 +96,66 @@ func TestObjective_Burnrates(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "http-ratio-grouping",
+		slo:  objectiveHTTPRatioGrouping(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:burnrate5m",
+				Expr:   intstr.FromString(`sum by(job, handler) (rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[5m])) / sum by(job, handler) (rate(http_requests_total{job="thanos-receive-default"}[5m]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate30m",
+				Expr:   intstr.FromString(`sum by(job, handler) (rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[30m])) / sum by(job, handler) (rate(http_requests_total{job="thanos-receive-default"}[30m]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate1h",
+				Expr:   intstr.FromString(`sum by(job, handler) (rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[1h])) / sum by(job, handler) (rate(http_requests_total{job="thanos-receive-default"}[1h]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate2h",
+				Expr:   intstr.FromString(`sum by(job, handler) (rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[2h])) / sum by(job, handler) (rate(http_requests_total{job="thanos-receive-default"}[2h]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate6h",
+				Expr:   intstr.FromString(`sum by(job, handler) (rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[6h])) / sum by(job, handler) (rate(http_requests_total{job="thanos-receive-default"}[6h]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate1d",
+				Expr:   intstr.FromString(`sum by(job, handler) (rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[1d])) / sum by(job, handler) (rate(http_requests_total{job="thanos-receive-default"}[1d]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate4d",
+				Expr:   intstr.FromString(`sum by(job, handler) (rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[4d])) / sum by(job, handler) (rate(http_requests_total{job="thanos-receive-default"}[4d]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Alert:       "ErrorBudgetBurn",
+				For:         "2m",
+				Expr:        intstr.FromString(`http_requests:burnrate5m{job="thanos-receive-default",slo="monitoring-http-errors"} > (14 * (1-0.99)) and http_requests:burnrate1h{job="thanos-receive-default",slo="monitoring-http-errors"} > (14 * (1-0.99))`),
+				Annotations: map[string]string{"severity": "critical"},
+				Labels:      map[string]string{"job": "thanos-receive-default", "long": "1h", "slo": "monitoring-http-errors", "short": "5m"},
+			}, {
+				Alert:       "ErrorBudgetBurn",
+				For:         "15m",
+				Expr:        intstr.FromString(`http_requests:burnrate30m{job="thanos-receive-default",slo="monitoring-http-errors"} > (7 * (1-0.99)) and http_requests:burnrate6h{job="thanos-receive-default",slo="monitoring-http-errors"} > (7 * (1-0.99))`),
+				Annotations: map[string]string{"severity": "critical"},
+				Labels:      map[string]string{"job": "thanos-receive-default", "long": "6h", "slo": "monitoring-http-errors", "short": "30m"},
+			}, {
+				Alert:       "ErrorBudgetBurn",
+				For:         "1h",
+				Expr:        intstr.FromString(`http_requests:burnrate2h{job="thanos-receive-default",slo="monitoring-http-errors"} > (2 * (1-0.99)) and http_requests:burnrate1d{job="thanos-receive-default",slo="monitoring-http-errors"} > (2 * (1-0.99))`),
+				Annotations: map[string]string{"severity": "warning"},
+				Labels:      map[string]string{"job": "thanos-receive-default", "long": "1d", "slo": "monitoring-http-errors", "short": "2h"},
+			}, {
+				Alert:       "ErrorBudgetBurn",
+				For:         "3h",
+				Expr:        intstr.FromString(`http_requests:burnrate6h{job="thanos-receive-default",slo="monitoring-http-errors"} > (1 * (1-0.99)) and http_requests:burnrate4d{job="thanos-receive-default",slo="monitoring-http-errors"} > (1 * (1-0.99))`),
+				Annotations: map[string]string{"severity": "warning"},
+				Labels:      map[string]string{"job": "thanos-receive-default", "long": "4d", "slo": "monitoring-http-errors", "short": "6h"},
+			}},
+		},
+	}, {
 		name: "operator-ratio",
 		slo:  objectiveOperator(),
 		rules: monitoringv1.RuleGroup{

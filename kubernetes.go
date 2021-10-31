@@ -182,7 +182,7 @@ func (o *ObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr stri
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (o *ObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 

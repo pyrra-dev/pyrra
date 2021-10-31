@@ -49,7 +49,7 @@ func (s *ObjectivesApiService) GetObjectiveErrorBudget(ctx context.Context, expr
 }
 
 // GetObjectiveStatus - Get objective status
-func (s *ObjectivesApiService) GetObjectiveStatus(ctx context.Context, expr string) (ImplResponse, error) {
+func (s *ObjectivesApiService) GetObjectiveStatus(ctx context.Context, expr string, grouping string) (ImplResponse, error) {
 	// TODO - update GetObjectiveStatus with the required logic for this service method.
 	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 

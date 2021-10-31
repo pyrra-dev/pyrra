@@ -43,6 +43,7 @@ export interface GetObjectiveErrorBudgetRequest {
 
 export interface GetObjectiveStatusRequest {
     expr: string;
+    grouping?: string;
 }
 
 export interface GetREDErrorsRequest {
@@ -164,6 +165,10 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         if (requestParameters.expr !== undefined) {
             queryParameters['expr'] = requestParameters.expr;
+        }
+
+        if (requestParameters.grouping !== undefined) {
+            queryParameters['grouping'] = requestParameters.grouping;
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

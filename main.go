@@ -303,7 +303,7 @@ func (o *ObjectivesServer) ListObjectives(ctx context.Context, query string) (op
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		var apiErr openapiclient.GenericOpenAPIError
@@ -319,6 +319,26 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 	}
 
 	objective := openapi.InternalFromClient(clientObjectives[0])
+
+	// Merge grouping into objective's query
+	if grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		if err != nil {
+			return openapiserver.ImplResponse{}, err
+		}
+		if objective.Indicator.Ratio != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
+				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
+			}
+		}
+		if objective.Indicator.Latency != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
+				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
+			}
+		}
+	}
 
 	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
 
@@ -403,15 +423,37 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr str
 			return openapiserver.ImplResponse{}, err
 		}
 		if objective.Indicator.Ratio != nil {
+			groupings := map[string]struct{}{}
+			for _, g := range objective.Indicator.Ratio.Grouping {
+				groupings[g] = struct{}{}
+			}
+
 			for _, m := range groupingMatchers {
 				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
 				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
+				delete(groupings, m.Name)
+			}
+
+			objective.Indicator.Ratio.Grouping = []string{}
+			for g := range groupings {
+				objective.Indicator.Ratio.Grouping = append(objective.Indicator.Ratio.Grouping, g)
 			}
 		}
 		if objective.Indicator.Latency != nil {
+			groupings := map[string]struct{}{}
+			for _, g := range objective.Indicator.Ratio.Grouping {
+				groupings[g] = struct{}{}
+			}
+
 			for _, m := range groupingMatchers {
 				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
 				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
+				delete(groupings, m.Name)
+			}
+
+			objective.Indicator.Ratio.Grouping = []string{}
+			for g := range groupings {
+				objective.Indicator.Ratio.Grouping = append(objective.Indicator.Ratio.Grouping, g)
 			}
 		}
 	}
@@ -442,10 +484,6 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr str
 	if !ok {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
 	}
-
-	//if len(matrix) != 1 {
-	//	return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
-	//}
 
 	if len(matrix) == 0 {
 		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
@@ -486,6 +524,31 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr stri
 	}
 
 	objective := openapi.InternalFromClient(clientObjectives[0])
+
+	// Merge grouping into objective's query
+	if grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		if err != nil {
+			return openapiserver.ImplResponse{}, err
+		}
+
+		if objective.Indicator.Ratio != nil {
+			objective.Indicator.Ratio.Grouping = nil // Don't group by here
+
+			for _, m := range groupingMatchers {
+				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
+				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
+			}
+		}
+		if objective.Indicator.Latency != nil {
+			objective.Indicator.Latency.Grouping = nil // Don't group by here
+
+			for _, m := range groupingMatchers {
+				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
+				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
+			}
+		}
+	}
 
 	baseAlerts, err := objective.Alerts()
 	if err != nil {

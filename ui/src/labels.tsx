@@ -13,7 +13,7 @@ export const labelsString = (lset: { [key: string]: string; } | undefined): stri
 }
 
 export const parseLabels = (expr: string | null): { [key: string]: string } => {
-  if (expr == null) {
+  if (expr == null || expr === '{}') {
     return {}
   }
   expr = expr.replace(/^{+|}+$/gm, '')

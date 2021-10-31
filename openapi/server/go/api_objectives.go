@@ -112,7 +112,8 @@ func (c *ObjectivesApiController) GetObjectiveErrorBudget(w http.ResponseWriter,
 func (c *ObjectivesApiController) GetObjectiveStatus(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	expr := query.Get("expr")
-	result, err := c.service.GetObjectiveStatus(r.Context(), expr)
+	grouping := query.Get("grouping")
+	result, err := c.service.GetObjectiveStatus(r.Context(), expr, grouping)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		EncodeJSONResponse(err.Error(), &result.Code, w)

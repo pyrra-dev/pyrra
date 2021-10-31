@@ -266,7 +266,7 @@ func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, 
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
-func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
 }
 
