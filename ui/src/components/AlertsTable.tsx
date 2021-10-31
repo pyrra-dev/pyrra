@@ -3,13 +3,14 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { formatDuration, PROMETHEUS_URL, PUBLIC_API } from '../App'
 import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
 import { IconExternal } from './Icons'
-import {labelsString} from "../labels";
+import { labelsString } from "../labels";
 
 interface AlertsTableProps {
   objective: Objective
+  grouping: { [key: string]: string }
 }
 
-const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
+const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => {
   const api = useMemo(() => {
     return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
   }, [])
@@ -19,13 +20,13 @@ const AlertsTable = ({ objective }: AlertsTableProps): JSX.Element => {
   useEffect(() => {
     const controller = new AbortController()
 
-    api.getMultiBurnrateAlerts({ expr: labelsString(objective.labels) })
+    api.getMultiBurnrateAlerts({ expr: labelsString(objective.labels), grouping: labelsString(grouping) })
       .then((alerts: MultiBurnrateAlert[]) => setAlerts(alerts))
 
     return () => {
       controller.abort()
     }
-  }, [api, objective])
+  }, [api, objective, grouping])
 
   return (
     <div className="table-responsive">

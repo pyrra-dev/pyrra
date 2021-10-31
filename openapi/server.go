@@ -16,6 +16,8 @@ import (
 func ServerFromInternal(objective slo.Objective) server.Objective {
 	var ratio server.IndicatorRatio
 	if objective.Indicator.Ratio != nil {
+		ratio.Grouping = objective.Indicator.Ratio.Grouping
+
 		ratio.Total.Name = objective.Indicator.Ratio.Total.Name
 		for _, m := range objective.Indicator.Ratio.Total.LabelMatchers {
 			ratio.Total.Matchers = append(ratio.Total.Matchers, server.QueryMatchers{
@@ -39,6 +41,8 @@ func ServerFromInternal(objective slo.Objective) server.Objective {
 
 	var latency server.IndicatorLatency
 	if objective.Indicator.Latency != nil {
+		latency.Grouping = objective.Indicator.Latency.Grouping
+
 		latency.Total.Name = objective.Indicator.Latency.Total.Name
 		for _, m := range objective.Indicator.Latency.Total.LabelMatchers {
 			latency.Total.Matchers = append(latency.Total.Matchers, server.QueryMatchers{
@@ -80,6 +84,7 @@ func ServerFromClient(o client.Objective) server.Objective {
 		ratio.Total.Metric = o.Indicator.Ratio.Total.GetMetric()
 		ratio.Errors.Name = o.Indicator.Ratio.Errors.GetName()
 		ratio.Errors.Metric = o.Indicator.Ratio.Errors.GetMetric()
+		ratio.Grouping = o.Indicator.Ratio.GetGrouping()
 
 		for _, m := range o.Indicator.Ratio.Total.GetMatchers() {
 			ratio.Total.Matchers = append(ratio.Total.Matchers, server.QueryMatchers{
@@ -102,6 +107,7 @@ func ServerFromClient(o client.Objective) server.Objective {
 		latency.Total.Metric = o.Indicator.Latency.Total.GetMetric()
 		latency.Success.Name = o.Indicator.Latency.Success.GetName()
 		latency.Success.Metric = o.Indicator.Latency.Success.GetMetric()
+		latency.Grouping = o.Indicator.Latency.GetGrouping()
 
 		for _, m := range o.Indicator.Latency.Total.GetMatchers() {
 			latency.Total.Matchers = append(latency.Total.Matchers, server.QueryMatchers{

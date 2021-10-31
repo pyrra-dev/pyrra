@@ -16,8 +16,9 @@ import (
 
 // IndicatorLatency struct for IndicatorLatency
 type IndicatorLatency struct {
-	Success Query `json:"success"`
-	Total   Query `json:"total"`
+	Success  Query     `json:"success"`
+	Total    Query     `json:"total"`
+	Grouping *[]string `json:"grouping,omitempty"`
 }
 
 // NewIndicatorLatency instantiates a new IndicatorLatency object
@@ -87,6 +88,38 @@ func (o *IndicatorLatency) SetTotal(v Query) {
 	o.Total = v
 }
 
+// GetGrouping returns the Grouping field value if set, zero value otherwise.
+func (o *IndicatorLatency) GetGrouping() []string {
+	if o == nil || o.Grouping == nil {
+		var ret []string
+		return ret
+	}
+	return *o.Grouping
+}
+
+// GetGroupingOk returns a tuple with the Grouping field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *IndicatorLatency) GetGroupingOk() (*[]string, bool) {
+	if o == nil || o.Grouping == nil {
+		return nil, false
+	}
+	return o.Grouping, true
+}
+
+// HasGrouping returns a boolean if a field has been set.
+func (o *IndicatorLatency) HasGrouping() bool {
+	if o != nil && o.Grouping != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetGrouping gets a reference to the given []string and assigns it to the Grouping field.
+func (o *IndicatorLatency) SetGrouping(v []string) {
+	o.Grouping = &v
+}
+
 func (o IndicatorLatency) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
 	if true {
@@ -94,6 +127,9 @@ func (o IndicatorLatency) MarshalJSON() ([]byte, error) {
 	}
 	if true {
 		toSerialize["total"] = o.Total
+	}
+	if o.Grouping != nil {
+		toSerialize["grouping"] = o.Grouping
 	}
 	return json.Marshal(toSerialize)
 }

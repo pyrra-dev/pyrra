@@ -32,6 +32,12 @@ import {
 export interface ObjectiveStatus {
     /**
      * 
+     * @type {{ [key: string]: string; }}
+     * @memberof ObjectiveStatus
+     */
+    labels?: { [key: string]: string; };
+    /**
+     * 
      * @type {ObjectiveStatusAvailability}
      * @memberof ObjectiveStatus
      */
@@ -54,6 +60,7 @@ export function ObjectiveStatusFromJSONTyped(json: any, ignoreDiscriminator: boo
     }
     return {
         
+        'labels': !exists(json, 'labels') ? undefined : json['labels'],
         'availability': ObjectiveStatusAvailabilityFromJSON(json['availability']),
         'budget': ObjectiveStatusBudgetFromJSON(json['budget']),
     };
@@ -68,6 +75,7 @@ export function ObjectiveStatusToJSON(value?: ObjectiveStatus | null): any {
     }
     return {
         
+        'labels': value.labels,
         'availability': ObjectiveStatusAvailabilityToJSON(value.availability),
         'budget': ObjectiveStatusBudgetToJSON(value.budget),
     };

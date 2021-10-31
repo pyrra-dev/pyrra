@@ -4,11 +4,8 @@ export const labelsString = (lset: { [key: string]: string; } | undefined): stri
   }
 
   let s = '';
-
-
   s += '{'
   s += Object.entries(lset)
-    // .filter((l) => l[0] !== '__name__')
     .map((l) => `${l[0]}="${l[1]}"`)
     .join(', ')
   s += '}'
@@ -16,7 +13,7 @@ export const labelsString = (lset: { [key: string]: string; } | undefined): stri
 }
 
 export const parseLabels = (expr: string | null): { [key: string]: string } => {
-  if (expr == null) {
+  if (expr == null || expr === '{}') {
     return {}
   }
   expr = expr.replace(/^{+|}+$/gm, '')

@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
@@ -302,7 +303,7 @@ func (o *ObjectivesServer) ListObjectives(ctx context.Context, query string) (op
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		var apiErr openapiclient.GenericOpenAPIError
@@ -319,12 +320,27 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 
 	objective := openapi.InternalFromClient(clientObjectives[0])
 
-	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
-
-	status := openapiserver.ObjectiveStatus{
-		Availability: openapiserver.ObjectiveStatusAvailability{},
-		Budget:       openapiserver.ObjectiveStatusBudget{},
+	// Merge grouping into objective's query
+	if grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		if err != nil {
+			return openapiserver.ImplResponse{}, err
+		}
+		if objective.Indicator.Ratio != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
+				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
+			}
+		}
+		if objective.Indicator.Latency != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
+				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
+			}
+		}
 	}
+
+	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
 
 	queryTotal := objective.QueryTotal(objective.Window)
 	log.Println(queryTotal)
@@ -332,13 +348,22 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
-	vec := value.(model.Vector)
-	for _, v := range vec {
-		status.Availability.Total = float64(v.Value)
-	}
 
-	if status.Availability.Total == 0 {
-		return openapiserver.ImplResponse{Code: http.StatusNotFound}, nil
+	statuses := map[model.Fingerprint]*openapiserver.ObjectiveStatus{}
+
+	for _, v := range value.(model.Vector) {
+		labels := make(map[string]string)
+		for k, v := range v.Metric {
+			labels[string(k)] = string(v)
+		}
+
+		statuses[v.Metric.Fingerprint()] = &openapiserver.ObjectiveStatus{
+			Labels: labels,
+			Availability: openapiserver.ObjectiveStatusAvailability{
+				Percentage: 1,
+				Total:      float64(v.Value),
+			},
+		}
 	}
 
 	queryErrors := objective.QueryErrors(objective.Window)
@@ -348,22 +373,40 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string) 
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 	for _, v := range value.(model.Vector) {
-		status.Availability.Errors = float64(v.Value)
+		s := statuses[v.Metric.Fingerprint()]
+		s.Availability.Errors = float64(v.Value)
+		s.Availability.Percentage = 1 - (s.Availability.Errors / s.Availability.Total)
 	}
 
-	status.Availability.Percentage = 1 - (status.Availability.Errors / status.Availability.Total)
+	statusSlice := make([]openapiserver.ObjectiveStatus, 0, len(statuses))
 
-	status.Budget.Total = 1 - objective.Target
-	status.Budget.Remaining = (status.Budget.Total - (status.Availability.Errors / status.Availability.Total)) / status.Budget.Total
-	status.Budget.Max = status.Budget.Total * status.Availability.Total
+	for _, s := range statuses {
+		s.Budget.Total = 1 - objective.Target
+		s.Budget.Remaining = (s.Budget.Total - (s.Availability.Errors / s.Availability.Total)) / s.Budget.Total
+		s.Budget.Max = s.Budget.Total * s.Availability.Total
+
+		// If this objective has no requests, we'll skip showing it too
+		if s.Availability.Total == 0 {
+			continue
+		}
+
+		if math.IsNaN(s.Availability.Percentage) {
+			s.Availability.Percentage = 1
+		}
+		if math.IsNaN(s.Budget.Remaining) {
+			s.Budget.Remaining = 1
+		}
+
+		statusSlice = append(statusSlice, *s)
+	}
 
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
-		Body: status,
+		Body: statusSlice,
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr string, grouping string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -372,6 +415,48 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr str
 		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches more than one SLO, it matches: %d", len(clientObjectives))
 	}
 	objective := openapi.InternalFromClient(clientObjectives[0])
+
+	// Merge grouping into objective's query
+	if grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		if err != nil {
+			return openapiserver.ImplResponse{}, err
+		}
+		if objective.Indicator.Ratio != nil {
+			groupings := map[string]struct{}{}
+			for _, g := range objective.Indicator.Ratio.Grouping {
+				groupings[g] = struct{}{}
+			}
+
+			for _, m := range groupingMatchers {
+				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
+				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
+				delete(groupings, m.Name)
+			}
+
+			objective.Indicator.Ratio.Grouping = []string{}
+			for g := range groupings {
+				objective.Indicator.Ratio.Grouping = append(objective.Indicator.Ratio.Grouping, g)
+			}
+		}
+		if objective.Indicator.Latency != nil {
+			groupings := map[string]struct{}{}
+			for _, g := range objective.Indicator.Ratio.Grouping {
+				groupings[g] = struct{}{}
+			}
+
+			for _, m := range groupingMatchers {
+				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
+				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
+				delete(groupings, m.Name)
+			}
+
+			objective.Indicator.Ratio.Grouping = []string{}
+			for g := range groupings {
+				objective.Indicator.Ratio.Grouping = append(objective.Indicator.Ratio.Grouping, g)
+			}
+		}
+	}
 
 	now := time.Now()
 	start := now.Add(-1 * time.Hour)
@@ -398,10 +483,6 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr str
 	matrix, ok := value.(model.Matrix)
 	if !ok {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
-	}
-
-	if len(matrix) != 1 {
-		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
 	}
 
 	if len(matrix) == 0 {
@@ -433,7 +514,7 @@ const (
 	alertstateFiring   = "firing"
 )
 
-func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -443,6 +524,31 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr stri
 	}
 
 	objective := openapi.InternalFromClient(clientObjectives[0])
+
+	// Merge grouping into objective's query
+	if grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		if err != nil {
+			return openapiserver.ImplResponse{}, err
+		}
+
+		if objective.Indicator.Ratio != nil {
+			objective.Indicator.Ratio.Grouping = nil // Don't group by here
+
+			for _, m := range groupingMatchers {
+				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
+				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
+			}
+		}
+		if objective.Indicator.Latency != nil {
+			objective.Indicator.Latency.Grouping = nil // Don't group by here
+
+			for _, m := range groupingMatchers {
+				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
+				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
+			}
+		}
+	}
 
 	baseAlerts, err := objective.Alerts()
 	if err != nil {
@@ -561,7 +667,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr stri
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, grouping string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -570,6 +676,26 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, star
 		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches not exactly one SLO")
 	}
 	objective := openapi.InternalFromClient(clientObjectives[0])
+
+	// Merge grouping into objective's query
+	if grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		if err != nil {
+			return openapiserver.ImplResponse{}, err
+		}
+		if objective.Indicator.Ratio != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
+				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
+			}
+		}
+		if objective.Indicator.Latency != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
+				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
+			}
+		}
+	}
 
 	now := time.Now()
 	start := now.Add(-1 * time.Hour)
@@ -641,7 +767,7 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, star
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr string, grouping string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -650,6 +776,26 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr string, startT
 		return openapiserver.ImplResponse{Code: http.StatusBadRequest}, fmt.Errorf("expr matches not exactly one SLO")
 	}
 	objective := openapi.InternalFromClient(clientObjectives[0])
+
+	// Merge grouping into objective's query
+	if grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		if err != nil {
+			return openapiserver.ImplResponse{}, err
+		}
+		if objective.Indicator.Ratio != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
+				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
+			}
+		}
+		if objective.Indicator.Latency != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
+				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
+			}
+		}
+	}
 
 	now := time.Now()
 	start := now.Add(-1 * time.Hour)

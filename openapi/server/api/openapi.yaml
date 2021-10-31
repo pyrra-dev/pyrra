@@ -37,12 +37,21 @@ paths:
         schema:
           type: string
         style: form
+      - explode: true
+        in: query
+        name: grouping
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ObjectiveStatus'
+                items:
+                  $ref: '#/components/schemas/ObjectiveStatus'
+                type: array
           description: Get objective status
       summary: Get objective status
       tags:
@@ -55,6 +64,13 @@ paths:
         in: query
         name: expr
         required: true
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: grouping
+        required: false
         schema:
           type: string
         style: form
@@ -95,6 +111,13 @@ paths:
         schema:
           type: string
         style: form
+      - explode: true
+        in: query
+        name: grouping
+        required: false
+        schema:
+          type: string
+        style: form
       responses:
         "200":
           content:
@@ -115,6 +138,13 @@ paths:
         in: query
         name: expr
         required: true
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: grouping
+        required: false
         schema:
           type: string
         style: form
@@ -152,6 +182,13 @@ paths:
         in: query
         name: expr
         required: true
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: grouping
+        required: false
         schema:
           type: string
         style: form
@@ -211,6 +248,9 @@ components:
                 value: value
               metric: metric
               name: name
+            grouping:
+            - grouping
+            - grouping
           ratio:
             total:
               matchers:
@@ -222,6 +262,9 @@ components:
                 value: value
               metric: metric
               name: name
+            grouping:
+            - grouping
+            - grouping
             errors:
               matchers:
               - name: name
@@ -285,6 +328,9 @@ components:
               value: value
             metric: metric
             name: name
+          grouping:
+          - grouping
+          - grouping
         ratio:
           total:
             matchers:
@@ -296,6 +342,9 @@ components:
               value: value
             metric: metric
             name: name
+          grouping:
+          - grouping
+          - grouping
           errors:
             matchers:
             - name: name
@@ -341,11 +390,17 @@ components:
           total: 6.027456183070403
           percentage: 0.8008281904610115
           errors: 1.4658129805029452
+        labels:
+          key: labels
         budget:
           total: 5.962133916683182
           max: 2.3021358869347655
           remaining: 5.637376656633329
       properties:
+        labels:
+          additionalProperties:
+            type: string
+          type: object
         availability:
           $ref: '#/components/schemas/ObjectiveStatus_availability'
         budget:
@@ -456,6 +511,9 @@ components:
             value: value
           metric: metric
           name: name
+        grouping:
+        - grouping
+        - grouping
         errors:
           matchers:
           - name: name
@@ -471,6 +529,10 @@ components:
           $ref: '#/components/schemas/Query'
         total:
           $ref: '#/components/schemas/Query'
+        grouping:
+          items:
+            type: string
+          type: array
       required:
       - errors
       - total
@@ -497,11 +559,18 @@ components:
             value: value
           metric: metric
           name: name
+        grouping:
+        - grouping
+        - grouping
       properties:
         success:
           $ref: '#/components/schemas/Query'
         total:
           $ref: '#/components/schemas/Query'
+        grouping:
+          items:
+            type: string
+          type: array
       required:
       - success
       - total

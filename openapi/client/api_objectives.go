@@ -30,10 +30,15 @@ type ApiGetMultiBurnrateAlertsRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
 	expr       *string
+	grouping   *string
 }
 
 func (r ApiGetMultiBurnrateAlertsRequest) Expr(expr string) ApiGetMultiBurnrateAlertsRequest {
 	r.expr = &expr
+	return r
+}
+func (r ApiGetMultiBurnrateAlertsRequest) Grouping(grouping string) ApiGetMultiBurnrateAlertsRequest {
+	r.grouping = &grouping
 	return r
 }
 
@@ -82,6 +87,9 @@ func (a *ObjectivesApiService) GetMultiBurnrateAlertsExecute(r ApiGetMultiBurnra
 	}
 
 	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
+	if r.grouping != nil {
+		localVarQueryParams.Add("grouping", parameterToString(*r.grouping, ""))
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -140,12 +148,17 @@ type ApiGetObjectiveErrorBudgetRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
 	expr       *string
+	grouping   *string
 	start      *int32
 	end        *int32
 }
 
 func (r ApiGetObjectiveErrorBudgetRequest) Expr(expr string) ApiGetObjectiveErrorBudgetRequest {
 	r.expr = &expr
+	return r
+}
+func (r ApiGetObjectiveErrorBudgetRequest) Grouping(grouping string) ApiGetObjectiveErrorBudgetRequest {
+	r.grouping = &grouping
 	return r
 }
 func (r ApiGetObjectiveErrorBudgetRequest) Start(start int32) ApiGetObjectiveErrorBudgetRequest {
@@ -202,6 +215,9 @@ func (a *ObjectivesApiService) GetObjectiveErrorBudgetExecute(r ApiGetObjectiveE
 	}
 
 	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
+	if r.grouping != nil {
+		localVarQueryParams.Add("grouping", parameterToString(*r.grouping, ""))
+	}
 	if r.start != nil {
 		localVarQueryParams.Add("start", parameterToString(*r.start, ""))
 	}
@@ -266,14 +282,19 @@ type ApiGetObjectiveStatusRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
 	expr       *string
+	grouping   *string
 }
 
 func (r ApiGetObjectiveStatusRequest) Expr(expr string) ApiGetObjectiveStatusRequest {
 	r.expr = &expr
 	return r
 }
+func (r ApiGetObjectiveStatusRequest) Grouping(grouping string) ApiGetObjectiveStatusRequest {
+	r.grouping = &grouping
+	return r
+}
 
-func (r ApiGetObjectiveStatusRequest) Execute() (ObjectiveStatus, *_nethttp.Response, error) {
+func (r ApiGetObjectiveStatusRequest) Execute() ([]ObjectiveStatus, *_nethttp.Response, error) {
 	return r.ApiService.GetObjectiveStatusExecute(r)
 }
 
@@ -291,16 +312,16 @@ func (a *ObjectivesApiService) GetObjectiveStatus(ctx _context.Context) ApiGetOb
 
 /*
  * Execute executes the request
- * @return ObjectiveStatus
+ * @return []ObjectiveStatus
  */
-func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatusRequest) (ObjectiveStatus, *_nethttp.Response, error) {
+func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatusRequest) ([]ObjectiveStatus, *_nethttp.Response, error) {
 	var (
 		localVarHTTPMethod   = _nethttp.MethodGet
 		localVarPostBody     interface{}
 		localVarFormFileName string
 		localVarFileName     string
 		localVarFileBytes    []byte
-		localVarReturnValue  ObjectiveStatus
+		localVarReturnValue  []ObjectiveStatus
 	)
 
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "ObjectivesApiService.GetObjectiveStatus")
@@ -318,6 +339,9 @@ func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatus
 	}
 
 	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
+	if r.grouping != nil {
+		localVarQueryParams.Add("grouping", parameterToString(*r.grouping, ""))
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
@@ -376,12 +400,17 @@ type ApiGetREDErrorsRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
 	expr       *string
+	grouping   *string
 	start      *int32
 	end        *int32
 }
 
 func (r ApiGetREDErrorsRequest) Expr(expr string) ApiGetREDErrorsRequest {
 	r.expr = &expr
+	return r
+}
+func (r ApiGetREDErrorsRequest) Grouping(grouping string) ApiGetREDErrorsRequest {
+	r.grouping = &grouping
 	return r
 }
 func (r ApiGetREDErrorsRequest) Start(start int32) ApiGetREDErrorsRequest {
@@ -438,6 +467,9 @@ func (a *ObjectivesApiService) GetREDErrorsExecute(r ApiGetREDErrorsRequest) (Qu
 	}
 
 	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
+	if r.grouping != nil {
+		localVarQueryParams.Add("grouping", parameterToString(*r.grouping, ""))
+	}
 	if r.start != nil {
 		localVarQueryParams.Add("start", parameterToString(*r.start, ""))
 	}
@@ -502,12 +534,17 @@ type ApiGetREDRequestsRequest struct {
 	ctx        _context.Context
 	ApiService *ObjectivesApiService
 	expr       *string
+	grouping   *string
 	start      *int32
 	end        *int32
 }
 
 func (r ApiGetREDRequestsRequest) Expr(expr string) ApiGetREDRequestsRequest {
 	r.expr = &expr
+	return r
+}
+func (r ApiGetREDRequestsRequest) Grouping(grouping string) ApiGetREDRequestsRequest {
+	r.grouping = &grouping
 	return r
 }
 func (r ApiGetREDRequestsRequest) Start(start int32) ApiGetREDRequestsRequest {
@@ -564,6 +601,9 @@ func (a *ObjectivesApiService) GetREDRequestsExecute(r ApiGetREDRequestsRequest)
 	}
 
 	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
+	if r.grouping != nil {
+		localVarQueryParams.Add("grouping", parameterToString(*r.grouping, ""))
+	}
 	if r.start != nil {
 		localVarQueryParams.Add("start", parameterToString(*r.start, ""))
 	}

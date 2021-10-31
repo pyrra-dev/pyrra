@@ -35,13 +35,19 @@ paths:
           required: true
           schema:
             type: string
+        - in: query
+          name: grouping
+          schema:
+            type: string
       responses:
         '200':
           description: Get objective status
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ObjectiveStatus'
+                type: array
+                items:
+                  $ref: '#/components/schemas/ObjectiveStatus'
   /objectives/errorbudget:
     get:
       summary: Get ErrorBudget graph sample pairs
@@ -52,6 +58,10 @@ paths:
         - in: query
           name: expr
           required: true
+          schema:
+            type: string
+        - in: query
+          name: grouping
           schema:
             type: string
         - in: query
@@ -83,6 +93,10 @@ paths:
           required: true
           schema:
             type: string
+        - in: query
+          name: grouping
+          schema:
+            type: string
       responses:
         '200':
           description: Get GetMultiBurnrateAlerts for the Objective
@@ -102,6 +116,10 @@ paths:
         - in: query
           name: expr
           required: true
+          schema:
+            type: string
+        - in: query
+          name: grouping
           schema:
             type: string
         - in: query
@@ -131,6 +149,10 @@ paths:
         - in: query
           name: expr
           required: true
+          schema:
+            type: string
+        - in: query
+          name: grouping
           schema:
             type: string
         - in: query
@@ -194,6 +216,10 @@ components:
               $ref: '#/components/schemas/Query'
             total:
               $ref: '#/components/schemas/Query'
+            grouping:
+              type: array
+              items:
+                type: string
         latency:
           type: object
           required:
@@ -204,6 +230,10 @@ components:
               $ref: '#/components/schemas/Query'
             total:
               $ref: '#/components/schemas/Query'
+            grouping:
+              type: array
+              items:
+                type: string
     Query:
       type: object
       required:
@@ -230,6 +260,10 @@ components:
         - availability
         - budget
       properties:
+        labels:
+          type: object
+          additionalProperties:
+            type: string
         availability:
           type: object
           required:

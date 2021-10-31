@@ -13,4 +13,6 @@ type IndicatorLatency struct {
 	Success Query `json:"success"`
 
 	Total Query `json:"total"`
+
+	Grouping []string `json:"grouping,omitempty"`
 }

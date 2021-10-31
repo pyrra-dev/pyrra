@@ -12,6 +12,8 @@ spec:
   indicator:
     ratio:
       errors:
-        metric: prometheus_http_requests_total{handler="/api/v1/query",code=~"5.."}
+        metric: prometheus_http_requests_total{handler=~"/api.*",code=~"5.."}
       total:
-        metric: prometheus_http_requests_total{handler="/api/v1/query"}
+        metric: prometheus_http_requests_total{handler=~"/api.*"}
+      grouping:
+        - handler

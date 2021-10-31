@@ -16,6 +16,7 @@ import (
 
 // ObjectiveStatus struct for ObjectiveStatus
 type ObjectiveStatus struct {
+	Labels       *map[string]string          `json:"labels,omitempty"`
 	Availability ObjectiveStatusAvailability `json:"availability"`
 	Budget       ObjectiveStatusBudget       `json:"budget"`
 }
@@ -37,6 +38,38 @@ func NewObjectiveStatus(availability ObjectiveStatusAvailability, budget Objecti
 func NewObjectiveStatusWithDefaults() *ObjectiveStatus {
 	this := ObjectiveStatus{}
 	return &this
+}
+
+// GetLabels returns the Labels field value if set, zero value otherwise.
+func (o *ObjectiveStatus) GetLabels() map[string]string {
+	if o == nil || o.Labels == nil {
+		var ret map[string]string
+		return ret
+	}
+	return *o.Labels
+}
+
+// GetLabelsOk returns a tuple with the Labels field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *ObjectiveStatus) GetLabelsOk() (*map[string]string, bool) {
+	if o == nil || o.Labels == nil {
+		return nil, false
+	}
+	return o.Labels, true
+}
+
+// HasLabels returns a boolean if a field has been set.
+func (o *ObjectiveStatus) HasLabels() bool {
+	if o != nil && o.Labels != nil {
+		return true
+	}
+
+	return false
+}
+
+// SetLabels gets a reference to the given map[string]string and assigns it to the Labels field.
+func (o *ObjectiveStatus) SetLabels(v map[string]string) {
+	o.Labels = &v
 }
 
 // GetAvailability returns the Availability field value
@@ -89,6 +122,9 @@ func (o *ObjectiveStatus) SetBudget(v ObjectiveStatusBudget) {
 
 func (o ObjectiveStatus) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
+	if o.Labels != nil {
+		toSerialize["labels"] = o.Labels
+	}
 	if true {
 		toSerialize["availability"] = o.Availability
 	}

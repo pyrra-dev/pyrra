@@ -91,6 +91,8 @@ type RatioIndicator struct {
 	Errors Query `json:"errors"`
 	// Total is the metric that returns how many requests there are in total.
 	Total Query `json:"total"`
+	// Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
+	Grouping []string `json:"grouping"`
 }
 
 type LatencyIndicator struct {
@@ -98,6 +100,8 @@ type LatencyIndicator struct {
 	Success Query `json:"success"`
 	// Total is the metric that returns how many requests there are in total.
 	Total Query `json:"total"`
+	// Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
+	Grouping []string `json:"grouping"`
 }
 
 // Query contains a PromQL metric
@@ -155,6 +159,7 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 				Name:          totalVec.Name,
 				LabelMatchers: totalVec.LabelMatchers,
 			},
+			Grouping: in.Spec.ServiceLevelIndicator.Ratio.Grouping,
 		}
 	}
 
@@ -201,6 +206,7 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 				Name:          totalVec.Name,
 				LabelMatchers: totalMatchers,
 			},
+			Grouping: in.Spec.ServiceLevelIndicator.Latency.Grouping,
 		}
 	}
 
