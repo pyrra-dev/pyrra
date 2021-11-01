@@ -130,7 +130,7 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearer
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
 	r.Mount("/api/v1", router)
 	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-	r.Get("/objectives/{expr}", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/objectives", func(w http.ResponseWriter, r *http.Request) {
 		if err := tmpl.Execute(w, struct {
 			PrometheusURL string
 		}{
