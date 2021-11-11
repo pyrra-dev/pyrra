@@ -96,6 +96,7 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*mon
 		return nil, err
 	}
 
+	isController := true
 	return &monitoringv1.PrometheusRule{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       monitoringv1.PrometheusRuleKind,
@@ -105,6 +106,15 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*mon
 			Name:      kubeObjective.GetName(),
 			Namespace: kubeObjective.GetNamespace(),
 			Labels:    kubeObjective.GetLabels(),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: kubeObjective.APIVersion,
+					Kind:       kubeObjective.Kind,
+					Name:       kubeObjective.Name,
+					UID:        kubeObjective.UID,
+					Controller: &isController,
+				},
+			},
 		},
 		Spec: monitoringv1.PrometheusRuleSpec{
 			Groups: []monitoringv1.RuleGroup{group},

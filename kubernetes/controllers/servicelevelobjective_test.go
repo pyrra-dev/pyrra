@@ -14,6 +14,7 @@ import (
 )
 
 func Test_makePrometheusRule(t *testing.T) {
+	trueBool := true
 	tests := []struct {
 		name      string
 		objective pyrrav1alpha1.ServiceLevelObjective
@@ -21,7 +22,14 @@ func Test_makePrometheusRule(t *testing.T) {
 	}{{
 		name: "http",
 		objective: pyrrav1alpha1.ServiceLevelObjective{
-			ObjectMeta: metav1.ObjectMeta{Name: "http"},
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: pyrrav1alpha1.GroupVersion.Version,
+				Kind:       "ServiceLevelObjective",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "http",
+				UID:  "123",
+			},
 			Spec: pyrrav1alpha1.ServiceLevelObjectiveSpec{
 				Target: "99.5",
 				Window: model.Duration(28 * 24 * time.Hour),
@@ -44,6 +52,15 @@ func Test_makePrometheusRule(t *testing.T) {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "http",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: pyrrav1alpha1.GroupVersion.Version,
+						Kind:       "ServiceLevelObjective",
+						Name:       "http",
+						UID:        "123",
+						Controller: &trueBool,
+					},
+				},
 			},
 			Spec: monitoringv1.PrometheusRuleSpec{
 				Groups: []monitoringv1.RuleGroup{{
