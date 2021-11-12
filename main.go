@@ -755,7 +755,8 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, grou
 		labels[i] = model.LabelSet(stream.Metric).String()
 	}
 
-	values := matrixToValues(matrix)
+	//values := matrixToValues(matrix)
+	values := matrixToValuesNew(matrix)
 
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
@@ -890,6 +891,21 @@ func matrixToValues(m model.Matrix) [][]float64 {
 	sort.Slice(values, func(i, j int) bool {
 		return values[i][0] < values[j][0]
 	})
+
+	return values
+}
+func matrixToValuesNew(m model.Matrix) [][]float64 {
+	values := make([][]float64, len(m)+1) // +1 for timestamps
+
+	for i, stream := range m {
+		values[0] = make([]float64, len(stream.Values))
+		values[i+1] = make([]float64, len(stream.Values))
+
+		for j, pair := range stream.Values {
+			values[0][j] = float64(pair.Timestamp / 1000)
+			values[i+1][j] = float64(pair.Value)
+		}
+	}
 
 	return values
 }

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { Spinner } from 'react-bootstrap'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
+import { TooltipProps } from 'recharts'
 
 import { ObjectivesApi, QueryRange } from '../../client'
-import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
+import { dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
 import { IconExternal } from '../Icons'
-import { blues, greens, reds, yellows } from '../colors'
 import { labelsString } from "../../labels";
+import uPlot, { AlignedData } from 'uplot'
 
 interface RequestsGraphProps {
   api: ObjectivesApi
@@ -16,7 +16,7 @@ interface RequestsGraphProps {
 }
 
 const RequestsGraph = ({ api, labels, grouping, timeRange }: RequestsGraphProps): JSX.Element => {
-  const [requests, setRequests] = useState<any[]>([])
+  const [requests, setRequests] = useState<AlignedData>()
   const [requestsQuery, setRequestsQuery] = useState<string>('')
   const [requestsLabels, setRequestsLabels] = useState<string[]>([])
   const [requestsLoading, setRequestsLoading] = useState<boolean>(true)
@@ -29,16 +29,21 @@ const RequestsGraph = ({ api, labels, grouping, timeRange }: RequestsGraphProps)
     setRequestsLoading(true)
     api.getREDRequests({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
       .then((r: QueryRange) => {
-        let data: any[] = []
-        r.values.forEach((v: number[], i: number) => {
-          v.forEach((v: number, j: number) => {
-            if (j === 0) {
-              data[i] = { t: v }
-            } else {
-              data[i][j - 1] = v
-            }
-          })
-        })
+        // let data: any[] = []
+        // r.values.forEach((v: number[], i: number) => {
+        //   v.forEach((v: number, j: number) => {
+        //     if (j === 0) {
+        //       data[i] = { t: v }
+        //     } else {
+        //       data[i][j - 1] = v
+        //     }
+        //   })
+        // })
+        let data: AlignedData = [
+          r.values[0],
+          r.values[1],
+        ]
+
         setRequestsLabels(r.labels)
         setRequestsQuery(r.query)
         setRequests(data)
@@ -96,64 +101,33 @@ const RequestsGraph = ({ api, labels, grouping, timeRange }: RequestsGraphProps)
       <div>
         <p>How many requests per second have there been?</p>
       </div>
-      {requests.length > 0 && requestsLabels.length > 0 ? (
-        <ResponsiveContainer height={150}>
-          <AreaChart height={150} data={requests}>
-            <CartesianGrid strokeDasharray="3 3"/>
-            <XAxis
-              type="number"
-              dataKey="t"
-              tickCount={4}
-              tickFormatter={dateFormatter(timeRange)}
-              domain={[requests[0].t, requests[requests.length - 1].t]}
-            />
-            <YAxis
-              tickCount={3}
-              width={40}
-              // tickFormatter={(v: number) => (100 * v).toFixed(2)}
-              // domain={[0, 10]}
-            />
-            {Object.keys(requests[0]).filter((k: string) => k !== 't').map((k: string, i: number) => {
-              const label = requestsLabels[parseInt(k)]
-              if (label === undefined) {
-                return <></>
-              }
-              let color = ''
-              if (label === '{}') {
-                color = greens[i]
-              }
-              if (label.match(/"(2\d{2}|OK)"/) != null) {
-                color = greens[i]
-              }
-              if (label.match(/"(3\d{2})"/) != null) {
-                color = yellows[i]
-              }
-              if (label.match(/"(4\d{2}|Canceled|InvalidArgument|NotFound|AlreadyExists|PermissionDenied|Unauthenticated|ResourceExhausted|FailedPrecondition|Aborted|OutOfRange)"/) != null) {
-                color = blues[i]
-              }
-              if (label.match(/"(5\d{2}|Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss)"/) != null) {
-                color = reds[i]
-              }
 
-              return <Area
-                key={k}
-                type="monotone"
-                connectNulls={false}
-                animationDuration={250}
-                dataKey={k}
-                stackId={1}
-                strokeWidth={0}
-                fill={`#${color}`}
-                fillOpacity={1}/>
-            })}
-            <Tooltip content={RequestTooltip}/>
-          </AreaChart>
-        </ResponsiveContainer>
+      {requests !== undefined ? (
+        <Plot opts={{ width: 500, height: 150, series: [{}, { stroke: 'red', label: '200' }] }}
+              data={requests}/>
       ) : (
         <></>
-      )
-      }
+      )}
     </>
+  )
+}
+
+interface PlotProps {
+  opts: uPlot.Options
+  data: uPlot.AlignedData
+}
+
+const Plot = ({ opts, data }: PlotProps): JSX.Element => {
+  const uPlotRef = React.createRef<HTMLDivElement>()
+
+  useEffect(() => {
+    if (uPlotRef.current !== null) {
+      new uPlot(opts, data, uPlotRef.current)
+    }
+  }, [uPlotRef, opts, data])
+
+  return (
+    <div ref={uPlotRef}/>
   )
 }
 

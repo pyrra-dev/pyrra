@@ -22,6 +22,7 @@
     "recharts": "^2.0.9",
     "sass": "^1.36.0",
     "typescript": "^4.2.4",
+    "uplot": "1.6.15",
     "web-vitals": "^1.1.1"
   },
   "scripts": {

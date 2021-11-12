@@ -130,6 +130,8 @@ a.external-prometheus {
   }
 }
 
+@import "~uplot/dist/uPlot.min.css";
+
 // Import our own components now
 @import "pages/List";
 @import "pages/Detail";
