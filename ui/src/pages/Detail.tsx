@@ -135,7 +135,7 @@ const Detail = () => {
     ]
 
     const handleTimeRangeClick = (t: number) => () => {
-      history.push(`/objectives/?expr=${expr}&grouping=${groupingExpr}&timerange=${formatDuration(t)}`)
+      history.push(`/objectives?expr=${expr}&grouping=${groupingExpr}&timerange=${formatDuration(t)}`)
     }
 
     const renderAvailability = () => {
