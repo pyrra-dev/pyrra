@@ -45,6 +45,7 @@ type ServiceLevelObjectiveList struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:shortName=slo
 
 // ServiceLevelObjective is the Schema for the ServiceLevelObjectives API
 type ServiceLevelObjective struct {
