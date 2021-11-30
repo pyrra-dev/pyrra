@@ -52,6 +52,7 @@ var CLI struct {
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
 		MetricsAddr string `default:":8080" help:"The address the metric endpoint binds to."`
+		Namespace   string `default:"" help:"Read ServiceLevelObjective from specific namespace only"`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 }
 
@@ -63,7 +64,7 @@ func main() {
 	case "filesystem":
 		cmdFilesystem(CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
 	case "kubernetes":
-		cmdKubernetes(CLI.Kubernetes.MetricsAddr)
+		cmdKubernetes(CLI.Kubernetes.MetricsAddr, CLI.Kubernetes.Namespace)
 	}
 }
 
