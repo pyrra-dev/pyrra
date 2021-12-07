@@ -755,8 +755,7 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, grou
 		labels[i] = model.LabelSet(stream.Metric).String()
 	}
 
-	//values := matrixToValues(matrix)
-	values := matrixToValuesNew(matrix)
+	values := matrixToValues(matrix)
 
 	return openapiserver.ImplResponse{
 		Code: http.StatusOK,
@@ -870,42 +869,69 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr string, groupi
 }
 
 func matrixToValues(m model.Matrix) [][]float64 {
-	valuesMap := make(map[int64][]float64, len(m[0].Values))
+	series := len(m)
+	if series == 0 {
+		return nil
+	}
 
+	if series == 1 {
+		vs := make([][]float64, len(m)+1) // +1 for timestamps
+		for i, stream := range m {
+			vs[0] = make([]float64, len(stream.Values))
+			vs[i+1] = make([]float64, len(stream.Values))
+
+			for j, pair := range stream.Values {
+				vs[0][j] = float64(pair.Timestamp / 1000)
+				if !math.IsNaN(float64(pair.Value)) {
+					vs[i+1][j] = float64(pair.Value)
+				}
+			}
+		}
+		return vs
+	}
+
+	pairs := make(map[int64][]float64, len(m[0].Values))
 	for i, stream := range m {
 		for _, pair := range stream.Values {
-			if cap(valuesMap[pair.Timestamp.Unix()]) == 0 {
-				valuesMap[pair.Timestamp.Unix()] = make([]float64, len(m))
+			t := int64(pair.Timestamp / 1000)
+			if _, ok := pairs[t]; !ok {
+				pairs[t] = make([]float64, series)
 			}
-			valuesMap[pair.Timestamp.Unix()][i] = float64(pair.Value)
+			pairs[t][i] = float64(pair.Value)
 		}
 	}
 
-	values := make([][]float64, 0, len(m[0].Values))
-	for t, vs := range valuesMap {
-		values = append(values, append([]float64{float64(t)}, vs...))
+	vs := make(values, series+1)
+	for i := 0; i < series+1; i++ {
+		vs[i] = make([]float64, len(pairs))
+	}
+	var i int
+	for t, fs := range pairs {
+		vs[0][i] = float64(t)
+		for j, f := range fs {
+			vs[j+1][i] = f
+		}
+		i++
 	}
 
-	// TODO: Maybe there's a way to do it without a map and sort
-	// as this sort is super CPU intensive
-	sort.Slice(values, func(i, j int) bool {
-		return values[i][0] < values[j][0]
-	})
+	sort.Sort(vs)
 
-	return values
+	return vs
 }
-func matrixToValuesNew(m model.Matrix) [][]float64 {
-	values := make([][]float64, len(m)+1) // +1 for timestamps
 
-	for i, stream := range m {
-		values[0] = make([]float64, len(stream.Values))
-		values[i+1] = make([]float64, len(stream.Values))
+type values [][]float64
 
-		for j, pair := range stream.Values {
-			values[0][j] = float64(pair.Timestamp / 1000)
-			values[i+1][j] = float64(pair.Value)
-		}
+func (v values) Len() int {
+	return len(v[0])
+}
+
+func (v values) Less(i, j int) bool {
+	return v[0][i] < v[0][j]
+}
+
+// Swap iterates over all []float64 and consistently swaps them
+func (v values) Swap(i, j int) {
+	for n := range v {
+		v[n][i], v[n][j] = v[n][j], v[n][i]
 	}
-
-	return values
 }
