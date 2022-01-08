@@ -27,3 +27,14 @@ export const parseLabels = (expr: string | null): { [key: string]: string } => {
   })
   return lset
 }
+
+export const parseLabelValue = (expr: string | null): string => {
+  const lset = parseLabels(expr)
+  if (Object.keys(lset).length === 1) {
+    return Object.values(lset)[0]
+  }
+  // Join together without trialing { }
+  return Object.entries(lset)
+    .map((l) => `${l[0]}="${l[1]}"`)
+    .join(', ')
+}

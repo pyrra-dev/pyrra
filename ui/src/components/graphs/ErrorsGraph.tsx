@@ -13,13 +13,14 @@ interface ErrorsGraphProps {
   api: ObjectivesApi
   labels: { [key: string]: string }
   grouping: { [key: string]: string }
-  timeRange: number
+  timeRange: number,
+  uPlotCursor: uPlot.Cursor,
 }
 
-const ErrorsGraph = ({ api, labels, grouping, timeRange }: ErrorsGraphProps): JSX.Element => {
+const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGraphProps): JSX.Element => {
   const [errors, setErrors] = useState<AlignedData>()
   const [errorsQuery, setErrorsQuery] = useState<string>('')
-  const [errorsLabels, setErrorsLabels] = useState<string[]>([])
+  // const [errorsLabels, setErrorsLabels] = useState<string[]>([])
   const [errorsLoading, setErrorsLoading] = useState<boolean>(true)
   const [start, setStart] = useState<number>()
   const [end, setEnd] = useState<number>()
@@ -37,7 +38,7 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange }: ErrorsGraphProps): JS
           r.values[1].map((v: number) => 100 * v)
         ]
 
-        setErrorsLabels(r.labels)
+        // setErrorsLabels(r.labels)
         setErrorsQuery(r.query)
         setErrors(data)
         setStart(start)
@@ -77,6 +78,7 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange }: ErrorsGraphProps): JS
         <UplotReact options={{
           width: 500,
           height: 150,
+          cursor: uPlotCursor,
           series: [{}, {
             min: 0,
             stroke: `#${reds[0]}`,
