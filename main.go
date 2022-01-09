@@ -486,7 +486,7 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr str
 	}
 
 	if len(matrix) == 0 {
-		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+		return openapiserver.ImplResponse{Code: http.StatusNotFound, Body: struct{}{}}, nil
 	}
 
 	valueLength := 0
@@ -740,7 +740,7 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, grou
 	}
 
 	if len(matrix) == 0 {
-		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+		return openapiserver.ImplResponse{Code: http.StatusNotFound, Body: struct{}{}}, nil
 	}
 
 	valueLength := 0
@@ -841,7 +841,7 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr string, groupi
 	}
 
 	if len(matrix) == 0 {
-		return openapiserver.ImplResponse{Code: http.StatusNotFound}, fmt.Errorf("no data")
+		return openapiserver.ImplResponse{Code: http.StatusNotFound, Body: struct{}{}}, nil
 	}
 
 	valueLength := 0
@@ -897,7 +897,9 @@ func matrixToValues(m model.Matrix) [][]float64 {
 			if _, ok := pairs[t]; !ok {
 				pairs[t] = make([]float64, series)
 			}
-			pairs[t][i] = float64(pair.Value)
+			if !math.IsNaN(float64(pair.Value)) {
+				pairs[t][i] = float64(pair.Value)
+			}
 		}
 	}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"testing"
 
 	"github.com/prometheus/common/model"
@@ -54,6 +55,50 @@ func TestMatrixToValues(t *testing.T) {
 		e1[2][50+i] = float64(i)
 	}
 
+	// Check if NaNs are returned as 0 (it's fine for errors for example to convert these).
+	// Additionally, NaNs aren't possible to be marshalled to JSON. Not sure if there's a better way.
+	v2 := make([]model.SamplePair, 100)
+	for i := 0; i < cap(v2); i++ {
+		v2[i] = model.SamplePair{
+			Timestamp: model.Time(i * 1000),
+			Value:     model.SampleValue(math.NaN()),
+		}
+	}
+	e2 := [][]float64{
+		make([]float64, 100),
+		make([]float64, 100),
+	}
+	for i := 0; i < len(e2[0]); i++ {
+		e2[0][i] = float64(i)
+	}
+
+	// Check NaN in multiple series
+	v3 := make([]model.SamplePair, 100)
+	for i := 0; i < len(v3); i++ {
+		value := float64(i)
+		if i%11 == 0 {
+			value = math.NaN()
+		}
+		v3[i] = model.SamplePair{
+			Timestamp: model.Time(i * 1000),
+			Value:     model.SampleValue(value),
+		}
+	}
+	e3 := [][]float64{
+		make([]float64, 100), // x
+		make([]float64, 100), // y[0]
+		make([]float64, 100), // y[1]
+	}
+	for i := 0; i < len(e3[0]); i++ {
+		e32value := float64(i)
+		if i%11 == 0 {
+			e32value = 0
+		}
+		e3[0][i] = float64(i)
+		e3[1][i] = 0
+		e3[2][i] = e32value
+	}
+
 	for _, tc := range []struct {
 		name     string
 		m        []*model.SampleStream
@@ -68,6 +113,14 @@ func TestMatrixToValues(t *testing.T) {
 		name:     "overlapping",
 		m:        []*model.SampleStream{{Values: v10}, {Values: v11}},
 		expected: e1,
+	}, {
+		name:     "NaN",
+		m:        []*model.SampleStream{{Values: v2}},
+		expected: e2,
+	}, {
+		name:     "NaNMultiple",
+		m:        []*model.SampleStream{{Values: v2}, {Values: v3}},
+		expected: e3,
 	}} {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.expected, matrixToValues(tc.m))
