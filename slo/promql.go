@@ -247,7 +247,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 
 func (o Objective) ErrorsRange(timerange time.Duration) string {
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum by(group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.ParseExpr(`sum by(group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
 		if err != nil {
 			return err.Error()
 		}
