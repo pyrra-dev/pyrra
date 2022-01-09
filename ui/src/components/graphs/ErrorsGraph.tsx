@@ -6,7 +6,7 @@ import uPlot, { AlignedData } from 'uplot'
 import { ObjectivesApi, QueryRange } from '../../client'
 import { formatDuration, PROMETHEUS_URL } from '../../App'
 import { IconExternal } from '../Icons'
-import { labelsString } from "../../labels";
+import { labelsString, parseLabelValue } from "../../labels";
 import { reds } from '../colors'
 
 interface ErrorsGraphProps {
@@ -20,7 +20,7 @@ interface ErrorsGraphProps {
 const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGraphProps): JSX.Element => {
   const [errors, setErrors] = useState<AlignedData>()
   const [errorsQuery, setErrorsQuery] = useState<string>('')
-  // const [errorsLabels, setErrorsLabels] = useState<string[]>([])
+  const [errorsLabels, setErrorsLabels] = useState<string[]>([])
   const [errorsLoading, setErrorsLoading] = useState<boolean>(true)
   const [start, setStart] = useState<number>()
   const [end, setEnd] = useState<number>()
@@ -33,14 +33,14 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
     setErrorsLoading(true)
     api.getREDErrors({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
       .then((r: QueryRange) => {
-        let data: AlignedData = [
-          r.values[0],
-          r.values[1].map((v: number) => 100 * v)
-        ]
+        const [x, ...ys] = r.values
+        ys.map((y: number[]) => [
+          y.map((v: number) => 100 * v)
+        ])
 
-        // setErrorsLabels(r.labels)
+        setErrorsLabels(r.labels)
         setErrorsQuery(r.query)
-        setErrors(data)
+        setErrors([x, ...ys])
         setStart(start)
         setEnd(end)
       }).finally(() => setErrorsLoading(false))
@@ -79,12 +79,13 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
           width: 500,
           height: 150,
           cursor: uPlotCursor,
-          series: [{}, {
-            min: 0,
-            stroke: `#${reds[0]}`,
-            fill: `#${reds[0]}`,
-            label: 'Errors'
-          }],
+          series: [{}, ...errorsLabels.map((label: string, i: number): uPlot.Series => {
+            return {
+              min: 0,
+              stroke: `#${reds[i]}`,
+              label: parseLabelValue(label)
+            }
+          })],
           scales: {
             x: { min: start, max: end },
             y: {

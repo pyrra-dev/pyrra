@@ -153,7 +153,6 @@ const labelColor = (picked: { [color: string]: number }, label: string): string 
     color = reds[picked['reds'] % reds.length]
     picked['reds']++
   }
-  console.log(picked)
   return color
 }
 
