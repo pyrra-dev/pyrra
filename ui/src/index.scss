@@ -122,14 +122,6 @@ a.external-prometheus {
   }
 }
 
-.recharts-responsive-container {
-  font-size: 12px;
-
-  .recharts-text {
-    fill: $gray-700;
-  }
-}
-
 @import "~uplot/dist/uPlot.min.css";
 
 // Import our own components now
