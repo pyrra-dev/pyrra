@@ -7,7 +7,8 @@ import { ObjectivesApi, QueryRange } from '../../client'
 import { formatDuration, PROMETHEUS_URL } from '../../App'
 import { IconExternal } from '../Icons'
 import { labelsString, parseLabelValue } from "../../labels";
-import { blues, greens, reds, yellows } from '../colors'
+import { blues, greens, reds, yellows } from './colors';
+import { seriesGaps } from './gaps';
 
 interface RequestsGraphProps {
   api: ObjectivesApi
@@ -20,7 +21,6 @@ interface RequestsGraphProps {
 const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: RequestsGraphProps): JSX.Element => {
   const [requests, setRequests] = useState<AlignedData>()
   const [requestsQuery, setRequestsQuery] = useState<string>('')
-  // TODO: Add support for various labels again
   const [requestsLabels, setRequestsLabels] = useState<string[]>([])
   const [requestsLoading, setRequestsLoading] = useState<boolean>(true)
   const [start, setStart] = useState<number>()
@@ -44,23 +44,6 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
         setEnd(end)
       }).finally(() => setRequestsLoading(false))
   }, [api, labels, grouping, timeRange])
-
-  const seriesGaps = (u: uPlot, seriesID: number, startIdx: number, endIdx: number): uPlot.Series.Gaps => {
-    let delta = 5 * 60
-    let xData = u.data[0]
-
-    let gaps: uPlot.Series.Gaps = []
-    for (let i = startIdx + 1; i <= endIdx; i++) {
-      if (xData[i] - xData[i - 1] > delta) {
-        uPlot.addGap(
-          gaps,
-          Math.round(u.valToPos(xData[i - 1], 'x', true)),
-          Math.round(u.valToPos(xData[i], 'x', true))
-        );
-      }
-    }
-    return gaps
-  }
 
   // small state used while picking colors to reuse as little as possible
   let pickedColors = {
@@ -97,7 +80,7 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
         <p>How many requests per second have there been?</p>
       </div>
 
-      {requests !== undefined ? (
+      {requests !== undefined && start !== undefined && end !== undefined ? (
         <UplotReact options={{
           width: 500,
           height: 150,
@@ -106,7 +89,7 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
             return {
               label: parseLabelValue(label),
               stroke: `#${labelColor(pickedColors, label)}`,
-              gaps: seriesGaps
+              gaps: seriesGaps(start, end)
             }
           })],
           scales: {
@@ -155,5 +138,6 @@ const labelColor = (picked: { [color: string]: number }, label: string): string 
   }
   return color
 }
+
 
 export default RequestsGraph

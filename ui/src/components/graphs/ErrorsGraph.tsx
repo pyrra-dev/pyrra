@@ -7,7 +7,8 @@ import { ObjectivesApi, QueryRange } from '../../client'
 import { formatDuration, PROMETHEUS_URL } from '../../App'
 import { IconExternal } from '../Icons'
 import { labelsString, parseLabelValue } from "../../labels";
-import { reds } from '../colors'
+import { reds } from './colors';
+import { seriesGaps } from './gaps';
 
 interface ErrorsGraphProps {
   api: ObjectivesApi
@@ -74,7 +75,7 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
         <p>What percentage of requests were errors?</p>
       </div>
 
-      {errors !== undefined ? (
+      {errors !== undefined && start !== undefined && end !== undefined ? (
         <UplotReact options={{
           width: 500,
           height: 150,
@@ -83,7 +84,8 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
             return {
               min: 0,
               stroke: `#${reds[i]}`,
-              label: parseLabelValue(label)
+              label: parseLabelValue(label),
+              gaps: seriesGaps(start, end)
             }
           })],
           scales: {

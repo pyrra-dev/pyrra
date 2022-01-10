@@ -6,8 +6,9 @@ import uPlot, { AlignedData } from 'uplot'
 import { formatDuration, PROMETHEUS_URL } from '../../App'
 import { ObjectivesApi, QueryRange } from '../../client'
 import { IconExternal } from '../Icons'
-import { greens, reds } from '../colors'
+import { greens, reds } from './colors';
 import { labelsString } from "../../labels";
+import { seriesGaps } from './gaps'
 
 interface ErrorBudgetGraphProps {
   api: ObjectivesApi
@@ -114,14 +115,15 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
         <p>What percentage of the error budget is left over time?</p>
       </div>
 
-      {samples !== undefined ? (
+      {samples !== undefined && start !== undefined && end !== undefined ? (
         <UplotReact options={{
           width: 1000,
           height: 300,
           padding: [canvasPadding, 0, 0, canvasPadding],
           cursor: uPlotCursor,
           series: [{}, {
-            fill: budgetGradient
+            fill: budgetGradient,
+            gaps: seriesGaps(start, end)
           }],
           scales: {
             x: { min: start, max: end },
