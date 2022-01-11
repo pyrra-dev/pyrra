@@ -56,8 +56,13 @@ func InternalFromClient(o client.Objective) slo.Objective {
 		}
 	}
 
+	ls := make([]labels.Label, 0, len(o.GetLabels()))
+	for name, value := range o.GetLabels() {
+		ls = append(ls, labels.Label{Name: name, Value: value})
+	}
+
 	return slo.Objective{
-		//Name:        o.GetName(),
+		Labels:      ls,
 		Description: o.GetDescription(),
 		Target:      o.GetTarget(),
 		Window:      model.Duration(time.Duration(o.GetWindow()) * time.Millisecond),
