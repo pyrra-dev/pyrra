@@ -612,6 +612,9 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr stri
 
 		alertstate := alertstateInactive
 
+		// TODO: It should be possible to reduce the amount of queries by querying ALERTS{slo="%s"}
+		// and then matching the resulting short and long values.
+
 		go func(name string, short, long int64) {
 			defer wg.Done()
 
