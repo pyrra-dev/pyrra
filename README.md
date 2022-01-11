@@ -60,7 +60,7 @@ This stack comes with Pyrra and Prometheus pre-configured, as well as [some SLOs
 
 ## Tech Stack
 
-**Client:** TypeScript with React, Bootstrap, Recharts
+**Client:** TypeScript with React, Bootstrap, and uPlot.
 
 **Server:** Go with libraries such as: chi, ristretto, xxhash, client-go.
 

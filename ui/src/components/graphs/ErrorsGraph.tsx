@@ -1,25 +1,30 @@
 import React, { useEffect, useState } from 'react'
 import { Spinner } from 'react-bootstrap'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, TooltipProps, XAxis, YAxis } from 'recharts'
+import UplotReact from 'uplot-react';
+import uPlot, { AlignedData } from 'uplot'
 
 import { ObjectivesApi, QueryRange } from '../../client'
-import { dateFormatter, dateFormatterFull, formatDuration, PROMETHEUS_URL } from '../../App'
+import { formatDuration, PROMETHEUS_URL } from '../../App'
 import { IconExternal } from '../Icons'
-import { reds } from '../colors'
-import { labelsString } from "../../labels";
+import { labelsString, parseLabelValue } from "../../labels";
+import { reds } from './colors';
+import { seriesGaps } from './gaps';
 
 interface ErrorsGraphProps {
   api: ObjectivesApi
   labels: { [key: string]: string }
   grouping: { [key: string]: string }
-  timeRange: number
+  timeRange: number,
+  uPlotCursor: uPlot.Cursor,
 }
 
-const ErrorsGraph = ({ api, labels, grouping, timeRange }: ErrorsGraphProps): JSX.Element => {
-  const [errors, setErrors] = useState<any[]>([])
+const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGraphProps): JSX.Element => {
+  const [errors, setErrors] = useState<AlignedData>()
   const [errorsQuery, setErrorsQuery] = useState<string>('')
   const [errorsLabels, setErrorsLabels] = useState<string[]>([])
   const [errorsLoading, setErrorsLoading] = useState<boolean>(true)
+  const [start, setStart] = useState<number>()
+  const [end, setEnd] = useState<number>()
 
   useEffect(() => {
     const now = Date.now()
@@ -29,47 +34,19 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange }: ErrorsGraphProps): JS
     setErrorsLoading(true)
     api.getREDErrors({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
       .then((r: QueryRange) => {
-        let data: any[] = []
-        r.values.forEach((v: number[], i: number) => {
-          v.forEach((v: number, j: number) => {
-            if (j === 0) {
-              data[i] = { t: v }
-            } else {
-              data[i][j - 1] = 100 * v
-            }
-          })
-        })
+        const [x, ...ys] = r.values
+        ys.map((y: number[]) => [
+          y.map((v: number) => 100 * v)
+        ])
+
         setErrorsLabels(r.labels)
         setErrorsQuery(r.query)
-        setErrors(data)
+        setErrors([x, ...ys])
+        setStart(start)
+        setEnd(end)
       }).finally(() => setErrorsLoading(false))
 
   }, [api, labels, grouping, timeRange])
-
-  const ErrorsTooltip = ({ payload }: TooltipProps<number, number>): JSX.Element => {
-    const style = {
-      padding: 10,
-      paddingTop: 5,
-      paddingBottom: 5,
-      backgroundColor: 'white',
-      border: '1px solid #666',
-      borderRadius: 3
-    }
-    if (payload !== undefined && payload?.length > 0) {
-      return (
-        <div className="area-chart-tooltip" style={style}>
-          Date: {dateFormatterFull(payload[0].payload.t)}<br/>
-          {Object.keys(payload[0].payload).filter((k) => k !== 't').map((k: string, i: number) => (
-            <div key={i}>
-              {errorsLabels[i] !== '{}' ? `${errorsLabels[i]}:` : ''}
-              {(payload[0].payload[k]).toFixed(2)}%
-            </div>
-          ))}
-        </div>
-      )
-    }
-    return <></>
-  }
 
   return (
     <>
@@ -97,41 +74,40 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange }: ErrorsGraphProps): JS
       <div>
         <p>What percentage of requests were errors?</p>
       </div>
-      {errors.length > 0 && errorsLabels.length > 0 ? (
-        <ResponsiveContainer height={150}>
-          <AreaChart height={150} data={errors}>
-            <CartesianGrid strokeDasharray="3 3"/>
-            <XAxis
-              type="number"
-              dataKey="t"
-              tickCount={4}
-              tickFormatter={dateFormatter(timeRange)}
-              domain={[errors[0].t, errors[errors.length - 1].t]}
-            />
-            <YAxis
-              width={40}
-              tickCount={3}
-              unit="%"
-              // tickFormatter={(v: number) => (100 * v).toFixed(2)}
-              // domain={[0, 10]}
-            />
-            {Object.keys(errors[0]).filter((k: string) => k !== 't').map((k: string, i: number) => {
-              return <Area
-                key={k}
-                type="monotone"
-                connectNulls={false}
-                animationDuration={250}
-                dataKey={k}
-                stackId={1}
-                strokeWidth={0}
-                fill={`#${reds[i]}`}
-                fillOpacity={1}/>
-            })}
-            <Tooltip content={ErrorsTooltip}/>
-          </AreaChart>
-        </ResponsiveContainer>
+
+      {errors !== undefined && start !== undefined && end !== undefined ? (
+        <UplotReact options={{
+          width: 500,
+          height: 150,
+          cursor: uPlotCursor,
+          series: [{}, ...errorsLabels.map((label: string, i: number): uPlot.Series => {
+            return {
+              min: 0,
+              stroke: `#${reds[i]}`,
+              label: parseLabelValue(label),
+              gaps: seriesGaps(start, end)
+            }
+          })],
+          scales: {
+            x: { min: start, max: end },
+            y: {
+              range: {
+                min: { hard: 0 },
+                max: { hard: 100 }
+              }
+            }
+          },
+          axes: [{}, {
+            values: (uplot: uPlot, v: number[]) => (v.map((v: number) => `${v}%`))
+          }]
+        }} data={errors}/>
       ) : (
-        <></>
+        <UplotReact options={{
+          width: 500,
+          height: 150,
+          series: [{}, {}],
+          scales: { x: {}, y: { min: 0, max: 1 } }
+        }} data={[[], []]}/>
       )}
     </>
   )
