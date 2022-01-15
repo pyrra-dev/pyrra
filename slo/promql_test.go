@@ -41,6 +41,17 @@ var (
 		o.Indicator.Ratio.Grouping = []string{"job", "handler"}
 		return o
 	}
+	objectiveHTTPRatioGroupingRegex = func() Objective {
+		matcher := &labels.Matcher{
+			Type:  labels.MatchRegexp,
+			Name:  "handler",
+			Value: "/api.*",
+		}
+		o := objectiveHTTPRatioGrouping()
+		o.Indicator.Ratio.Total.LabelMatchers = append(o.Indicator.Ratio.Total.LabelMatchers, matcher)
+		o.Indicator.Ratio.Errors.LabelMatchers = append(o.Indicator.Ratio.Errors.LabelMatchers, matcher)
+		return o
+	}
 	objectiveGRPCRatio = func() Objective {
 		return Objective{
 			Labels:      labels.FromStrings(labels.MetricName, "monitoring-grpc-errors"),
@@ -108,6 +119,18 @@ var (
 	objectiveHTTPLatencyGrouping = func() Objective {
 		o := objectiveHTTPLatency()
 		o.Indicator.Latency.Grouping = []string{"job", "handler"}
+		return o
+	}
+	objectiveHTTPLatencyGroupingRegex = func() Objective {
+		matcher := &labels.Matcher{
+			Type:  labels.MatchRegexp,
+			Name:  "handler",
+			Value: "/api.*",
+		}
+		o := objectiveHTTPLatencyGrouping()
+		o.Indicator.Latency.Grouping = []string{"job", "handler"}
+		o.Indicator.Latency.Success.LabelMatchers = append(o.Indicator.Latency.Success.LabelMatchers, matcher)
+		o.Indicator.Latency.Total.LabelMatchers = append(o.Indicator.Latency.Total.LabelMatchers, matcher)
 		return o
 	}
 	objectiveGRPCLatency = func() Objective {

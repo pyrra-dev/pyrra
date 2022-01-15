@@ -45,48 +45,62 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 }
 
 func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
+	sloName := o.Labels.Get(labels.MetricName)
+
 	ws := windows(time.Duration(o.Window))
 	burnrates := burnratesFromWindows(ws)
 	rules := make([]monitoringv1.Rule, 0, len(burnrates))
 
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
 		metric := o.Indicator.Ratio.Total.Name
-		matcher := o.Indicator.Ratio.Total.LabelMatchers
+		matchers := o.Indicator.Ratio.Total.LabelMatchers
 
-		var matcherLabels = map[string]string{}
-		for _, m := range matcher {
-			if m.Type == labels.MatchEqual || m.Type == labels.MatchRegexp {
-				if m.Name != "__name__" {
-					matcherLabels[m.Name] = m.Value
-				}
+		groupingMap := map[string]struct{}{}
+		for _, g := range o.Indicator.Ratio.Grouping {
+			groupingMap[g] = struct{}{}
+		}
+
+		ruleLabels := map[string]string{}
+		ruleLabels["slo"] = sloName
+		for _, m := range matchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
 			}
 		}
-		matcherLabels["slo"] = o.Labels.Get(labels.MetricName)
-
-		matcherLabelsString := func(ml map[string]string) string {
-			var s []string
-			for n, v := range ml {
-				s = append(s, fmt.Sprintf(`%s="%s"`, n, v))
-			}
-			sort.Slice(s, func(i, j int) bool {
-				return s[i] < s[j]
-			})
-			return strings.Join(s, ",")
-		}(matcherLabels)
+		// Delete labels that are grouped as their value is part of the labels anyway
+		for g := range groupingMap {
+			delete(ruleLabels, g)
+		}
 
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
 				Record: burnrateName(metric, br),
 				Expr:   intstr.FromString(o.Burnrate(br)),
-				Labels: matcherLabels,
+				Labels: ruleLabels,
 			})
 		}
 
+		var alertMatchers []string
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				continue
+			}
+			alertMatchers = append(alertMatchers, m.String())
+		}
+		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
+		sort.Strings(alertMatchers)
+		alertMatchersString := strings.Join(alertMatchers, ",")
+
 		for _, w := range ws {
 			alertLabels := map[string]string{}
-			for n, v := range matcherLabels {
-				alertLabels[n] = v
+			for _, m := range matchers {
+				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
+						alertLabels[m.Name] = m.Value
+					}
+				}
 			}
+			alertLabels["slo"] = sloName
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 
@@ -95,11 +109,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 				// TODO: Use expr replacer
 				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
 					burnrateName(metric, w.Short),
-					matcherLabelsString,
+					alertMatchersString,
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 					burnrateName(metric, w.Long),
-					matcherLabelsString,
+					alertMatchersString,
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
@@ -112,41 +126,63 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			rules = append(rules, r)
 		}
 	}
+
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		var matcherLabels = map[string]string{}
-		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual || m.Type == labels.MatchRegexp {
-				if m.Name != "__name__" {
-					matcherLabels[m.Name] = m.Value
-				}
+		metric := o.Indicator.Latency.Total.Name
+		matchers := o.Indicator.Latency.Total.LabelMatchers
+
+		groupingMap := map[string]struct{}{}
+		for _, g := range o.Indicator.Latency.Grouping {
+			groupingMap[g] = struct{}{}
+		}
+
+		ruleLabels := map[string]string{}
+		ruleLabels["slo"] = sloName
+		for _, m := range matchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
 			}
 		}
-		matcherLabels["slo"] = o.Labels.Get(labels.MetricName)
-
-		matcherLabelsString := func(ml map[string]string) string {
-			var s []string
-			for n, v := range ml {
-				s = append(s, fmt.Sprintf(`%s="%s"`, n, v))
-			}
-			sort.Slice(s, func(i, j int) bool {
-				return s[i] < s[j]
-			})
-			return strings.Join(s, ",")
-		}(matcherLabels)
+		// Delete labels that are grouped as their value is part of the labels anyway
+		for g := range groupingMap {
+			delete(ruleLabels, g)
+		}
 
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
-				Record: burnrateName(o.Indicator.Latency.Total.Name, br),
+				Record: burnrateName(metric, br),
 				Expr:   intstr.FromString(o.Burnrate(br)),
-				Labels: matcherLabels,
+				Labels: ruleLabels,
 			})
 		}
 
+		var alertMatchers []string
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				continue
+			}
+			if m.Type == labels.MatchRegexp {
+				// If the matcher is a regex it has to be in the grouping of the underlying recording rules to be usable.
+				if _, ok := groupingMap[m.Name]; !ok {
+					continue
+				}
+			}
+			alertMatchers = append(alertMatchers, m.String())
+		}
+		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
+		sort.Strings(alertMatchers)
+		alertMatchersString := strings.Join(alertMatchers, ",")
+
 		for _, w := range ws {
 			alertLabels := map[string]string{}
-			for n, v := range matcherLabels {
-				alertLabels[n] = v
+			for _, m := range matchers {
+				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
+						alertLabels[m.Name] = m.Value
+					}
+				}
 			}
+			alertLabels["slo"] = sloName
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 
@@ -154,12 +190,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 				Alert: "ErrorBudgetBurn",
 				// TODO: Use expr replacer
 				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-					burnrateName(o.Indicator.Latency.Total.Name, w.Short),
-					matcherLabelsString,
+					burnrateName(metric, w.Short),
+					alertMatchersString,
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
-					burnrateName(o.Indicator.Latency.Total.Name, w.Long),
-					matcherLabelsString,
+					burnrateName(metric, w.Long),
+					alertMatchersString,
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
@@ -174,7 +210,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	}
 
 	return monitoringv1.RuleGroup{
-		Name:     o.Labels.Get(labels.MetricName),
+		Name:     sloName,
 		Interval: "30s", // TODO: Increase or decrease based on availability target
 		Rules:    rules,
 	}, nil
@@ -205,7 +241,7 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		return expr.String()
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[1s])) -  sum(rate(errorMetric{matchers="errors"}[1s]))`)
+		expr, err := parser.ParseExpr(`sum by(grouping) (rate(metric{matchers="total"}[1s])) -  sum by(grouping) (rate(errorMetric{matchers="errors"}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -215,6 +251,7 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			grouping:      o.Indicator.Latency.Grouping,
 			window:        timerange,
 		}.replace(expr)
 
