@@ -1,17 +1,16 @@
 import React from 'react';
-import {BrowserRouter, Route, Switch} from 'react-router-dom';
+import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import List from './pages/List'
 import Detail from './pages/Detail'
 
 // @ts-ignore - this is passed from the HTML template.
-export const PUBLIC_API: string = window.PUBLIC_API;
+export const PATH_PREFIX: string = window.PATH_PREFIX;
 // @ts-ignore - this is passed from the HTML template.
 export const PROMETHEUS_URL: string = window.PROMETHEUS_URL;
 
-
 const App = () => {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={PATH_PREFIX}>
       <Switch>
         <Route exact={true} path="/" component={List}/>
         <Route path="/objectives" component={Detail}/>
