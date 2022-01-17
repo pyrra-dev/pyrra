@@ -78,7 +78,6 @@ spec:
                         - metric
                         type: object
                     required:
-                    - grouping
                     - success
                     - total
                     type: object
@@ -112,7 +111,6 @@ spec:
                         type: object
                     required:
                     - errors
-                    - grouping
                     - total
                     type: object
                 type: object
