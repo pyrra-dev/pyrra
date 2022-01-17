@@ -45,6 +45,7 @@ var CLI struct {
 		PrometheusExternalURL     *url.URL `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
 		ApiURL                    *url.URL `default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
 		RoutePrefix               string   `default:"" help:"The route prefix Pyrra uses. If run behind a proxy you can change it to something like /pyrra here."`
+		UIRoutePrefix             string   `default:"" help:"The route prefix Pyrra's UI uses. This is helpful for when the prefix is stripped by a proxy but still runs on /pyrra. Defaults to --route-prefix"`
 		PrometheusBearerTokenPath string   `default:"" help:"Bearer token path"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
@@ -60,7 +61,7 @@ func main() {
 	ctx := kong.Parse(&CLI)
 	switch ctx.Command() {
 	case "api":
-		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.ApiURL, CLI.API.RoutePrefix, CLI.API.PrometheusBearerTokenPath)
+		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.ApiURL, CLI.API.RoutePrefix, CLI.API.UIRoutePrefix, CLI.API.PrometheusBearerTokenPath)
 	case "filesystem":
 		cmdFilesystem(CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
 	case "kubernetes":
@@ -68,7 +69,7 @@ func main() {
 	}
 }
 
-func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix string, prometheusBearerTokenPath string) {
+func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiRoutePrefix string, prometheusBearerTokenPath string) {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
 		log.Fatal(err)
@@ -80,6 +81,11 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix stri
 
 	// RoutePrefix must always be at least '/'.
 	routePrefix = "/" + strings.Trim(routePrefix, "/")
+	if uiRoutePrefix == "" {
+		uiRoutePrefix = routePrefix
+	} else {
+		uiRoutePrefix = "/" + strings.Trim(uiRoutePrefix, "/")
+	}
 
 	log.Println("Using Prometheus at", prometheusURL.String())
 	log.Println("Using external Prometheus at", prometheusExternal.String())
@@ -148,7 +154,7 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix stri
 				PathPrefix    string
 			}{
 				PrometheusURL: prometheusExternal.String(),
-				PathPrefix:    routePrefix,
+				PathPrefix:    uiRoutePrefix,
 			}); err != nil {
 				log.Println(err)
 				return
@@ -162,7 +168,7 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix stri
 					PathPrefix    string
 				}{
 					PrometheusURL: prometheusExternal.String(),
-					PathPrefix:    routePrefix,
+					PathPrefix:    uiRoutePrefix,
 				}); err != nil {
 					log.Println(err)
 				}
