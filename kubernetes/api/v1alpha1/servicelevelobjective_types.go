@@ -92,6 +92,7 @@ type RatioIndicator struct {
 	Errors Query `json:"errors"`
 	// Total is the metric that returns how many requests there are in total.
 	Total Query `json:"total"`
+	// +optional
 	// Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
 	Grouping []string `json:"grouping"`
 }
@@ -101,6 +102,7 @@ type LatencyIndicator struct {
 	Success Query `json:"success"`
 	// Total is the metric that returns how many requests there are in total.
 	Total Query `json:"total"`
+	// +optional
 	// Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
 	Grouping []string `json:"grouping"`
 }
