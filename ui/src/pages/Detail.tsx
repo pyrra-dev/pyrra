@@ -22,7 +22,7 @@ const Detail = () => {
   const query = new URLSearchParams(useLocation().search)
 
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: `${PATH_PREFIX}api/v1` }))
+    return new ObjectivesApi(new Configuration({ basePath: `./api/v1` }))
   }, [])
 
   const queryExpr = query.get('expr')

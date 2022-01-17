@@ -12,7 +12,7 @@ interface AlertsTableProps {
 
 const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => {
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: `${PATH_PREFIX}api/v1` }))
+    return new ObjectivesApi(new Configuration({ basePath: `./api/v1` }))
   }, [])
 
   const [alerts, setAlerts] = useState<MultiBurnrateAlert[]>([])

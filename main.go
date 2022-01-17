@@ -44,7 +44,7 @@ var CLI struct {
 		PrometheusURL             *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
 		PrometheusExternalURL     *url.URL `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
 		ApiURL                    *url.URL `default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
-		RoutePrefix               string   `default:"" help:"The base path the UI uses, if run behind a proxy you can change it to something like /pyrra here."`
+		RoutePrefix               string   `default:"" help:"The route prefix Pyrra uses. If run behind a proxy you can change it to something like /pyrra here."`
 		PrometheusBearerTokenPath string   `default:"" help:"Bearer token path"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
@@ -84,7 +84,7 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix stri
 	log.Println("Using Prometheus at", prometheusURL.String())
 	log.Println("Using external Prometheus at", prometheusExternal.String())
 	log.Println("Using API at", apiURL.String())
-	log.Println("Using base path", routePrefix)
+	log.Println("Using route prefix", routePrefix)
 
 	reg := prometheus.NewRegistry()
 
@@ -157,7 +157,7 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix stri
 					PathPrefix    string
 				}{
 					PrometheusURL: prometheusExternal.String(),
-					PathPrefix:    strings.Trim(routePrefix, "/"),
+					PathPrefix:    routePrefix,
 				}); err != nil {
 					log.Println(err)
 				}
@@ -170,6 +170,19 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix stri
 			).ServeHTTP(w, r)
 		}))
 	})
+
+	if routePrefix != "/" {
+		// Redirect / to /pyrra/ if a non / route prefix exists.
+		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, routePrefix+"/", http.StatusPermanentRedirect)
+			return
+		})
+		// Redirect /pyrra to /pyrra/ for the UI to work properly.
+		r.HandleFunc(strings.TrimSuffix(routePrefix, "/"), func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, routePrefix+"/", http.StatusPermanentRedirect)
+			return
+		})
+	}
 
 	if err := http.ListenAndServe(":9099", r); err != nil {
 		log.Fatal(err)

@@ -9,8 +9,9 @@ export const PATH_PREFIX: string = window.PATH_PREFIX;
 export const PROMETHEUS_URL: string = window.PROMETHEUS_URL;
 
 const App = () => {
+  const basename = `/${PATH_PREFIX.replace(/^\//, '').replace(/\/$/, '')}`
   return (
-    <BrowserRouter basename={PATH_PREFIX}>
+    <BrowserRouter basename={basename}>
       <Switch>
         <Route exact={true} path="/" component={List}/>
         <Route path="/objectives" component={Detail}/>
