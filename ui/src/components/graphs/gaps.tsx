@@ -5,7 +5,6 @@ export const seriesGaps = (start: number, end: number) => (u: uPlot, seriesID: n
   let delta = 5 * 60 // default delta
   if (end !== undefined && start !== undefined) {
     delta = (2 * (end - start) / 1000)
-    console.log('using delta', delta)
   }
 
   let gaps: uPlot.Series.Gaps = []
@@ -13,7 +12,6 @@ export const seriesGaps = (start: number, end: number) => (u: uPlot, seriesID: n
   let xData = u.data[0]
   for (let i = startIdx + 1; i <= endIdx; i++) {
     if (xData[i] - xData[i - 1] > delta) {
-      console.log('gap', xData[i] - xData[i - 1])
       uPlot.addGap(
         gaps,
         Math.round(u.valToPos(xData[i - 1], 'x', true)),

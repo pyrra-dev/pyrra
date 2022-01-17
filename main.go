@@ -44,6 +44,8 @@ var CLI struct {
 		PrometheusURL             *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
 		PrometheusExternalURL     *url.URL `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
 		ApiURL                    *url.URL `default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
+		RoutePrefix               string   `default:"" help:"The route prefix Pyrra uses. If run behind a proxy you can change it to something like /pyrra here."`
+		UIRoutePrefix             string   `default:"" help:"The route prefix Pyrra's UI uses. This is helpful for when the prefix is stripped by a proxy but still runs on /pyrra. Defaults to --route-prefix"`
 		PrometheusBearerTokenPath string   `default:"" help:"Bearer token path"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
@@ -59,7 +61,7 @@ func main() {
 	ctx := kong.Parse(&CLI)
 	switch ctx.Command() {
 	case "api":
-		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.ApiURL, CLI.API.PrometheusBearerTokenPath)
+		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.ApiURL, CLI.API.RoutePrefix, CLI.API.UIRoutePrefix, CLI.API.PrometheusBearerTokenPath)
 	case "filesystem":
 		cmdFilesystem(CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
 	case "kubernetes":
@@ -67,7 +69,7 @@ func main() {
 	}
 }
 
-func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearerTokenPath string) {
+func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiRoutePrefix string, prometheusBearerTokenPath string) {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
 		log.Fatal(err)
@@ -77,9 +79,18 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearer
 		prometheusExternal = prometheusURL
 	}
 
+	// RoutePrefix must always be at least '/'.
+	routePrefix = "/" + strings.Trim(routePrefix, "/")
+	if uiRoutePrefix == "" {
+		uiRoutePrefix = routePrefix
+	} else {
+		uiRoutePrefix = "/" + strings.Trim(uiRoutePrefix, "/")
+	}
+
 	log.Println("Using Prometheus at", prometheusURL.String())
 	log.Println("Using external Prometheus at", prometheusExternal.String())
 	log.Println("Using API at", apiURL.String())
+	log.Println("Using route prefix", routePrefix)
 
 	reg := prometheus.NewRegistry()
 
@@ -128,32 +139,56 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, prometheusBearer
 
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
-	r.Mount("/api/v1", router)
-	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-	r.Get("/objectives", func(w http.ResponseWriter, r *http.Request) {
-		if err := tmpl.Execute(w, struct {
-			PrometheusURL string
-		}{
-			PrometheusURL: prometheusExternal.String(),
-		}); err != nil {
-			log.Println(err)
-			return
-		}
-	})
-	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			if err := tmpl.Execute(w, struct {
-				PrometheusURL string
-			}{
-				PrometheusURL: prometheusExternal.String(),
-			}); err != nil {
-				log.Println(err)
-			}
-			return
+
+	r.Route(routePrefix, func(r chi.Router) {
+		if routePrefix != "/" {
+			r.Mount("/api/v1", http.StripPrefix(routePrefix, router))
+		} else {
+			r.Mount("/api/v1", router)
 		}
 
-		http.FileServer(http.FS(build)).ServeHTTP(w, r)
-	}))
+		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		r.Get("/objectives", func(w http.ResponseWriter, r *http.Request) {
+			if err := tmpl.Execute(w, struct {
+				PrometheusURL string
+				PathPrefix    string
+			}{
+				PrometheusURL: prometheusExternal.String(),
+				PathPrefix:    uiRoutePrefix,
+			}); err != nil {
+				log.Println(err)
+				return
+			}
+		})
+		r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Trim trailing slash to not care about matching e.g. /pyrra and /pyrra/
+			if r.URL.Path == "/" || strings.TrimSuffix(r.URL.Path, "/") == routePrefix {
+				if err := tmpl.Execute(w, struct {
+					PrometheusURL string
+					PathPrefix    string
+				}{
+					PrometheusURL: prometheusExternal.String(),
+					PathPrefix:    uiRoutePrefix,
+				}); err != nil {
+					log.Println(err)
+				}
+				return
+			}
+
+			http.StripPrefix(
+				routePrefix,
+				http.FileServer(http.FS(build)),
+			).ServeHTTP(w, r)
+		}))
+	})
+
+	if routePrefix != "/" {
+		// Redirect /pyrra to /pyrra/ for the UI to work properly.
+		r.HandleFunc(strings.TrimSuffix(routePrefix, "/"), func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, routePrefix+"/", http.StatusPermanentRedirect)
+			return
+		})
+	}
 
 	if err := http.ListenAndServe(":9099", r); err != nil {
 		log.Fatal(err)

@@ -9,7 +9,7 @@ import {
   ObjectiveStatusAvailability,
   ObjectiveStatusBudget
 } from '../client'
-import { formatDuration, parseDuration, PUBLIC_API } from '../App'
+import { formatDuration, parseDuration, PATH_PREFIX } from '../App'
 import Navbar from '../components/Navbar'
 import { parseLabels } from "../labels";
 import ErrorBudgetGraph from "../components/graphs/ErrorBudgetGraph";
@@ -22,7 +22,7 @@ const Detail = () => {
   const query = new URLSearchParams(useLocation().search)
 
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
+    return new ObjectivesApi(new Configuration({ basePath: `./api/v1` }))
   }, [])
 
   const queryExpr = query.get('expr')

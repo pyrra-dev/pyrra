@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react'
 import { Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
 import { Configuration, Objective, ObjectivesApi, ObjectiveStatus } from '../client'
-import { formatDuration, PUBLIC_API } from '../App'
+import { formatDuration, PATH_PREFIX } from '../App'
 import { Link, useHistory } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '../components/Icons'
@@ -159,7 +159,7 @@ interface TableSorting {
 
 const List = () => {
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: `${PUBLIC_API}api/v1` }))
+    return new ObjectivesApi(new Configuration({ basePath: `./api/v1` }))
   }, [])
 
   const history = useHistory()
