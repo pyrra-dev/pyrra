@@ -177,11 +177,6 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix stri
 	})
 
 	if routePrefix != "/" {
-		// Redirect / to /pyrra/ if a non / route prefix exists.
-		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, routePrefix+"/", http.StatusPermanentRedirect)
-			return
-		})
 		// Redirect /pyrra to /pyrra/ for the UI to work properly.
 		r.HandleFunc(strings.TrimSuffix(routePrefix, "/"), func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, routePrefix+"/", http.StatusPermanentRedirect)
