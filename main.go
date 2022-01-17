@@ -135,7 +135,12 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix stri
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
 
 	r.Route(routePrefix, func(r chi.Router) {
-		r.Mount("/api/v1", http.StripPrefix(routePrefix, router))
+		if routePrefix != "/" {
+			r.Mount("/api/v1", http.StripPrefix(routePrefix, router))
+		} else {
+			r.Mount("/api/v1", router)
+		}
+
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 		r.Get("/objectives", func(w http.ResponseWriter, r *http.Request) {
 			if err := tmpl.Execute(w, struct {
