@@ -53,6 +53,12 @@ spec:
                     description: Latency is the indicator that measures a certain
                       percentage to be fast than.
                     properties:
+                      grouping:
+                        description: Grouping allows an SLO to be defined for many
+                          SLI at once, like HTTP handlers for example.
+                        items:
+                          type: string
+                        type: array
                       success:
                         description: Success is the metric that returns how many errors
                           there are.
@@ -72,6 +78,7 @@ spec:
                         - metric
                         type: object
                     required:
+                    - grouping
                     - success
                     - total
                     type: object
@@ -88,6 +95,12 @@ spec:
                         required:
                         - metric
                         type: object
+                      grouping:
+                        description: Grouping allows an SLO to be defined for many
+                          SLI at once, like HTTP handlers for example.
+                        items:
+                          type: string
+                        type: array
                       total:
                         description: Total is the metric that returns how many requests
                           there are in total.
@@ -99,6 +112,7 @@ spec:
                         type: object
                     required:
                     - errors
+                    - grouping
                     - total
                     type: object
                 type: object
