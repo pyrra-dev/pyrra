@@ -293,6 +293,11 @@ func groupingLabels(errorMatchers, totalMatchers []*labels.Matcher) []string {
 	for _, m := range totalMatchers {
 		delete(groupingLabels, m.Name)
 	}
+
+	// This deletes the le label as grouping by it should usually not be wanted,
+	// and we have to remove it for the latency SLOs.
+	delete(groupingLabels, "le")
+
 	grouping := make([]string, 0, len(groupingLabels))
 	for l := range groupingLabels {
 		grouping = append(grouping, l)
