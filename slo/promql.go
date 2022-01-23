@@ -113,9 +113,9 @@ func (o Objective) QueryErrorBudget() string {
   (1 - 0.696969)
   -
   (
-    sum by(job, handler) (increase(errorMetric{matchers="errors"}[1s]) or vector(0))
+    sum(errorMetric{matchers="errors"} or vector(0))
     /
-    sum by(job, handler) (increase(metric{matchers="total"}[1s]))
+    sum(metric{matchers="total"})
   )
 )
 /
@@ -125,13 +125,30 @@ func (o Objective) QueryErrorBudget() string {
 			return ""
 		}
 
+		metric := increaseName(o.Indicator.Ratio.Total.Name, o.Window)
+		matchers := o.Indicator.Ratio.Total.LabelMatchers
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				m.Value = metric
+				break
+			}
+		}
+
+		errorMetric := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
+		errorMatchers := o.Indicator.Ratio.Errors.LabelMatchers
+		for _, m := range errorMatchers {
+			if m.Name == labels.MetricName {
+				m.Value = errorMetric
+				break
+			}
+		}
+
 		objectiveReplacer{
-			metric:        o.Indicator.Ratio.Total.Name,
-			matchers:      o.Indicator.Ratio.Total.LabelMatchers,
-			errorMetric:   o.Indicator.Ratio.Errors.Name,
-			errorMatchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			metric:        metric,
+			matchers:      matchers,
+			errorMetric:   errorMetric,
+			errorMatchers: errorMatchers,
 			grouping:      o.Indicator.Ratio.Grouping,
-			window:        time.Duration(o.Window),
 			target:        o.Target,
 		}.replace(expr)
 
@@ -145,9 +162,9 @@ func (o Objective) QueryErrorBudget() string {
   -
   (
     1 -
-    sum(increase(errorMetric{matchers="errors"}[1s]) or vector(0))
+    sum(errorMetric{matchers="errors"}) or vector(0)
     /
-    sum(increase(metric{matchers="total"}[1s]))
+    sum(metric{matchers="total"})
   )
 )
 /
@@ -157,13 +174,32 @@ func (o Objective) QueryErrorBudget() string {
 			return ""
 		}
 
+		metric := increaseName(o.Indicator.Latency.Total.Name, o.Window)
+		matchers := o.Indicator.Latency.Total.LabelMatchers
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				m.Value = metric
+				break
+			}
+		}
+		// Add the matcher {le=""} to select the recording rule that summed up all requests
+		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
+
+		errorMetric := increaseName(o.Indicator.Latency.Success.Name, o.Window)
+		errorMatchers := o.Indicator.Latency.Success.LabelMatchers
+		for _, m := range errorMatchers {
+			if m.Name == labels.MetricName {
+				m.Value = errorMetric
+				break
+			}
+		}
+
 		objectiveReplacer{
-			metric:        o.Indicator.Latency.Total.Name,
-			matchers:      o.Indicator.Latency.Total.LabelMatchers,
-			errorMetric:   o.Indicator.Latency.Success.Name,
-			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			metric:        metric,
+			matchers:      matchers,
+			errorMetric:   errorMetric,
+			errorMatchers: errorMatchers,
 			grouping:      o.Indicator.Latency.Grouping,
-			window:        time.Duration(o.Window),
 			target:        o.Target,
 		}.replace(expr)
 
