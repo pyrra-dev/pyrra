@@ -279,15 +279,15 @@ func TestObjective_QueryErrors(t *testing.T) {
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
-		expected:  `http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le=""} - scalar(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}`,
+		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le=""}) - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1"})`,
 	}, {
 		name:      "grpc-latency",
 		objective: objectiveGRPCLatency(),
-		expected:  `scalar(grpc_server_handling_seconds_count:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le=""}) - scalar(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"})`,
+		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le=""}) - sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"})`,
 	}, {
 		name:      "grpc-latency-grouping",
 		objective: objectiveGRPCLatencyGrouping(),
-		expected:  `scalar(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le=""}) - scalar(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"})`,
+		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le=""}) - sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"})`,
 	}, {
 		name:      "operator-ratio",
 		objective: objectiveOperator(),
