@@ -206,43 +206,43 @@ func TestObjective_QueryTotal(t *testing.T) {
 	}{{
 		name:      "http-ratio",
 		objective: objectiveHTTPRatio(),
-		expected:  `sum(http_requests:increase4w{job="thanos-receive-default"})`,
+		expected:  `sum(http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "http-ratio-grouping",
 		objective: objectiveHTTPRatioGrouping(),
-		expected:  `sum(http_requests:increase4w{job="thanos-receive-default"})`,
+		expected:  `sum(http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "grpc-ratio",
 		objective: objectiveGRPCRatio(),
-		expected:  `sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`,
+		expected:  `sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"})`,
 	}, {
 		name:      "grpc-ratio-grouping",
 		objective: objectiveGRPCRatioGrouping(),
-		expected:  `sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`,
+		expected:  `sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"})`,
 	}, {
 		name:      "http-latency",
 		objective: objectiveHTTPLatency(),
-		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default"})`,
+		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"})`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
-		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default"})`,
+		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"})`,
 	}, {
 		name:      "grpc-latency",
 		objective: objectiveGRPCLatency(),
-		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`,
+		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"})`,
 	}, {
 		name:      "grpc-latency-grouping",
 		objective: objectiveGRPCLatencyGrouping(),
-		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`,
+		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"})`,
 	}, {
 		name:      "operator-ratio",
 		objective: objectiveOperator(),
-		expected:  `sum(prometheus_operator_reconcile_operations:increase2w)`,
+		expected:  `sum(prometheus_operator_reconcile_operations:increase2w{slo="monitoring-prometheus-operator-errors"})`,
 	}, {
 		name:      "operator-ratio-grouping",
 		objective: objectiveOperatorGrouping(),
-		expected:  `sum(prometheus_operator_reconcile_operations:increase2w)`,
+		expected:  `sum(prometheus_operator_reconcile_operations:increase2w{slo="monitoring-prometheus-operator-errors"})`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -259,43 +259,43 @@ func TestObjective_QueryErrors(t *testing.T) {
 	}{{
 		name:      "http-ratio",
 		objective: objectiveHTTPRatio(),
-		expected:  `sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default"})`,
+		expected:  `sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "http-ratio-grouping",
 		objective: objectiveHTTPRatioGrouping(),
-		expected:  `sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default"})`,
+		expected:  `sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "grpc-ratio",
 		objective: objectiveGRPCRatio(),
-		expected:  `sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`,
+		expected:  `sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"})`,
 	}, {
 		name:      "grpc-ratio-grouping",
 		objective: objectiveGRPCRatioGrouping(),
-		expected:  `sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`,
+		expected:  `sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"})`,
 	}, {
 		name:      "http-latency",
 		objective: objectiveHTTPLatency(),
-		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le=""}) - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1"})`,
+		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"}) - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"})`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
-		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le=""}) - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1"})`,
+		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"}) - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"})`,
 	}, {
 		name:      "grpc-latency",
 		objective: objectiveGRPCLatency(),
-		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le=""}) - sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"})`,
+		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="",slo="monitoring-grpc-latency"}) - sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6",slo="monitoring-grpc-latency"})`,
 	}, {
 		name:      "grpc-latency-grouping",
 		objective: objectiveGRPCLatencyGrouping(),
-		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le=""}) - sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"})`,
+		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="",slo="monitoring-grpc-latency"}) - sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6",slo="monitoring-grpc-latency"})`,
 	}, {
 		name:      "operator-ratio",
 		objective: objectiveOperator(),
-		expected:  `sum(prometheus_operator_reconcile_errors:increase2w)`,
+		expected:  `sum(prometheus_operator_reconcile_errors:increase2w{slo="monitoring-prometheus-operator-errors"})`,
 	}, {
 		name:      "operator-ratio-grouping",
 		objective: objectiveOperatorGrouping(),
-		expected:  `sum(prometheus_operator_reconcile_errors:increase2w)`,
+		expected:  `sum(prometheus_operator_reconcile_errors:increase2w{slo="monitoring-prometheus-operator-errors"})`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -312,35 +312,35 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 	}{{
 		name:      "http-ratio",
 		objective: objectiveHTTPRatio(),
-		expected:  `((1 - 0.99) - (sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default"}))) / (1 - 0.99)`,
+		expected:  `((1 - 0.99) - (sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"}))) / (1 - 0.99)`,
 	}, {
 		name:      "http-ratio-grouping",
 		objective: objectiveHTTPRatioGrouping(),
-		expected:  `((1 - 0.99) - (sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default"}))) / (1 - 0.99)`,
+		expected:  `((1 - 0.99) - (sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"}))) / (1 - 0.99)`,
 	}, {
 		name:      "grpc-ratio",
 		objective: objectiveGRPCRatio(),
-		expected:  `((1 - 0.999) - (sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"} or vector(0)) / sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}))) / (1 - 0.999)`,
+		expected:  `((1 - 0.999) - (sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} or vector(0)) / sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"}))) / (1 - 0.999)`,
 	}, {
 		name:      "grpc-ratio-grouping",
 		objective: objectiveGRPCRatioGrouping(),
-		expected:  `((1 - 0.999) - (sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"} or vector(0)) / sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}))) / (1 - 0.999)`,
+		expected:  `((1 - 0.999) - (sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} or vector(0)) / sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"}))) / (1 - 0.999)`,
 	}, {
 		name:      "http-latency",
 		objective: objectiveHTTPLatency(),
-		expected:  `((1 - 0.995) - (1 - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}) or vector(0) / sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le=""}))) / (1 - 0.995)`,
+		expected:  `((1 - 0.995) - (1 - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"} or vector(0)) / sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"}))) / (1 - 0.995)`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
-		expected:  `((1 - 0.995) - (1 - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}) or vector(0) / sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le=""}))) / (1 - 0.995)`,
+		expected:  `((1 - 0.995) - (1 - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"} or vector(0)) / sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"}))) / (1 - 0.995)`,
 	}, {
 		name:      "grpc-latency",
 		objective: objectiveGRPCLatency(),
-		expected:  `((1 - 0.995) - (1 - sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}) or vector(0) / sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le=""}))) / (1 - 0.995)`,
+		expected:  `((1 - 0.995) - (1 - sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6",slo="monitoring-grpc-latency"} or vector(0)) / sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="",slo="monitoring-grpc-latency"}))) / (1 - 0.995)`,
 	}, {
 		name:      "operator-ratio",
 		objective: objectiveOperator(),
-		expected:  `((1 - 0.99) - (sum(prometheus_operator_reconcile_errors:increase2w or vector(0)) / sum(prometheus_operator_reconcile_operations:increase2w))) / (1 - 0.99)`,
+		expected:  `((1 - 0.99) - (sum(prometheus_operator_reconcile_errors:increase2w{slo="monitoring-prometheus-operator-errors"} or vector(0)) / sum(prometheus_operator_reconcile_operations:increase2w{slo="monitoring-prometheus-operator-errors"}))) / (1 - 0.99)`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

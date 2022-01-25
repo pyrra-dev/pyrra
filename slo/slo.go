@@ -16,6 +16,15 @@ type Objective struct {
 	Indicator Indicator
 }
 
+func (o Objective) Name() string {
+	for _, l := range o.Labels {
+		if l.Name == labels.MetricName {
+			return l.Value
+		}
+	}
+	return ""
+}
+
 type Indicator struct {
 	Ratio   *RatioIndicator
 	Latency *LatencyIndicator
