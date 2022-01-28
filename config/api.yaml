@@ -32,7 +32,7 @@ spec:
         - api
         - --prometheus-url=http://prometheus-k8s.monitoring.svc.cluster.local:9090
         - --api-url=http://pyrra-kubernetes.monitoring.svc.cluster.local:9444
-        image: ghcr.io/pyrra-dev/pyrra:v0.2.0
+        image: ghcr.io/pyrra-dev/pyrra:v0.3.0
         name: pyrra-api
         ports:
         - name: http
