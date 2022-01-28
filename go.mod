@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/alecthomas/kong v0.2.17
-	github.com/cespare/xxhash/v2 v2.1.1
+	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/dgraph-io/ristretto v0.0.3
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-chi/chi/v5 v5.0.3
