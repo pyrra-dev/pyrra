@@ -24,7 +24,7 @@
     "typescript": "^4.2.4",
     "uplot": "1.6.17",
     "uplot-react": "^1.1.1",
-    "web-vitals": "^1.1.1"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
