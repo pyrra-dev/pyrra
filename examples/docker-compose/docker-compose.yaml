@@ -8,7 +8,7 @@ volumes:
 
 services:
   prometheus:
-    image: prom/prometheus:v2.29.2
+    image: prom/prometheus:v2.32.1
     restart: always
     networks:
       - pyrra
@@ -23,7 +23,7 @@ services:
       - prometheus_pyrra:/etc/prometheus/pyrra
 
   pyrra-api:
-    image: ghcr.io/pyrra-dev/pyrra:v0.2.0
+    image: ghcr.io/pyrra-dev/pyrra:v0.3.0
     restart: always
     command:
       - api
@@ -36,7 +36,7 @@ services:
       - pyrra
 
   pyrra-filesystem:
-    image: ghcr.io/pyrra-dev/pyrra:v0.2.0
+    image: ghcr.io/pyrra-dev/pyrra:v0.3.0
     restart: always
     command:
       - filesystem
