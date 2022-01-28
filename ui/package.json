@@ -5,7 +5,7 @@
   "homepage": "./",
   "dependencies": {
     "@fontsource/inter": "^4.5.0",
-    "@fontsource/lato": "^4.5.0",
+    "@fontsource/lato": "^4.5.1",
     "@testing-library/jest-dom": "^5.16.1",
     "@testing-library/react": "^11.2.6",
     "@testing-library/user-event": "^12.8.3",
