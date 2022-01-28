@@ -44,6 +44,8 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 	return mbras, nil
 }
 
+// TODO: Rename Burnrates to RecordingRules
+
 func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
@@ -70,6 +72,17 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		// Delete labels that are grouped as their value is part of the labels anyway
 		for g := range groupingMap {
 			delete(ruleLabels, g)
+		}
+
+		increaseRules, err := o.IncreaseRules()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+		for _, r := range increaseRules {
+			for k, v := range ruleLabels {
+				r.Labels[k] = v
+			}
+			rules = append(rules, r)
 		}
 
 		for _, br := range burnrates {
@@ -146,6 +159,18 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		// Delete labels that are grouped as their value is part of the labels anyway
 		for g := range groupingMap {
 			delete(ruleLabels, g)
+		}
+
+		increaseRules, err := o.IncreaseRules()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		for _, r := range increaseRules {
+			for k, v := range ruleLabels {
+				r.Labels[k] = v
+			}
+			rules = append(rules, r)
 		}
 
 		for _, br := range burnrates {
@@ -258,6 +283,123 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		return expr.String()
 	}
 	return ""
+}
+
+func increaseName(metric string, window model.Duration) string {
+	metric = strings.TrimSuffix(metric, "_total")
+	metric = strings.TrimSuffix(metric, "_count")
+	metric = strings.TrimSuffix(metric, "_bucket")
+	return fmt.Sprintf("%s:increase%s", metric, window)
+}
+
+func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
+	var rules []monitoringv1.Rule
+
+	increaseExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+		return parser.ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s]))`)
+	}
+
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		grouping := o.Indicator.Ratio.Grouping
+		grouping = append(grouping, groupingLabels(
+			o.Indicator.Ratio.Errors.LabelMatchers,
+			o.Indicator.Ratio.Total.LabelMatchers,
+		)...)
+		sort.Strings(grouping)
+
+		expr, err := increaseExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Total.Name,
+			matchers: o.Indicator.Ratio.Total.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(expr)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.Ratio.Total.Name, o.Window),
+			Expr:   intstr.FromString(expr.String()),
+			Labels: map[string]string{},
+		})
+
+		if o.Indicator.Ratio.Total.Name != o.Indicator.Ratio.Errors.Name {
+			expr, err := increaseExpr()
+			if err != nil {
+				return nil, err
+			}
+
+			objectiveReplacer{
+				metric:   o.Indicator.Ratio.Errors.Name,
+				matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+				grouping: grouping,
+				window:   time.Duration(o.Window),
+			}.replace(expr)
+
+			rules = append(rules, monitoringv1.Rule{
+				Record: increaseName(o.Indicator.Ratio.Errors.Name, o.Window),
+				Expr:   intstr.FromString(expr.String()),
+				Labels: map[string]string{},
+			})
+		}
+	}
+
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		grouping := o.Indicator.Latency.Grouping
+		grouping = append(grouping, groupingLabels(
+			o.Indicator.Latency.Success.LabelMatchers,
+			o.Indicator.Latency.Total.LabelMatchers,
+		)...)
+		sort.Strings(grouping)
+
+		expr, err := increaseExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Latency.Total.Name,
+			matchers: o.Indicator.Latency.Total.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(expr)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.Latency.Total.Name, o.Window),
+			Expr:   intstr.FromString(expr.String()),
+			Labels: map[string]string{},
+		})
+
+		expr, err = increaseExpr()
+		if err != nil {
+			return nil, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Latency.Success.Name,
+			matchers: o.Indicator.Latency.Success.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(expr)
+
+		var le string
+		for _, m := range o.Indicator.Latency.Success.LabelMatchers {
+			if m.Name == "le" {
+				le = m.Value
+				break
+			}
+		}
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.Latency.Success.Name, o.Window),
+			Expr:   intstr.FromString(expr.String()),
+			Labels: map[string]string{"le": le},
+		})
+	}
+
+	return rules, nil
 }
 
 type severity string

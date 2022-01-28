@@ -11,31 +11,38 @@ import (
 
 // QueryTotal returns a PromQL query to get the total amount of requests served during the window.
 func (o Objective) QueryTotal(window model.Duration) string {
-	expr, err := parser.ParseExpr(`sum by (grouping) (increase(metric{}[1s]))`)
+	expr, err := parser.ParseExpr(`sum(metric{})`)
 	if err != nil {
 		return ""
 	}
 
 	var metric string
 	var matchers []*labels.Matcher
-	var grouping []string
 
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		metric = o.Indicator.Ratio.Total.Name
+		metric = increaseName(o.Indicator.Ratio.Total.Name, window)
 		matchers = o.Indicator.Ratio.Total.LabelMatchers
-		grouping = o.Indicator.Ratio.Grouping
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		metric = o.Indicator.Latency.Total.Name
+		metric = increaseName(o.Indicator.Latency.Total.Name, window)
 		matchers = o.Indicator.Latency.Total.LabelMatchers
-		grouping = o.Indicator.Latency.Grouping
+	}
+
+	matchers = append(matchers, &labels.Matcher{
+		Type:  labels.MatchEqual,
+		Name:  "slo",
+		Value: o.Name(),
+	})
+
+	for _, m := range matchers {
+		if m.Name == labels.MetricName {
+			m.Value = metric
+		}
 	}
 
 	objectiveReplacer{
 		metric:   metric,
 		matchers: matchers,
-		grouping: grouping,
-		window:   time.Duration(window),
 	}.replace(expr)
 
 	return expr.String()
@@ -44,34 +51,74 @@ func (o Objective) QueryTotal(window model.Duration) string {
 // QueryErrors returns a PromQL query to get the amount of request errors during the window.
 func (o Objective) QueryErrors(window model.Duration) string {
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum by(grouping) (increase(metric{}[1s]))`)
+		expr, err := parser.ParseExpr(`sum(metric{})`)
 		if err != nil {
-			return err.Error()
+			return ""
 		}
 
+		metric := increaseName(o.Indicator.Ratio.Errors.Name, window)
+		matchers := o.Indicator.Ratio.Errors.LabelMatchers
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				m.Value = metric
+				break
+			}
+		}
+		matchers = append(matchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
 		objectiveReplacer{
-			metric:   o.Indicator.Ratio.Errors.Name,
-			matchers: o.Indicator.Ratio.Errors.LabelMatchers,
-			grouping: o.Indicator.Ratio.Grouping,
-			window:   time.Duration(window),
+			metric:   metric,
+			matchers: matchers,
 		}.replace(expr)
 
 		return expr.String()
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum by(grouping) (increase(metric{matchers="total"}[1s])) - sum by(grouping) (increase(errorMetric{matchers="errors"}[1s]))`)
+		expr, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
 		if err != nil {
-			return err.Error()
+			return ""
 		}
 
+		metric := increaseName(o.Indicator.Latency.Total.Name, window)
+		matchers := o.Indicator.Latency.Total.LabelMatchers
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				m.Value = metric
+				break
+			}
+		}
+		// Add the matcher {le=""} to select the recording rule that summed up all requests
+		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
+		matchers = append(matchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
+		errorMetric := increaseName(o.Indicator.Latency.Success.Name, window)
+		errorMatchers := o.Indicator.Latency.Success.LabelMatchers
+		for _, m := range errorMatchers {
+			if m.Name == labels.MetricName {
+				m.Value = errorMetric
+				break
+			}
+		}
+		errorMatchers = append(errorMatchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
 		objectiveReplacer{
-			metric:        o.Indicator.Latency.Total.Name,
-			matchers:      o.Indicator.Latency.Total.LabelMatchers,
-			errorMetric:   o.Indicator.Latency.Success.Name,
-			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
-			grouping:      o.Indicator.Latency.Grouping,
-			window:        time.Duration(window),
+			metric:        metric,
+			matchers:      matchers,
+			errorMetric:   errorMetric,
+			errorMatchers: errorMatchers,
 		}.replace(expr)
 
 		return expr.String()
@@ -87,9 +134,9 @@ func (o Objective) QueryErrorBudget() string {
   (1 - 0.696969)
   -
   (
-    sum by(job, handler) (increase(errorMetric{matchers="errors"}[1s]) or vector(0))
+    sum(errorMetric{matchers="errors"} or vector(0))
     /
-    sum by(job, handler) (increase(metric{matchers="total"}[1s]))
+    sum(metric{matchers="total"})
   )
 )
 /
@@ -99,13 +146,40 @@ func (o Objective) QueryErrorBudget() string {
 			return ""
 		}
 
+		metric := increaseName(o.Indicator.Ratio.Total.Name, o.Window)
+		matchers := o.Indicator.Ratio.Total.LabelMatchers
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				m.Value = metric
+				break
+			}
+		}
+		matchers = append(matchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
+		errorMetric := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
+		errorMatchers := o.Indicator.Ratio.Errors.LabelMatchers
+		for _, m := range errorMatchers {
+			if m.Name == labels.MetricName {
+				m.Value = errorMetric
+				break
+			}
+		}
+		errorMatchers = append(errorMatchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
 		objectiveReplacer{
-			metric:        o.Indicator.Ratio.Total.Name,
-			matchers:      o.Indicator.Ratio.Total.LabelMatchers,
-			errorMetric:   o.Indicator.Ratio.Errors.Name,
-			errorMatchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			metric:        metric,
+			matchers:      matchers,
+			errorMetric:   errorMetric,
+			errorMatchers: errorMatchers,
 			grouping:      o.Indicator.Ratio.Grouping,
-			window:        time.Duration(o.Window),
 			target:        o.Target,
 		}.replace(expr)
 
@@ -119,9 +193,9 @@ func (o Objective) QueryErrorBudget() string {
   -
   (
     1 -
-    sum(increase(errorMetric{matchers="errors"}[1s]) or vector(0))
+    sum(errorMetric{matchers="errors"} or vector(0))
     /
-    sum(increase(metric{matchers="total"}[1s]))
+    sum(metric{matchers="total"})
   )
 )
 /
@@ -131,13 +205,42 @@ func (o Objective) QueryErrorBudget() string {
 			return ""
 		}
 
+		metric := increaseName(o.Indicator.Latency.Total.Name, o.Window)
+		matchers := o.Indicator.Latency.Total.LabelMatchers
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				m.Value = metric
+				break
+			}
+		}
+		// Add the matcher {le=""} to select the recording rule that summed up all requests
+		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
+		matchers = append(matchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
+		errorMetric := increaseName(o.Indicator.Latency.Success.Name, o.Window)
+		errorMatchers := o.Indicator.Latency.Success.LabelMatchers
+		for _, m := range errorMatchers {
+			if m.Name == labels.MetricName {
+				m.Value = errorMetric
+				break
+			}
+		}
+		errorMatchers = append(errorMatchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
 		objectiveReplacer{
-			metric:        o.Indicator.Latency.Total.Name,
-			matchers:      o.Indicator.Latency.Total.LabelMatchers,
-			errorMetric:   o.Indicator.Latency.Success.Name,
-			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			metric:        metric,
+			matchers:      matchers,
+			errorMetric:   errorMetric,
+			errorMatchers: errorMatchers,
 			grouping:      o.Indicator.Latency.Grouping,
-			window:        time.Duration(o.Window),
 			target:        o.Target,
 		}.replace(expr)
 
@@ -293,6 +396,11 @@ func groupingLabels(errorMatchers, totalMatchers []*labels.Matcher) []string {
 	for _, m := range totalMatchers {
 		delete(groupingLabels, m.Name)
 	}
+
+	// This deletes the le label as grouping by it should usually not be wanted,
+	// and we have to remove it for the latency SLOs.
+	delete(groupingLabels, "le")
+
 	grouping := make([]string, 0, len(groupingLabels))
 	for l := range groupingLabels {
 		grouping = append(grouping, l)
