@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Spinner } from 'react-bootstrap'
 import UplotReact from 'uplot-react';
 import uPlot, { AlignedData } from 'uplot'
@@ -19,11 +19,25 @@ interface ErrorBudgetGraphProps {
 }
 
 const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorBudgetGraphProps): JSX.Element => {
-  const [samples, setSamples] = useState<AlignedData>();
+  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+
+  const [samples, setSamples] = useState<AlignedData>()
   const [query, setQuery] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(true)
   const [start, setStart] = useState<number>()
   const [end, setEnd] = useState<number>()
+  const [width, setWidth] = useState<number>(1000)
+
+  const setWidthFromContainer = () => {
+    if (targetRef !== undefined && targetRef.current) {
+      setWidth(targetRef.current.offsetWidth)
+    }
+  }
+
+  // Set width on first render
+  useLayoutEffect(setWidthFromContainer)
+  // Set width on every window resize
+  window.addEventListener('resize', setWidthFromContainer)
 
   useEffect(() => {
     setLoading(true)
@@ -72,8 +86,6 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
       return `#${reds[0]}`
     }
 
-    console.log(min, max)
-
     // TODO: This seems "good enough" but sometimes the gradient still reaches the wrong side.
     // Maybe it's a floating point thing?
     const zeroPercentage = 1 - (0 - min) / (max - min)
@@ -115,40 +127,42 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
         <p>What percentage of the error budget is left over time?</p>
       </div>
 
-      {samples !== undefined && start !== undefined && end !== undefined ? (
-        <UplotReact options={{
-          width: 1000,
-          height: 300,
-          padding: [canvasPadding, 0, 0, canvasPadding],
-          cursor: uPlotCursor,
-          series: [{}, {
-            fill: budgetGradient,
-            gaps: seriesGaps(start, end)
-          }],
-          scales: {
-            x: { min: start, max: end },
-            y: {
-              range: {
-                min: {},
-                max: { hard: 100 }
+      <div ref={targetRef}>
+        {samples !== undefined && start !== undefined && end !== undefined ? (
+          <UplotReact options={{
+            width: width,
+            height: 300,
+            padding: [canvasPadding, 0, 0, canvasPadding],
+            cursor: uPlotCursor,
+            series: [{}, {
+              fill: budgetGradient,
+              gaps: seriesGaps(start, end)
+            }],
+            scales: {
+              x: { min: start, max: end },
+              y: {
+                range: {
+                  min: {},
+                  max: { hard: 100 }
+                }
               }
+            },
+            axes: [{}, {
+              values: (uplot: uPlot, v: number[]) => (v.map((v: number) => `${v.toFixed(2)}%`))
+            }]
+          }} data={samples}/>
+        ) : (
+          <UplotReact options={{
+            width: 1000,
+            height: 300,
+            series: [{}, {}],
+            scales: {
+              x: { min: start, max: end },
+              y: { min: 0, max: 1 }
             }
-          },
-          axes: [{}, {
-            values: (uplot: uPlot, v: number[]) => (v.map((v: number) => `${v.toFixed(2)}%`))
-          }]
-        }} data={samples}/>
-      ) : (
-        <UplotReact options={{
-          width: 1000,
-          height: 300,
-          series: [{}, {}],
-          scales: {
-            x: { min: start, max: end },
-            y: { min: 0, max: 1 }
-          }
-        }} data={[[], []]}/>
-      )}
+          }} data={[[], []]}/>
+        )}
+      </div>
     </>
   )
 }

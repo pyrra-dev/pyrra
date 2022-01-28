@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Spinner } from 'react-bootstrap'
 import UplotReact from 'uplot-react';
 import uPlot, { AlignedData } from 'uplot'
@@ -19,12 +19,26 @@ interface ErrorsGraphProps {
 }
 
 const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGraphProps): JSX.Element => {
+  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+
   const [errors, setErrors] = useState<AlignedData>()
   const [errorsQuery, setErrorsQuery] = useState<string>('')
   const [errorsLabels, setErrorsLabels] = useState<string[]>([])
   const [errorsLoading, setErrorsLoading] = useState<boolean>(true)
   const [start, setStart] = useState<number>()
   const [end, setEnd] = useState<number>()
+  const [width, setWidth] = useState<number>(500)
+
+  const setWidthFromContainer = () => {
+    if (targetRef !== undefined && targetRef.current) {
+      setWidth(targetRef.current.offsetWidth)
+    }
+  }
+
+  // Set width on first render
+  useLayoutEffect(setWidthFromContainer)
+  // Set width on every window resize
+  window.addEventListener('resize', setWidthFromContainer)
 
   useEffect(() => {
     const now = Date.now()
@@ -75,40 +89,42 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
         <p>What percentage of requests were errors?</p>
       </div>
 
-      {errors !== undefined && start !== undefined && end !== undefined ? (
-        <UplotReact options={{
-          width: 500,
-          height: 150,
-          cursor: uPlotCursor,
-          series: [{}, ...errorsLabels.map((label: string, i: number): uPlot.Series => {
-            return {
-              min: 0,
-              stroke: `#${reds[i]}`,
-              label: parseLabelValue(label),
-              gaps: seriesGaps(start, end)
-            }
-          })],
-          scales: {
-            x: { min: start, max: end },
-            y: {
-              range: {
-                min: { hard: 0 },
-                max: { hard: 100 }
+      <div ref={targetRef}>
+        {errors !== undefined && start !== undefined && end !== undefined ? (
+          <UplotReact options={{
+            width: width,
+            height: 150,
+            cursor: uPlotCursor,
+            series: [{}, ...errorsLabels.map((label: string, i: number): uPlot.Series => {
+              return {
+                min: 0,
+                stroke: `#${reds[i]}`,
+                label: parseLabelValue(label),
+                gaps: seriesGaps(start, end)
               }
-            }
-          },
-          axes: [{}, {
-            values: (uplot: uPlot, v: number[]) => (v.map((v: number) => `${v}%`))
-          }]
-        }} data={errors}/>
-      ) : (
-        <UplotReact options={{
-          width: 500,
-          height: 150,
-          series: [{}, {}],
-          scales: { x: {}, y: { min: 0, max: 1 } }
-        }} data={[[], []]}/>
-      )}
+            })],
+            scales: {
+              x: { min: start, max: end },
+              y: {
+                range: {
+                  min: { hard: 0 },
+                  max: { hard: 100 }
+                }
+              }
+            },
+            axes: [{}, {
+              values: (uplot: uPlot, v: number[]) => (v.map((v: number) => `${v}%`))
+            }]
+          }} data={errors}/>
+        ) : (
+          <UplotReact options={{
+            width: width,
+            height: 150,
+            series: [{}, {}],
+            scales: { x: {}, y: { min: 0, max: 1 } }
+          }} data={[[], []]}/>
+        )}
+      </div>
     </>
   )
 }

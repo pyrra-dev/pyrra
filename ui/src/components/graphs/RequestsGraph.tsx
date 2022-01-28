@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Spinner } from 'react-bootstrap'
 import UplotReact from 'uplot-react';
 import uPlot, { AlignedData } from 'uplot'
@@ -19,12 +19,26 @@ interface RequestsGraphProps {
 }
 
 const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: RequestsGraphProps): JSX.Element => {
+  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>;
+
   const [requests, setRequests] = useState<AlignedData>()
   const [requestsQuery, setRequestsQuery] = useState<string>('')
   const [requestsLabels, setRequestsLabels] = useState<string[]>([])
   const [requestsLoading, setRequestsLoading] = useState<boolean>(true)
   const [start, setStart] = useState<number>()
   const [end, setEnd] = useState<number>()
+  const [width, setWidth] = useState<number>(500)
+
+  const setWidthFromContainer = () => {
+    if (targetRef !== undefined && targetRef.current) {
+      setWidth(targetRef.current.offsetWidth)
+    }
+  }
+
+  // Set width on first render
+  useLayoutEffect(setWidthFromContainer)
+  // Set width on every window resize
+  window.addEventListener('resize', setWidthFromContainer)
 
   useEffect(() => {
     const now = Date.now()
@@ -80,36 +94,38 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
         <p>How many requests per second have there been?</p>
       </div>
 
-      {requests !== undefined && start !== undefined && end !== undefined ? (
-        <UplotReact options={{
-          width: 500,
-          height: 150,
-          cursor: uPlotCursor,
-          series: [{}, ...requestsLabels.map((label: string): uPlot.Series => {
-            return {
-              label: parseLabelValue(label),
-              stroke: `#${labelColor(pickedColors, label)}`,
-              gaps: seriesGaps(start, end)
-            }
-          })],
-          scales: {
-            x: { min: start, max: end },
-            y: {
-              range: {
-                min: { hard: 0 },
-                max: {}
+      <div ref={targetRef}>
+        {requests !== undefined && start !== undefined && end !== undefined ? (
+          <UplotReact options={{
+            width: width,
+            height: 150,
+            cursor: uPlotCursor,
+            series: [{}, ...requestsLabels.map((label: string): uPlot.Series => {
+              return {
+                label: parseLabelValue(label),
+                stroke: `#${labelColor(pickedColors, label)}`,
+                gaps: seriesGaps(start, end)
+              }
+            })],
+            scales: {
+              x: { min: start, max: end },
+              y: {
+                range: {
+                  min: { hard: 0 },
+                  max: {}
+                }
               }
             }
-          }
-        }} data={requests}/>
-      ) : (
-        <UplotReact options={{
-          width: 500,
-          height: 150,
-          series: [{}, {}],
-          scales: { x: {}, y: { min: 0, max: 1 } }
-        }} data={[[], []]}/>
-      )}
+          }} data={requests}/>
+        ) : (
+          <UplotReact options={{
+            width: width,
+            height: 150,
+            series: [{}, {}],
+            scales: { x: {}, y: { min: 0, max: 1 } }
+          }} data={[[], []]}/>
+        )}
+      </div>
     </>
   )
 }

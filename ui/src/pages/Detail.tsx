@@ -314,7 +314,7 @@ const Detail = () => {
             </Col>
           </Row>
           <Row>
-            <Col xs={12} sm={6}>
+            <Col xs={12} md={6}>
               <RequestsGraph
                 api={api}
                 labels={labels}
@@ -323,7 +323,7 @@ const Detail = () => {
                 uPlotCursor={uPlotCursor}
               />
             </Col>
-            <Col xs={12} sm={6}>
+            <Col xs={12} md={6}>
               <ErrorsGraph
                 api={api}
                 labels={labels}
