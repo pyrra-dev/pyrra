@@ -1,6 +1,6 @@
 import { OverlayTrigger, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
 import React, { useEffect, useMemo, useState } from 'react'
-import { formatDuration, PROMETHEUS_URL, PATH_PREFIX } from '../App'
+import { API_BASEPATH, formatDuration, PROMETHEUS_URL } from '../App'
 import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
 import { IconExternal } from './Icons'
 import { labelsString } from "../labels";
@@ -12,7 +12,7 @@ interface AlertsTableProps {
 
 const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => {
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: `./api/v1` }))
+    return new ObjectivesApi(new Configuration({ basePath: API_BASEPATH }))
   }, [])
 
   const [alerts, setAlerts] = useState<MultiBurnrateAlert[]>([])
