@@ -3,7 +3,7 @@ module github.com/pyrra-dev/pyrra
 go 1.16
 
 require (
-	github.com/alecthomas/kong v0.2.17
+	github.com/alecthomas/kong v0.4.0
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/dgraph-io/ristretto v0.0.3
 	github.com/fsnotify/fsnotify v1.4.9
