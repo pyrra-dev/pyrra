@@ -276,15 +276,19 @@ func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (mode
 		return value.(model.Value), nil, nil
 	}
 
-	value, _, err := p.api.Query(ctx, query, ts)
+	value, warnings, err := p.api.Query(ctx, query, ts)
 	if err != nil {
-		return nil, nil, err
+		return nil, warnings, err
 	}
 
-	// TODO might need to pass cache duration via ctx?
-	_ = p.cache.SetWithTTL(hash, value, 10, 5*time.Minute)
+	if v, ok := value.(model.Vector); ok {
+		if len(v) > 0 && len(warnings) == 0 {
+			// TODO might need to pass cache duration via ctx?
+			_ = p.cache.SetWithTTL(hash, value, 10, 5*time.Minute)
+		}
+	}
 
-	return value, nil, nil
+	return value, warnings, nil
 }
 
 func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error) {
@@ -298,15 +302,19 @@ func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1
 		return value.(model.Value), nil, nil
 	}
 
-	value, _, err := p.api.QueryRange(ctx, query, r)
+	value, warnings, err := p.api.QueryRange(ctx, query, r)
 	if err != nil {
-		return nil, nil, err
+		return nil, warnings, err
 	}
 
-	// TODO might need to pass cache duration via ctx?
-	_ = p.cache.SetWithTTL(hash, value, 100, 10*time.Minute)
+	if m, ok := value.(model.Matrix); ok {
+		if len(m) > 0 && len(warnings) == 0 {
+			// TODO might need to pass cache duration via ctx?
+			_ = p.cache.SetWithTTL(hash, value, 100, 10*time.Minute)
+		}
+	}
 
-	return value, nil, nil
+	return value, warnings, nil
 }
 
 type ObjectivesServer struct {
