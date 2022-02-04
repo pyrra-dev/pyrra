@@ -56,6 +56,11 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
         setStart(start)
         setEnd(end)
       })
+      .catch(() => {
+        setSamples(undefined)
+        setStart(start)
+        setEnd(end)
+      })
       .finally(() => setLoading(false))
   }, [api, labels, grouping, timeRange])
 

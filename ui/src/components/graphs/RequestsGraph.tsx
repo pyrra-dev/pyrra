@@ -56,7 +56,13 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
         setRequests(data)
         setStart(start)
         setEnd(end)
-      }).finally(() => setRequestsLoading(false))
+      })
+      .catch(() => {
+        setRequests(undefined)
+        setStart(start)
+        setEnd(end)
+      })
+      .finally(() => setRequestsLoading(false))
   }, [api, labels, grouping, timeRange])
 
   // small state used while picking colors to reuse as little as possible
@@ -122,7 +128,10 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
             width: width,
             height: 150,
             series: [{}, {}],
-            scales: { x: {}, y: { min: 0, max: 1 } }
+            scales: {
+              x: { min: start, max: end },
+              y: { min: 0, max: 1 }
+            }
           }} data={[[], []]}/>
         )}
       </div>
