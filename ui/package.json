@@ -6,7 +6,7 @@
   "dependencies": {
     "@fontsource/inter": "^4.5.0",
     "@fontsource/lato": "^4.5.1",
-    "@testing-library/jest-dom": "^5.16.1",
+    "@testing-library/jest-dom": "^5.16.2",
     "@testing-library/react": "^11.2.6",
     "@testing-library/user-event": "^12.8.3",
     "@types/jest": "^26.0.23",
