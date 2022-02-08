@@ -48,10 +48,12 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
     setErrorsLoading(true)
     api.getREDErrors({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
       .then((r: QueryRange) => {
-        const [x, ...ys] = r.values
-        ys.map((y: number[]) => [
-          y.map((v: number) => 100 * v)
-        ])
+        let [x, ...ys] = r.values
+        ys = ys.map((y: number[]) =>
+          y.map(((v: number) =>
+              100 * v
+          ))
+        )
 
         setErrorsLabels(r.labels)
         setErrorsQuery(r.query)
