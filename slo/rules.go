@@ -26,18 +26,56 @@ type MultiBurnRateAlert struct {
 }
 
 func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
+	sloName := o.Labels.Get(labels.MetricName)
 	ws := windows(time.Duration(o.Window))
+
+	var (
+		metric         string
+		matchersString string
+	)
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		metric = o.Indicator.Ratio.Total.Name
+
+		// TODO: Make this a shared function with below and Burnrates func
+		var alertMatchers []string
+		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
+			if m.Name == labels.MetricName {
+				continue
+			}
+			alertMatchers = append(alertMatchers, m.String())
+		}
+		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
+		sort.Strings(alertMatchers)
+		matchersString = strings.Join(alertMatchers, ",")
+	}
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		metric = o.Indicator.Latency.Total.Name
+
+		// TODO: Make this a shared function with below and Burnrates func
+		var alertMatchers []string
+		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
+			if m.Name == labels.MetricName {
+				continue
+			}
+			alertMatchers = append(alertMatchers, m.String())
+		}
+		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
+		sort.Strings(alertMatchers)
+		matchersString = strings.Join(alertMatchers, ",")
+	}
 
 	mbras := make([]MultiBurnRateAlert, len(ws))
 	for i, w := range ws {
+		queryShort := fmt.Sprintf("%s{%s}", burnrateName(metric, w.Short), matchersString)
+		queryLong := fmt.Sprintf("%s{%s}", burnrateName(metric, w.Long), matchersString)
 		mbras[i] = MultiBurnRateAlert{
 			Severity:   string(w.Severity),
 			Short:      w.Short,
 			Long:       w.Long,
 			For:        w.For,
 			Factor:     w.Factor,
-			QueryShort: o.Burnrate(w.Short),
-			QueryLong:  o.Burnrate(w.Long),
+			QueryShort: queryShort,
+			QueryLong:  queryLong,
 		}
 	}
 
@@ -186,12 +224,6 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			if m.Name == labels.MetricName {
 				continue
 			}
-			if m.Type == labels.MatchRegexp {
-				// If the matcher is a regex it has to be in the grouping of the underlying recording rules to be usable.
-				if _, ok := groupingMap[m.Name]; !ok {
-					continue
-				}
-			}
 			alertMatchers = append(alertMatchers, m.String())
 		}
 		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
@@ -254,12 +286,28 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 			return err.Error()
 		}
 
+		groupingMap := map[string]struct{}{}
+		for _, s := range o.Indicator.Ratio.Grouping {
+			groupingMap[s] = struct{}{}
+		}
+		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
+			if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+				groupingMap[m.Name] = struct{}{}
+			}
+		}
+
+		grouping := make([]string, 0, len(groupingMap))
+		for s := range groupingMap {
+			grouping = append(grouping, s)
+		}
+		sort.Strings(grouping)
+
 		objectiveReplacer{
 			metric:        o.Indicator.Ratio.Total.Name,
 			matchers:      o.Indicator.Ratio.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Ratio.Errors.Name,
 			errorMatchers: o.Indicator.Ratio.Errors.LabelMatchers,
-			grouping:      o.Indicator.Ratio.Grouping,
+			grouping:      grouping,
 			window:        timerange,
 		}.replace(expr)
 
@@ -271,12 +319,28 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 			return err.Error()
 		}
 
+		groupingMap := map[string]struct{}{}
+		for _, s := range o.Indicator.Latency.Grouping {
+			groupingMap[s] = struct{}{}
+		}
+		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
+			if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+				groupingMap[m.Name] = struct{}{}
+			}
+		}
+
+		grouping := make([]string, 0, len(groupingMap))
+		for s := range groupingMap {
+			grouping = append(grouping, s)
+		}
+		sort.Strings(grouping)
+
 		objectiveReplacer{
 			metric:        o.Indicator.Latency.Total.Name,
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
-			grouping:      o.Indicator.Latency.Grouping,
+			grouping:      grouping,
 			window:        timerange,
 		}.replace(expr)
 
@@ -300,11 +364,26 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 	}
 
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		grouping := o.Indicator.Ratio.Grouping
-		grouping = append(grouping, groupingLabels(
+		groupingMap := map[string]struct{}{}
+		for _, s := range o.Indicator.Ratio.Grouping {
+			groupingMap[s] = struct{}{}
+		}
+		for _, s := range groupingLabels(
 			o.Indicator.Ratio.Errors.LabelMatchers,
 			o.Indicator.Ratio.Total.LabelMatchers,
-		)...)
+		) {
+			groupingMap[s] = struct{}{}
+		}
+		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
+			if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+				groupingMap[m.Name] = struct{}{}
+			}
+		}
+
+		grouping := make([]string, 0, len(groupingMap))
+		for s := range groupingMap {
+			grouping = append(grouping, s)
+		}
 		sort.Strings(grouping)
 
 		expr, err := increaseExpr()
@@ -347,11 +426,26 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		grouping := o.Indicator.Latency.Grouping
-		grouping = append(grouping, groupingLabels(
+		groupingMap := map[string]struct{}{}
+		for _, s := range o.Indicator.Latency.Grouping {
+			groupingMap[s] = struct{}{}
+		}
+		for _, s := range groupingLabels(
 			o.Indicator.Latency.Success.LabelMatchers,
 			o.Indicator.Latency.Total.LabelMatchers,
-		)...)
+		) {
+			groupingMap[s] = struct{}{}
+		}
+		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
+			if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+				groupingMap[m.Name] = struct{}{}
+			}
+		}
+
+		grouping := make([]string, 0, len(groupingMap))
+		for s := range groupingMap {
+			grouping = append(grouping, s)
+		}
 		sort.Strings(grouping)
 
 		expr, err := increaseExpr()

@@ -58,7 +58,13 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
         setErrors([x, ...ys])
         setStart(start)
         setEnd(end)
-      }).finally(() => setErrorsLoading(false))
+      })
+      .catch(() => {
+        setErrors(undefined)
+        setStart(start)
+        setEnd(end)
+      })
+      .finally(() => setErrorsLoading(false))
 
   }, [api, labels, grouping, timeRange])
 
@@ -121,7 +127,10 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
             width: width,
             height: 150,
             series: [{}, {}],
-            scales: { x: {}, y: { min: 0, max: 1 } }
+            scales: {
+              x: { min: start, max: end },
+              y: { min: 0, max: 1 }
+            }
           }} data={[[], []]}/>
         )}
       </div>
