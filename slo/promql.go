@@ -377,7 +377,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 		return expr.String()
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[1s])) -  sum(rate(errorMetric{matchers="errors"}[1s]))`)
+		expr, err := parser.ParseExpr(`(sum(rate(metric{matchers="total"}[1s])) -  sum(rate(errorMetric{matchers="errors"}[1s]))) / sum(rate(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
