@@ -50,7 +50,7 @@ Feel free to give it a try there!
 There are pre-build container images available:
 
 ```bash
-docker pull ghcr.io/pyrra-dev/pyrra:v0.3.1
+docker pull ghcr.io/pyrra-dev/pyrra:v0.3.3
 ```
 
 While running Pyrra on its own works there won't be any SLO configured nor will there be any data from a Prometheus to work with.
