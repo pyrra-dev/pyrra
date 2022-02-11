@@ -396,19 +396,39 @@ const List = () => {
         if (o.availability === null || o.availability === undefined) {
           return <></>
         }
+
+        const volumeWarning = ((1 - o.target) * o.availability.total)
+
+
+        let ls = labelsString(Object.assign({}, o.labels, o.groupingLabels))
+        console.log(ls)
         return (
-          <OverlayTrigger
-            key={labelsString(o.labels)}
-            overlay={
-              <OverlayTooltip id={`tooltip-${labelsString(o.labels)}`}>
-                Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
-                Total: {Math.floor(o.availability.total).toLocaleString()}
-              </OverlayTooltip>
-            }>
-          <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
-            {(100 * o.availability.percentage).toFixed(2)}%
-          </span>
-          </OverlayTrigger>
+          <>
+            <OverlayTrigger
+              key={ls}
+              overlay={
+                <OverlayTooltip id={`tooltip-${ls}`}>
+                  Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
+                  Total: {Math.floor(o.availability.total).toLocaleString()}
+                </OverlayTooltip>
+              }>
+              <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
+                {(100 * o.availability.percentage).toFixed(2)}%
+              </span>
+            </OverlayTrigger>
+            {volumeWarning < 1 ? <>
+              <OverlayTrigger
+                key={`${ls}-warning`}
+                overlay={
+                  <OverlayTooltip id={`tooltip-${ls}-warning`}>
+                    Just one request error will exhaust the entire error budget.<br/>
+                    Either increase the amount of requests or decrease your objective's target.
+                  </OverlayTooltip>
+                }>
+                <TriangleExclamation width={24} height={24}/>
+              </OverlayTrigger>
+            </> : <></>}
+          </>
         )
     }
   }
