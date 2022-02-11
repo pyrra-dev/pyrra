@@ -154,6 +154,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["slo"] = sloName
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
+			alertLabels["severity"] = string(w.Severity)
 
 			r := monitoringv1.Rule{
 				Alert: "ErrorBudgetBurn",
@@ -168,10 +169,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
-				For: model.Duration(w.For).String(),
-				Annotations: map[string]string{
-					"severity": string(w.Severity),
-				},
+				For:    model.Duration(w.For).String(),
 				Labels: alertLabels,
 			}
 			rules = append(rules, r)
@@ -242,6 +240,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["slo"] = sloName
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
+			alertLabels["severity"] = string(w.Severity)
 
 			r := monitoringv1.Rule{
 				Alert: "ErrorBudgetBurn",
@@ -256,10 +255,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
-				For: model.Duration(w.For).String(),
-				Annotations: map[string]string{
-					"severity": string(w.Severity),
-				},
+				For:    model.Duration(w.For).String(),
 				Labels: alertLabels,
 			}
 			rules = append(rules, r)
@@ -314,7 +310,16 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		return expr.String()
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum by(grouping) (rate(metric{matchers="total"}[1s])) -  sum by(grouping) (rate(errorMetric{matchers="errors"}[1s]))`)
+		query := `
+			(
+				sum by(grouping) (rate(metric{matchers="total"}[1s]))
+				-
+				sum by(grouping) (rate(errorMetric{matchers="errors"}[1s]))
+			)
+			/
+			sum by(grouping) (rate(metric{matchers="total"}[1s]))
+`
+		expr, err := parser.ParseExpr(query)
 		if err != nil {
 			return err.Error()
 		}
