@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 	client "github.com/pyrra-dev/pyrra/openapi/client"
 	"github.com/pyrra-dev/pyrra/slo"
 )

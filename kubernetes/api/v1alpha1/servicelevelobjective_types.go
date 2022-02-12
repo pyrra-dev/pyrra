@@ -21,7 +21,7 @@ import (
 	"strconv"
 
 	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/pyrra-dev/pyrra/slo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
