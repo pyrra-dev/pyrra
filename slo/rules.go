@@ -503,8 +503,10 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 
 type severity string
 
-const critical severity = "critical"
-const warning severity = "warning"
+const (
+	critical severity = "critical"
+	warning  severity = "warning"
+)
 
 type window struct {
 	Severity severity
