@@ -12,6 +12,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -152,9 +153,11 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 			if err := tmpl.Execute(w, struct {
 				PrometheusURL string
 				PathPrefix    string
+				APIBasepath   string
 			}{
 				PrometheusURL: prometheusExternal.String(),
 				PathPrefix:    uiRoutePrefix,
+				APIBasepath:   path.Join(uiRoutePrefix, "/api/v1"),
 			}); err != nil {
 				log.Println(err)
 				return
@@ -166,9 +169,11 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 				if err := tmpl.Execute(w, struct {
 					PrometheusURL string
 					PathPrefix    string
+					APIBasepath   string
 				}{
 					PrometheusURL: prometheusExternal.String(),
 					PathPrefix:    uiRoutePrefix,
+					APIBasepath:   path.Join(uiRoutePrefix, "/api/v1"),
 				}); err != nil {
 					log.Println(err)
 				}

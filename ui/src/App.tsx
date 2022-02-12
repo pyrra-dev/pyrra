@@ -6,6 +6,8 @@ import Detail from './pages/Detail'
 // @ts-ignore - this is passed from the HTML template.
 export const PATH_PREFIX: string = window.PATH_PREFIX;
 // @ts-ignore - this is passed from the HTML template.
+export const API_BASEPATH: string = window.API_BASEPATH;
+// @ts-ignore - this is passed from the HTML template.
 export const PROMETHEUS_URL: string = window.PROMETHEUS_URL;
 
 const App = () => {
@@ -38,7 +40,6 @@ export const dateFormatter = (timeRange: number) => (t: number): string => {
   }
 
   return `${hourLeading}:${minuteLeading}`
-
 }
 
 export const dateFormatterFull = (t: number): string => {
