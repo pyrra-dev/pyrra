@@ -180,7 +180,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 					}
 
 					_, file := filepath.Split(f)
-					if err := ioutil.WriteFile(filepath.Join(prometheusFolder, file), bytes, 0644); err != nil {
+					if err := ioutil.WriteFile(filepath.Join(prometheusFolder, file), bytes, 0o644); err != nil {
 						reconcilesErrors.Inc()
 						return err
 					}
