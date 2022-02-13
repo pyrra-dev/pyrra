@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import List from './pages/List'
 import Detail from './pages/Detail'
 
@@ -14,10 +14,10 @@ const App = () => {
   const basename = `/${PATH_PREFIX.replace(/^\//, '').replace(/\/$/, '')}`
   return (
     <BrowserRouter basename={basename}>
-      <Switch>
-        <Route exact={true} path="/" component={List}/>
-        <Route path="/objectives" component={Detail}/>
-      </Switch>
+      <Routes>
+        <Route path="/" element={<List/>}/>
+        <Route path="/objectives" element={<Detail/>}/>
+      </Routes>
     </BrowserRouter>
   )
 }
