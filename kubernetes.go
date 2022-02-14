@@ -26,16 +26,17 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
-	"github.com/pyrra-dev/pyrra/kubernetes/controllers"
-	"github.com/pyrra-dev/pyrra/openapi"
-	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
+	"github.com/pyrra-dev/pyrra/kubernetes/controllers"
+	"github.com/pyrra-dev/pyrra/openapi"
+	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -48,7 +49,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func cmdKubernetes(metricsAddr string) {
+func cmdKubernetes(metricsAddr string, configMapMode bool) {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
@@ -65,9 +66,10 @@ func cmdKubernetes(metricsAddr string) {
 	}
 
 	if err = (&controllers.ServiceLevelObjectiveReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("ServiceLevelObjective"),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Log:           ctrl.Log.WithName("controllers").WithName("ServiceLevelObjective"),
+		Scheme:        mgr.GetScheme(),
+		ConfigMapMode: configMapMode,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceLevelObjective")
 		os.Exit(1)
