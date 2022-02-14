@@ -108,7 +108,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(ctx context.Context
 		if errors.IsNotFound(err) {
 			logger.Info("creating config map", "name", newConfigMap.GetName(), "namespace", newConfigMap.GetNamespace())
 			if err := r.Create(ctx, newConfigMap); err != nil {
-				return ctrl.Result{}, fmt.Errorf("creating config map: %w", err)
+				return ctrl.Result{}, fmt.Errorf("updating config map: %w", err)
 			}
 		}
 
