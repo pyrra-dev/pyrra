@@ -93,13 +93,18 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(ctx context.Context, logger logr.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newConfigMap, err := makeConfigMap(kubeObjective)
+	name := fmt.Sprintf("pyrra-recording-rule-%s", kubeObjective.GetName())
+
+	newConfigMap, err := makeConfigMap(name, kubeObjective)
 	if err != nil {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	var existingConfigMap corev1.ConfigMap
-	if err := r.Get(ctx, req.NamespacedName, &existingConfigMap); err != nil {
+	if err := r.Get(ctx, client.ObjectKey{
+		Namespace: req.Namespace,
+		Name:      name,
+	}, &existingConfigMap); err != nil {
 		if errors.IsNotFound(err) {
 			logger.Info("creating config map", "name", newConfigMap.GetName(), "namespace", newConfigMap.GetNamespace())
 			if err := r.Create(ctx, newConfigMap); err != nil {
@@ -126,7 +131,7 @@ func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) err
 		Complete(r)
 }
 
-func makeConfigMap(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*corev1.ConfigMap, error) {
+func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*corev1.ConfigMap, error) {
 	slo, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("getting SLO: %w", err)
@@ -134,7 +139,7 @@ func makeConfigMap(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*corev1.C
 
 	ruleGroup, err := slo.Burnrates()
 	if err != nil {
-		return nil, fmt.Errorf("getting burn rates from SLO: %w", err)
+		return nil, fmt.Errorf("getting recording rules from SLO: %w", err)
 	}
 
 	rule := monitoringv1.PrometheusRuleSpec{
@@ -147,7 +152,7 @@ func makeConfigMap(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*corev1.C
 	}
 
 	data := map[string]string{
-		fmt.Sprintf("%s.rules.yaml", kubeObjective.GetName()): string(bytes),
+		fmt.Sprintf("%s.rules.yaml", name): string(bytes),
 	}
 
 	isController := true
@@ -157,7 +162,7 @@ func makeConfigMap(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*corev1.C
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      kubeObjective.GetName(),
+			Name:      name,
 			Namespace: kubeObjective.GetNamespace(),
 			Labels:    kubeObjective.GetLabels(),
 			OwnerReferences: []metav1.OwnerReference{
