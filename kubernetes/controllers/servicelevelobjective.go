@@ -108,7 +108,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(ctx context.Context
 		if errors.IsNotFound(err) {
 			logger.Info("creating config map", "name", newConfigMap.GetName(), "namespace", newConfigMap.GetNamespace())
 			if err := r.Create(ctx, newConfigMap); err != nil {
-				return ctrl.Result{}, fmt.Errorf("updating config map: %w", err)
+				return ctrl.Result{}, fmt.Errorf("creating config map: %w", err)
 			}
 		}
 
@@ -119,7 +119,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(ctx context.Context
 
 	logger.Info("updating config map", "name", newConfigMap.ObjectMeta.GetName(), "namespace", newConfigMap.ObjectMeta.GetNamespace())
 	if err := r.Update(ctx, newConfigMap); err != nil {
-		return ctrl.Result{}, fmt.Errorf("creating config map: %w", err)
+		return ctrl.Result{}, fmt.Errorf("updating config map: %w", err)
 	}
 
 	return ctrl.Result{}, nil
