@@ -18,23 +18,28 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
+
+	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 )
 
 // ServiceLevelObjectiveReconciler reconciles a ServiceLevelObjective object
 type ServiceLevelObjectiveReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log           logr.Logger
+	Scheme        *runtime.Scheme
+	ConfigMapMode bool
 }
 
 // +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
@@ -51,29 +56,70 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	newRule, err := makePrometheusRule(slo)
+	if r.ConfigMapMode {
+		return r.reconcileConfigMap(ctx, log, req, slo)
+	}
+
+	return r.reconcilePrometheusRule(ctx, log, req, slo)
+}
+
+func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Context, logger logr.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+	newRule, err := makePrometheusRule(kubeObjective)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	var rule monitoringv1.PrometheusRule
-	err = r.Get(ctx, req.NamespacedName, &rule)
-	if err != nil && !errors.IsNotFound(err) {
-		return ctrl.Result{}, err
-	}
-	if errors.IsNotFound(err) {
-		log.Info("creating prometheus rule", "name", rule.GetName(), "namespace", rule.GetNamespace())
-		if err := r.Create(ctx, newRule); err != nil {
-			return ctrl.Result{}, err
+	if err := r.Get(ctx, req.NamespacedName, &rule); err != nil {
+		if errors.IsNotFound(err) {
+			logger.Info("creating prometheus rule", "name", rule.GetName(), "namespace", rule.GetNamespace())
+			if err := r.Create(ctx, newRule); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, nil
+
+		return ctrl.Result{}, err
 	}
 
 	newRule.ResourceVersion = rule.ResourceVersion
 
-	log.Info("updating prometheus rule", "name", rule.GetName(), "namespace", rule.GetNamespace())
+	logger.Info("updating prometheus rule", "name", rule.GetName(), "namespace", rule.GetNamespace())
 	if err := r.Update(ctx, newRule); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(ctx context.Context, logger logr.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+	name := fmt.Sprintf("pyrra-recording-rule-%s", kubeObjective.GetName())
+
+	newConfigMap, err := makeConfigMap(name, kubeObjective)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	var existingConfigMap corev1.ConfigMap
+	if err := r.Get(ctx, client.ObjectKey{
+		Namespace: req.Namespace,
+		Name:      name,
+	}, &existingConfigMap); err != nil {
+		if errors.IsNotFound(err) {
+			logger.Info("creating config map", "name", newConfigMap.GetName(), "namespace", newConfigMap.GetNamespace())
+			if err := r.Create(ctx, newConfigMap); err != nil {
+				return ctrl.Result{}, fmt.Errorf("creating config map: %w", err)
+			}
+		}
+
+		return ctrl.Result{}, err
+	}
+
+	newConfigMap.ResourceVersion = existingConfigMap.ResourceVersion
+
+	logger.Info("updating config map", "name", newConfigMap.ObjectMeta.GetName(), "namespace", newConfigMap.ObjectMeta.GetNamespace())
+	if err := r.Update(ctx, newConfigMap); err != nil {
+		return ctrl.Result{}, fmt.Errorf("updating config map: %w", err)
 	}
 
 	return ctrl.Result{}, nil
@@ -83,6 +129,54 @@ func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) err
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&pyrrav1alpha1.ServiceLevelObjective{}).
 		Complete(r)
+}
+
+func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*corev1.ConfigMap, error) {
+	slo, err := kubeObjective.Internal()
+	if err != nil {
+		return nil, fmt.Errorf("getting SLO: %w", err)
+	}
+
+	ruleGroup, err := slo.Burnrates()
+	if err != nil {
+		return nil, fmt.Errorf("getting recording rules from SLO: %w", err)
+	}
+
+	rule := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{ruleGroup},
+	}
+
+	bytes, err := yaml.Marshal(rule)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling recording rule: %w", err)
+	}
+
+	data := map[string]string{
+		fmt.Sprintf("%s.rules.yaml", name): string(bytes),
+	}
+
+	isController := true
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: kubeObjective.GetNamespace(),
+			Labels:    kubeObjective.GetLabels(),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: kubeObjective.APIVersion,
+					Kind:       kubeObjective.Kind,
+					Name:       kubeObjective.Name,
+					UID:        kubeObjective.UID,
+					Controller: &isController,
+				},
+			},
+		},
+		Data: data,
+	}, nil
 }
 
 func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*monitoringv1.PrometheusRule, error) {

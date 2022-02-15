@@ -44,3 +44,13 @@ rules:
   - get
   - patch
   - update
+- apiGroups: [""]
+  resources:
+    - configmaps
+  verbs:
+    - create
+    - get
+    - list
+    - update
+    - watch
+    - patch
