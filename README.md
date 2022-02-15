@@ -113,7 +113,7 @@ Pyrra will create [PrometheusRule](https://prometheus-operator.dev/docs/operator
 objects that are automatically picked up by the [Prometheus Operator](https://prometheus-operator.dev).
 
 If you're unable to run the Prometheus Operator inside your cluster, you can add
-the `--config-map-enabled=true` flag after the `kubernetes` argument. This will
+the `--config-map-mode=true` flag after the `kubernetes` argument. This will
 save each recording rule in a separate `ConfigMap`.
 
 ### Running inside Docker / Filesystem
