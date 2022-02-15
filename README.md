@@ -16,7 +16,6 @@
   - Sorted by remaining error budget to see worst ones quickly
   - Tool-tips when hovering for extra context
 - Page with details for a Service Level Objective
-
   - Objective, Availability, Error Budget highlighted as 3 most important numbers
   - Graph to see how the error budget develops over time
   - Time range picker to change graphs
@@ -45,18 +44,97 @@ Check out our live demo on [demo.pyrra.dev](https://demo.pyrra.dev)!
 
 Feel free to give it a try there!
 
-## Installation
+## How It Works
 
-There are pre-build container images available:
+There are three components of Pyrra, all of which work through a single binary:
+
+- The frontend which displays SLOs, error budgets, burn rates, etc.
+- The api which delivers information about SLOs from a backend (like Kubernetes)
+  to the frontend.
+- A reconciler which watches for new SLO objects and then creates Prometheus 
+  recording rules for each.
+
+For the reconciler to do its magic, an SLO object needs to provided in 
+YAML-format:
+
+```yaml
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: pyrra-api-errors
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: '99'
+  window: 2w
+  description: Pyrra's API requests and response errors over time. For now, this SLO is a comined SLO for all endpoints.
+  indicator:
+    ratio:
+      errors:
+        metric: http_requests_total{job="pyrra",code=~"5.."}
+      total:
+        metric: http_requests_total{job="pyrra"}
+      grouping:
+        - route
+```
+
+Depending on your mode of operation, this information is provided through an
+object in Kubernetes, or read from a static file.
+
+In order to calculate error budget burn rates, Pyrra will then proceed to create
+[Prometheus recording rules](https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/#recording-rules)
+for each SLO.
+
+The following rules would be created for the above example:
+
+```
+pyrra-api-errors:increase2w
+pyrra-api-errors:burnrate3m
+pyrra-api-errors:burnrate15m
+pyrra-api-errors:burnrate30m
+pyrra-api-errors:burnrate1h
+pyrra-api-errors:burnrate3h
+pyrra-api-errors:burnrate12h
+pyrra-api-errors:burnrate2d
+```
+
+### Running inside a Kubernetes cluster
+
+> An example for this mode of operation can be found in [examples/kubernetes](examples/kubernetes).
+
+Here two deployments are needed: one for the API / frontend and one for the 
+reconciler. For the first deployment, start the binary with the `api` argument.
+
+When starting the binary with the `kubernetes` argument, the service will watch
+the apiserver for `ServiceLevelObjectives`. Once a new SLO is picked up,
+Pyrra will create [PrometheusRule](https://prometheus-operator.dev/docs/operator/design/#prometheusrule)
+objects that are automatically picked up by the [Prometheus Operator](https://prometheus-operator.dev).
+
+If you're unable to run the Prometheus Operator inside your cluster, you can add
+the `--config-map-enabled=true` flag after the `kubernetes` argument. This will
+save each recording rule in a separate `ConfigMap`.
+
+### Running inside Docker / Filesystem
+
+> An example for this mode of operation can be found in [examples/docker-compose](examples/docker-compose).
+
+You can easily start Pyrra on its own via the provided Docker image:
 
 ```bash
 docker pull ghcr.io/pyrra-dev/pyrra:v0.3.3
 ```
 
-While running Pyrra on its own works there won't be any SLO configured nor will there be any data from a Prometheus to work with.
+When running Pyrra outside of Kubernetes, the SLO object can be provided through
+a YAML file read from the file system. For this, one container or binary needs to
+be started with the `api` argument and the reconciler with the `filesystem` 
+argument.
 
-Therefore, you can find a docker-compose example in [examples/docker-compose](examples/docker-compose).  
-This stack comes with Pyrra and Prometheus pre-configured, as well as [some SLOs](examples/docker-compose/pyrra).
+Here, Pyrra will save the generated recording rules to disk where it can be 
+picked up by a Prometheus instance. While running Pyrra on its own works, there 
+won't be any SLO configured, nor will there be any data from a Prometheus to 
+work with. It's designed to work alongside a Prometheus.
 
 ## Tech Stack
 
