@@ -48,11 +48,11 @@ Feel free to give it a try there!
 
 There are three components of Pyrra, all of which work through a single binary:
 
-- The frontend which displays SLOs, error budgets, burn rates, etc.
-- The api which delivers information about SLOs from a backend (like Kubernetes)
-  to the frontend.
-- A reconciler which watches for new SLO objects and then creates Prometheus 
-  recording rules for each.
+- The UI displays SLOs, error budgets, burn rates, etc.
+- The API delivers information about SLOs from a backend (like Kubernetes) to the UI.
+- A backend watches for new SLO objects and then creates Prometheus recording rules for each.
+  - For Kubernetes, there is a Kubernetes Operator available
+  - For everything else, there is a filesystem-based Operator available
 
 For the reconciler to do its magic, an SLO object needs to provided in 
 YAML-format:
@@ -90,22 +90,25 @@ for each SLO.
 The following rules would be created for the above example:
 
 ```
-pyrra-api-errors:increase2w
-pyrra-api-errors:burnrate3m
-pyrra-api-errors:burnrate15m
-pyrra-api-errors:burnrate30m
-pyrra-api-errors:burnrate1h
-pyrra-api-errors:burnrate3h
-pyrra-api-errors:burnrate12h
-pyrra-api-errors:burnrate2d
+http_requests:increase2w
+http_requests:burnrate3m
+http_requests:burnrate15m
+http_requests:burnrate30m
+http_requests:burnrate1h
+http_requests:burnrate3h
+http_requests:burnrate12h
+http_requests:burnrate2d
+
+The recording rules names are based on the originally provided metric. 
+The recording rules contain the necessary labels to uniquely identify the recording rules in case there are multiple ones available.
 ```
 
 ### Running inside a Kubernetes cluster
 
 > An example for this mode of operation can be found in [examples/kubernetes](examples/kubernetes).
 
-Here two deployments are needed: one for the API / frontend and one for the 
-reconciler. For the first deployment, start the binary with the `api` argument.
+Here two deployments are needed: one for the API / UI and one for the 
+operator. For the first deployment, start the binary with the `api` argument.
 
 When starting the binary with the `kubernetes` argument, the service will watch
 the apiserver for `ServiceLevelObjectives`. Once a new SLO is picked up,
@@ -131,7 +134,7 @@ a YAML file read from the file system. For this, one container or binary needs t
 be started with the `api` argument and the reconciler with the `filesystem` 
 argument.
 
-Here, Pyrra will save the generated recording rules to disk where it can be 
+Here, Pyrra will save the generated recording rules to disk where they can be 
 picked up by a Prometheus instance. While running Pyrra on its own works, there 
 won't be any SLO configured, nor will there be any data from a Prometheus to 
 work with. It's designed to work alongside a Prometheus.
