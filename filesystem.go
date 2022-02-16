@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,12 +17,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/promql/parser"
+	"sigs.k8s.io/yaml"
+
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"github.com/pyrra-dev/pyrra/slo"
-	"sigs.k8s.io/yaml"
 )
+
+var errEndpointNotImplemented = errors.New("endpoint not implement")
 
 type Objectives struct {
 	mu         sync.RWMutex
@@ -92,7 +96,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 			// Initially read all files and send them to be processed and added to the in memory store.
 			filenames, err := filepath.Glob(configFiles)
 			if err != nil {
-				return err
+				return fmt.Errorf("getting files names: %w", err)
 			}
 			for _, f := range filenames {
 				files <- f
@@ -109,12 +113,12 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 
 		watcher, err := fsnotify.NewWatcher()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(fmt.Errorf("creating file watcher: %w", err))
 		}
 
 		err = watcher.Add(dir)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(fmt.Errorf("addding %q to watch: %w", dir, err))
 		}
 
 		gr.Add(func() error {
@@ -130,7 +134,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 						files <- event.Name
 					}
 				case err := <-watcher.Errors:
-					log.Println("err", err)
+					log.Printf("watch error: %v\n", err)
 				}
 			}
 		}, func(err error) {
@@ -145,28 +149,31 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 				case <-ctx.Done():
 					return nil
 				case f := <-files:
-					reconcilesTotal.Inc()
 					log.Println("reading", f)
+					reconcilesTotal.Inc()
+
 					bytes, err := ioutil.ReadFile(f)
 					if err != nil {
 						reconcilesErrors.Inc()
-						return err
+						return fmt.Errorf("reading file %q: %w", f, err)
 					}
+
 					var config v1alpha1.ServiceLevelObjective
 					if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
 						reconcilesErrors.Inc()
-						return err
+						return fmt.Errorf("unmarshalling %q: %w", f, err)
 					}
+
 					objective, err := config.Internal()
 					if err != nil {
 						reconcilesErrors.Inc()
-						return err
+						return fmt.Errorf("getting SLO: %w", err)
 					}
 
 					burnrates, err := objective.Burnrates()
 					if err != nil {
 						reconcilesErrors.Inc()
-						return err
+						return fmt.Errorf("getting recording rules: %w", err)
 					}
 
 					rule := monitoringv1.PrometheusRuleSpec{
@@ -176,13 +183,15 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 					bytes, err = yaml.Marshal(rule)
 					if err != nil {
 						reconcilesErrors.Inc()
-						return err
+						return fmt.Errorf("marshalling recording rule: %w", err)
 					}
 
 					_, file := filepath.Split(f)
-					if err := ioutil.WriteFile(filepath.Join(prometheusFolder, file), bytes, 0o644); err != nil {
+					path := filepath.Join(prometheusFolder, file)
+
+					if err := ioutil.WriteFile(path, bytes, 0o644); err != nil {
 						reconcilesErrors.Inc()
-						return err
+						return fmt.Errorf("writing file %q: %w", path, err)
 					}
 
 					objectives.Set(objective)
@@ -259,21 +268,21 @@ func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, expr string
 }
 
 func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
 func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr string, grouping string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
 func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
 func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, expr string, grouping string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
 func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, expr string, grouping string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
