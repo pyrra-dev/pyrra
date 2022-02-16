@@ -11,7 +11,7 @@ A good example on how to setup your repository for development can be found on t
 
 Make sure you have a recent version of:
 
-- [Go](https://go.dev/doc/install) (1.16+)
+- [Go](https://go.dev/doc/install) (1.17+)
 - [npm](https://docs.npmjs.com/cli/v8/configuring-npm/install)
 
 In order to build the UI you'll also need

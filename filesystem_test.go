@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/pyrra-dev/pyrra/slo"
 	"github.com/stretchr/testify/require"
 )

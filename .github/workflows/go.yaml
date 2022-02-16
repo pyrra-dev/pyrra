@@ -8,7 +8,7 @@ on:
     tags:
       - 'v*'
 env:
-  golang-version: '1.16'
+  golang-version: '1.17'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 jobs:

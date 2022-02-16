@@ -1,9 +1,6 @@
 # Image URL to use all building/pushing image targets
 IMG ?= ghcr.io/pyrra-dev/pyrra:main
 
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true"
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -41,8 +38,9 @@ deploy: manifests config/api.yaml config/kubernetes.yaml
 	kubectl apply -f ./config/kubernetes.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=pyrra-kubernetes webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+.PHONY: manifests
+manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	$(CONTROLLER_GEN) rbac:roleName=pyrra-kubernetes crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 config: config/api.yaml config/kubernetes.yaml
 
@@ -79,14 +77,7 @@ docker-push:
 # download controller-gen if necessary
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	@{ \
-	set -e ;\
-	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
-	cd $$CONTROLLER_GEN_TMP_DIR ;\
-	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.6.2 ;\
-	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
-	}
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.8.0
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)

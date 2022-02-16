@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"github.com/stretchr/testify/require"
