@@ -53,7 +53,7 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 
 	var slo pyrrav1alpha1.ServiceLevelObjective
 	if err := r.Get(ctx, req.NamespacedName, &slo); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		return ctrl.Result{}, client.IgnoreNotFound(fmt.Errorf("getting SLO: %w", err))
 	}
 
 	if r.ConfigMapMode {
@@ -76,17 +76,17 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 			if err := r.Create(ctx, newRule); err != nil {
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, nil
+			return ctrl.Result{}, fmt.Errorf("creating prometheus rule: %w", err)
 		}
 
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("getting prometheus rule: %w", err)
 	}
 
 	newRule.ResourceVersion = rule.ResourceVersion
 
 	logger.Info("updating prometheus rule", "name", rule.GetName(), "namespace", rule.GetNamespace())
 	if err := r.Update(ctx, newRule); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("updating prometheus rule: %w", err)
 	}
 
 	return ctrl.Result{}, nil
@@ -182,12 +182,12 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*monitoringv1.PrometheusRule, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting SLO: %w", err)
 	}
 
 	group, err := objective.Burnrates()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting recording rules: %w", err)
 	}
 
 	isController := true
