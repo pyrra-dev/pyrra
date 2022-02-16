@@ -1,4 +1,8 @@
 .table-alerts {
+  & > :not(:first-child) {
+    border-top-color: inherit;
+  }
+
   tr.inactive {
     border-left: 5px solid rgba(0, 0, 0, 0); // none
   }

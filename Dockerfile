@@ -1,5 +1,5 @@
 # Build UI
-FROM node:16 as uibuilder
+FROM node:17.5 as uibuilder
 
 WORKDIR /workspace
 
@@ -7,6 +7,7 @@ COPY ui/public ui/public
 COPY ui/src/ ui/src
 COPY ui/package.json ui
 COPY ui/package-lock.json ui
+COPY ui/tsconfig.json ui
 COPY Makefile Makefile
 
 RUN make ui/node_modules ui/build

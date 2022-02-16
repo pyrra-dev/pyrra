@@ -1,4 +1,8 @@
 .content.list {
+  .table > :not(:first-child) {
+    border-top-color: inherit;
+  }
+
   table th {
     color: $gray-700;
 
@@ -27,6 +31,10 @@
 
   tr:hover {
     cursor: pointer;
+  }
+
+  td a {
+    text-decoration: none;
   }
 
   td span.bad {

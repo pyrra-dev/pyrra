@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useReducer, useState } from 'react'
 import { Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
 import { Configuration, Objective, ObjectivesApi, ObjectiveStatus } from '../client'
 import { API_BASEPATH, formatDuration } from '../App'
-import { Link, useHistory } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '../components/Icons'
 import { labelsString } from "../labels";
@@ -162,7 +162,7 @@ const List = () => {
     return new ObjectivesApi(new Configuration({ basePath: API_BASEPATH }))
   }, [])
 
-  const history = useHistory()
+  const navigate = useNavigate()
   const [objectives, setObjectives] = useState<Array<Objective>>([])
   const initialTableState: TableState = { objectives: {} }
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
@@ -307,7 +307,7 @@ const List = () => {
     labels: { [key: string]: string },
     grouping: { [key: string]: string }
   ) => () => {
-    history.push(objectivePage(labels, grouping))
+    navigate(objectivePage(labels, grouping))
   }
 
   const renderAvailability = (o: TableObjective) => {
@@ -372,7 +372,7 @@ const List = () => {
             <h3>Objectives</h3>
           </Col>
           <div className="table-responsive">
-            <Table hover={true} striped={false}>
+            <Table hover={true}>
               <thead>
               <tr>
                 <th
@@ -404,7 +404,7 @@ const List = () => {
                 const labelBadges = Object.entries({ ...o.labels, ...o.groupingLabels })
                   .filter((l: [string, string]) => l[0] !== '__name__')
                   .map((l: [string, string]) => (
-                    <Badge variant={"light"}>{l[0]}={l[1]}</Badge>
+                    <Badge bg="light" text="dark">{l[0]}={l[1]}</Badge>
                   ))
 
                 return (

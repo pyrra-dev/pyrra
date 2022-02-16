@@ -1,4 +1,4 @@
-import { Link, useHistory, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import React, { useEffect, useMemo, useState } from 'react'
 import { Badge, Button, ButtonGroup, Col, Container, Row, Spinner } from 'react-bootstrap'
 import {
@@ -18,7 +18,7 @@ import ErrorsGraph from "../components/graphs/ErrorsGraph";
 import AlertsTable from "../components/AlertsTable";
 
 const Detail = () => {
-  const history = useHistory()
+  const navigate = useNavigate()
   const query = new URLSearchParams(useLocation().search)
 
   const api = useMemo(() => {
@@ -114,7 +114,7 @@ const Detail = () => {
     return (
       <div style={{ marginTop: '50px', textAlign: 'center' }}>
         <Spinner animation="border" role="status">
-          <span className="sr-only">Loading...</span>
+          <span className="visually-hidden">Loading...</span>
         </Spinner>
       </div>
     )
@@ -135,7 +135,7 @@ const Detail = () => {
   ]
 
   const handleTimeRangeClick = (t: number) => () => {
-    history.push(`/objectives?expr=${expr}&grouping=${groupingExpr}&timerange=${formatDuration(t)}`)
+    navigate(`/objectives?expr=${expr}&grouping=${groupingExpr}&timerange=${formatDuration(t)}`)
   }
 
   const renderAvailability = () => {
@@ -229,7 +229,7 @@ const Detail = () => {
   const labelBadges = Object.entries({ ...objective.labels, ...groupingLabels })
     .filter((l: [string, string]) => l[0] !== '__name__')
     .map((l: [string, string]) => (
-      <Badge key={l[1]} variant={"light"}>{l[0]}={l[1]}</Badge>
+      <Badge key={l[1]} bg='light' text='dark'>{l[0]}={l[1]}</Badge>
     ))
 
   const uPlotCursor = {
