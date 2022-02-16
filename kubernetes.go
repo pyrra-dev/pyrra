@@ -18,7 +18,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -94,8 +93,7 @@ func cmdKubernetes(metricsAddr string, configMapMode bool) {
 		gr.Add(func() error {
 			setupLog.Info("starting manager")
 			return mgr.Start(ctrl.SetupSignalHandler())
-		}, func(err error) {
-		})
+		}, func(err error) {})
 	}
 
 	if err := gr.Run(); err != nil {
@@ -175,21 +173,21 @@ func (o *ObjectiveServer) ListObjectives(ctx context.Context, expr string) (open
 }
 
 func (o *ObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
 func (o *ObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr string, grouping string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
 func (o *ObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
 func (o *ObjectiveServer) GetREDErrors(ctx context.Context, expr string, grouping string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
 func (o *ObjectiveServer) GetREDRequests(ctx context.Context, expr string, grouping string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, fmt.Errorf("endpoint not implement")
+	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
