@@ -54,7 +54,7 @@ There are three components of Pyrra, all of which work through a single binary:
   - For Kubernetes, there is a Kubernetes Operator available
   - For everything else, there is a filesystem-based Operator available
 
-For the reconciler to do its magic, an SLO object needs to provided in 
+For the backend/operator to do its magic, an SLO object has to be provided in
 YAML-format:
 
 ```yaml
