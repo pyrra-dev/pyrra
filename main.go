@@ -219,11 +219,11 @@ func (c *thanosClient) URL(ep string, args map[string]string) *url.URL {
 func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("reading body: %w", err)
 	}
 	query, err := url.ParseQuery(string(body))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("parsing body: %w", err)
 	}
 
 	// We don't want partial responses, especially not when calculating error budgets.
@@ -233,11 +233,11 @@ func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response,
 	if strings.HasSuffix(r.URL.Path, "/api/v1/query_range") {
 		start, err := strconv.ParseFloat(query.Get("start"), 64)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("parsing start: %w", err)
 		}
 		end, err := strconv.ParseFloat(query.Get("end"), 64)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("parsing end: %w", err)
 		}
 
 		if end-start >= 28*24*60*60 { // request 1h downsamples when range > 28d
@@ -285,7 +285,7 @@ func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (mode
 
 	value, warnings, err := p.api.Query(ctx, query, ts)
 	if err != nil {
-		return nil, warnings, err
+		return nil, warnings, fmt.Errorf("prometheus Query: %w", err)
 	}
 
 	if v, ok := value.(model.Vector); ok {
@@ -311,7 +311,7 @@ func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1
 
 	value, warnings, err := p.api.QueryRange(ctx, query, r)
 	if err != nil {
-		return nil, warnings, err
+		return nil, warnings, fmt.Errorf("prometheus QueryRange: %w", err)
 	}
 
 	if m, ok := value.(model.Matrix); ok {
