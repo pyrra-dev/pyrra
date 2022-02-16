@@ -98,10 +98,10 @@ http_requests:burnrate1h
 http_requests:burnrate3h
 http_requests:burnrate12h
 http_requests:burnrate2d
+```
 
 The recording rules names are based on the originally provided metric. 
 The recording rules contain the necessary labels to uniquely identify the recording rules in case there are multiple ones available.
-```
 
 ### Running inside a Kubernetes cluster
 
