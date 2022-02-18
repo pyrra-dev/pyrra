@@ -18,8 +18,8 @@ require (
 	github.com/prometheus/prometheus v1.8.2-0.20220211202545-56e14463bccf
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
-	k8s.io/api v0.23.3
-	k8s.io/apimachinery v0.23.3
+	k8s.io/api v0.23.4
+	k8s.io/apimachinery v0.23.4
 	k8s.io/client-go v0.23.3
 	sigs.k8s.io/controller-runtime v0.11.1
 	sigs.k8s.io/yaml v1.3.0
