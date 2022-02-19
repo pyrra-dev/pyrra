@@ -66,7 +66,7 @@ func Test_makePrometheusRule(t *testing.T) {
 			Spec: monitoringv1.PrometheusRuleSpec{
 				Groups: []monitoringv1.RuleGroup{{
 					Name:     "http-increase",
-					Interval: "30s",
+					Interval: "2m30s",
 					Rules: []monitoringv1.Rule{{
 						Record: "http_requests:increase4w",
 						Expr:   intstr.FromString(`sum by(status) (increase(http_requests_total{job="app"}[4w]))`),

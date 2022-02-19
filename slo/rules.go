@@ -502,9 +502,33 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		})
 	}
 
+	day := 24 * time.Hour
+
+	var interval model.Duration
+	window := time.Duration(o.Window)
+
+	// TODO: Make this a function with an equation
+	if window < 7*day {
+		interval = model.Duration(30 * time.Second)
+	} else if window < 14*day {
+		interval = model.Duration(60 * time.Second)
+	} else if window < 21*day {
+		interval = model.Duration(90 * time.Second)
+	} else if window < 28*day {
+		interval = model.Duration(120 * time.Second)
+	} else if window < 35*day {
+		interval = model.Duration(150 * time.Second)
+	} else if window < 42*day {
+		interval = model.Duration(180 * time.Second)
+	} else if window < 49*day {
+		interval = model.Duration(210 * time.Second)
+	} else { // 8w
+		interval = model.Duration(240 * time.Second)
+	}
+
 	return monitoringv1.RuleGroup{
 		Name:     sloName + "-increase",
-		Interval: "30s",
+		Interval: interval.String(),
 		Rules:    rules,
 	}, nil
 }

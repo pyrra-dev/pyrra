@@ -749,14 +749,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "apiserver-read-resource-latency",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				//	Record: "apiserver_request_duration_seconds:increase2w",
-				//	Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
-				//	Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency"},
-				//}, {
-				//	Record: "apiserver_request_duration_seconds:increase2w",
-				//	Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
-				//	Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1"},
-				//}, {
 				Record: "apiserver_request_duration_seconds:burnrate3m",
 				Expr:   intstr.FromString(`(sum by(resource, verb) (rate(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[3m])) - sum by(resource, verb) (rate(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[3m]))) / sum by(resource, verb) (rate(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[3m]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency"},
@@ -829,7 +821,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveHTTPRatio(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-errors-increase",
-			Interval: "30s",
+			Interval: "2m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "http_requests:increase4w",
 				Expr:   intstr.FromString(`sum by(code) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`),
@@ -841,7 +833,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveHTTPRatioGrouping(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-errors-increase",
-			Interval: "30s",
+			Interval: "2m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "http_requests:increase4w",
 				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`),
@@ -853,7 +845,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveHTTPRatioGroupingRegex(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-errors-increase",
-			Interval: "30s",
+			Interval: "2m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "http_requests:increase4w",
 				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_requests_total{handler=~"/api.*",job="thanos-receive-default"}[4w]))`),
@@ -865,7 +857,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveGRPCRatio(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-grpc-errors-increase",
-			Interval: "30s",
+			Interval: "2m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "grpc_server_handled:increase4w",
 				Expr:   intstr.FromString(`sum by(grpc_code) (increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`),
@@ -877,7 +869,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveGRPCRatioGrouping(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-grpc-errors-increase",
-			Interval: "30s",
+			Interval: "2m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "grpc_server_handled:increase4w",
 				Expr:   intstr.FromString(`sum by(grpc_code, handler, job) (increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`),
@@ -889,7 +881,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveHTTPLatency(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-latency-increase",
-			Interval: "30s",
+			Interval: "2m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`sum by(code) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
@@ -905,7 +897,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveHTTPLatencyGrouping(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-latency-increase",
-			Interval: "30s",
+			Interval: "2m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
@@ -921,7 +913,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveHTTPLatencyGroupingRegex(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-latency-increase",
-			Interval: "30s",
+			Interval: "2m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[4w]))`),
@@ -937,7 +929,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveGRPCLatency(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-grpc-latency-increase",
-			Interval: "30s",
+			Interval: "1m",
 			Rules: []monitoringv1.Rule{{
 				Record: "grpc_server_handling_seconds:increase1w",
 				Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
@@ -953,7 +945,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveGRPCLatencyGrouping(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-grpc-latency-increase",
-			Interval: "30s",
+			Interval: "1m",
 			Rules: []monitoringv1.Rule{{
 				Record: "grpc_server_handling_seconds:increase1w",
 				Expr:   intstr.FromString(`sum by(handler, job) (increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
@@ -969,7 +961,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveOperator(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-prometheus-operator-errors-increase",
-			Interval: "30s",
+			Interval: "1m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "prometheus_operator_reconcile_operations:increase2w",
 				Expr:   intstr.FromString(`sum(increase(prometheus_operator_reconcile_operations_total[2w]))`),
@@ -985,7 +977,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveOperatorGrouping(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-prometheus-operator-errors-increase",
-			Interval: "30s",
+			Interval: "1m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "prometheus_operator_reconcile_operations:increase2w",
 				Expr:   intstr.FromString(`sum by(namespace) (increase(prometheus_operator_reconcile_operations_total[2w]))`),
@@ -1001,7 +993,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveAPIServerRatio(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "apiserver-write-response-errors-increase",
-			Interval: "30s",
+			Interval: "1m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "apiserver_request:increase2w",
 				Expr:   intstr.FromString(`sum by(code, verb) (increase(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2w]))`),
@@ -1013,7 +1005,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		slo:  objectiveAPIServerLatency(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "apiserver-read-resource-latency-increase",
-			Interval: "30s",
+			Interval: "1m30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "apiserver_request_duration_seconds:increase2w",
 				Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
