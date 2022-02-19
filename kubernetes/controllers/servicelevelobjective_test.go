@@ -7,10 +7,11 @@ import (
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/common/model"
-	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 )
 
 func Test_makePrometheusRule(t *testing.T) {
@@ -64,13 +65,17 @@ func Test_makePrometheusRule(t *testing.T) {
 			},
 			Spec: monitoringv1.PrometheusRuleSpec{
 				Groups: []monitoringv1.RuleGroup{{
-					Name:     "http",
+					Name:     "http-increase",
 					Interval: "30s",
 					Rules: []monitoringv1.Rule{{
 						Record: "http_requests:increase4w",
 						Expr:   intstr.FromString(`sum by(status) (increase(http_requests_total{job="app"}[4w]))`),
 						Labels: map[string]string{"job": "app", "slo": "http"},
-					}, {
+					}},
+				}, {
+					Name:     "http",
+					Interval: "30s",
+					Rules: []monitoringv1.Rule{{
 						Record: "http_requests:burnrate5m",
 						Expr:   intstr.FromString(`sum(rate(http_requests_total{job="app",status=~"5.."}[5m])) / sum(rate(http_requests_total{job="app"}[5m]))`),
 						Labels: map[string]string{"job": "app", "slo": "http"},

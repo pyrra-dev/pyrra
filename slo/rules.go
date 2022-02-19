@@ -82,8 +82,6 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 	return mbras, nil
 }
 
-// TODO: Rename Burnrates to RecordingRules
-
 func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
@@ -110,17 +108,6 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		// Delete labels that are grouped as their value is part of the labels anyway
 		for g := range groupingMap {
 			delete(ruleLabels, g)
-		}
-
-		increaseRules, err := o.IncreaseRules()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
-		}
-		for _, r := range increaseRules {
-			for k, v := range ruleLabels {
-				r.Labels[k] = v
-			}
-			rules = append(rules, r)
 		}
 
 		for _, br := range burnrates {
@@ -195,18 +182,6 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		// Delete labels that are grouped as their value is part of the labels anyway
 		for g := range groupingMap {
 			delete(ruleLabels, g)
-		}
-
-		increaseRules, err := o.IncreaseRules()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
-		}
-
-		for _, r := range increaseRules {
-			for k, v := range ruleLabels {
-				r.Labels[k] = v
-			}
-			rules = append(rules, r)
 		}
 
 		for _, br := range burnrates {
@@ -361,14 +336,23 @@ func increaseName(metric string, window model.Duration) string {
 	return fmt.Sprintf("%s:increase%s", metric, window)
 }
 
-func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
-	var rules []monitoringv1.Rule
+func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
+	sloName := o.Labels.Get(labels.MetricName)
 
 	increaseExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
 		return parser.ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s]))`)
 	}
 
+	var rules []monitoringv1.Rule
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		ruleLabels := map[string]string{}
+		ruleLabels["slo"] = sloName
+		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
+
 		groupingMap := map[string]struct{}{}
 		for _, s := range o.Indicator.Ratio.Grouping {
 			groupingMap[s] = struct{}{}
@@ -384,6 +368,10 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 				groupingMap[m.Name] = struct{}{}
 			}
 		}
+		// Delete labels that are grouped, as their value is part of the recording rule anyway
+		for g := range groupingMap {
+			delete(ruleLabels, g)
+		}
 
 		grouping := make([]string, 0, len(groupingMap))
 		for s := range groupingMap {
@@ -393,7 +381,7 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 
 		expr, err := increaseExpr()
 		if err != nil {
-			return nil, err
+			return monitoringv1.RuleGroup{}, err
 		}
 
 		objectiveReplacer{
@@ -406,13 +394,13 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 		rules = append(rules, monitoringv1.Rule{
 			Record: increaseName(o.Indicator.Ratio.Total.Name, o.Window),
 			Expr:   intstr.FromString(expr.String()),
-			Labels: map[string]string{},
+			Labels: ruleLabels,
 		})
 
 		if o.Indicator.Ratio.Total.Name != o.Indicator.Ratio.Errors.Name {
 			expr, err := increaseExpr()
 			if err != nil {
-				return nil, err
+				return monitoringv1.RuleGroup{}, err
 			}
 
 			objectiveReplacer{
@@ -425,12 +413,20 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 			rules = append(rules, monitoringv1.Rule{
 				Record: increaseName(o.Indicator.Ratio.Errors.Name, o.Window),
 				Expr:   intstr.FromString(expr.String()),
-				Labels: map[string]string{},
+				Labels: ruleLabels,
 			})
 		}
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		ruleLabels := map[string]string{}
+		ruleLabels["slo"] = sloName
+		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
+
 		groupingMap := map[string]struct{}{}
 		for _, s := range o.Indicator.Latency.Grouping {
 			groupingMap[s] = struct{}{}
@@ -446,6 +442,10 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 				groupingMap[m.Name] = struct{}{}
 			}
 		}
+		// Delete labels that are grouped, as their value is part of the recording rule anyway
+		for g := range groupingMap {
+			delete(ruleLabels, g)
+		}
 
 		grouping := make([]string, 0, len(groupingMap))
 		for s := range groupingMap {
@@ -455,7 +455,7 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 
 		expr, err := increaseExpr()
 		if err != nil {
-			return nil, err
+			return monitoringv1.RuleGroup{}, err
 		}
 
 		objectiveReplacer{
@@ -468,12 +468,12 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 		rules = append(rules, monitoringv1.Rule{
 			Record: increaseName(o.Indicator.Latency.Total.Name, o.Window),
 			Expr:   intstr.FromString(expr.String()),
-			Labels: map[string]string{},
+			Labels: ruleLabels,
 		})
 
 		expr, err = increaseExpr()
 		if err != nil {
-			return nil, err
+			return monitoringv1.RuleGroup{}, err
 		}
 
 		objectiveReplacer{
@@ -490,15 +490,23 @@ func (o Objective) IncreaseRules() ([]monitoringv1.Rule, error) {
 				break
 			}
 		}
+		ruleLabelsLe := map[string]string{"le": le}
+		for k, v := range ruleLabels {
+			ruleLabelsLe[k] = v
+		}
 
 		rules = append(rules, monitoringv1.Rule{
 			Record: increaseName(o.Indicator.Latency.Success.Name, o.Window),
 			Expr:   intstr.FromString(expr.String()),
-			Labels: map[string]string{"le": le},
+			Labels: ruleLabelsLe,
 		})
 	}
 
-	return rules, nil
+	return monitoringv1.RuleGroup{
+		Name:     sloName + "-increase",
+		Interval: "30s",
+		Rules:    rules,
+	}, nil
 }
 
 type severity string

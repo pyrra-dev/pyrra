@@ -22,12 +22,13 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 )
 
 // ServiceLevelObjectiveReconciler reconciles a ServiceLevelObjective object
@@ -91,7 +92,11 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*mon
 		return nil, err
 	}
 
-	group, err := objective.Burnrates()
+	increases, err := objective.IncreaseRules()
+	if err != nil {
+		return nil, err
+	}
+	burnrates, err := objective.Burnrates()
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +122,7 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*mon
 			},
 		},
 		Spec: monitoringv1.PrometheusRuleSpec{
-			Groups: []monitoringv1.RuleGroup{group},
+			Groups: []monitoringv1.RuleGroup{increases, burnrates},
 		},
 	}, nil
 }

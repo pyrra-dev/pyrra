@@ -15,16 +15,12 @@ func TestObjective_Burnrates(t *testing.T) {
 		slo   Objective
 		rules monitoringv1.RuleGroup
 	}{{
-		name: "http-ratio", // super similar to gRPC and therefore only HTTP
+		name: "http-ratio",
 		slo:  objectiveHTTPRatio(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-errors",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "http_requests:increase4w",
-				Expr:   intstr.FromString(`sum by(code) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`),
-				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
-			}, {
 				Record: "http_requests:burnrate5m",
 				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[5m])) / sum(rate(http_requests_total{job="thanos-receive-default"}[5m]))`),
 				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
@@ -81,10 +77,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-http-errors",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "http_requests:increase4w",
-				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-errors"},
-			}, {
 				Record: "http_requests:burnrate5m",
 				Expr:   intstr.FromString(`sum by(handler, job) (rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[5m])) / sum by(handler, job) (rate(http_requests_total{job="thanos-receive-default"}[5m]))`),
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
@@ -141,10 +133,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-http-errors",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "http_requests:increase4w",
-				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_requests_total{handler=~"/api.*",job="thanos-receive-default"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-errors"},
-			}, {
 				Record: "http_requests:burnrate5m",
 				Expr:   intstr.FromString(`sum by(handler, job) (rate(http_requests_total{code=~"5..",handler=~"/api.*",job="thanos-receive-default"}[5m])) / sum by(handler, job) (rate(http_requests_total{handler=~"/api.*",job="thanos-receive-default"}[5m]))`),
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
@@ -201,10 +189,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-grpc-errors",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "grpc_server_handled:increase4w",
-				Expr:   intstr.FromString(`sum by(grpc_code) (increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`),
-				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
-			}, {
 				Record: "grpc_server_handled:burnrate5m",
 				Expr:   intstr.FromString(`sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[5m])) / sum(rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[5m]))`),
 				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
@@ -261,10 +245,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-grpc-errors",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "grpc_server_handled:increase4w",
-				Expr:   intstr.FromString(`sum by(grpc_code, handler, job) (increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`),
-				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors"},
-			}, {
 				Record: "grpc_server_handled:burnrate5m",
 				Expr:   intstr.FromString(`sum by(handler, job) (rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[5m])) / sum by(handler, job) (rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[5m]))`),
 				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors"},
@@ -315,20 +295,12 @@ func TestObjective_Burnrates(t *testing.T) {
 			}},
 		},
 	}, {
-		name: "http-latency", // super similar to gRPC and therefore only HTTP
+		name: "http-latency",
 		slo:  objectiveHTTPLatency(),
 		rules: monitoringv1.RuleGroup{
 			Name:     "monitoring-http-latency",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by(code) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
-				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
-			}, {
-				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by(code) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
-				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1"},
-			}, {
 				Record: "http_request_duration_seconds:burnrate5m",
 				Expr:   intstr.FromString(`(sum by(code) (rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m])) - sum by(code) (rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[5m]))) / sum by(code) (rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
@@ -385,14 +357,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-http-latency",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-latency"},
-			}, {
-				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
-			}, {
 				Record: "http_request_duration_seconds:burnrate5m",
 				Expr:   intstr.FromString(`(sum by(code, handler, job) (rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m])) - sum by(code, handler, job) (rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[5m]))) / sum by(code, handler, job) (rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m]))`),
 				Labels: map[string]string{"slo": "monitoring-http-latency"},
@@ -449,14 +413,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-http-latency",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-latency"},
-			}, {
-				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
-			}, {
 				Record: "http_request_duration_seconds:burnrate5m",
 				Expr:   intstr.FromString(`(sum by(code, handler, job) (rate(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[5m])) - sum by(code, handler, job) (rate(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[5m]))) / sum by(code, handler, job) (rate(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[5m]))`),
 				Labels: map[string]string{"slo": "monitoring-http-latency"},
@@ -513,14 +469,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-grpc-latency",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "grpc_server_handling_seconds:increase1w",
-				Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
-			}, {
-				Record: "grpc_server_handling_seconds:increase1w",
-				Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
-			}, {
 				Record: "grpc_server_handling_seconds:burnrate1m",
 				Expr:   intstr.FromString(`(sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1m])) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1m]))) / sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1m]))`),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
@@ -577,14 +525,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-grpc-latency",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "grpc_server_handling_seconds:increase1w",
-				Expr:   intstr.FromString(`sum by(handler, job) (increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
-			}, {
-				Record: "grpc_server_handling_seconds:increase1w",
-				Expr:   intstr.FromString(`sum by(handler, job) (increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
-			}, {
 				Record: "grpc_server_handling_seconds:burnrate1m",
 				Expr:   intstr.FromString(`(sum by(handler, job) (rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1m])) - sum by(handler, job) (rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1m]))) / sum by(handler, job) (rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1m]))`),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
@@ -641,14 +581,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-prometheus-operator-errors",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "prometheus_operator_reconcile_operations:increase2w",
-				Expr:   intstr.FromString(`sum(increase(prometheus_operator_reconcile_operations_total[2w]))`),
-				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
-			}, {
-				Record: "prometheus_operator_reconcile_errors:increase2w",
-				Expr:   intstr.FromString(`sum(increase(prometheus_operator_reconcile_errors_total[2w]))`),
-				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
-			}, {
 				Record: "prometheus_operator_reconcile_operations:burnrate3m",
 				Expr:   intstr.FromString(`sum(rate(prometheus_operator_reconcile_errors_total[3m])) / sum(rate(prometheus_operator_reconcile_operations_total[3m]))`),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
@@ -705,14 +637,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "monitoring-prometheus-operator-errors",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "prometheus_operator_reconcile_operations:increase2w",
-				Expr:   intstr.FromString(`sum by(namespace) (increase(prometheus_operator_reconcile_operations_total[2w]))`),
-				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
-			}, {
-				Record: "prometheus_operator_reconcile_errors:increase2w",
-				Expr:   intstr.FromString(`sum by(namespace) (increase(prometheus_operator_reconcile_errors_total[2w]))`),
-				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
-			}, {
 				Record: "prometheus_operator_reconcile_operations:burnrate3m",
 				Expr:   intstr.FromString(`sum by(namespace) (rate(prometheus_operator_reconcile_errors_total[3m])) / sum by(namespace) (rate(prometheus_operator_reconcile_operations_total[3m]))`),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
@@ -769,10 +693,6 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "apiserver-write-response-errors",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "apiserver_request:increase2w",
-				Expr:   intstr.FromString(`sum by(code, verb) (increase(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2w]))`),
-				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
-			}, {
 				Record: "apiserver_request:burnrate3m",
 				Expr:   intstr.FromString(`sum by(verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m])) / sum by(verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
@@ -829,14 +749,14 @@ func TestObjective_Burnrates(t *testing.T) {
 			Name:     "apiserver-read-resource-latency",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
-				Record: "apiserver_request_duration_seconds:increase2w",
-				Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
-				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency"},
-			}, {
-				Record: "apiserver_request_duration_seconds:increase2w",
-				Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
-				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1"},
-			}, {
+				//	Record: "apiserver_request_duration_seconds:increase2w",
+				//	Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
+				//	Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency"},
+				//}, {
+				//	Record: "apiserver_request_duration_seconds:increase2w",
+				//	Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
+				//	Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1"},
+				//}, {
 				Record: "apiserver_request_duration_seconds:burnrate3m",
 				Expr:   intstr.FromString(`(sum by(resource, verb) (rate(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[3m])) - sum by(resource, verb) (rate(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[3m]))) / sum by(resource, verb) (rate(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[3m]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency"},
@@ -888,9 +808,229 @@ func TestObjective_Burnrates(t *testing.T) {
 		},
 	}}
 
+	require.Len(t, testcases, 14)
+
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			group, err := tc.slo.Burnrates()
+			require.NoError(t, err)
+			require.Equal(t, tc.rules, group)
+		})
+	}
+}
+
+func TestObjective_IncreaseRules(t *testing.T) {
+	testcases := []struct {
+		name  string
+		slo   Objective
+		rules monitoringv1.RuleGroup
+	}{{
+		name: "http-ratio",
+		slo:  objectiveHTTPRatio(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:increase4w",
+				Expr:   intstr.FromString(`sum by(code) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}},
+		},
+	}, {
+		name: "http-ratio-grouping",
+		slo:  objectiveHTTPRatioGrouping(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:increase4w",
+				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}},
+		},
+	}, {
+		name: "http-ratio-grouping-regex",
+		slo:  objectiveHTTPRatioGroupingRegex(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:increase4w",
+				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_requests_total{handler=~"/api.*",job="thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}},
+		},
+	}, {
+		name: "grpc-errors",
+		slo:  objectiveGRPCRatio(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-errors-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "grpc_server_handled:increase4w",
+				Expr:   intstr.FromString(`sum by(grpc_code) (increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
+			}},
+		},
+	}, {
+		name: "grpc-errors-grouping",
+		slo:  objectiveGRPCRatioGrouping(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-errors-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "grpc_server_handled:increase4w",
+				Expr:   intstr.FromString(`sum by(grpc_code, handler, job) (increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors"},
+			}},
+		},
+	}, {
+		name: "http-latency",
+		slo:  objectiveHTTPLatency(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-latency-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by(code) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by(code) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1"},
+			}},
+		},
+	}, {
+		name: "http-latency-grouping",
+		slo:  objectiveHTTPLatencyGrouping(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-latency-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+			}},
+		},
+	}, {
+		name: "http-latency-grouping-regex",
+		slo:  objectiveHTTPLatencyGroupingRegex(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-latency-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+			}},
+		},
+	}, {
+		name: "grpc-latency",
+		slo:  objectiveGRPCLatency(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-latency-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "grpc_server_handling_seconds:increase1w",
+				Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+			}, {
+				Record: "grpc_server_handling_seconds:increase1w",
+				Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
+			}},
+		},
+	}, {
+		name: "grpc-latency-grouping",
+		slo:  objectiveGRPCLatencyGrouping(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-latency-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "grpc_server_handling_seconds:increase1w",
+				Expr:   intstr.FromString(`sum by(handler, job) (increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+			}, {
+				Record: "grpc_server_handling_seconds:increase1w",
+				Expr:   intstr.FromString(`sum by(handler, job) (increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
+			}},
+		},
+	}, {
+		name: "operator-ratio",
+		slo:  objectiveOperator(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-prometheus-operator-errors-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "prometheus_operator_reconcile_operations:increase2w",
+				Expr:   intstr.FromString(`sum(increase(prometheus_operator_reconcile_operations_total[2w]))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}, {
+				Record: "prometheus_operator_reconcile_errors:increase2w",
+				Expr:   intstr.FromString(`sum(increase(prometheus_operator_reconcile_errors_total[2w]))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}},
+		},
+	}, {
+		name: "operator-ratio-grouping",
+		slo:  objectiveOperatorGrouping(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-prometheus-operator-errors-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "prometheus_operator_reconcile_operations:increase2w",
+				Expr:   intstr.FromString(`sum by(namespace) (increase(prometheus_operator_reconcile_operations_total[2w]))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}, {
+				Record: "prometheus_operator_reconcile_errors:increase2w",
+				Expr:   intstr.FromString(`sum by(namespace) (increase(prometheus_operator_reconcile_errors_total[2w]))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}},
+		},
+	}, {
+		name: "apiserver-write-response-errors",
+		slo:  objectiveAPIServerRatio(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "apiserver-write-response-errors-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "apiserver_request:increase2w",
+				Expr:   intstr.FromString(`sum by(code, verb) (increase(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2w]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
+			}},
+		},
+	}, {
+		name: "apiserver-read-resource-latency",
+		slo:  objectiveAPIServerLatency(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "apiserver-read-resource-latency-increase",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "apiserver_request_duration_seconds:increase2w",
+				Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency"},
+			}, {
+				Record: "apiserver_request_duration_seconds:increase2w",
+				Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1"},
+			}},
+		},
+	}}
+
+	require.Len(t, testcases, 14)
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			group, err := tc.slo.IncreaseRules()
 			require.NoError(t, err)
 			require.Equal(t, tc.rules, group)
 		})
