@@ -16,11 +16,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/promql/parser"
+	"sigs.k8s.io/yaml"
+
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"github.com/pyrra-dev/pyrra/slo"
-	"sigs.k8s.io/yaml"
 )
 
 type Objectives struct {
@@ -163,6 +164,11 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 						return err
 					}
 
+					increases, err := objective.IncreaseRules()
+					if err != nil {
+						reconcilesErrors.Inc()
+						return err
+					}
 					burnrates, err := objective.Burnrates()
 					if err != nil {
 						reconcilesErrors.Inc()
@@ -170,7 +176,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 					}
 
 					rule := monitoringv1.PrometheusRuleSpec{
-						Groups: []monitoringv1.RuleGroup{burnrates},
+						Groups: []monitoringv1.RuleGroup{increases, burnrates},
 					}
 
 					bytes, err = yaml.Marshal(rule)
