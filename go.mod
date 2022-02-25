@@ -12,7 +12,7 @@ require (
 	github.com/go-logr/logr v1.2.2
 	github.com/gorilla/mux v1.8.0
 	github.com/oklog/run v1.1.0
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.54.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.54.1
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1
 	github.com/prometheus/prometheus v1.8.2-0.20220211202545-56e14463bccf
