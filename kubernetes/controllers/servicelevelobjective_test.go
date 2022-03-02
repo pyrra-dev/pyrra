@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -143,15 +144,18 @@ func Test_makePrometheusRule(t *testing.T) {
 }
 
 func Test_makeConfigMap(t *testing.T) {
-	yamlData := `groups:
-- interval: 30s
-  name: http
+	rules := `groups:
+- interval: 2m30s
+  name: http-increase
   rules:
   - expr: sum by(status) (increase(http_requests_total{job="app"}[4w]))
     labels:
       job: app
       slo: http
     record: http_requests:increase4w
+- interval: 30s
+  name: http
+  rules:
   - expr: sum(rate(http_requests_total{job="app",status=~"5.."}[5m])) / sum(rate(http_requests_total{job="app"}[5m]))
     labels:
       job: app
@@ -229,20 +233,20 @@ func Test_makeConfigMap(t *testing.T) {
       slo: http
 `
 
-	tests := []struct {
+	testcases := []struct {
 		name          string
 		configMapName string
 		objective     pyrrav1alpha1.ServiceLevelObjective
 
-		wantErrMsg string
-		want       *corev1.ConfigMap
+		want *corev1.ConfigMap
+		err  error
 	}{
 		{
-			name:       "empty input yields error",
-			wantErrMsg: "getting SLO",
+			name: "NoInput",
+			err:  fmt.Errorf("failed to get objective"),
 		},
 		{
-			name:          "http",
+			name:          "HTTP",
 			configMapName: "http",
 			objective:     httpSLO,
 			want: &corev1.ConfigMap{
@@ -263,24 +267,24 @@ func Test_makeConfigMap(t *testing.T) {
 					},
 				},
 				Data: map[string]string{
-					"http.rules.yaml": yamlData,
+					"http.rules.yaml": rules,
 				},
 			},
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			configMap, err := makeConfigMap(tt.configMapName, tt.objective)
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			configMap, err := makeConfigMap(tc.configMapName, tc.objective)
 
-			if tt.wantErrMsg != "" {
+			if tc.err != nil {
 				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.wantErrMsg)
+				require.ErrorAs(t, err, &tc.err)
 			} else {
 				require.NoError(t, err)
 			}
 
-			require.Equal(t, tt.want, configMap)
+			require.Equal(t, tc.want, configMap)
 		})
 	}
 }
