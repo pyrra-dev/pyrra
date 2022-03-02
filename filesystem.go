@@ -170,6 +170,11 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 						return fmt.Errorf("getting SLO: %w", err)
 					}
 
+					increases, err := objective.IncreaseRules()
+					if err != nil {
+						reconcilesErrors.Inc()
+						return err
+					}
 					burnrates, err := objective.Burnrates()
 					if err != nil {
 						reconcilesErrors.Inc()
@@ -177,7 +182,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 					}
 
 					rule := monitoringv1.PrometheusRuleSpec{
-						Groups: []monitoringv1.RuleGroup{burnrates},
+						Groups: []monitoringv1.RuleGroup{increases, burnrates},
 					}
 
 					bytes, err = yaml.Marshal(rule)

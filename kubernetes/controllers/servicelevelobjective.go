@@ -132,18 +132,22 @@ func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) err
 }
 
 func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*corev1.ConfigMap, error) {
-	slo, err := kubeObjective.Internal()
+	objective, err := kubeObjective.Internal()
 	if err != nil {
-		return nil, fmt.Errorf("getting SLO: %w", err)
+		return nil, fmt.Errorf("failed to get objective: %w", err)
 	}
 
-	ruleGroup, err := slo.Burnrates()
+	increases, err := objective.IncreaseRules()
 	if err != nil {
-		return nil, fmt.Errorf("getting recording rules from SLO: %w", err)
+		return nil, err
+	}
+	burnrates, err := objective.Burnrates()
+	if err != nil {
+		return nil, fmt.Errorf("getting recording rules: %w", err)
 	}
 
 	rule := monitoringv1.PrometheusRuleSpec{
-		Groups: []monitoringv1.RuleGroup{ruleGroup},
+		Groups: []monitoringv1.RuleGroup{increases, burnrates},
 	}
 
 	bytes, err := yaml.Marshal(rule)
@@ -182,10 +186,14 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*monitoringv1.PrometheusRule, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
-		return nil, fmt.Errorf("getting SLO: %w", err)
+		return nil, fmt.Errorf("failed to get objective: %w", err)
 	}
 
-	group, err := objective.Burnrates()
+	increases, err := objective.IncreaseRules()
+	if err != nil {
+		return nil, err
+	}
+	burnrates, err := objective.Burnrates()
 	if err != nil {
 		return nil, fmt.Errorf("getting recording rules: %w", err)
 	}
@@ -211,7 +219,7 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*mon
 			},
 		},
 		Spec: monitoringv1.PrometheusRuleSpec{
-			Groups: []monitoringv1.RuleGroup{group},
+			Groups: []monitoringv1.RuleGroup{increases, burnrates},
 		},
 	}, nil
 }

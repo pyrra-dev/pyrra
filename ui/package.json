@@ -1,6 +1,6 @@
 {
-  "name": "pyrra",
-  "version": "0.3.3",
+  "name": "ui",
+  "version": "0.3.4",
   "private": true,
   "homepage": "./",
   "dependencies": {

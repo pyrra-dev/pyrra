@@ -126,7 +126,7 @@ save each recording rule in a separate `ConfigMap`.
 You can easily start Pyrra on its own via the provided Docker image:
 
 ```bash
-docker pull ghcr.io/pyrra-dev/pyrra:v0.3.3
+docker pull ghcr.io/pyrra-dev/pyrra:v0.3.4
 ```
 
 When running Pyrra outside of Kubernetes, the SLO object can be provided through
