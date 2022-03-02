@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	"github.com/prometheus/prometheus/model/labels"
-	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
-	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+
+	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
+	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 )
 
 var (

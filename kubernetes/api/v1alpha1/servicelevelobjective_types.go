@@ -23,9 +23,10 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"github.com/pyrra-dev/pyrra/slo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
+
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 func init() {
@@ -37,7 +38,7 @@ func init() {
 
 // +kubebuilder:object:root=true
 
-// ServiceLevelObjectiveList contains a list of ServiceLevelObjective
+// ServiceLevelObjectiveList contains a list of ServiceLevelObjective.
 type ServiceLevelObjectiveList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -47,7 +48,7 @@ type ServiceLevelObjectiveList struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=slo
 
-// ServiceLevelObjective is the Schema for the ServiceLevelObjectives API
+// ServiceLevelObjective is the Schema for the ServiceLevelObjectives API.
 type ServiceLevelObjective struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -56,7 +57,7 @@ type ServiceLevelObjective struct {
 	Status ServiceLevelObjectiveStatus `json:"status,omitempty"`
 }
 
-// ServiceLevelObjectiveSpec defines the desired state of ServiceLevelObjective
+// ServiceLevelObjectiveSpec defines the desired state of ServiceLevelObjective.
 type ServiceLevelObjectiveSpec struct {
 	// +optional
 	// Description describes the ServiceLevelObjective in more detail and
@@ -107,12 +108,12 @@ type LatencyIndicator struct {
 	Grouping []string `json:"grouping"`
 }
 
-// Query contains a PromQL metric
+// Query contains a PromQL metric.
 type Query struct {
 	Metric string `json:"metric"`
 }
 
-// ServiceLevelObjectiveStatus defines the observed state of ServiceLevelObjective
+// ServiceLevelObjectiveStatus defines the observed state of ServiceLevelObjective.
 type ServiceLevelObjectiveStatus struct{}
 
 func (in ServiceLevelObjective) Internal() (slo.Objective, error) {

@@ -4,8 +4,9 @@ import (
 	"testing"
 
 	"github.com/prometheus/prometheus/model/labels"
-	"github.com/pyrra-dev/pyrra/slo"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 func TestMatchObjectives(t *testing.T) {
