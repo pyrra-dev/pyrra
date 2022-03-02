@@ -8,16 +8,19 @@ import (
 	"html/template"
 	"io/fs"
 	"io/ioutil"
-	"log"
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 
 	"github.com/alecthomas/kong"
 	"github.com/cespare/xxhash/v2"
@@ -62,20 +65,28 @@ var CLI struct {
 
 func main() {
 	ctx := kong.Parse(&CLI)
+
+	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
+	logger = log.WithPrefix(logger, "caller", log.DefaultCaller)
+	logger = log.WithPrefix(logger, "ts", log.DefaultTimestampUTC)
+
+	var code int
 	switch ctx.Command() {
 	case "api":
-		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.APIURL, CLI.API.RoutePrefix, CLI.API.UIRoutePrefix, CLI.API.PrometheusBearerTokenPath)
+		code = cmdAPI(logger, CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.APIURL, CLI.API.RoutePrefix, CLI.API.UIRoutePrefix, CLI.API.PrometheusBearerTokenPath)
 	case "filesystem":
-		cmdFilesystem(CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
+		code = cmdFilesystem(logger, CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
 	case "kubernetes":
-		cmdKubernetes(CLI.Kubernetes.MetricsAddr, CLI.Kubernetes.ConfigMapMode)
+		code = cmdKubernetes(logger, CLI.Kubernetes.MetricsAddr, CLI.Kubernetes.ConfigMapMode)
 	}
+	os.Exit(code)
 }
 
-func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiRoutePrefix, prometheusBearerTokenPath string) {
+func cmdAPI(logger log.Logger, prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiRoutePrefix, prometheusBearerTokenPath string) int {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
-		log.Fatal(err)
+		level.Error(logger).Log("msg", "failed to read UI build files", "err", err)
+		return 1
 	}
 
 	if prometheusExternal == nil {
@@ -90,10 +101,10 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 		uiRoutePrefix = "/" + strings.Trim(uiRoutePrefix, "/")
 	}
 
-	log.Println("Using Prometheus at", prometheusURL.String())
-	log.Println("Using external Prometheus at", prometheusExternal.String())
-	log.Println("Using API at", apiURL.String())
-	log.Println("Using route prefix", routePrefix)
+	level.Info(logger).Log("msg", "using Prometheus", "url", prometheusURL.String())
+	level.Info(logger).Log("msg", "UI redirect to Prometheus", "url", prometheusExternal.String())
+	level.Info(logger).Log("msg", "using API at", "url", apiURL.String())
+	level.Info(logger).Log("msg", "using route prefix", "prefix", routePrefix)
 
 	reg := prometheus.NewRegistry()
 
@@ -102,11 +113,13 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 		config.RoundTripper = promconfig.NewAuthorizationCredentialsFileRoundTripper("Bearer", prometheusBearerTokenPath, api.DefaultRoundTripper)
 	}
 
-	client, err := api.NewClient(config)
+	var client api.Client
+	client, err = api.NewClient(config)
 	if err != nil {
-		log.Fatal(err)
+		level.Error(logger).Log("msg", "failed to create API client", "err", err)
+		return 1
 	}
-	thanosClient := newThanosClient(client)
+	client = newThanosClient(client)
 
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
@@ -114,11 +127,12 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
-		log.Fatal(err)
+		level.Error(logger).Log("msg", "failed to create cache", "err", err)
+		return 1
 	}
 	defer cache.Close()
 	promAPI := &promCache{
-		api:   prometheusv1.NewAPI(thanosClient),
+		api:   prometheusv1.NewAPI(client),
 		cache: cache,
 	}
 
@@ -129,15 +143,18 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 
 	router := openapiserver.NewRouter(
 		openapiserver.NewObjectivesApiController(&ObjectivesServer{
+			logger:    logger,
 			promAPI:   promAPI,
 			apiclient: apiClient,
 		}),
 	)
 	router.Use(openapi.MiddlewareMetrics(reg))
+	router.Use(openapi.MiddlewareLogger(logger))
 
 	tmpl, err := template.ParseFS(build, "index.html")
 	if err != nil {
-		log.Fatal(err)
+		level.Error(logger).Log("msg", "failed to parse HTML template", "err", err)
+		return 1
 	}
 
 	r := chi.NewRouter()
@@ -152,7 +169,7 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 		r.Get("/objectives", func(w http.ResponseWriter, r *http.Request) {
-			if err := tmpl.Execute(w, struct {
+			err := tmpl.Execute(w, struct {
 				PrometheusURL string
 				PathPrefix    string
 				APIBasepath   string
@@ -160,15 +177,15 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 				PrometheusURL: prometheusExternal.String(),
 				PathPrefix:    uiRoutePrefix,
 				APIBasepath:   path.Join(uiRoutePrefix, "/api/v1"),
-			}); err != nil {
-				log.Println(err)
-				return
+			})
+			if err != nil {
+				level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
 			}
 		})
 		r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Trim trailing slash to not care about matching e.g. /pyrra and /pyrra/
 			if r.URL.Path == "/" || strings.TrimSuffix(r.URL.Path, "/") == routePrefix {
-				if err := tmpl.Execute(w, struct {
+				err := tmpl.Execute(w, struct {
 					PrometheusURL string
 					PathPrefix    string
 					APIBasepath   string
@@ -176,8 +193,9 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 					PrometheusURL: prometheusExternal.String(),
 					PathPrefix:    uiRoutePrefix,
 					APIBasepath:   path.Join(uiRoutePrefix, "/api/v1"),
-				}); err != nil {
-					log.Println(err)
+				})
+				if err != nil {
+					level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
 				}
 				return
 			}
@@ -197,8 +215,10 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 	}
 
 	if err := http.ListenAndServe(":9099", r); err != nil {
-		log.Fatal(err)
+		level.Error(logger).Log("msg", "failed to run HTTP server", "err", err)
+		return 2
 	}
+	return 0
 }
 
 func newThanosClient(client api.Client) api.Client {
@@ -324,6 +344,7 @@ func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1
 }
 
 type ObjectivesServer struct {
+	logger    log.Logger
 	promAPI   *promCache
 	apiclient *openapiclient.APIClient
 }
@@ -392,9 +413,10 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr, groupin
 	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
 
 	queryTotal := objective.QueryTotal(objective.Window)
-	log.Println(queryTotal)
+	level.Debug(o.logger).Log("msg", "sending query total", "query", queryTotal)
 	value, _, err := o.promAPI.Query(ctx, queryTotal, ts)
 	if err != nil {
+		level.Warn(o.logger).Log("msg", "failed to query total", "query", queryTotal, "err", err)
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
@@ -416,9 +438,10 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr, groupin
 	}
 
 	queryErrors := objective.QueryErrors(objective.Window)
-	log.Println(queryErrors)
+	level.Debug(o.logger).Log("msg", "sending query errors", "query", queryErrors)
 	value, _, err = o.promAPI.Query(ctx, queryErrors, ts)
 	if err != nil {
+		level.Warn(o.logger).Log("msg", "failed to query errors", "query", queryErrors, "err", err)
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 	for _, v := range value.(model.Vector) {
@@ -519,22 +542,26 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr, gr
 	step := end.Sub(start) / 1000
 
 	query := objective.QueryErrorBudget()
-	log.Println(query)
+	level.Debug(o.logger).Log("msg", "sending query error budget", "query", query, "step", step)
 	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
 		Start: start,
 		End:   end,
 		Step:  step,
 	})
 	if err != nil {
+		level.Warn(o.logger).Log("msg", "failed to query error budget", "query", query, "err", err)
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	matrix, ok := value.(model.Matrix)
 	if !ok {
-		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
+		err := fmt.Errorf("no matrix returned")
+		level.Debug(o.logger).Log("msg", "returned data wasn't of type matrix", "query", query, "err", err)
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	if len(matrix) == 0 {
+		level.Debug(o.logger).Log("msg", "returned no data", "query", query)
 		return openapiserver.ImplResponse{Code: http.StatusNotFound, Body: struct{}{}}, nil
 	}
 
@@ -626,12 +653,12 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 
 			value, _, err := o.promAPI.Query(ctx, b.Query, time.Now())
 			if err != nil {
-				log.Println(err)
+				level.Warn(o.logger).Log("msg", "failed to query", "query", b.Query, "err", err)
 				return
 			}
 			vec, ok := value.(model.Vector)
 			if !ok {
-				log.Println("no vector")
+				level.Warn(o.logger).Log("msg", "query didn't return vector", "query", b.Query)
 				return
 			}
 			if vec.Len() != 1 {
@@ -645,12 +672,12 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 
 			value, _, err := o.promAPI.Query(ctx, b.Query, time.Now())
 			if err != nil {
-				log.Println(err)
+				level.Warn(o.logger).Log("msg", "failed to query", "query", b.Query, "err", err)
 				return
 			}
 			vec, ok := value.(model.Vector)
 			if !ok {
-				log.Println("no vector")
+				level.Warn(o.logger).Log("msg", "query didn't return vector", "query", b.Query)
 				return
 			}
 			if vec.Len() != 1 {
@@ -673,12 +700,12 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 			query := fmt.Sprintf(`ALERTS{slo="%s",short="%s",long="%s"}`, name, s, l)
 			value, _, err := o.promAPI.Query(ctx, query, time.Now())
 			if err != nil {
-				log.Println(err)
+				level.Warn(o.logger).Log("msg", "failed to query alerts", "query", query, "err", err)
 				return
 			}
 			vec, ok := value.(model.Vector)
 			if !ok {
-				log.Println("no vector")
+				level.Warn(o.logger).Log("msg", "query didn't return vector", "query", query)
 				return
 			}
 			if vec.Len() != 1 {
@@ -687,7 +714,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 			sample := vec[0]
 
 			if sample.Value != 1 {
-				log.Println("alert is not pending or firing")
+				// alert is not pending or firing
 				return
 			}
 
@@ -771,7 +798,7 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr, grouping st
 		timeRange = 15 * time.Minute
 	}
 	query := objective.RequestRange(timeRange)
-	log.Println(query)
+	level.Debug(o.logger).Log("msg", "running range request", "query", query)
 
 	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
 		Start: start,
@@ -779,19 +806,25 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr, grouping st
 		Step:  step,
 	})
 	if err != nil {
+		level.Warn(o.logger).Log("msg", "failed to run range request", "query", query, "err", err)
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	if value.Type() != model.ValMatrix {
-		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("returned data is not a matrix")
+		err := fmt.Errorf("returned data is not a matrix")
+		level.Warn(o.logger).Log("query", query, "err", err)
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	matrix, ok := value.(model.Matrix)
 	if !ok {
-		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
+		err := fmt.Errorf("no matrix returned")
+		level.Warn(o.logger).Log("query", query, "err", err)
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	if len(matrix) == 0 {
+		level.Debug(o.logger).Log("msg", "no data returned", "query", query)
 		return openapiserver.ImplResponse{Code: http.StatusNotFound, Body: struct{}{}}, nil
 	}
 
@@ -872,7 +905,7 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr, grouping stri
 	}
 
 	query := objective.ErrorsRange(timeRange)
-	log.Println(query)
+	level.Debug(o.logger).Log("msg", "running error request", "query", query)
 
 	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
 		Start: start,
@@ -880,19 +913,25 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr, grouping stri
 		Step:  step,
 	})
 	if err != nil {
+		level.Warn(o.logger).Log("msg", "failed to run range error request", "query", query, "err", err)
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	if value.Type() != model.ValMatrix {
-		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("returned data is not a matrix")
+		err := fmt.Errorf("returned data is not a matrix")
+		level.Warn(o.logger).Log("query", query, "err", err)
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	matrix, ok := value.(model.Matrix)
 	if !ok {
-		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, fmt.Errorf("no matrix returned")
+		err := fmt.Errorf("no matrix returned")
+		level.Warn(o.logger).Log("query", query, "err", err)
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
 	if len(matrix) == 0 {
+		level.Debug(o.logger).Log("msg", "no data returned", "query", query)
 		return openapiserver.ImplResponse{Code: http.StatusNotFound, Body: struct{}{}}, nil
 	}
 

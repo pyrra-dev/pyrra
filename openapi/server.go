@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -161,6 +163,23 @@ func MiddlewareMetrics(reg *prometheus.Registry) mux.MiddlewareFunc {
 			routeName := mux.CurrentRoute(r).GetName()
 			duration.WithLabelValues(routeName).Observe(time.Since(start).Seconds())
 			requests.WithLabelValues(routeName, strconv.Itoa(rw.statusCode)).Inc()
+		})
+	}
+}
+
+func MiddlewareLogger(logger log.Logger) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+
+			rw := newResponseWriter(w)
+			next.ServeHTTP(rw, r)
+
+			if rw.statusCode/100 == 5 {
+				level.Warn(logger).Log("method", r.Method, "code", rw.statusCode, "uri", r.RequestURI, "duration", time.Since(start))
+			} else {
+				level.Debug(logger).Log("method", r.Method, "code", rw.statusCode, "uri", r.RequestURI, "duration", time.Since(start))
+			}
 		})
 	}
 }

@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"path/filepath"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
@@ -69,7 +70,8 @@ Objectives:
 	return objectives
 }
 
-func cmdFilesystem(configFiles, prometheusFolder string) {
+func cmdFilesystem(logger log.Logger, configFiles, prometheusFolder string) int {
+	// TODO: Move to main()
 	reg := prometheus.NewRegistry()
 
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
@@ -110,16 +112,18 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 	}
 	{
 		dir := filepath.Dir(configFiles)
-		log.Println("watching directory for changes", dir)
+		level.Info(logger).Log("msg", "watching directory for changes", "directory", dir)
 
 		watcher, err := fsnotify.NewWatcher()
 		if err != nil {
-			log.Fatal(fmt.Errorf("creating file watcher: %w", err))
+			level.Error(logger).Log("msg", "failed to create file watcher", "err", err)
+			return 1
 		}
 
 		err = watcher.Add(dir)
 		if err != nil {
-			log.Fatal(fmt.Errorf("addding %q to watch: %w", dir, err))
+			level.Error(logger).Log("msg", "failed to add directory to file watcher", "directory", dir, "err", err)
+			return 1
 		}
 
 		gr.Add(func() error {
@@ -135,7 +139,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 						files <- event.Name
 					}
 				case err := <-watcher.Errors:
-					log.Printf("watch error: %v\n", err)
+					level.Warn(logger).Log("msg", "encountered file watcher error", "err", err)
 				}
 			}
 		}, func(err error) {
@@ -150,36 +154,36 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 				case <-ctx.Done():
 					return nil
 				case f := <-files:
-					log.Println("reading", f)
+					level.Debug(logger).Log("msg", "reading", "file", f)
 					reconcilesTotal.Inc()
 
 					bytes, err := ioutil.ReadFile(f)
 					if err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("reading file %q: %w", f, err)
+						return fmt.Errorf("failed to read file %q: %w", f, err)
 					}
 
 					var config v1alpha1.ServiceLevelObjective
 					if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("unmarshalling %q: %w", f, err)
+						return fmt.Errorf("failed to unmarshal objective %q: %w", f, err)
 					}
 
 					objective, err := config.Internal()
 					if err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("getting SLO: %w", err)
+						return fmt.Errorf("failed to get objective: %w", err)
 					}
 
 					increases, err := objective.IncreaseRules()
 					if err != nil {
 						reconcilesErrors.Inc()
-						return err
+						return fmt.Errorf("failed to get increase rules: %w", err)
 					}
 					burnrates, err := objective.Burnrates()
 					if err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("getting recording rules: %w", err)
+						return fmt.Errorf("failed to get burn rate rules: %w", err)
 					}
 
 					rule := monitoringv1.PrometheusRuleSpec{
@@ -189,7 +193,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 					bytes, err = yaml.Marshal(rule)
 					if err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("marshalling recording rule: %w", err)
+						return fmt.Errorf("failed to marshal recording rules: %w", err)
 					}
 
 					_, file := filepath.Split(f)
@@ -197,7 +201,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 
 					if err := ioutil.WriteFile(path, bytes, 0o644); err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("writing file %q: %w", path, err)
+						return fmt.Errorf("failed to write file %q: %w", path, err)
 					}
 
 					objectives.Set(objective)
@@ -218,7 +222,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 		server := http.Server{Addr: ":9444", Handler: router}
 
 		gr.Add(func() error {
-			log.Println("Starting up HTTP API on", server.Addr)
+			level.Info(logger).Log("msg", "starting up HTTP API", "address", server.Addr)
 			return server.ListenAndServe()
 		}, func(err error) {
 			_ = server.Shutdown(context.Background())
@@ -226,9 +230,10 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 	}
 
 	if err := gr.Run(); err != nil {
-		log.Println(err)
-		return
+		level.Error(logger).Log("msg", "failed to run", "err", err)
+		return 2
 	}
+	return 0
 }
 
 type FilesystemObjectiveServer struct {
