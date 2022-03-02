@@ -14,6 +14,7 @@ import (
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
@@ -39,7 +40,7 @@ func (os *Objectives) Set(o slo.Objective) {
 }
 
 func (os *Objectives) Match(ms []*labels.Matcher) []slo.Objective {
-	if ms == nil || len(ms) == 0 {
+	if len(ms) == 0 {
 		os.mu.RLock()
 		objectives := make([]slo.Objective, 0, len(os.objectives))
 		for _, o := range os.objectives {
@@ -81,7 +82,7 @@ func cmdFilesystem(configFiles, prometheusFolder string) {
 	})
 
 	reg.MustRegister(
-		prometheus.NewGoCollector(),
+		collectors.NewGoCollector(),
 		reconcilesTotal,
 		reconcilesErrors,
 	)
@@ -267,22 +268,22 @@ func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, expr string
 	}, nil
 }
 
-func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
-func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr string, grouping string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
-func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
-func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, expr string, grouping string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 
-func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, expr string, grouping string, i int32, i2 int32) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }

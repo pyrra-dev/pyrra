@@ -6,10 +6,11 @@ import (
 
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
-	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
-	"github.com/pyrra-dev/pyrra/slo"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
+
+	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 var examples = []struct {

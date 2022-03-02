@@ -34,7 +34,7 @@ import (
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 )
 
-// ServiceLevelObjectiveReconciler reconciles a ServiceLevelObjective object
+// ServiceLevelObjectiveReconciler reconciles a ServiceLevelObjective object.
 type ServiceLevelObjectiveReconciler struct {
 	client.Client
 	Log           logr.Logger

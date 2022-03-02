@@ -45,7 +45,7 @@ var CLI struct {
 	API struct {
 		PrometheusURL             *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
 		PrometheusExternalURL     *url.URL `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
-		ApiURL                    *url.URL `default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
+		APIURL                    *url.URL `default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
 		RoutePrefix               string   `default:"" help:"The route prefix Pyrra uses. If run behind a proxy you can change it to something like /pyrra here."`
 		UIRoutePrefix             string   `default:"" help:"The route prefix Pyrra's UI uses. This is helpful for when the prefix is stripped by a proxy but still runs on /pyrra. Defaults to --route-prefix"`
 		PrometheusBearerTokenPath string   `default:"" help:"Bearer token path"`
@@ -64,7 +64,7 @@ func main() {
 	ctx := kong.Parse(&CLI)
 	switch ctx.Command() {
 	case "api":
-		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.ApiURL, CLI.API.RoutePrefix, CLI.API.UIRoutePrefix, CLI.API.PrometheusBearerTokenPath)
+		cmdAPI(CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.APIURL, CLI.API.RoutePrefix, CLI.API.UIRoutePrefix, CLI.API.PrometheusBearerTokenPath)
 	case "filesystem":
 		cmdFilesystem(CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
 	case "kubernetes":
@@ -72,7 +72,7 @@ func main() {
 	}
 }
 
-func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiRoutePrefix string, prometheusBearerTokenPath string) {
+func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiRoutePrefix, prometheusBearerTokenPath string) {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
 		log.Fatal(err)
@@ -193,7 +193,6 @@ func cmdAPI(prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiR
 		// Redirect /pyrra to /pyrra/ for the UI to work properly.
 		r.HandleFunc(strings.TrimSuffix(routePrefix, "/"), func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, routePrefix+"/", http.StatusPermanentRedirect)
-			return
 		})
 	}
 
@@ -353,7 +352,7 @@ func (o *ObjectivesServer) ListObjectives(ctx context.Context, query string) (op
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		var apiErr openapiclient.GenericOpenAPIError
@@ -456,7 +455,7 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr string, 
 	}, nil
 }
 
-func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr string, grouping string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr, grouping string, startTimestamp, endTimestamp int32) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -564,7 +563,7 @@ const (
 	alertstateFiring   = "firing"
 )
 
-func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr string, grouping string) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -720,7 +719,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr stri
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, grouping string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr, grouping string, startTimestamp, endTimestamp int32) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -820,7 +819,7 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr string, grou
 	}, nil
 }
 
-func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr string, grouping string, startTimestamp int32, endTimestamp int32) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr, grouping string, startTimestamp, endTimestamp int32) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -984,7 +983,7 @@ func (v values) Less(i, j int) bool {
 	return v[0][i] < v[0][j]
 }
 
-// Swap iterates over all []float64 and consistently swaps them
+// Swap iterates over all []float64 and consistently swaps them.
 func (v values) Swap(i, j int) {
 	for n := range v {
 		v[n][i], v[n][j] = v[n][j], v[n][i]

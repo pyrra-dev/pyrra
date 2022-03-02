@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+
 	client "github.com/pyrra-dev/pyrra/openapi/client"
 	server "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"github.com/pyrra-dev/pyrra/slo"
@@ -154,7 +155,7 @@ func MiddlewareMetrics(reg *prometheus.Registry) mux.MiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			rw := NewResponseWriter(w)
+			rw := newResponseWriter(w)
 			next.ServeHTTP(rw, r)
 
 			routeName := mux.CurrentRoute(r).GetName()
@@ -164,7 +165,7 @@ func MiddlewareMetrics(reg *prometheus.Registry) mux.MiddlewareFunc {
 	}
 }
 
-func NewResponseWriter(w http.ResponseWriter) *responseWriter {
+func newResponseWriter(w http.ResponseWriter) *responseWriter {
 	return &responseWriter{w, http.StatusOK}
 }
 
