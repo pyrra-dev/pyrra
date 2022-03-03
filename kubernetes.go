@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-kit/log"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/prometheus/model/labels"
@@ -48,7 +49,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func cmdKubernetes(metricsAddr string, configMapMode bool) {
+func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode bool) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
@@ -66,7 +67,7 @@ func cmdKubernetes(metricsAddr string, configMapMode bool) {
 
 	if err = (&controllers.ServiceLevelObjectiveReconciler{
 		Client:        mgr.GetClient(),
-		Log:           ctrl.Log.WithName("controllers").WithName("ServiceLevelObjective"),
+		Logger:        log.With(logger, "controllers", "ServiceLevelObjective"),
 		Scheme:        mgr.GetScheme(),
 		ConfigMapMode: configMapMode,
 	}).SetupWithManager(mgr); err != nil {
@@ -98,8 +99,8 @@ func cmdKubernetes(metricsAddr string, configMapMode bool) {
 
 	if err := gr.Run(); err != nil {
 		setupLog.Error(err, "failed to run groups")
-		return
 	}
+	return 0
 }
 
 type KubernetesClient interface {
