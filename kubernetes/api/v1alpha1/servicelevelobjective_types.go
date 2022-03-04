@@ -70,7 +70,7 @@ type ServiceLevelObjectiveSpec struct {
 	Target string `json:"target"`
 
 	// Window within which the Target is supposed to be kept. Usually something like 1d, 7d or 28d.
-	Window model.Duration `json:"window"`
+	Window string `json:"window"`
 
 	// ServiceLevelIndicator is the underlying data source that indicates how the service is doing.
 	// This will be a Prometheus metric with specific selectors for your service.
@@ -119,7 +119,12 @@ type ServiceLevelObjectiveStatus struct{}
 func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 	target, err := strconv.ParseFloat(in.Spec.Target, 64)
 	if err != nil {
-		return slo.Objective{}, err
+		return slo.Objective{}, fmt.Errorf("failed to parse objective target: %w", err)
+	}
+
+	window, err := model.ParseDuration(in.Spec.Window)
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to parse objective window: %w", err)
 	}
 
 	if in.Spec.ServiceLevelIndicator.Ratio != nil && in.Spec.ServiceLevelIndicator.Latency != nil {
@@ -236,7 +241,7 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 		Labels:      ls,
 		Description: in.Spec.Description,
 		Target:      target / 100,
-		Window:      in.Spec.Window,
+		Window:      window,
 		Config:      string(config),
 		Indicator: slo.Indicator{
 			Ratio:   ratio,
