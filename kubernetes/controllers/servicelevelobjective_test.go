@@ -3,11 +3,9 @@ package controllers
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +27,7 @@ var (
 		},
 		Spec: pyrrav1alpha1.ServiceLevelObjectiveSpec{
 			Target: "99.5",
-			Window: model.Duration(28 * 24 * time.Hour),
+			Window: "28d",
 			ServiceLevelIndicator: pyrrav1alpha1.ServiceLevelIndicator{
 				Ratio: &pyrrav1alpha1.RatioIndicator{
 					Errors: pyrrav1alpha1.Query{

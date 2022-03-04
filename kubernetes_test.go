@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ var (
 			Name:      "objective-one",
 			Namespace: "default",
 		},
-		Spec: pyrrav1alpha1.ServiceLevelObjectiveSpec{Target: "99"},
+		Spec: pyrrav1alpha1.ServiceLevelObjectiveSpec{Target: "99", Window: "1w"},
 	}
 	c1, _ = yaml.Marshal(o1)
 	i1    = openapiserver.Objective{
@@ -30,6 +31,7 @@ var (
 			"namespace":       "default",
 		},
 		Target: 0.99,
+		Window: (1 * 7 * 24 * time.Hour).Milliseconds(),
 		Config: string(c1),
 	}
 	o2 = pyrrav1alpha1.ServiceLevelObjective{
@@ -37,7 +39,7 @@ var (
 			Name:      "objective-two",
 			Namespace: "monitoring",
 		},
-		Spec: pyrrav1alpha1.ServiceLevelObjectiveSpec{Target: "98"},
+		Spec: pyrrav1alpha1.ServiceLevelObjectiveSpec{Target: "98", Window: "2w"},
 	}
 	c2, _ = yaml.Marshal(o2)
 	i2    = openapiserver.Objective{
@@ -46,6 +48,7 @@ var (
 			"namespace":       "monitoring",
 		},
 		Target: 0.98,
+		Window: (2 * 7 * 24 * time.Hour).Milliseconds(),
 		Config: string(c2),
 	}
 	o3 = pyrrav1alpha1.ServiceLevelObjective{
@@ -53,7 +56,7 @@ var (
 			Name:      "objective-three",
 			Namespace: "default",
 		},
-		Spec: pyrrav1alpha1.ServiceLevelObjectiveSpec{Target: "42.123"},
+		Spec: pyrrav1alpha1.ServiceLevelObjectiveSpec{Target: "42.123", Window: "3w"},
 	}
 	c3, _ = yaml.Marshal(o3)
 	i3    = openapiserver.Objective{
@@ -62,6 +65,7 @@ var (
 			"namespace":       "default",
 		},
 		Target: 0.42123,
+		Window: (3 * 7 * 24 * time.Hour).Milliseconds(),
 		Config: string(c3),
 	}
 )
