@@ -13,6 +13,14 @@ OPENAPI ?= docker run --rm \
 		-v ${PWD}:${PWD} \
 		openapitools/openapi-generator-cli:v5.1.1
 
+gojsontoyaml:
+ifeq (, $(shell which gojsontoyaml))
+	go install github.com/brancz/gojsontoyaml@latest
+GOJSONTOYAML=$(GOBIN)/gojsontoyaml
+else
+GOJSONTOYAML=$(shell which gojsontoyaml)
+endif
+
 all: ui/build build lint
 
 .PHONY: install
@@ -39,8 +47,9 @@ deploy: manifests config/api.yaml config/kubernetes.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: controller-gen gojsontoyaml ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=pyrra-kubernetes crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	find config/crd/bases -name '*.yaml' -print0 | xargs -0 -I{} sh -c '$(GOJSONTOYAML) -yamltojson < "$$1" | jq > "$(PWD)/config/crd/bases/$$(basename -s .yaml $$1).json"' -- {}
 
 config: config/api.yaml config/kubernetes.yaml
 
