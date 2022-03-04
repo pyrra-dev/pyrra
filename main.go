@@ -108,17 +108,23 @@ func cmdAPI(logger log.Logger, prometheusURL, prometheusExternal, apiURL *url.UR
 
 	reg := prometheus.NewRegistry()
 
-	config := api.Config{Address: prometheusURL.String()}
-	if len(prometheusBearerTokenPath) > 0 {
-		config.RoundTripper = promconfig.NewAuthorizationCredentialsFileRoundTripper("Bearer", prometheusBearerTokenPath, api.DefaultRoundTripper)
+	roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
+		BearerTokenFile: prometheusBearerTokenPath,
+	}, "pyrra")
+	if err != nil {
+		level.Error(logger).Log("msg", "failed to create API client round tripper", "err", err)
+		return 0
 	}
 
-	var client api.Client
-	client, err = api.NewClient(config)
+	client, err := api.NewClient(api.Config{
+		Address:      prometheusURL.String(),
+		RoundTripper: roundTripper,
+	})
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to create API client", "err", err)
 		return 1
 	}
+	// Wrap client to add extra headers for Thanos.
 	client = newThanosClient(client)
 
 	cache, err := ristretto.NewCache(&ristretto.Config{
