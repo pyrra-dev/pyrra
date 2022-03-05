@@ -102,6 +102,7 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
           <UplotReact options={{
             width: width,
             height: 150,
+            padding: [15, 0, 0, 0],
             cursor: uPlotCursor,
             series: [{}, ...errorsLabels.map((label: string, i: number): uPlot.Series => {
               return {
@@ -128,6 +129,7 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
           <UplotReact options={{
             width: width,
             height: 150,
+            padding: [15, 0, 0, 0],
             series: [{}, {}],
             scales: {
               x: { min: start, max: end },

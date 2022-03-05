@@ -105,6 +105,7 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
           <UplotReact options={{
             width: width,
             height: 150,
+            padding: [15, 0, 0, 0],
             cursor: uPlotCursor,
             series: [{}, ...requestsLabels.map((label: string): uPlot.Series => {
               return {
@@ -127,6 +128,7 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
           <UplotReact options={{
             width: width,
             height: 150,
+            padding: [15, 0, 0, 0],
             series: [{}, {}],
             scales: {
               x: { min: start, max: end },

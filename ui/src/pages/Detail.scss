@@ -6,7 +6,7 @@
   .metrics {
     width: 100%;
     display: grid;
-    margin: 0 15px;
+    padding: 0 15px;
     grid-template-columns: repeat(1, 1fr);
     column-gap: 25px;
     row-gap: 25px;
@@ -23,7 +23,7 @@
       row-gap: 75px;
     }
     @media (min-width: 1200px) {
-      margin: 0 75px;
+      padding: 0 75px;
     }
 
     div {
