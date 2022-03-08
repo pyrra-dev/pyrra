@@ -21,6 +21,7 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 
 	"github.com/alecthomas/kong"
 	"github.com/cespare/xxhash/v2"
@@ -70,27 +71,57 @@ func main() {
 	logger = log.WithPrefix(logger, "caller", log.DefaultCaller)
 	logger = log.WithPrefix(logger, "ts", log.DefaultTimestampUTC)
 
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
+		collectors.NewBuildInfoCollector(),
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
+
+	var client api.Client
+	if CLI.API.PrometheusURL != nil {
+		roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
+			BearerTokenFile: CLI.API.PrometheusBearerTokenPath,
+		}, "pyrra")
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to create API client round tripper", "err", err)
+			os.Exit(1)
+		}
+
+		client, err = api.NewClient(api.Config{
+			Address:      CLI.API.PrometheusURL.String(),
+			RoundTripper: roundTripper,
+		})
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to create API client", "err", err)
+			os.Exit(1)
+		}
+		// Wrap client to add extra headers for Thanos.
+		client = newThanosClient(client)
+		level.Info(logger).Log("msg", "using Prometheus", "url", CLI.API.PrometheusURL.String())
+
+		if CLI.API.PrometheusExternalURL == nil {
+			CLI.API.PrometheusExternalURL = CLI.API.PrometheusURL
+		}
+	}
+
 	var code int
 	switch ctx.Command() {
 	case "api":
-		code = cmdAPI(logger, CLI.API.PrometheusURL, CLI.API.PrometheusExternalURL, CLI.API.APIURL, CLI.API.RoutePrefix, CLI.API.UIRoutePrefix, CLI.API.PrometheusBearerTokenPath)
+		code = cmdAPI(logger, reg, client, CLI.API.PrometheusExternalURL, CLI.API.APIURL, CLI.API.RoutePrefix, CLI.API.UIRoutePrefix)
 	case "filesystem":
-		code = cmdFilesystem(logger, CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
+		code = cmdFilesystem(logger, reg, client, CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
 	case "kubernetes":
 		code = cmdKubernetes(logger, CLI.Kubernetes.MetricsAddr, CLI.Kubernetes.ConfigMapMode)
 	}
 	os.Exit(code)
 }
 
-func cmdAPI(logger log.Logger, prometheusURL, prometheusExternal, apiURL *url.URL, routePrefix, uiRoutePrefix, prometheusBearerTokenPath string) int {
+func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, prometheusExternal, apiURL *url.URL, routePrefix, uiRoutePrefix string) int {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to read UI build files", "err", err)
 		return 1
-	}
-
-	if prometheusExternal == nil {
-		prometheusExternal = prometheusURL
 	}
 
 	// RoutePrefix must always be at least '/'.
@@ -101,31 +132,9 @@ func cmdAPI(logger log.Logger, prometheusURL, prometheusExternal, apiURL *url.UR
 		uiRoutePrefix = "/" + strings.Trim(uiRoutePrefix, "/")
 	}
 
-	level.Info(logger).Log("msg", "using Prometheus", "url", prometheusURL.String())
 	level.Info(logger).Log("msg", "UI redirect to Prometheus", "url", prometheusExternal.String())
 	level.Info(logger).Log("msg", "using API at", "url", apiURL.String())
 	level.Info(logger).Log("msg", "using route prefix", "prefix", routePrefix)
-
-	reg := prometheus.NewRegistry()
-
-	roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
-		BearerTokenFile: prometheusBearerTokenPath,
-	}, "pyrra")
-	if err != nil {
-		level.Error(logger).Log("msg", "failed to create API client round tripper", "err", err)
-		return 0
-	}
-
-	client, err := api.NewClient(api.Config{
-		Address:      prometheusURL.String(),
-		RoundTripper: roundTripper,
-	})
-	if err != nil {
-		level.Error(logger).Log("msg", "failed to create API client", "err", err)
-		return 1
-	}
-	// Wrap client to add extra headers for Thanos.
-	client = newThanosClient(client)
 
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
@@ -138,7 +147,7 @@ func cmdAPI(logger log.Logger, prometheusURL, prometheusExternal, apiURL *url.UR
 	}
 	defer cache.Close()
 	promAPI := &promCache{
-		api:   prometheusv1.NewAPI(client),
+		api:   prometheusv1.NewAPI(promClient),
 		cache: cache,
 	}
 
@@ -242,6 +251,9 @@ func (c *thanosClient) URL(ep string, args map[string]string) *url.URL {
 }
 
 func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response, []byte, error) {
+	if r.Body == nil {
+		return c.client.Do(ctx, r)
+	}
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading body: %w", err)

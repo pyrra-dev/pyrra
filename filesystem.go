@@ -8,14 +8,15 @@ import (
 	"net/http"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
@@ -70,10 +71,7 @@ Objectives:
 	return objectives
 }
 
-func cmdFilesystem(logger log.Logger, configFiles, prometheusFolder string) int {
-	// TODO: Move to main()
-	reg := prometheus.NewRegistry()
-
+func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
 		Help: "The total amount of reconciles.",
@@ -84,7 +82,6 @@ func cmdFilesystem(logger log.Logger, configFiles, prometheusFolder string) int 
 	})
 
 	reg.MustRegister(
-		collectors.NewGoCollector(),
 		reconcilesTotal,
 		reconcilesErrors,
 	)
@@ -92,6 +89,7 @@ func cmdFilesystem(logger log.Logger, configFiles, prometheusFolder string) int 
 	ctx, cancel := context.WithCancel(context.Background())
 	objectives := &Objectives{objectives: map[string]slo.Objective{}}
 	files := make(chan string, 16)
+	reload := make(chan struct{}, 16)
 
 	var gr run.Group
 	{
@@ -205,10 +203,52 @@ func cmdFilesystem(logger log.Logger, configFiles, prometheusFolder string) int 
 					}
 
 					objectives.Set(objective)
+
+					reload <- struct{}{} // Trigger a Prometheus reload
 				}
 			}
 		}, func(err error) {
 			cancel()
+		})
+	}
+	{
+		// This gorountine waits for reload updates and eventually calls Prometheus' reload endpoint.
+		gr.Add(func() error {
+			for {
+				select {
+				case <-ctx.Done():
+					return nil
+				case <-reload:
+					timeout := time.After(5 * time.Second)
+					for {
+						select {
+						case <-reload:
+							// If we receive another reload within 5s we reset the timeout to 5s again.
+							timeout = time.After(5 * time.Second)
+						case <-timeout:
+							// Eventually we trigger a reload and then start the outer loop again
+							// waiting for updates or termination.
+							level.Debug(logger).Log("msg", "reloading Prometheus now")
+							url := promClient.URL("/-/reload", nil)
+							resp, body, err := promClient.Do(ctx, &http.Request{Method: http.MethodPost, URL: url})
+							if err != nil {
+								level.Warn(logger).Log("msg", "failed to reload Prometheus")
+							}
+							if resp.StatusCode/100 != 2 {
+								level.Warn(logger).Log(
+									"msg", "failed to reload Prometheus",
+									"url", url,
+									"status", resp.Status,
+									"body", body,
+								)
+							}
+						}
+					}
+				}
+			}
+		}, func(err error) {
+			cancel()
+			close(reload)
 		})
 	}
 	{
