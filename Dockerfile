@@ -13,7 +13,7 @@ COPY Makefile Makefile
 RUN make ui/node_modules ui/build
 
 # Build the kubernetes binary
-FROM golang:1.17.7 as builder
+FROM golang:1.17.8 as builder
 
 WORKDIR /workspace
 
