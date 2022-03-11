@@ -1,6 +1,8 @@
 package slo
 
 import (
+	"time"
+
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
@@ -23,6 +25,16 @@ func (o Objective) Name() string {
 		}
 	}
 	return ""
+}
+
+func (o Objective) HasWindows(short, long model.Duration) (window, bool) {
+	for _, w := range windows(time.Duration(o.Window)) {
+		if w.Short == time.Duration(short) && w.Long == time.Duration(long) {
+			return w, true
+		}
+	}
+
+	return window{}, false
 }
 
 type Indicator struct {

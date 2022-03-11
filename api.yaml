@@ -299,6 +299,7 @@ components:
     MultiBurnrateAlert:
       type: object
       required:
+        - labels
         - severity
         - for
         - factor
@@ -306,6 +307,10 @@ components:
         - long
         - state
       properties:
+        labels:
+          type: object
+          additionalProperties:
+            type: string
         severity:
           type: string
         for:

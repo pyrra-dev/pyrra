@@ -3,9 +3,14 @@ package main
 import (
 	"math"
 	"testing"
+	"time"
 
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/stretchr/testify/require"
+
+	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 func TestMatrixToValues(t *testing.T) {
@@ -180,4 +185,51 @@ func BenchmarkMatrixToValues(b *testing.B) {
 		b.ResetTimer()
 		matrixToValues(m)
 	})
+}
+
+func TestAlertsMatchingObjectives(t *testing.T) {
+	alerts := []*model.Sample{{
+		Metric: model.Metric{
+			labels.MetricName: "ALERTS",
+			"alertname":       "ErrorBudgetBurn",
+			"alertstate":      "firing",
+			"job":             "prometheus",
+			"long":            "2d",
+			"severity":        "warning",
+			"short":           "3h",
+			"slo":             "prometheus-rule-evaluation-failures",
+		},
+	}}
+	objectives := []slo.Objective{{
+		Labels: labels.Labels{
+			{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
+			{Name: "namespace", Value: "monitoring"},
+		},
+		Window: model.Duration(14 * 24 * time.Hour),
+	}}
+	expected := []openapiserver.MultiBurnrateAlert{{
+		// In the UI we identify the SLO by these labels.
+		Labels: map[string]string{
+			labels.MetricName: "prometheus-rule-evaluation-failures",
+			"namespace":       "monitoring",
+			"alertname":       "ErrorBudgetBurn",
+			"job":             "prometheus",
+		},
+		Severity: "warning",
+		State:    "firing",
+		For:      5400000,
+		Factor:   1,
+		Short: openapiserver.Burnrate{
+			Window:  10800000,
+			Current: -1,
+			Query:   "",
+		},
+		Long: openapiserver.Burnrate{
+			Window:  172800000,
+			Current: -1,
+			Query:   "",
+		},
+	}}
+
+	require.Equal(t, expected, alertsMatchingObjectives(alerts, objectives))
 }

@@ -16,20 +16,22 @@ import (
 
 // MultiBurnrateAlert struct for MultiBurnrateAlert
 type MultiBurnrateAlert struct {
-	Severity string   `json:"severity"`
-	For      int64    `json:"for"`
-	Factor   float64  `json:"factor"`
-	Short    Burnrate `json:"short"`
-	Long     Burnrate `json:"long"`
-	State    string   `json:"state"`
+	Labels   map[string]string `json:"labels"`
+	Severity string            `json:"severity"`
+	For      int64             `json:"for"`
+	Factor   float64           `json:"factor"`
+	Short    Burnrate          `json:"short"`
+	Long     Burnrate          `json:"long"`
+	State    string            `json:"state"`
 }
 
 // NewMultiBurnrateAlert instantiates a new MultiBurnrateAlert object
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewMultiBurnrateAlert(severity string, for_ int64, factor float64, short Burnrate, long Burnrate, state string) *MultiBurnrateAlert {
+func NewMultiBurnrateAlert(labels map[string]string, severity string, for_ int64, factor float64, short Burnrate, long Burnrate, state string) *MultiBurnrateAlert {
 	this := MultiBurnrateAlert{}
+	this.Labels = labels
 	this.Severity = severity
 	this.For = for_
 	this.Factor = factor
@@ -45,6 +47,30 @@ func NewMultiBurnrateAlert(severity string, for_ int64, factor float64, short Bu
 func NewMultiBurnrateAlertWithDefaults() *MultiBurnrateAlert {
 	this := MultiBurnrateAlert{}
 	return &this
+}
+
+// GetLabels returns the Labels field value
+func (o *MultiBurnrateAlert) GetLabels() map[string]string {
+	if o == nil {
+		var ret map[string]string
+		return ret
+	}
+
+	return o.Labels
+}
+
+// GetLabelsOk returns a tuple with the Labels field value
+// and a boolean to check if the value has been set.
+func (o *MultiBurnrateAlert) GetLabelsOk() (*map[string]string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Labels, true
+}
+
+// SetLabels sets field value
+func (o *MultiBurnrateAlert) SetLabels(v map[string]string) {
+	o.Labels = v
 }
 
 // GetSeverity returns the Severity field value
@@ -193,6 +219,9 @@ func (o *MultiBurnrateAlert) SetState(v string) {
 
 func (o MultiBurnrateAlert) MarshalJSON() ([]byte, error) {
 	toSerialize := map[string]interface{}{}
+	if true {
+		toSerialize["labels"] = o.Labels
+	}
 	if true {
 		toSerialize["severity"] = o.Severity
 	}

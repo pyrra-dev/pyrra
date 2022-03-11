@@ -423,7 +423,13 @@ components:
           current: 5.962133916683182
           query: query
           window: 1
+        labels:
+          key: labels
       properties:
+        labels:
+          additionalProperties:
+            type: string
+          type: object
         severity:
           type: string
         for:
@@ -445,6 +451,7 @@ components:
       required:
       - factor
       - for
+      - labels
       - long
       - severity
       - short
