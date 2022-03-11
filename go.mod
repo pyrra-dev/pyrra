@@ -9,10 +9,10 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.0
-	github.com/go-logr/logr v1.2.2
+	github.com/go-kit/log v0.2.0
 	github.com/gorilla/mux v1.8.0
 	github.com/oklog/run v1.1.0
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.54.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.55.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1
 	github.com/prometheus/prometheus v1.8.2-0.20220211202545-56e14463bccf
@@ -32,8 +32,8 @@ require (
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
-	github.com/go-kit/log v0.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
+	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.2.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v1.0.0 // indirect
