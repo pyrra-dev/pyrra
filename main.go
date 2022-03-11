@@ -22,6 +22,7 @@ import (
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/pyrra-dev/pyrra/slo"
 
 	"github.com/alecthomas/kong"
 	"github.com/cespare/xxhash/v2"
@@ -609,6 +610,77 @@ const (
 )
 
 func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
+	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
+	if err != nil {
+		var apiErr openapiclient.GenericOpenAPIError
+		if errors.As(err, &apiErr) {
+			if strings.HasPrefix(apiErr.Error(), strconv.Itoa(http.StatusNotFound)) {
+				return openapiserver.ImplResponse{Code: http.StatusNotFound}, apiErr
+			}
+		}
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	objectives := make([]slo.Objective, len(clientObjectives))
+	for _, o := range clientObjectives {
+		objectives = append(objectives, openapi.InternalFromClient(o))
+	}
+
+	// Match alerts that at least have one character for the slo name.
+	// TODO: Adjust the query to only query for SLOs that we're really interested in.
+	queryAlerts := `ALERTS{slo=~".+"}`
+	level.Debug(o.logger).Log("msg", "sending query for alerts", "query", queryAlerts)
+	value, _, err := o.promAPI.Query(ctx, queryAlerts, time.Now())
+	if err != nil {
+		level.Warn(o.logger).Log("msg", "failed to query alerts", "query", queryAlerts, "err", err)
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	vector, ok := value.(model.Vector)
+	if !ok {
+		err := fmt.Errorf("no vector returned")
+		level.Debug(o.logger).Log("msg", "returned data wasn't of type vector", "query", queryAlerts, "err", err)
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+	if len(vector) == 0 {
+		empty := []struct{}{}
+		return openapiserver.ImplResponse{Code: http.StatusOK, Body: empty}, nil
+	}
+
+	alerts := make([]openapiserver.MultiBurnrateAlert, 0, len(vector))
+
+	// For each alert iterate over all given objectives to find matching ones to return.
+	// TODO: If this gets out of hand we should probably use hashing to find matches instead.
+	for _, sample := range vector {
+		for _, o := range objectives {
+			if string(sample.Metric["slo"]) == o.Name() {
+				fmt.Println(sample.Metric.String())
+
+				// TODO: Figure out how to best match this.
+				// It might be good to ask the objective if both short and long windows
+				// are part of the objective's windows (make it a function).
+
+				// If they are part of the window we can include them and merge both objective and sample data
+				// Example: Factor from the objective and alertstate from the sample.
+
+				//alerts = append(alerts, openapiserver.MultiBurnrateAlert{
+				//	Severity: string(sample.Metric["severity"]),
+				//	Short:    string(sample.Metric["short"]),
+				//	Long:     string(sample.Metric["long"]),
+				//	// For:      ba.For.Milliseconds(),
+				//	// Factor:   ba.Factor,
+				//	// Short:    *short,
+				//	// Long:     *long,
+				//	// State:    alertstate,
+				//})
+			}
+		}
+	}
+
+	return openapiserver.ImplResponse{Code: http.StatusOK, Body: alerts}, nil
+}
+
+func (o *ObjectivesServer) GetMultiBurnrateAlertsOLD(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
