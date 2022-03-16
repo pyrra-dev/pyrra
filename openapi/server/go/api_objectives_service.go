@@ -27,7 +27,7 @@ func NewObjectivesApiService() ObjectivesApiServicer {
 }
 
 // GetMultiBurnrateAlerts - Get the MultiBurnrateAlerts for the Objective
-func (s *ObjectivesApiService) GetMultiBurnrateAlerts(ctx context.Context, expr string, grouping string) (ImplResponse, error) {
+func (s *ObjectivesApiService) GetMultiBurnrateAlerts(ctx context.Context, expr string, grouping string, inactive bool) (ImplResponse, error) {
 	// TODO - update GetMultiBurnrateAlerts with the required logic for this service method.
 	// Add api_objectives_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 

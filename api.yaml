@@ -95,8 +95,15 @@ paths:
             type: string
         - in: query
           name: grouping
+          required: false
           schema:
             type: string
+        - in: query
+          name: inactive
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: Get GetMultiBurnrateAlerts for the Objective

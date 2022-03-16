@@ -608,7 +608,7 @@ const (
 	alertstateFiring   = "firing"
 )
 
-func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string, inactive bool) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		var apiErr openapiclient.GenericOpenAPIError
@@ -626,8 +626,31 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 	}
 
 	// Match alerts that at least have one character for the slo name.
-	// TODO: Adjust the query to only query for SLOs that we're really interested in.
 	queryAlerts := `ALERTS{slo=~".+"}`
+
+	if grouping != "" {
+		// If grouping exists we merge those matchers directly into the queryAlerts query.
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		if err != nil {
+			return openapiserver.ImplResponse{}, fmt.Errorf("failed parsing grouping matchers: %w", err)
+		}
+
+		expr, err := parser.ParseExpr(queryAlerts)
+		if err != nil {
+			return openapiserver.ImplResponse{}, fmt.Errorf("failed parsing alerts metric: %w", err)
+		}
+
+		vec := expr.(*parser.VectorSelector)
+		for _, m := range groupingMatchers {
+			if m.Name == labels.MetricName || m.Name == "slo" { // adding some safeguards that shouldn't be allowed.
+				continue
+			}
+			vec.LabelMatchers = append(vec.LabelMatchers, m)
+		}
+
+		queryAlerts = vec.String()
+	}
+
 	level.Debug(o.logger).Log("msg", "sending query for alerts", "query", queryAlerts)
 	// TODO: Make sure this query won't be cached for more than just a few seconds, e.g. 5s
 	value, _, err := o.promAPI.Query(ctx, queryAlerts, time.Now())
@@ -642,12 +665,8 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 		level.Debug(o.logger).Log("msg", "returned data wasn't of type vector", "query", queryAlerts, "err", err)
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
-	if len(vector) == 0 {
-		empty := []struct{}{}
-		return openapiserver.ImplResponse{Code: http.StatusOK, Body: empty}, nil
-	}
 
-	alerts := alertsMatchingObjectives(vector, objectives)
+	alerts := alertsMatchingObjectives(vector, objectives, inactive)
 
 	return openapiserver.ImplResponse{Code: http.StatusOK, Body: alerts}, nil
 }
@@ -656,8 +675,39 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 // All labels of an objective need to be equal if they exist on the ALERTS metric.
 // Therefore, only a subset on labels are taken into account
 // which gives the ALERTS metric the opportunity to include more custom labels.
-func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective) []openapiserver.MultiBurnrateAlert {
+func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, inactive bool) []openapiserver.MultiBurnrateAlert {
 	alerts := make([]openapiserver.MultiBurnrateAlert, 0, len(metrics))
+
+	if inactive {
+		for _, o := range objectives {
+			if len(o.Labels) == 0 {
+				continue
+			}
+			lset := map[string]string{}
+			for _, l := range o.Labels {
+				lset[l.Name] = l.Value
+			}
+			for _, w := range o.Windows() {
+				alerts = append(alerts, openapiserver.MultiBurnrateAlert{
+					Labels:   lset,
+					Severity: string(w.Severity),
+					For:      w.For.Milliseconds(),
+					Factor:   w.Factor,
+					Short: openapiserver.Burnrate{
+						Window:  w.Short.Milliseconds(),
+						Current: -1,
+						Query:   "",
+					},
+					Long: openapiserver.Burnrate{
+						Window:  w.Long.Milliseconds(),
+						Current: -1,
+						Query:   "",
+					},
+					State: alertstateInactive,
+				})
+			}
+		}
+	}
 
 	// For each alert iterate over all given objectives to find matching ones to return.
 	// If this gets out of hand as it's O(alerts*objectives) we should probably use hashing to find matches instead.
@@ -708,39 +758,61 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective) 
 			for _, l := range o.Labels {
 				lset[l.Name] = l.Value
 			}
+
+			// TODO: Not sure we really have a need for this...
 			// Add potentially missing labels from metric to alerts' labelset.
 			// Excluding a couple ones that are part of the struct itself.
-			for n, v := range sample.Metric {
-				name := string(n)
-				value := string(v)
-				if name == "alertstate" ||
-					name == "long" ||
-					name == "severity" ||
-					name == "short" ||
-					name == "slo" ||
-					name == labels.MetricName {
-					continue
-				}
-				lset[name] = value
-			}
+			//for n, v := range sample.Metric {
+			//	name := string(n)
+			//	value := string(v)
+			//	if name == "alertstate" ||
+			//		name == "long" ||
+			//		name == "severity" ||
+			//		name == "short" ||
+			//		name == "slo" ||
+			//		name == labels.MetricName {
+			//		continue
+			//	}
+			//	lset[name] = value
+			//}
 
-			alerts = append(alerts, openapiserver.MultiBurnrateAlert{
-				Labels:   lset,
-				Severity: string(sample.Metric["severity"]),
-				State:    string(sample.Metric["alertstate"]),
-				For:      window.For.Milliseconds(),
-				Factor:   window.Factor,
-				Short: openapiserver.Burnrate{
-					Window:  time.Duration(short).Milliseconds(),
-					Current: -1,
-					Query:   "",
-				},
-				Long: openapiserver.Burnrate{
-					Window:  time.Duration(long).Milliseconds(),
-					Current: -1,
-					Query:   "",
-				},
-			})
+			if !inactive { // If we don't include inactive we can simply append
+				alerts = append(alerts, openapiserver.MultiBurnrateAlert{
+					Labels:   lset,
+					Severity: string(sample.Metric["severity"]),
+					State:    string(sample.Metric["alertstate"]),
+					For:      window.For.Milliseconds(),
+					Factor:   window.Factor,
+					Short: openapiserver.Burnrate{
+						Window:  time.Duration(short).Milliseconds(),
+						Current: -1,
+						Query:   "",
+					},
+					Long: openapiserver.Burnrate{
+						Window:  time.Duration(long).Milliseconds(),
+						Current: -1,
+						Query:   "",
+					},
+				})
+			} else {
+			alerts:
+				for i, alert := range alerts {
+					for n, v := range alert.Labels {
+						if lset[n] != v {
+							continue alerts
+						}
+					}
+					// only continues here if all labels match
+					if alert.Short.Window != time.Duration(short).Milliseconds() {
+						continue alerts
+					}
+					if alert.Long.Window != time.Duration(long).Milliseconds() {
+						continue alerts
+					}
+					// only update state for exact short and long burn rate match
+					alerts[i].State = string(sample.Metric["alertstate"])
+				}
+			}
 		}
 	}
 

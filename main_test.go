@@ -188,48 +188,239 @@ func BenchmarkMatrixToValues(b *testing.B) {
 }
 
 func TestAlertsMatchingObjectives(t *testing.T) {
-	alerts := []*model.Sample{{
-		Metric: model.Metric{
-			labels.MetricName: "ALERTS",
-			"alertname":       "ErrorBudgetBurn",
-			"alertstate":      "firing",
-			"job":             "prometheus",
-			"long":            "2d",
-			"severity":        "warning",
-			"short":           "3h",
-			"slo":             "prometheus-rule-evaluation-failures",
-		},
+	testcases := []struct {
+		name       string
+		metrics    []*model.Sample
+		objectives []slo.Objective
+		inactive   bool
+		alerts     []openapiserver.MultiBurnrateAlert
+	}{{
+		name: "firing",
+		metrics: []*model.Sample{{
+			Metric: model.Metric{
+				labels.MetricName: "ALERTS",
+				"alertname":       "ErrorBudgetBurn",
+				"alertstate":      "firing",
+				"job":             "prometheus",
+				"long":            "2d",
+				"severity":        "warning",
+				"short":           "3h",
+				"slo":             "prometheus-rule-evaluation-failures",
+			},
+		}},
+		objectives: []slo.Objective{{
+			Labels: labels.Labels{
+				{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
+				{Name: "namespace", Value: "monitoring"},
+			},
+			Window: model.Duration(14 * 24 * time.Hour),
+		}},
+		alerts: []openapiserver.MultiBurnrateAlert{{
+			// In the UI we identify the SLO by these labels.
+			Labels: map[string]string{
+				labels.MetricName: "prometheus-rule-evaluation-failures",
+				"namespace":       "monitoring",
+				//"alertname":       "ErrorBudgetBurn",
+				//"job":             "prometheus",
+			},
+			Severity: "warning",
+			State:    "firing",
+			For:      5400000,
+			Factor:   1,
+			Short: openapiserver.Burnrate{
+				Window:  10800000,
+				Current: -1,
+				Query:   "",
+			},
+			Long: openapiserver.Burnrate{
+				Window:  172800000,
+				Current: -1,
+				Query:   "",
+			},
+		}},
+	}, {
+		name:    "inactive",
+		metrics: []*model.Sample{},
+		objectives: []slo.Objective{{
+			Labels: labels.Labels{
+				{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
+				{Name: "namespace", Value: "monitoring"},
+			},
+			Window: model.Duration(14 * 24 * time.Hour),
+		}},
+		inactive: true,
+		alerts: []openapiserver.MultiBurnrateAlert{{
+			Labels: map[string]string{
+				labels.MetricName: "prometheus-rule-evaluation-failures",
+				"namespace":       "monitoring",
+				//"alertname":       "ErrorBudgetBurn",
+				//"job":             "prometheus",
+			},
+			Severity: "critical",
+			State:    "inactive",
+			For:      60000,
+			Factor:   14,
+			Short: openapiserver.Burnrate{
+				Window:  180000,
+				Current: -1,
+			},
+			Long: openapiserver.Burnrate{
+				Window:  1800000,
+				Current: -1,
+			},
+		}, {
+			Labels: map[string]string{
+				labels.MetricName: "prometheus-rule-evaluation-failures",
+				"namespace":       "monitoring",
+				//"alertname":       "ErrorBudgetBurn",
+				//"job":             "prometheus",
+			},
+			Severity: "critical",
+			State:    "inactive",
+			For:      480000,
+			Factor:   7,
+			Short: openapiserver.Burnrate{
+				Window:  900000,
+				Current: -1,
+			},
+			Long: openapiserver.Burnrate{
+				Window:  10800000,
+				Current: -1,
+			},
+		}, {
+			Labels: map[string]string{
+				labels.MetricName: "prometheus-rule-evaluation-failures",
+				"namespace":       "monitoring",
+				//"alertname":       "ErrorBudgetBurn",
+				//"job":             "prometheus",
+			},
+			Severity: "warning",
+			State:    "inactive",
+			For:      1800000,
+			Factor:   2,
+			Short: openapiserver.Burnrate{
+				Window:  3600000,
+				Current: -1,
+			},
+			Long: openapiserver.Burnrate{
+				Window:  43200000,
+				Current: -1,
+			},
+		}, {
+			Labels: map[string]string{
+				labels.MetricName: "prometheus-rule-evaluation-failures",
+				"namespace":       "monitoring",
+				//"alertname":       "ErrorBudgetBurn",
+				//"job":             "prometheus",
+			},
+			Severity: "warning",
+			State:    "inactive",
+			For:      5400000,
+			Factor:   1,
+			Short: openapiserver.Burnrate{
+				Window:  10800000,
+				Current: -1,
+			},
+			Long: openapiserver.Burnrate{
+				Window:  172800000,
+				Current: -1,
+			},
+		}},
+	}, {
+		name: "mixed",
+		metrics: []*model.Sample{{
+			Metric: model.Metric{
+				labels.MetricName: "ALERTS",
+				"alertname":       "ErrorBudgetBurn",
+				"alertstate":      "firing",
+				"job":             "prometheus",
+				"long":            "2d",
+				"severity":        "warning",
+				"short":           "3h",
+				"slo":             "prometheus-rule-evaluation-failures",
+			},
+		}},
+		objectives: []slo.Objective{{
+			Labels: labels.Labels{
+				{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
+				{Name: "namespace", Value: "monitoring"},
+			},
+			Window: model.Duration(14 * 24 * time.Hour),
+		}},
+		inactive: true,
+		alerts: []openapiserver.MultiBurnrateAlert{{
+			Labels: map[string]string{
+				labels.MetricName: "prometheus-rule-evaluation-failures",
+				"namespace":       "monitoring",
+			},
+			Severity: "critical",
+			State:    "inactive",
+			For:      60000,
+			Factor:   14,
+			Short: openapiserver.Burnrate{
+				Window:  180000,
+				Current: -1,
+			},
+			Long: openapiserver.Burnrate{
+				Window:  1800000,
+				Current: -1,
+			},
+		}, {
+			Labels: map[string]string{
+				labels.MetricName: "prometheus-rule-evaluation-failures",
+				"namespace":       "monitoring",
+			},
+			Severity: "critical",
+			State:    "inactive",
+			For:      480000,
+			Factor:   7,
+			Short: openapiserver.Burnrate{
+				Window:  900000,
+				Current: -1,
+			},
+			Long: openapiserver.Burnrate{
+				Window:  10800000,
+				Current: -1,
+			},
+		}, {
+			Labels: map[string]string{
+				labels.MetricName: "prometheus-rule-evaluation-failures",
+				"namespace":       "monitoring",
+			},
+			Severity: "warning",
+			State:    "inactive",
+			For:      1800000,
+			Factor:   2,
+			Short: openapiserver.Burnrate{
+				Window:  3600000,
+				Current: -1,
+			},
+			Long: openapiserver.Burnrate{
+				Window:  43200000,
+				Current: -1,
+			},
+		}, {
+			Labels: map[string]string{
+				labels.MetricName: "prometheus-rule-evaluation-failures",
+				"namespace":       "monitoring",
+			},
+			Severity: "warning",
+			State:    "firing", // THIS IS THE IMPORTANT UPDATE IN THIS TEST
+			For:      5400000,
+			Factor:   1,
+			Short: openapiserver.Burnrate{
+				Window:  10800000,
+				Current: -1,
+			},
+			Long: openapiserver.Burnrate{
+				Window:  172800000,
+				Current: -1,
+			},
+		}},
 	}}
-	objectives := []slo.Objective{{
-		Labels: labels.Labels{
-			{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
-			{Name: "namespace", Value: "monitoring"},
-		},
-		Window: model.Duration(14 * 24 * time.Hour),
-	}}
-	expected := []openapiserver.MultiBurnrateAlert{{
-		// In the UI we identify the SLO by these labels.
-		Labels: map[string]string{
-			labels.MetricName: "prometheus-rule-evaluation-failures",
-			"namespace":       "monitoring",
-			"alertname":       "ErrorBudgetBurn",
-			"job":             "prometheus",
-		},
-		Severity: "warning",
-		State:    "firing",
-		For:      5400000,
-		Factor:   1,
-		Short: openapiserver.Burnrate{
-			Window:  10800000,
-			Current: -1,
-			Query:   "",
-		},
-		Long: openapiserver.Burnrate{
-			Window:  172800000,
-			Current: -1,
-			Query:   "",
-		},
-	}}
-
-	require.Equal(t, expected, alertsMatchingObjectives(alerts, objectives))
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.alerts, alertsMatchingObjectives(tc.metrics, tc.objectives, tc.inactive))
+		})
+	}
 }

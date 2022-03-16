@@ -31,6 +31,7 @@ type ApiGetMultiBurnrateAlertsRequest struct {
 	ApiService *ObjectivesApiService
 	expr       *string
 	grouping   *string
+	inactive   *bool
 }
 
 func (r ApiGetMultiBurnrateAlertsRequest) Expr(expr string) ApiGetMultiBurnrateAlertsRequest {
@@ -39,6 +40,10 @@ func (r ApiGetMultiBurnrateAlertsRequest) Expr(expr string) ApiGetMultiBurnrateA
 }
 func (r ApiGetMultiBurnrateAlertsRequest) Grouping(grouping string) ApiGetMultiBurnrateAlertsRequest {
 	r.grouping = &grouping
+	return r
+}
+func (r ApiGetMultiBurnrateAlertsRequest) Inactive(inactive bool) ApiGetMultiBurnrateAlertsRequest {
+	r.inactive = &inactive
 	return r
 }
 
@@ -89,6 +94,9 @@ func (a *ObjectivesApiService) GetMultiBurnrateAlertsExecute(r ApiGetMultiBurnra
 	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
 	if r.grouping != nil {
 		localVarQueryParams.Add("grouping", parameterToString(*r.grouping, ""))
+	}
+	if r.inactive != nil {
+		localVarQueryParams.Add("inactive", parameterToString(*r.inactive, ""))
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}

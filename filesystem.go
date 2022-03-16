@@ -318,7 +318,7 @@ func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, expr string
 	}, nil
 }
 
-func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
+func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string, inactive bool) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 

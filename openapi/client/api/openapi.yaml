@@ -118,6 +118,14 @@ paths:
         schema:
           type: string
         style: form
+      - explode: true
+        in: query
+        name: inactive
+        required: false
+        schema:
+          default: false
+          type: boolean
+        style: form
       responses:
         "200":
           content:

@@ -27,6 +27,10 @@ func (o Objective) Name() string {
 	return ""
 }
 
+func (o Objective) Windows() []window {
+	return windows(time.Duration(o.Window))
+}
+
 func (o Objective) HasWindows(short, long model.Duration) (window, bool) {
 	for _, w := range windows(time.Duration(o.Window)) {
 		if w.Short == time.Duration(short) && w.Long == time.Duration(long) {
