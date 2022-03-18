@@ -620,7 +620,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
-	objectives := make([]slo.Objective, len(clientObjectives))
+	objectives := make([]slo.Objective, 0, len(clientObjectives))
 	for _, o := range clientObjectives {
 		objectives = append(objectives, openapi.InternalFromClient(o))
 	}
@@ -759,22 +759,23 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 				lset[l.Name] = l.Value
 			}
 
-			// TODO: Not sure we really have a need for this...
 			// Add potentially missing labels from metric to alerts' labelset.
 			// Excluding a couple ones that are part of the struct itself.
-			//for n, v := range sample.Metric {
-			//	name := string(n)
-			//	value := string(v)
-			//	if name == "alertstate" ||
-			//		name == "long" ||
-			//		name == "severity" ||
-			//		name == "short" ||
-			//		name == "slo" ||
-			//		name == labels.MetricName {
-			//		continue
-			//	}
-			//	lset[name] = value
-			//}
+			// This is mostly important for listing the same objectives with grouping by labels.
+			for n, v := range sample.Metric {
+				name := string(n)
+				value := string(v)
+				if name == "alertname" ||
+					name == "alertstate" ||
+					name == "long" ||
+					name == "severity" ||
+					name == "short" ||
+					name == "slo" ||
+					name == labels.MetricName {
+					continue
+				}
+				lset[name] = value
+			}
 
 			if !inactive { // If we don't include inactive we can simply append
 				alerts = append(alerts, openapiserver.MultiBurnrateAlert{

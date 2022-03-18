@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useReducer, useState } from 'react'
 import { Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
-import { Configuration, Objective, ObjectivesApi, ObjectiveStatus } from '../client'
+import {
+  Configuration,
+  MultiBurnrateAlert,
+  MultiBurnrateAlertStateEnum,
+  Objective,
+  ObjectivesApi,
+  ObjectiveStatus
+} from '../client'
 import { API_BASEPATH, formatDuration } from '../App'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
@@ -21,6 +28,7 @@ interface TableObjective extends Objective {
   state: TableObjectiveState
   availability?: TableAvailability | null
   budget?: number | null
+  severity: string | null
 }
 
 interface TableAvailability {
@@ -40,6 +48,7 @@ enum TableActionType {
   SetObjectiveWithStatus,
   SetStatusNone,
   SetStatusError,
+  SetAlert,
 }
 
 type TableAction =
@@ -49,6 +58,7 @@ type TableAction =
   | { type: TableActionType.SetObjectiveWithStatus, lset: string, statusLabels: { [key: string]: string }, objective: Objective, status: ObjectiveStatus }
   | { type: TableActionType.SetStatusNone, lset: string }
   | { type: TableActionType.SetStatusError, lset: string }
+  | { type: TableActionType.SetAlert, labels: { [key: string]: string }, severity: string }
 
 const tableReducer = (state: TableState, action: TableAction): TableState => {
   switch (action.type) {
@@ -65,6 +75,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             target: action.objective.target,
             config: action.objective.config,
             state: TableObjectiveState.Unknown,
+            severity: null,
             availability: undefined,
             budget: undefined
           }
@@ -92,6 +103,13 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
         }
       }
     case TableActionType.SetObjectiveWithStatus:
+      // It is possible that we may need to merge some previous state
+      let severity: string | null = null;
+      const o = state.objectives[action.lset]
+      if (o !== undefined) {
+        severity = o.severity
+      }
+
       return {
         objectives: {
           ...state.objectives,
@@ -104,6 +122,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             target: action.objective.target,
             config: action.objective.config,
             state: TableObjectiveState.Success,
+            severity: severity,
             availability: {
               errors: action.status.availability.errors,
               total: action.status.availability.total,
@@ -134,6 +153,42 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             state: TableObjectiveState.Error,
             availability: null,
             budget: null
+          }
+        }
+      }
+    case TableActionType.SetAlert:
+      // Find the objective this alert's labels is the super set for.
+      const result = Object.entries(state.objectives).find(([lset, o]) => {
+        const allLabels = { ...o.labels, ...o.groupingLabels }
+
+        let isSuperset = true
+        Object.entries(action.labels).forEach(([k, v]) => {
+          if (allLabels[k] === undefined) {
+            return false
+          }
+          if (allLabels[k] !== v) {
+            isSuperset = false
+          }
+        })
+        return isSuperset
+      })
+      if (result === undefined) {
+        return state
+      }
+
+      const [lset, objective] = result
+
+      // If there is one multi burn rate with critical severity firing we want to only show that one.
+      if (objective.severity == 'critical' && action.severity == 'warning') {
+        return state
+      }
+
+      return {
+        objectives: {
+          ...state.objectives,
+          [lset]: {
+            ...state.objectives[lset],
+            severity: action.severity
           }
         }
       }
@@ -182,6 +237,23 @@ const List = () => {
   useEffect(() => {
     // const controller = new AbortController()
     // const signal = controller.signal // TODO: Pass this to the generated fetch client?
+
+    // First we need to make sure to have objectives before we try fetching alerts for them.
+    // If we were to do this concurrently it may end up in a situation
+    // where we try to add an alert for a not yet existing objective.
+    // TODO: This is prone to a concurrency race with updates of status that have additional groupings...
+    // One solution would be to store this in a separate array and reconcile against that array after every status update.
+    if (objectives.length > 0) {
+      api.getMultiBurnrateAlerts({ expr: '', inactive: false })
+        .then((alerts: MultiBurnrateAlert[]) => {
+          alerts.forEach((alert: MultiBurnrateAlert) => {
+            if (alert.state == MultiBurnrateAlertStateEnum.Firing) {
+              dispatchTable({ type: TableActionType.SetAlert, labels: alert.labels, severity: alert.severity })
+            }
+          })
+        })
+        .catch((err) => console.log(err))
+    }
 
     objectives
       .sort((a: Objective, b: Objective) => labelsString(a.labels).localeCompare(labelsString(b.labels)))
@@ -396,19 +468,20 @@ const List = () => {
                   className={tableSortState.type === TableSortType.Budget ? 'active' : ''}
                   onClick={() => handleTableSort(TableSortType.Budget)}
                 >Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon : <IconArrowUpDown/>}</th>
+                <th>Alerts</th>
               </tr>
               </thead>
               <tbody>
-              {tableList.map((o: TableObjective, i: number) => {
+              {tableList.map((o: TableObjective) => {
                 const name = o.labels['__name__']
                 const labelBadges = Object.entries({ ...o.labels, ...o.groupingLabels })
                   .filter((l: [string, string]) => l[0] !== '__name__')
                   .map((l: [string, string]) => (
-                    <Badge bg="light" text="dark">{l[0]}={l[1]}</Badge>
+                    <Badge key={l[0]} bg="light" text="dark">{l[0]}={l[1]}</Badge>
                   ))
 
                 return (
-                  <tr key={i} className="table-row-clickable" onClick={handleTableRowClick(o.labels, o.groupingLabels)}>
+                  <tr key={o.lset} className="table-row-clickable" onClick={handleTableRowClick(o.labels, o.groupingLabels)}>
                     <td>
                       <Link to={objectivePage(o.labels, o.groupingLabels)} className="text-reset" style={{ marginRight: 5 }}>
                         {name}
@@ -424,6 +497,13 @@ const List = () => {
                     </td>
                     <td>
                       {renderErrorBudget(o)}
+                    </td>
+                    <td>
+                      {o.severity != '' ?
+                        <Badge bg="danger" text="light">
+                          {o.severity}
+                        </Badge> : <></>
+                      }
                     </td>
                   </tr>
                 )
