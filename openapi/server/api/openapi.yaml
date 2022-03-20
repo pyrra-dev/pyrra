@@ -1,7 +1,7 @@
 openapi: 3.0.2
 info:
   title: Pyrra
-  version: 0.0.0
+  version: 0.3.4
 servers:
 - url: /api/v1
 paths:

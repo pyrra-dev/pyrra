@@ -179,7 +179,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
       const [lset, objective] = result
 
       // If there is one multi burn rate with critical severity firing we want to only show that one.
-      if (objective.severity == 'critical' && action.severity == 'warning') {
+      if (objective.severity === 'critical' && action.severity === 'warning') {
         return state
       }
 
@@ -247,7 +247,7 @@ const List = () => {
       api.getMultiBurnrateAlerts({ expr: '', inactive: false })
         .then((alerts: MultiBurnrateAlert[]) => {
           alerts.forEach((alert: MultiBurnrateAlert) => {
-            if (alert.state == MultiBurnrateAlertStateEnum.Firing) {
+            if (alert.state === MultiBurnrateAlertStateEnum.Firing) {
               dispatchTable({ type: TableActionType.SetAlert, labels: alert.labels, severity: alert.severity })
             }
           })
@@ -499,7 +499,7 @@ const List = () => {
                       {renderErrorBudget(o)}
                     </td>
                     <td>
-                      {o.severity != '' ?
+                      {o.severity !== '' ?
                         <Badge bg="danger" text="light">
                           {o.severity}
                         </Badge> : <></>

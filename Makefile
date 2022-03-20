@@ -11,7 +11,7 @@ endif
 OPENAPI ?= docker run --rm \
 		--user=$(shell id -u $(USER)):$(shell id -g $(USER)) \
 		-v ${PWD}:${PWD} \
-		openapitools/openapi-generator-cli:v5.1.1
+		openapitools/openapi-generator-cli:v5.4.0
 
 gojsontoyaml:
 ifeq (, $(shell which gojsontoyaml))

@@ -5,6 +5,7 @@ go.mod
 go/api.go
 go/api_objectives.go
 go/api_objectives_service.go
+go/error.go
 go/helpers.go
 go/impl.go
 go/logger.go
