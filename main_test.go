@@ -220,8 +220,7 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			Labels: map[string]string{
 				labels.MetricName: "prometheus-rule-evaluation-failures",
 				"namespace":       "monitoring",
-				//"alertname":       "ErrorBudgetBurn",
-				//"job":             "prometheus",
+				"job":             "prometheus",
 			},
 			Severity: "warning",
 			State:    "firing",
