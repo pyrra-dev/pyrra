@@ -10,6 +10,8 @@
 package openapi
 
 type MultiBurnrateAlert struct {
+	Labels map[string]string `json:"labels"`
+
 	Severity string `json:"severity"`
 
 	For int64 `json:"for"`

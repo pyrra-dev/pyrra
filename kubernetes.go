@@ -173,7 +173,7 @@ func (o *ObjectiveServer) ListObjectives(ctx context.Context, expr string) (open
 	}, nil
 }
 
-func (o *ObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
+func (o *ObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string, inactive bool) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
 

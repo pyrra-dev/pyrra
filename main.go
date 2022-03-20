@@ -19,18 +19,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
-	"github.com/prometheus/client_golang/prometheus/collectors"
-
 	"github.com/alecthomas/kong"
 	"github.com/cespare/xxhash/v2"
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	promconfig "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
@@ -40,6 +39,7 @@ import (
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiclient "github.com/pyrra-dev/pyrra/openapi/client"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 //go:embed ui/build
@@ -608,7 +608,219 @@ const (
 	alertstateFiring   = "firing"
 )
 
-func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
+func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string, inactive bool) (openapiserver.ImplResponse, error) {
+	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
+	if err != nil {
+		var apiErr openapiclient.GenericOpenAPIError
+		if errors.As(err, &apiErr) {
+			if strings.HasPrefix(apiErr.Error(), strconv.Itoa(http.StatusNotFound)) {
+				return openapiserver.ImplResponse{Code: http.StatusNotFound}, apiErr
+			}
+		}
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	objectives := make([]slo.Objective, 0, len(clientObjectives))
+	for _, o := range clientObjectives {
+		objectives = append(objectives, openapi.InternalFromClient(o))
+	}
+
+	// Match alerts that at least have one character for the slo name.
+	queryAlerts := `ALERTS{slo=~".+"}`
+
+	if grouping != "" {
+		// If grouping exists we merge those matchers directly into the queryAlerts query.
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		if err != nil {
+			return openapiserver.ImplResponse{}, fmt.Errorf("failed parsing grouping matchers: %w", err)
+		}
+
+		expr, err := parser.ParseExpr(queryAlerts)
+		if err != nil {
+			return openapiserver.ImplResponse{}, fmt.Errorf("failed parsing alerts metric: %w", err)
+		}
+
+		vec := expr.(*parser.VectorSelector)
+		for _, m := range groupingMatchers {
+			if m.Name == labels.MetricName || m.Name == "slo" { // adding some safeguards that shouldn't be allowed.
+				continue
+			}
+			vec.LabelMatchers = append(vec.LabelMatchers, m)
+		}
+
+		queryAlerts = vec.String()
+	}
+
+	level.Debug(o.logger).Log("msg", "sending query for alerts", "query", queryAlerts)
+	// TODO: Make sure this query won't be cached for more than just a few seconds, e.g. 5s
+	value, _, err := o.promAPI.Query(ctx, queryAlerts, time.Now())
+	if err != nil {
+		level.Warn(o.logger).Log("msg", "failed to query alerts", "query", queryAlerts, "err", err)
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	vector, ok := value.(model.Vector)
+	if !ok {
+		err := fmt.Errorf("no vector returned")
+		level.Debug(o.logger).Log("msg", "returned data wasn't of type vector", "query", queryAlerts, "err", err)
+		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
+	}
+
+	alerts := alertsMatchingObjectives(vector, objectives, inactive)
+
+	return openapiserver.ImplResponse{Code: http.StatusOK, Body: alerts}, nil
+}
+
+// alertsMatchingObjectives loops through all alerts trying to match objectives based on their labels.
+// All labels of an objective need to be equal if they exist on the ALERTS metric.
+// Therefore, only a subset on labels are taken into account
+// which gives the ALERTS metric the opportunity to include more custom labels.
+func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, inactive bool) []openapiserver.MultiBurnrateAlert {
+	alerts := make([]openapiserver.MultiBurnrateAlert, 0, len(metrics))
+
+	if inactive {
+		for _, o := range objectives {
+			if len(o.Labels) == 0 {
+				continue
+			}
+			lset := map[string]string{}
+			for _, l := range o.Labels {
+				lset[l.Name] = l.Value
+			}
+			for _, w := range o.Windows() {
+				alerts = append(alerts, openapiserver.MultiBurnrateAlert{
+					Labels:   lset,
+					Severity: string(w.Severity),
+					For:      w.For.Milliseconds(),
+					Factor:   w.Factor,
+					Short: openapiserver.Burnrate{
+						Window:  w.Short.Milliseconds(),
+						Current: -1,
+						Query:   "",
+					},
+					Long: openapiserver.Burnrate{
+						Window:  w.Long.Milliseconds(),
+						Current: -1,
+						Query:   "",
+					},
+					State: alertstateInactive,
+				})
+			}
+		}
+	}
+
+	// For each alert iterate over all given objectives to find matching ones to return.
+	// If this gets out of hand as it's O(alerts*objectives) we should probably use hashing to find matches instead.
+	for _, sample := range metrics {
+	Objectives:
+		for _, o := range objectives {
+			if len(o.Labels) == 0 {
+				continue
+			}
+
+			lset := map[string]string{}
+			for _, l := range o.Labels {
+				// check if each label of the objective is present in the alert.
+				// If it's present make sure the values match
+				name := l.Name
+				if name == labels.MetricName {
+					// The __name__ is called slo in the ALERTS metrics.
+					name = "slo"
+				}
+				value, found := sample.Metric[model.LabelName(name)]
+				if found {
+					if string(value) != l.Value {
+						continue Objectives
+					}
+					lset[l.Name] = l.Value
+				}
+			}
+
+			short, err := model.ParseDuration(string(sample.Metric[model.LabelName("short")]))
+			if err != nil {
+				// TODO: Return the error and not just skip?
+				continue
+			}
+			long, err := model.ParseDuration(string(sample.Metric[model.LabelName("long")]))
+			if err != nil {
+				// TODO: Return the error and not just skip?
+				continue
+			}
+
+			window, found := o.HasWindows(short, long)
+			if !found {
+				// It could be that the labels match, however the long and short burn rate windows don't.
+				// If that's the case we can't say for sure it's the same objective since it window may be different.
+				continue
+			}
+
+			// Add potentially missing labels from objective to alerts' labelset
+			for _, l := range o.Labels {
+				lset[l.Name] = l.Value
+			}
+
+			// Add potentially missing labels from metric to alerts' labelset.
+			// Excluding a couple ones that are part of the struct itself.
+			// This is mostly important for listing the same objectives with grouping by labels.
+			for n, v := range sample.Metric {
+				name := string(n)
+				value := string(v)
+				if name == "alertname" ||
+					name == "alertstate" ||
+					name == "long" ||
+					name == "severity" ||
+					name == "short" ||
+					name == "slo" ||
+					name == labels.MetricName {
+					continue
+				}
+				lset[name] = value
+			}
+
+			if !inactive { // If we don't include inactive we can simply append
+				alerts = append(alerts, openapiserver.MultiBurnrateAlert{
+					Labels:   lset,
+					Severity: string(sample.Metric["severity"]),
+					State:    string(sample.Metric["alertstate"]),
+					For:      window.For.Milliseconds(),
+					Factor:   window.Factor,
+					Short: openapiserver.Burnrate{
+						Window:  time.Duration(short).Milliseconds(),
+						Current: -1,
+						Query:   "",
+					},
+					Long: openapiserver.Burnrate{
+						Window:  time.Duration(long).Milliseconds(),
+						Current: -1,
+						Query:   "",
+					},
+				})
+			} else {
+			alerts:
+				for i, alert := range alerts {
+					for n, v := range alert.Labels {
+						if lset[n] != v {
+							continue alerts
+						}
+					}
+					// only continues here if all labels match
+					if alert.Short.Window != time.Duration(short).Milliseconds() {
+						continue alerts
+					}
+					if alert.Long.Window != time.Duration(long).Milliseconds() {
+						continue alerts
+					}
+					// only update state for exact short and long burn rate match
+					alerts[i].State = string(sample.Metric["alertstate"])
+				}
+			}
+		}
+	}
+
+	return alerts
+}
+
+func (o *ObjectivesServer) GetMultiBurnrateAlertsOLD(ctx context.Context, expr, grouping string) (openapiserver.ImplResponse, error) {
 	clientObjectives, _, err := o.apiclient.ObjectivesApi.ListObjectives(ctx).Expr(expr).Execute()
 	if err != nil {
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err

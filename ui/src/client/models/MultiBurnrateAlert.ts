@@ -28,6 +28,12 @@ import {
 export interface MultiBurnrateAlert {
     /**
      * 
+     * @type {{ [key: string]: string; }}
+     * @memberof MultiBurnrateAlert
+     */
+    labels: { [key: string]: string; };
+    /**
+     * 
      * @type {string}
      * @memberof MultiBurnrateAlert
      */
@@ -84,6 +90,7 @@ export function MultiBurnrateAlertFromJSONTyped(json: any, ignoreDiscriminator: 
     }
     return {
         
+        'labels': json['labels'],
         'severity': json['severity'],
         '_for': json['for'],
         'factor': json['factor'],
@@ -102,6 +109,7 @@ export function MultiBurnrateAlertToJSON(value?: MultiBurnrateAlert | null): any
     }
     return {
         
+        'labels': value.labels,
         'severity': value.severity,
         'for': value._for,
         'factor': value.factor,
