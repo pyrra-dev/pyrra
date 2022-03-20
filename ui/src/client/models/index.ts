@@ -1,3 +1,5 @@
+/* tslint:disable */
+/* eslint-disable */
 export * from './Burnrate';
 export * from './Indicator';
 export * from './IndicatorLatency';
