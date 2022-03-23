@@ -337,11 +337,14 @@ func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (mode
 	if err != nil {
 		return nil, warnings, fmt.Errorf("prometheus query: %w", err)
 	}
+	if len(warnings) > 0 {
+		return value, warnings, nil
+	}
 
 	cacheDuration := contextGetPromCache(ctx)
 	if cacheDuration > 0 {
 		if v, ok := value.(model.Vector); ok {
-			if len(v) > 0 && len(warnings) == 0 {
+			if len(v) > 0 {
 				_ = p.cache.SetWithTTL(query, value, duration.Milliseconds(), cacheDuration)
 			}
 		}
@@ -351,7 +354,12 @@ func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (mode
 }
 
 func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error) {
-	if value, exists := p.cache.Get(query); exists {
+	// Get the full time range of this query from start to end.
+	// We round by 10s to adjust for small imperfections to increase cache hits.
+	timeRange := r.End.Sub(r.Start).Round(10 * time.Second)
+	cacheKey := fmt.Sprintf("%d;%s", timeRange.Milliseconds(), query)
+
+	if value, exists := p.cache.Get(cacheKey); exists {
 		return value.(model.Value), nil, nil
 	}
 
@@ -361,12 +369,15 @@ func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1
 	if err != nil {
 		return nil, warnings, fmt.Errorf("prometheus query range: %w", err)
 	}
+	if len(warnings) > 0 {
+		return value, warnings, nil
+	}
 
 	cacheDuration := contextGetPromCache(ctx)
 	if cacheDuration > 0 {
 		if m, ok := value.(model.Matrix); ok {
-			if len(m) > 0 && len(warnings) == 0 {
-				_ = p.cache.SetWithTTL(query, value, duration.Milliseconds(), cacheDuration)
+			if len(m) > 0 {
+				_ = p.cache.SetWithTTL(cacheKey, value, duration.Milliseconds(), cacheDuration)
 			}
 		}
 	}
