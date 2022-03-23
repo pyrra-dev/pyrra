@@ -233,6 +233,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 							resp, body, err := promClient.Do(ctx, &http.Request{Method: http.MethodPost, URL: url})
 							if err != nil {
 								level.Warn(logger).Log("msg", "failed to reload Prometheus")
+								continue
 							}
 							if resp.StatusCode/100 != 2 {
 								level.Warn(logger).Log(
