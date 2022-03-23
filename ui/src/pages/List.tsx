@@ -11,8 +11,9 @@ import {
 import { API_BASEPATH, formatDuration } from '../App'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '../components/Icons'
+import { IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning } from '../components/Icons'
 import { labelsString } from "../labels";
+import { reds } from '../components/graphs/colors'
 
 enum TableObjectiveState {
   Unknown,
@@ -401,7 +402,6 @@ const List = () => {
 
 
         let ls = labelsString(Object.assign({}, o.labels, o.groupingLabels))
-        console.log(ls)
         return (
           <>
             <OverlayTrigger
@@ -421,11 +421,12 @@ const List = () => {
                 key={`${ls}-warning`}
                 overlay={
                   <OverlayTooltip id={`tooltip-${ls}-warning`}>
-                    Just one request error will exhaust the entire error budget.<br/>
-                    Either increase the amount of requests or decrease your objective's target.
+                    Too few requests!<br/>Adjust your objective or wait for events.
                   </OverlayTooltip>
                 }>
-                <TriangleExclamation width={24} height={24}/>
+                <span className='volume-warning'>
+                  <IconWarning width={20} height={20} fill={`#${reds[0]}`}/>
+                </span>
               </OverlayTrigger>
             </> : <></>}
           </>
