@@ -18,26 +18,40 @@ import ErrorsGraph from "../components/graphs/ErrorsGraph";
 import AlertsTable from "../components/AlertsTable";
 
 const Detail = () => {
-  const navigate = useNavigate()
-  const query = new URLSearchParams(useLocation().search)
-
   const api = useMemo(() => {
     return new ObjectivesApi(new Configuration({ basePath: API_BASEPATH }))
-  }, [])
+  }, []);
 
-  const queryExpr = query.get('expr')
-  const expr = queryExpr == null ? '' : queryExpr
-  const labels = parseLabels(expr)
+  const navigate = useNavigate()
+  const {search} = useLocation()
 
-  const groupingExpr = query.get('grouping')
-  const grouping = groupingExpr == null ? '' : groupingExpr
-  const groupingLabels = parseLabels(grouping)
+  const {
+    timeRange,
+    expr,
+    grouping,
+    groupingExpr,
+    groupingLabels,
+    name,
+    labels,
+  } = useMemo(() => {
+    const query = new URLSearchParams(search)
 
-  const name: string = labels['__name__']
+    const queryExpr = query.get('expr')
+    const expr = queryExpr == null ? '' : queryExpr
+    const labels = parseLabels(expr)
 
-  const timeRangeQuery = query.get('timerange')
-  const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
-  const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
+    const groupingExpr = query.get('grouping')
+    const grouping = groupingExpr == null ? '' : groupingExpr
+    const groupingLabels = parseLabels(grouping)
+
+    const name: string = labels['__name__']
+
+    const timeRangeQuery = query.get('timerange')
+    const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
+    const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
+
+    return {timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels};
+  }, [search]);
 
   const [objective, setObjective] = useState<Objective | null>(null);
   const [objectiveError, setObjectiveError] = useState<string>('');
@@ -58,7 +72,17 @@ const Detail = () => {
     document.title = `${name} - Pyrra`
 
     api.listObjectives({ expr: expr })
-      .then((os: Objective[]) => os.length === 1 ? setObjective(os[0]) : setObjective(null))
+      .then((os: Objective[]) => {
+        if (os.length === 1)  {
+          if (os[0].config === objective?.config) {
+            // Prevent the setState if the objective is the same
+            return;
+          }
+          setObjective(os[0])
+         } else {
+          setObjective(null)
+         }
+      })
       .catch((resp) => {
         if (resp.status !== undefined) {
           resp.text().then((err: string) => (setObjectiveError(err)))
@@ -91,7 +115,7 @@ const Detail = () => {
     //     // cancel any pending requests.
     //     controller.abort()
     // }
-  }, [api, name, expr, grouping, timeRange, StatusState.Error, StatusState.NoData, StatusState.Success])
+  }, [api, name, expr, grouping, timeRange, StatusState.Error, StatusState.NoData, StatusState.Success, objective?.config])
 
   if (objectiveError !== '') {
     return (
