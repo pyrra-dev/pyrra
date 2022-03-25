@@ -35,9 +35,15 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
   }
 
   // Set width on first render
-  useLayoutEffect(setWidthFromContainer)
-  // Set width on every window resize
-  window.addEventListener('resize', setWidthFromContainer)
+  useEffect(() => {
+    setWidthFromContainer();
+
+    // Set width on every window resize
+    window.addEventListener('resize', setWidthFromContainer);
+    return () => {
+      window.removeEventListener('resize', setWidthFromContainer);
+    };
+  }, []);
 
   useEffect(() => {
     setLoading(true)
