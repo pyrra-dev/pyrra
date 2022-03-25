@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Spinner } from 'react-bootstrap'
 import UplotReact from 'uplot-react';
 import uPlot, { AlignedData } from 'uplot'

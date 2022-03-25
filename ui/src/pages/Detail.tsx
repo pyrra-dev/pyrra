@@ -18,26 +18,40 @@ import ErrorsGraph from "../components/graphs/ErrorsGraph";
 import AlertsTable from "../components/AlertsTable";
 
 const Detail = () => {
-  const navigate = useNavigate()
-  const query = new URLSearchParams(useLocation().search)
-
   const api = useMemo(() => {
     return new ObjectivesApi(new Configuration({ basePath: API_BASEPATH }))
-  }, [])
+  }, [API_BASEPATH]);
 
-  const queryExpr = query.get('expr')
-  const expr = queryExpr == null ? '' : queryExpr
-  const labels = parseLabels(expr)
+  const navigate = useNavigate()
+  const {search} = useLocation()
 
-  const groupingExpr = query.get('grouping')
-  const grouping = groupingExpr == null ? '' : groupingExpr
-  const groupingLabels = parseLabels(grouping)
+  const {
+    timeRange,
+    expr,
+    grouping,
+    groupingExpr,
+    groupingLabels,
+    name,
+    labels,
+  } = useMemo(() => {
+    const query = new URLSearchParams(search)
 
-  const name: string = labels['__name__']
+    const queryExpr = query.get('expr')
+    const expr = queryExpr == null ? '' : queryExpr
+    const labels = parseLabels(expr)
 
-  const timeRangeQuery = query.get('timerange')
-  const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
-  const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
+    const groupingExpr = query.get('grouping')
+    const grouping = groupingExpr == null ? '' : groupingExpr
+    const groupingLabels = parseLabels(grouping)
+
+    const name: string = labels['__name__']
+
+    const timeRangeQuery = query.get('timerange')
+    const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
+    const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
+
+    return {timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels};
+  }, [search]);
 
   const [objective, setObjective] = useState<Objective | null>(null);
   const [objectiveError, setObjectiveError] = useState<string>('');
