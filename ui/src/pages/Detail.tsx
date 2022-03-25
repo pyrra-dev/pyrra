@@ -20,7 +20,7 @@ import AlertsTable from "../components/AlertsTable";
 const Detail = () => {
   const api = useMemo(() => {
     return new ObjectivesApi(new Configuration({ basePath: API_BASEPATH }))
-  }, [API_BASEPATH]);
+  }, []);
 
   const navigate = useNavigate()
   const {search} = useLocation()
@@ -72,7 +72,17 @@ const Detail = () => {
     document.title = `${name} - Pyrra`
 
     api.listObjectives({ expr: expr })
-      .then((os: Objective[]) => os.length === 1 ? setObjective(os[0]) : setObjective(null))
+      .then((os: Objective[]) => {
+        if (os.length === 1)  {
+          if (os[0].config === objective?.config) {
+            // Prevent the setState if the objective is the same
+            return;
+          }
+          setObjective(os[0])
+         } else {
+          setObjective(null)
+         }
+      })
       .catch((resp) => {
         if (resp.status !== undefined) {
           resp.text().then((err: string) => (setObjectiveError(err)))
@@ -105,7 +115,7 @@ const Detail = () => {
     //     // cancel any pending requests.
     //     controller.abort()
     // }
-  }, [api, name, expr, grouping, timeRange, StatusState.Error, StatusState.NoData, StatusState.Success])
+  }, [api, name, expr, grouping, timeRange, StatusState.Error, StatusState.NoData, StatusState.Success, objective?.config])
 
   if (objectiveError !== '') {
     return (
