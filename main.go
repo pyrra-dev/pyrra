@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/cespare/xxhash/v2"
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -311,24 +310,43 @@ type promCache struct {
 	cache *ristretto.Cache
 }
 
-func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error) {
-	xxh := xxhash.New()
-	_, _ = xxh.WriteString(query)
-	hash := xxh.Sum64()
+type promCacheKeyType string
 
-	if value, exists := p.cache.Get(hash); exists {
+const promCacheKey promCacheKeyType = "promCache"
+
+func contextSetPromCache(ctx context.Context, t time.Duration) context.Context {
+	return context.WithValue(ctx, promCacheKey, t)
+}
+
+func contextGetPromCache(ctx context.Context) time.Duration {
+	t, ok := ctx.Value(promCacheKey).(time.Duration)
+	if ok {
+		return t
+	}
+	return 0
+}
+
+func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error) {
+	if value, exists := p.cache.Get(query); exists {
 		return value.(model.Value), nil, nil
 	}
 
+	start := time.Now()
 	value, warnings, err := p.api.Query(ctx, query, ts)
+	duration := time.Since(start)
 	if err != nil {
-		return nil, warnings, fmt.Errorf("prometheus Query: %w", err)
+		return nil, warnings, fmt.Errorf("prometheus query: %w", err)
+	}
+	if len(warnings) > 0 {
+		return value, warnings, nil
 	}
 
-	if v, ok := value.(model.Vector); ok {
-		if len(v) > 0 && len(warnings) == 0 {
-			// TODO might need to pass cache duration via ctx?
-			_ = p.cache.SetWithTTL(hash, value, 10, 5*time.Minute)
+	cacheDuration := contextGetPromCache(ctx)
+	if cacheDuration > 0 {
+		if v, ok := value.(model.Vector); ok {
+			if len(v) > 0 {
+				_ = p.cache.SetWithTTL(query, value, duration.Milliseconds(), cacheDuration)
+			}
 		}
 	}
 
@@ -336,25 +354,31 @@ func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (mode
 }
 
 func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error) {
-	xxh := xxhash.New()
-	_, _ = xxh.WriteString(query)
-	_, _ = xxh.WriteString(r.Start.String())
-	_, _ = xxh.WriteString(r.End.String())
-	hash := xxh.Sum64()
+	// Get the full time range of this query from start to end.
+	// We round by 10s to adjust for small imperfections to increase cache hits.
+	timeRange := r.End.Sub(r.Start).Round(10 * time.Second)
+	cacheKey := fmt.Sprintf("%d;%s", timeRange.Milliseconds(), query)
 
-	if value, exists := p.cache.Get(hash); exists {
+	if value, exists := p.cache.Get(cacheKey); exists {
 		return value.(model.Value), nil, nil
 	}
 
+	start := time.Now()
 	value, warnings, err := p.api.QueryRange(ctx, query, r)
+	duration := time.Since(start)
 	if err != nil {
-		return nil, warnings, fmt.Errorf("prometheus QueryRange: %w", err)
+		return nil, warnings, fmt.Errorf("prometheus query range: %w", err)
+	}
+	if len(warnings) > 0 {
+		return value, warnings, nil
 	}
 
-	if m, ok := value.(model.Matrix); ok {
-		if len(m) > 0 && len(warnings) == 0 {
-			// TODO might need to pass cache duration via ctx?
-			_ = p.cache.SetWithTTL(hash, value, 100, 10*time.Minute)
+	cacheDuration := contextGetPromCache(ctx)
+	if cacheDuration > 0 {
+		if m, ok := value.(model.Matrix); ok {
+			if len(m) > 0 {
+				_ = p.cache.SetWithTTL(cacheKey, value, duration.Milliseconds(), cacheDuration)
+			}
 		}
 	}
 
@@ -432,7 +456,7 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr, groupin
 
 	queryTotal := objective.QueryTotal(objective.Window)
 	level.Debug(o.logger).Log("msg", "sending query total", "query", queryTotal)
-	value, _, err := o.promAPI.Query(ctx, queryTotal, ts)
+	value, _, err := o.promAPI.Query(contextSetPromCache(ctx, 15*time.Second), queryTotal, ts)
 	if err != nil {
 		level.Warn(o.logger).Log("msg", "failed to query total", "query", queryTotal, "err", err)
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -457,7 +481,7 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr, groupin
 
 	queryErrors := objective.QueryErrors(objective.Window)
 	level.Debug(o.logger).Log("msg", "sending query errors", "query", queryErrors)
-	value, _, err = o.promAPI.Query(ctx, queryErrors, ts)
+	value, _, err = o.promAPI.Query(contextSetPromCache(ctx, 15*time.Second), queryErrors, ts)
 	if err != nil {
 		level.Warn(o.logger).Log("msg", "failed to query errors", "query", queryErrors, "err", err)
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -561,7 +585,7 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr, gr
 
 	query := objective.QueryErrorBudget()
 	level.Debug(o.logger).Log("msg", "sending query error budget", "query", query, "step", step)
-	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
+	value, _, err := o.promAPI.QueryRange(contextSetPromCache(ctx, 15*time.Second), query, prometheusv1.Range{
 		Start: start,
 		End:   end,
 		Step:  step,
@@ -652,8 +676,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 	}
 
 	level.Debug(o.logger).Log("msg", "sending query for alerts", "query", queryAlerts)
-	// TODO: Make sure this query won't be cached for more than just a few seconds, e.g. 5s
-	value, _, err := o.promAPI.Query(ctx, queryAlerts, time.Now())
+	value, _, err := o.promAPI.Query(contextSetPromCache(ctx, 5*time.Second), queryAlerts, time.Now())
 	if err != nil {
 		level.Warn(o.logger).Log("msg", "failed to query alerts", "query", queryAlerts, "err", err)
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
@@ -1016,21 +1039,13 @@ func (o *ObjectivesServer) GetREDRequests(ctx context.Context, expr, grouping st
 	}
 	step := end.Sub(start) / 1000
 
-	diff := end.Sub(start)
-	timeRange := 5 * time.Minute
-	if diff >= 28*24*time.Hour {
-		timeRange = 3 * time.Hour
-	} else if diff >= 7*24*time.Hour {
-		timeRange = time.Hour
-	} else if diff >= 24*time.Hour {
-		timeRange = 30 * time.Minute
-	} else if diff >= 12*time.Hour {
-		timeRange = 15 * time.Minute
-	}
+	timeRange := rangeInterval(start, end)
+	cacheDuration := rangeCache(start, end)
+
 	query := objective.RequestRange(timeRange)
 	level.Debug(o.logger).Log("msg", "running range request", "query", query)
 
-	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
+	value, _, err := o.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusv1.Range{
 		Start: start,
 		End:   end,
 		Step:  step,
@@ -1122,22 +1137,13 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr, grouping stri
 	}
 	step := end.Sub(start) / 1000
 
-	diff := end.Sub(start)
-	timeRange := 5 * time.Minute
-	if diff >= 28*24*time.Hour {
-		timeRange = 3 * time.Hour
-	} else if diff >= 7*24*time.Hour {
-		timeRange = time.Hour
-	} else if diff >= 24*time.Hour {
-		timeRange = 30 * time.Minute
-	} else if diff >= 12*time.Hour {
-		timeRange = 15 * time.Minute
-	}
+	timeRange := rangeInterval(start, end)
+	cacheDuration := rangeCache(start, end)
 
 	query := objective.ErrorsRange(timeRange)
 	level.Debug(o.logger).Log("msg", "running error request", "query", query)
 
-	value, _, err := o.promAPI.QueryRange(ctx, query, prometheusv1.Range{
+	value, _, err := o.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusv1.Range{
 		Start: start,
 		End:   end,
 		Step:  step,
@@ -1187,6 +1193,45 @@ func (o *ObjectivesServer) GetREDErrors(ctx context.Context, expr, grouping stri
 			Values: values,
 		},
 	}, nil
+}
+
+const (
+	hours12 = 12 * time.Hour
+	day     = 24 * time.Hour
+	week    = 7 * day
+	month   = 4 * week
+)
+
+func rangeInterval(start, end time.Time) time.Duration {
+	diff := end.Sub(start)
+	d := 5 * time.Minute
+	// TODO: Refactor for early returns instead
+	if diff >= month {
+		d = 3 * time.Hour
+	} else if diff >= week {
+		d = time.Hour
+	} else if diff >= day {
+		d = 30 * time.Minute
+	} else if diff >= hours12 {
+		d = 15 * time.Minute
+	}
+	return d
+}
+
+func rangeCache(start, end time.Time) time.Duration {
+	diff := end.Sub(start)
+	d := 15 * time.Second
+	// TODO: Refactor for early returns instead
+	if diff >= month {
+		d = 5 * time.Minute
+	} else if diff >= week {
+		d = 3 * time.Minute
+	} else if diff >= day {
+		d = 90 * time.Second
+	} else if diff >= hours12 {
+		d = 45 * time.Second
+	}
+	return d
 }
 
 func matrixToValues(m model.Matrix) [][]float64 {
