@@ -4,7 +4,6 @@ go 1.17
 
 require (
 	github.com/alecthomas/kong v0.5.0
-	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/dgraph-io/ristretto v0.1.0
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-chi/chi/v5 v5.0.7
@@ -12,7 +11,7 @@ require (
 	github.com/go-kit/log v0.2.0
 	github.com/gorilla/mux v1.8.0
 	github.com/oklog/run v1.1.0
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.55.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.55.1
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1
 	github.com/prometheus/prometheus v1.8.2-0.20220211202545-56e14463bccf
@@ -28,6 +27,7 @@ require (
 require (
 	cloud.google.com/go v0.99.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
