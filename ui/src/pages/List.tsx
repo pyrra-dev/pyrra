@@ -11,8 +11,9 @@ import {
 import { API_BASEPATH, formatDuration } from '../App'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { IconArrowDown, IconArrowUp, IconArrowUpDown } from '../components/Icons'
+import { IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning } from '../components/Icons'
 import { labelsString } from "../labels";
+import { reds } from '../components/graphs/colors'
 
 enum TableObjectiveState {
   Unknown,
@@ -396,19 +397,38 @@ const List = () => {
         if (o.availability === null || o.availability === undefined) {
           return <></>
         }
+
+        const volumeWarning = ((1 - o.target) * o.availability.total)
+
+        let ls = labelsString(Object.assign({}, o.labels, o.groupingLabels))
         return (
-          <OverlayTrigger
-            key={labelsString(o.labels)}
-            overlay={
-              <OverlayTooltip id={`tooltip-${labelsString(o.labels)}`}>
-                Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
-                Total: {Math.floor(o.availability.total).toLocaleString()}
-              </OverlayTooltip>
-            }>
-          <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
-            {(100 * o.availability.percentage).toFixed(2)}%
-          </span>
-          </OverlayTrigger>
+          <>
+            <OverlayTrigger
+              key={ls}
+              overlay={
+                <OverlayTooltip id={`tooltip-${ls}`}>
+                  Errors: {Math.floor(o.availability.errors).toLocaleString()}<br/>
+                  Total: {Math.floor(o.availability.total).toLocaleString()}
+                </OverlayTooltip>
+              }>
+              <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
+                {(100 * o.availability.percentage).toFixed(2)}%
+              </span>
+            </OverlayTrigger>
+            {volumeWarning < 1 ? <>
+              <OverlayTrigger
+                key={`${ls}-warning`}
+                overlay={
+                  <OverlayTooltip id={`tooltip-${ls}-warning`}>
+                    Too few requests!<br/>Adjust your objective or wait for events.
+                  </OverlayTooltip>
+                }>
+                <span className='volume-warning'>
+                  <IconWarning width={20} height={20} fill='#b10d0d'/>
+                </span>
+              </OverlayTrigger>
+            </> : <></>}
+          </>
         )
     }
   }
