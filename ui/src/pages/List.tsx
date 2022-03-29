@@ -400,7 +400,6 @@ const List = () => {
 
         const volumeWarning = ((1 - o.target) * o.availability.total)
 
-
         let ls = labelsString(Object.assign({}, o.labels, o.groupingLabels))
         return (
           <>
@@ -425,7 +424,7 @@ const List = () => {
                   </OverlayTooltip>
                 }>
                 <span className='volume-warning'>
-                  <IconWarning width={20} height={20} fill={`#${reds[0]}`}/>
+                  <IconWarning width={20} height={20} fill='#b10d0d'/>
                 </span>
               </OverlayTrigger>
             </> : <></>}
