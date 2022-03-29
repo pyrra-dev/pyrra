@@ -497,13 +497,16 @@ const List = () => {
                 const labelBadges = Object.entries({ ...o.labels, ...o.groupingLabels })
                   .filter((l: [string, string]) => l[0] !== '__name__')
                   .map((l: [string, string]) => (
-                    <Badge key={l[0]} bg="light" text="dark">{l[0]}={l[1]}</Badge>
+                    <Badge key={l[0]} bg="light" text="dark" className="fw-normal">{l[0]}={l[1]}</Badge>
                   ))
 
+                const classes = o.severity !== null ? ['table-row-clickable', 'firing'] : ['table-row-clickable']
+
                 return (
-                  <tr key={o.lset} className="table-row-clickable" onClick={handleTableRowClick(o.labels, o.groupingLabels)}>
+                  <tr key={o.lset} className={classes.join(' ')} onClick={handleTableRowClick(o.labels, o.groupingLabels)}>
                     <td>
-                      <Link to={objectivePage(o.labels, o.groupingLabels)} className="text-reset" style={{ marginRight: 5 }}>
+                      <Link to={objectivePage(o.labels, o.groupingLabels)} className="text-reset"
+                            style={{ marginRight: 5 }}>
                         {name}
                       </Link>
                       {labelBadges}
@@ -519,11 +522,7 @@ const List = () => {
                       {renderErrorBudget(o)}
                     </td>
                     <td>
-                      {o.severity !== '' ?
-                        <Badge bg="danger" text="light">
-                          {o.severity}
-                        </Badge> : <></>
-                      }
+                      <span className="severity">{o.severity !== null ? o.severity : ''}</span>
                     </td>
                   </tr>
                 )

@@ -34,6 +34,15 @@
     cursor: pointer;
   }
 
+  tr.firing {
+    background-color: $red-text;
+    border-left: 5px solid $red;
+
+    span.severity {
+      color: $red-text-dark;
+    }
+  }
+
   td a {
     text-decoration: none;
   }
