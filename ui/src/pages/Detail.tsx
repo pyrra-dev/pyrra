@@ -253,7 +253,7 @@ const Detail = () => {
   const labelBadges = Object.entries({ ...objective.labels, ...groupingLabels })
     .filter((l: [string, string]) => l[0] !== '__name__')
     .map((l: [string, string]) => (
-      <Badge key={l[1]} bg='light' text='dark'>{l[0]}={l[1]}</Badge>
+      <Badge key={l[1]} bg='light' text='dark' className="fw-normal">{l[0]}={l[1]}</Badge>
     ))
 
   const uPlotCursor = {
@@ -279,7 +279,7 @@ const Detail = () => {
               {labelBadges}
             </Col>
             {objective.description !== undefined && objective.description !== '' ? (
-                <Col xs={12} md={6}>
+                <Col xs={12} md={6} style={{ marginTop: 12 }}>
                   <p>{objective.description}</p>
                 </Col>
               )
