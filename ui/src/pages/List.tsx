@@ -13,7 +13,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning } from '../components/Icons'
 import { labelsString } from "../labels";
-import { reds } from '../components/graphs/colors'
 
 enum TableObjectiveState {
   Unknown,
@@ -204,6 +203,7 @@ enum TableSortType {
   Objective,
   Availability,
   Budget,
+  Alerts,
 }
 
 enum TableSortOrder {Ascending, Descending}
@@ -362,6 +362,29 @@ const List = () => {
             } else {
               return 0
             }
+          case TableSortType.Alerts:
+            if (a.severity === null && b.severity === null) {
+              return 0
+            }
+            if (a.severity === null && b.severity !== null) {
+              return 1
+            }
+            if (a.severity !== null && b.severity === null) {
+              return -1
+            }
+            if (tableSortState.order === TableSortOrder.Ascending) {
+              if (a.severity === 'critical' && b.severity === 'warning') {
+                return -1
+              } else {
+                return 1
+              }
+            } else {
+              if (a.severity === 'critical' && b.severity === 'warning') {
+                return 1
+              } else {
+                return 1
+              }
+            }
         }
         return 0
       }
@@ -423,8 +446,8 @@ const List = () => {
                     Too few requests!<br/>Adjust your objective or wait for events.
                   </OverlayTooltip>
                 }>
-                <span className='volume-warning'>
-                  <IconWarning width={20} height={20} fill='#b10d0d'/>
+                <span className="volume-warning">
+                  <IconWarning width={20} height={20} fill="#b10d0d"/>
                 </span>
               </OverlayTrigger>
             </> : <></>}
@@ -469,26 +492,34 @@ const List = () => {
               <tr>
                 <th
                   className={tableSortState.type === TableSortType.Name ? 'active' : ''}
-                  onClick={() => handleTableSort(TableSortType.Name)}
-                >Name {tableSortState.type === TableSortType.Name ? upDownIcon : <IconArrowUpDown/>}</th>
+                  onClick={() => handleTableSort(TableSortType.Name)}>
+                  Name {tableSortState.type === TableSortType.Name ? upDownIcon : <IconArrowUpDown/>}
+                </th>
                 <th
                   className={tableSortState.type === TableSortType.Window ? 'active' : ''}
-                  onClick={() => handleTableSort(TableSortType.Window)}
-                >Time Window {tableSortState.type === TableSortType.Window ? upDownIcon : <IconArrowUpDown/>}</th>
+                  onClick={() => handleTableSort(TableSortType.Window)}>
+                  Time Window {tableSortState.type === TableSortType.Window ? upDownIcon : <IconArrowUpDown/>}
+                </th>
                 <th
                   className={tableSortState.type === TableSortType.Objective ? 'active' : ''}
-                  onClick={() => handleTableSort(TableSortType.Objective)}
-                >Objective {tableSortState.type === TableSortType.Objective ? upDownIcon : <IconArrowUpDown/>}</th>
+                  onClick={() => handleTableSort(TableSortType.Objective)}>
+                  Objective {tableSortState.type === TableSortType.Objective ? upDownIcon : <IconArrowUpDown/>}
+                </th>
                 <th
                   className={tableSortState.type === TableSortType.Availability ? 'active' : ''}
-                  onClick={() => handleTableSort(TableSortType.Availability)}
-                >Availability {tableSortState.type === TableSortType.Availability ? upDownIcon :
-                  <IconArrowUpDown/>}</th>
+                  onClick={() => handleTableSort(TableSortType.Availability)}>
+                  Availability {tableSortState.type === TableSortType.Availability ? upDownIcon : <IconArrowUpDown/>}
+                </th>
                 <th
                   className={tableSortState.type === TableSortType.Budget ? 'active' : ''}
-                  onClick={() => handleTableSort(TableSortType.Budget)}
-                >Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon : <IconArrowUpDown/>}</th>
-                <th>Alerts</th>
+                  onClick={() => handleTableSort(TableSortType.Budget)}>
+                  Error Budget {tableSortState.type === TableSortType.Budget ? upDownIcon : <IconArrowUpDown/>}
+                </th>
+                <th
+                  className={tableSortState.type === TableSortType.Alerts ? 'active' : ''}
+                  onClick={() => handleTableSort(TableSortType.Alerts)}>
+                  Alerts {tableSortState.type === TableSortType.Alerts ? upDownIcon : <IconArrowUpDown/>}
+                </th>
               </tr>
               </thead>
               <tbody>
@@ -503,7 +534,8 @@ const List = () => {
                 const classes = o.severity !== null ? ['table-row-clickable', 'firing'] : ['table-row-clickable']
 
                 return (
-                  <tr key={o.lset} className={classes.join(' ')} onClick={handleTableRowClick(o.labels, o.groupingLabels)}>
+                  <tr key={o.lset} className={classes.join(' ')}
+                      onClick={handleTableRowClick(o.labels, o.groupingLabels)}>
                     <td>
                       <Link to={objectivePage(o.labels, o.groupingLabels)} className="text-reset"
                             style={{ marginRight: 5 }}>
