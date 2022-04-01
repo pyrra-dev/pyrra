@@ -4,11 +4,12 @@ export interface Labels {
 
 export const MetricName = '__name__'
 
-export const labelsString = (lset: { [key: string]: string; } | undefined): string => {
+export const labelsString = (lset: Labels | undefined): string => {
   if (lset === undefined) {
     return ''
   }
 
+  // TODO: Sort these labels before mapping or are they always sorted?
   let s = '';
   s += '{'
   s += Object.entries(lset)
