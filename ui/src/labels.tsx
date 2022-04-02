@@ -1,3 +1,5 @@
+export type Labels = { [key: string]: string }
+
 export const labelsString = (lset: { [key: string]: string; } | undefined): string => {
   if (lset === undefined) {
     return ''
@@ -12,7 +14,7 @@ export const labelsString = (lset: { [key: string]: string; } | undefined): stri
   return s
 }
 
-export const parseLabels = (expr: string | null): { [key: string]: string } => {
+export const parseLabels = (expr: string | null): Labels => {
   if (expr == null || expr === '{}') {
     return {}
   }

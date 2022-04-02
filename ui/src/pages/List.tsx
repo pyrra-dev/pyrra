@@ -12,7 +12,7 @@ import { API_BASEPATH, formatDuration } from '../App'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning } from '../components/Icons'
-import { labelsString } from "../labels";
+import { Labels, labelsString } from "../labels";
 
 enum TableObjectiveState {
   Unknown,
@@ -24,7 +24,7 @@ enum TableObjectiveState {
 // TableObjective extends Objective to add some more additional (async) properties
 interface TableObjective extends Objective {
   lset: string
-  groupingLabels: { [key: string]: string; };
+  groupingLabels: Labels
   state: TableObjectiveState
   availability?: TableAvailability | null
   budget?: number | null
@@ -55,10 +55,10 @@ type TableAction =
   | { type: TableActionType.SetObjective, lset: string, objective: Objective }
   | { type: TableActionType.DeleteObjective, lset: string }
   | { type: TableActionType.SetStatus, lset: string, status: ObjectiveStatus }
-  | { type: TableActionType.SetObjectiveWithStatus, lset: string, statusLabels: { [key: string]: string }, objective: Objective, status: ObjectiveStatus }
+  | { type: TableActionType.SetObjectiveWithStatus, lset: string, statusLabels: Labels, objective: Objective, status: ObjectiveStatus }
   | { type: TableActionType.SetStatusNone, lset: string }
   | { type: TableActionType.SetStatusError, lset: string }
-  | { type: TableActionType.SetAlert, labels: { [key: string]: string }, severity: string }
+  | { type: TableActionType.SetAlert, labels: Labels, severity: string }
 
 const tableReducer = (state: TableState, action: TableAction): TableState => {
   switch (action.type) {
@@ -393,15 +393,15 @@ const List = () => {
   const upDownIcon = tableSortState.order === TableSortOrder.Ascending ? <IconArrowUp/> : <IconArrowDown/>
 
   const objectivePage = (
-    labels: { [key: string]: string },
-    grouping: { [key: string]: string }
+    labels: Labels,
+    grouping: Labels,
   ) => {
     return `/objectives?expr=${labelsString(labels)}&grouping=${labelsString(grouping)}`
   }
 
   const handleTableRowClick = (
-    labels: { [key: string]: string },
-    grouping: { [key: string]: string }
+    labels: Labels,
+    grouping: Labels,
   ) => () => {
     navigate(objectivePage(labels, grouping))
   }

@@ -3,11 +3,11 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { API_BASEPATH, formatDuration, PROMETHEUS_URL } from '../App'
 import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
 import { IconExternal } from './Icons'
-import { labelsString } from "../labels";
+import { Labels, labelsString } from "../labels";
 
 interface AlertsTableProps {
   objective: Objective
-  grouping: { [key: string]: string }
+  grouping: Labels
 }
 
 const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => {

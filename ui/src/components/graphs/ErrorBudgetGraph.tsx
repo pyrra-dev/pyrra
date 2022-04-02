@@ -7,13 +7,13 @@ import { formatDuration, PROMETHEUS_URL } from '../../App'
 import { ObjectivesApi, QueryRange } from '../../client'
 import { IconExternal } from '../Icons'
 import { greens, reds } from './colors';
-import { labelsString } from "../../labels";
+import { Labels, labelsString } from "../../labels";
 import { seriesGaps } from './gaps'
 
 interface ErrorBudgetGraphProps {
   api: ObjectivesApi
-  labels: { [key: string]: string }
-  grouping: { [key: string]: string }
+  labels: Labels,
+  grouping: Labels,
   timeRange: number,
   uPlotCursor: uPlot.Cursor,
 }

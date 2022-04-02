@@ -6,14 +6,14 @@ import uPlot, { AlignedData } from 'uplot'
 import { ObjectivesApi, QueryRange } from '../../client'
 import { formatDuration, PROMETHEUS_URL } from '../../App'
 import { IconExternal } from '../Icons'
-import { labelsString, parseLabelValue } from "../../labels";
+import { Labels, labelsString, parseLabelValue } from "../../labels";
 import { reds } from './colors';
 import { seriesGaps } from './gaps';
 
 interface ErrorsGraphProps {
-  api: ObjectivesApi
-  labels: { [key: string]: string }
-  grouping: { [key: string]: string }
+  api: ObjectivesApi,
+  labels: Labels,
+  grouping: Labels,
   timeRange: number,
   uPlotCursor: uPlot.Cursor,
 }
