@@ -27,18 +27,18 @@ func (o Objective) Name() string {
 	return ""
 }
 
-func (o Objective) Windows() []window {
-	return windows(time.Duration(o.Window))
+func (o Objective) Windows() []Window {
+	return Windows(time.Duration(o.Window))
 }
 
-func (o Objective) HasWindows(short, long model.Duration) (window, bool) {
-	for _, w := range windows(time.Duration(o.Window)) {
+func (o Objective) HasWindows(short, long model.Duration) (Window, bool) {
+	for _, w := range Windows(time.Duration(o.Window)) {
 		if w.Short == time.Duration(short) && w.Long == time.Duration(long) {
 			return w, true
 		}
 	}
 
-	return window{}, false
+	return Window{}, false
 }
 
 type Indicator struct {

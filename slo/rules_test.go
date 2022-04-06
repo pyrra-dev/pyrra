@@ -1030,9 +1030,9 @@ func TestObjective_IncreaseRules(t *testing.T) {
 }
 
 func Test_windows(t *testing.T) {
-	ws := windows(28 * 24 * time.Hour)
+	ws := Windows(28 * 24 * time.Hour)
 
-	require.Equal(t, window{
+	require.Equal(t, Window{
 		Severity: critical,
 		For:      2 * time.Minute,
 		Long:     1 * time.Hour,
@@ -1040,7 +1040,7 @@ func Test_windows(t *testing.T) {
 		Factor:   14,
 	}, ws[0])
 
-	require.Equal(t, window{
+	require.Equal(t, Window{
 		Severity: critical,
 		For:      15 * time.Minute,
 		Long:     6 * time.Hour,
@@ -1048,7 +1048,7 @@ func Test_windows(t *testing.T) {
 		Factor:   7,
 	}, ws[1])
 
-	require.Equal(t, window{
+	require.Equal(t, Window{
 		Severity: warning,
 		For:      time.Hour,
 		Long:     24 * time.Hour,
@@ -1056,7 +1056,7 @@ func Test_windows(t *testing.T) {
 		Factor:   2,
 	}, ws[2])
 
-	require.Equal(t, window{
+	require.Equal(t, Window{
 		Severity: warning,
 		For:      3 * time.Hour,
 		Long:     4 * 24 * time.Hour,
