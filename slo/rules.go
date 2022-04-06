@@ -27,7 +27,7 @@ type MultiBurnRateAlert struct {
 
 func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 	sloName := o.Labels.Get(labels.MetricName)
-	ws := windows(time.Duration(o.Window))
+	ws := Windows(time.Duration(o.Window))
 
 	var (
 		metric         string
@@ -85,7 +85,7 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
-	ws := windows(time.Duration(o.Window))
+	ws := Windows(time.Duration(o.Window))
 	burnrates := burnratesFromWindows(ws)
 	rules := make([]monitoringv1.Rule, 0, len(burnrates))
 
@@ -540,7 +540,7 @@ const (
 	warning  severity = "warning"
 )
 
-type window struct {
+type Window struct {
 	Severity severity
 	For      time.Duration
 	Long     time.Duration
@@ -548,13 +548,13 @@ type window struct {
 	Factor   float64
 }
 
-func windows(sloWindow time.Duration) []window {
+func Windows(sloWindow time.Duration) []Window {
 	// TODO: I'm still not sure if For, Long, Short should really be based on the 28 days ratio...
 
 	round := time.Minute // TODO: Change based on sloWindow
 
 	// long and short rates are calculated based on the ratio for 28 days.
-	return []window{{
+	return []Window{{
 		Severity: critical,
 		For:      (sloWindow / (28 * 24 * (60 / 2))).Round(round), // 2m for 28d - half short
 		Long:     (sloWindow / (28 * 24)).Round(round),            // 1h for 28d
@@ -581,7 +581,7 @@ func windows(sloWindow time.Duration) []window {
 	}}
 }
 
-func burnratesFromWindows(ws []window) []time.Duration {
+func burnratesFromWindows(ws []Window) []time.Duration {
 	dedup := map[time.Duration]bool{}
 	for _, w := range ws {
 		dedup[w.Long] = true
