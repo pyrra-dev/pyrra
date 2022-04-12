@@ -104,9 +104,9 @@ export const parseDuration = (durationStr: string): number | null => {
     return 0;
   }
 
-  const durationRE = new RegExp('^(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?$');
+  const durationRE = /^(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?$/
   const matches = durationStr.match(durationRE);
-  if (!matches) {
+  if (matches === null) {
     return null;
   }
 

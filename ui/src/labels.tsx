@@ -1,4 +1,8 @@
-export type Labels = { [key: string]: string }
+export interface Labels {
+  [key: string]: string
+}
+
+export const MetricName = '__name__'
 
 export const labelsString = (lset: { [key: string]: string; } | undefined): string => {
   if (lset === undefined) {
@@ -19,9 +23,9 @@ export const parseLabels = (expr: string | null): Labels => {
     return {}
   }
   expr = expr.replace(/^{+|}+$/gm, '')
-  let lset: { [key: string]: string; } = {}
+  const lset: { [key: string]: string; } = {}
   expr.split(',').forEach((s: string) => {
-    let pair = s.split('=')
+    const pair = s.split('=')
     if (pair.length !== 2) {
       throw new Error('pair does not have key and value')
     }
