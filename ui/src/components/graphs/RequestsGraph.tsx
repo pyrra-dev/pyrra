@@ -30,7 +30,7 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
   const [width, setWidth] = useState<number>(500)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined && targetRef.current) {
+    if (targetRef !== undefined) {
       setWidth(targetRef.current.offsetWidth)
     }
   }
@@ -49,7 +49,7 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
     api.getREDRequests({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
       .then((r: QueryRange) => {
         const [x, ...ys] = r.values
-        let data: AlignedData = [x, ...ys] // explicitly give it the x then the rest of ys
+        const data: AlignedData = [x, ...ys] // explicitly give it the x then the rest of ys
 
         setRequestsLabels(r.labels)
         setRequestsQuery(r.query)
@@ -66,7 +66,7 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
   }, [api, labels, grouping, timeRange])
 
   // small state used while picking colors to reuse as little as possible
-  let pickedColors = {
+  const pickedColors = {
     'greens': 0,
     'yellows': 0,
     'blues': 0,
@@ -144,24 +144,24 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
 const labelColor = (picked: { [color: string]: number }, label: string): string => {
   let color = ''
   if (label === '{}') {
-    color = greens[picked['greens'] % greens.length]
-    picked['greens']++
+    color = greens[picked.greens % greens.length]
+    picked.greens++
   }
   if (label.match(/"(2\d{2}|OK)"/) != null) {
-    color = greens[picked['greens'] % greens.length]
-    picked['greens']++
+    color = greens[picked.greens % greens.length]
+    picked.greens++
   }
   if (label.match(/"(3\d{2})"/) != null) {
-    color = yellows[picked['yellows'] % yellows.length]
-    picked['yellows']++
+    color = yellows[picked.yellows % yellows.length]
+    picked.yellows++
   }
   if (label.match(/"(4\d{2}|Canceled|InvalidArgument|NotFound|AlreadyExists|PermissionDenied|Unauthenticated|ResourceExhausted|FailedPrecondition|Aborted|OutOfRange)"/) != null) {
-    color = blues[picked['blues'] % blues.length]
-    picked['blues']++
+    color = blues[picked.blues % blues.length]
+    picked.blues++
   }
   if (label.match(/"(5\d{2}|Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss)"/) != null) {
-    color = reds[picked['reds'] % reds.length]
-    picked['reds']++
+    color = reds[picked.reds % reds.length]
+    picked.reds++
   }
   return color
 }

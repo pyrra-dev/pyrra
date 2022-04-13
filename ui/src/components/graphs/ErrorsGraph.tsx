@@ -30,7 +30,7 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
   const [width, setWidth] = useState<number>(500)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined && targetRef.current) {
+    if (targetRef !== undefined) {
       setWidth(targetRef.current.offsetWidth)
     }
   }

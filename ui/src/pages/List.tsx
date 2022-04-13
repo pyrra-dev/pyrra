@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useReducer, useState } from 'react'
-import { Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
+import React, {useEffect, useMemo, useReducer, useState} from 'react'
+import {Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
 import {
   Configuration,
   MultiBurnrateAlert,
@@ -8,11 +8,11 @@ import {
   ObjectivesApi,
   ObjectiveStatus
 } from '../client'
-import { API_BASEPATH, formatDuration } from '../App'
-import { Link, useNavigate } from 'react-router-dom'
+import {API_BASEPATH, formatDuration} from '../App'
+import {Link, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import { IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning } from '../components/Icons'
-import { Labels, labelsString } from "../labels";
+import {IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning} from '../components/Icons'
+import {Labels, labelsString, MetricName} from "../labels";
 
 enum TableObjectiveState {
   Unknown,
@@ -81,11 +81,12 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           }
         }
       }
-    case TableActionType.DeleteObjective:
-      const { [action.lset]: value, ...cleanedObjective } = state.objectives
+    case TableActionType.DeleteObjective: {
+      const {[action.lset]: _, ...cleanedObjective} = state.objectives
       return {
-        objectives: { ...cleanedObjective }
+        objectives: {...cleanedObjective}
       }
+    }
     case TableActionType.SetStatus:
       return {
         objectives: {
@@ -102,7 +103,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           }
         }
       }
-    case TableActionType.SetObjectiveWithStatus:
+    case TableActionType.SetObjectiveWithStatus: {
       // It is possible that we may need to merge some previous state
       let severity: string | null = null;
       const o = state.objectives[action.lset]
@@ -132,6 +133,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           }
         }
       }
+    }
     case TableActionType.SetStatusNone:
       return {
         objectives: {
@@ -156,10 +158,10 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           }
         }
       }
-    case TableActionType.SetAlert:
+    case TableActionType.SetAlert: {
       // Find the objective this alert's labels is the super set for.
-      const result = Object.entries(state.objectives).find(([lset, o]) => {
-        const allLabels = { ...o.labels, ...o.groupingLabels }
+      const result = Object.entries(state.objectives).find(([, o]) => {
+        const allLabels = {...o.labels, ...o.groupingLabels}
 
         let isSuperset = true
         Object.entries(action.labels).forEach(([k, v]) => {
@@ -192,6 +194,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
           }
         }
       }
+    }
     default:
       return state
   }
@@ -215,12 +218,12 @@ interface TableSorting {
 
 const List = () => {
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: API_BASEPATH }))
+    return new ObjectivesApi(new Configuration({basePath: API_BASEPATH}))
   }, [])
 
   const navigate = useNavigate()
-  const [objectives, setObjectives] = useState<Array<Objective>>([])
-  const initialTableState: TableState = { objectives: {} }
+  const [objectives, setObjectives] = useState<Objective[]>([])
+  const initialTableState: TableState = {objectives: {}}
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
   const [tableSortState, setTableSortState] = useState<TableSorting>({
     type: TableSortType.Budget,
@@ -230,7 +233,7 @@ const List = () => {
   useEffect(() => {
     document.title = 'Objectives - Pyrra'
 
-    api.listObjectives({ expr: '' })
+    api.listObjectives({expr: ''})
       .then((objectives: Objective[]) => setObjectives(objectives))
       .catch((err) => console.log(err))
   }, [api])
@@ -245,11 +248,11 @@ const List = () => {
     // TODO: This is prone to a concurrency race with updates of status that have additional groupings...
     // One solution would be to store this in a separate array and reconcile against that array after every status update.
     if (objectives.length > 0) {
-      api.getMultiBurnrateAlerts({ expr: '', inactive: false })
+      api.getMultiBurnrateAlerts({expr: '', inactive: false})
         .then((alerts: MultiBurnrateAlert[]) => {
           alerts.forEach((alert: MultiBurnrateAlert) => {
             if (alert.state === MultiBurnrateAlertStateEnum.Firing) {
-              dispatchTable({ type: TableActionType.SetAlert, labels: alert.labels, severity: alert.severity })
+              dispatchTable({type: TableActionType.SetAlert, labels: alert.labels, severity: alert.severity})
             }
           })
         })
@@ -259,23 +262,23 @@ const List = () => {
     objectives
       .sort((a: Objective, b: Objective) => labelsString(a.labels).localeCompare(labelsString(b.labels)))
       .forEach((o: Objective) => {
-        dispatchTable({ type: TableActionType.SetObjective, lset: labelsString(o.labels), objective: o })
+        dispatchTable({type: TableActionType.SetObjective, lset: labelsString(o.labels), objective: o})
 
-        api.getObjectiveStatus({ expr: labelsString(o.labels) })
+        api.getObjectiveStatus({expr: labelsString(o.labels)})
           .then((s: ObjectiveStatus[]) => {
             if (s.length === 0) {
-              dispatchTable({ type: TableActionType.SetStatusNone, lset: labelsString(o.labels) })
+              dispatchTable({type: TableActionType.SetStatusNone, lset: labelsString(o.labels)})
             } else if (s.length === 1) {
-              dispatchTable({ type: TableActionType.SetStatus, lset: labelsString(o.labels), status: s[0] })
+              dispatchTable({type: TableActionType.SetStatus, lset: labelsString(o.labels), status: s[0]})
             } else {
-              dispatchTable({ type: TableActionType.DeleteObjective, lset: labelsString(o.labels) })
+              dispatchTable({type: TableActionType.DeleteObjective, lset: labelsString(o.labels)})
 
               s.forEach((s: ObjectiveStatus) => {
                 // Copy the objective
-                const so = { ...o }
+                const so = {...o}
                 // Identify by the combined labels
                 const sLabels = s.labels !== undefined ? s.labels : {}
-                const soLabels = { ...o.labels, ...sLabels }
+                const soLabels = {...o.labels, ...sLabels}
 
                 dispatchTable({
                   type: TableActionType.SetObjectiveWithStatus,
@@ -288,7 +291,8 @@ const List = () => {
             }
           })
           .catch((err) => {
-            dispatchTable({ type: TableActionType.SetStatusError, lset: labelsString(o.labels) })
+            console.log(err)
+            dispatchTable({type: TableActionType.SetStatusError, lset: labelsString(o.labels)})
           })
       })
 
@@ -301,9 +305,9 @@ const List = () => {
   const handleTableSort = (type: TableSortType): void => {
     if (tableSortState.type === type) {
       const order = tableSortState.order === TableSortOrder.Ascending ? TableSortOrder.Descending : TableSortOrder.Ascending
-      setTableSortState({ type: type, order: order })
+      setTableSortState({type: type, order: order})
     } else {
-      setTableSortState({ type: type, order: TableSortOrder.Ascending })
+      setTableSortState({type: type, order: TableSortOrder.Ascending})
     }
   }
 
@@ -410,20 +414,20 @@ const List = () => {
     switch (o.state) {
       case TableObjectiveState.Unknown:
         return (
-          <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+          <Spinner animation={'border'} style={{width: 20, height: 20, borderWidth: 2, opacity: 0.1}}/>
         )
       case TableObjectiveState.NoData:
         return <>No data</>
       case TableObjectiveState.Error:
         return <span className="error">Error</span>
-      case TableObjectiveState.Success:
+      case TableObjectiveState.Success: {
         if (o.availability === null || o.availability === undefined) {
           return <></>
         }
 
         const volumeWarning = ((1 - o.target) * o.availability.total)
 
-        let ls = labelsString(Object.assign({}, o.labels, o.groupingLabels))
+        const ls = labelsString(Object.assign({}, o.labels, o.groupingLabels))
         return (
           <>
             <OverlayTrigger
@@ -453,6 +457,7 @@ const List = () => {
             </> : <></>}
           </>
         )
+      }
     }
   }
 
@@ -460,7 +465,7 @@ const List = () => {
     switch (o.state) {
       case TableObjectiveState.Unknown:
         return (
-          <Spinner animation={'border'} style={{ width: 20, height: 20, borderWidth: 2, opacity: 0.1 }}/>
+          <Spinner animation={'border'} style={{width: 20, height: 20, borderWidth: 2, opacity: 0.1}}/>
         )
       case TableObjectiveState.NoData:
         return <>No data</>
@@ -524,9 +529,9 @@ const List = () => {
               </thead>
               <tbody>
               {tableList.map((o: TableObjective) => {
-                const name = o.labels['__name__']
-                const labelBadges = Object.entries({ ...o.labels, ...o.groupingLabels })
-                  .filter((l: [string, string]) => l[0] !== '__name__')
+                const name = o.labels[MetricName]
+                const labelBadges = Object.entries({...o.labels, ...o.groupingLabels})
+                  .filter((l: [string, string]) => l[0] !== MetricName)
                   .map((l: [string, string]) => (
                     <Badge key={l[0]} bg="light" text="dark" className="fw-normal">{l[0]}={l[1]}</Badge>
                   ))
@@ -538,7 +543,7 @@ const List = () => {
                       onClick={handleTableRowClick(o.labels, o.groupingLabels)}>
                     <td>
                       <Link to={objectivePage(o.labels, o.groupingLabels)} className="text-reset"
-                            style={{ marginRight: 5 }}>
+                            style={{marginRight: 5}}>
                         {name}
                       </Link>
                       {labelBadges}

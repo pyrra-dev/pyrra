@@ -11,7 +11,7 @@ import {
 } from '../client'
 import { API_BASEPATH, formatDuration, parseDuration } from '../App'
 import Navbar from '../components/Navbar'
-import { parseLabels } from "../labels";
+import {MetricName, parseLabels} from "../labels";
 import ErrorBudgetGraph from "../components/graphs/ErrorBudgetGraph";
 import RequestsGraph from "../components/graphs/RequestsGraph";
 import ErrorsGraph from "../components/graphs/ErrorsGraph";
@@ -44,7 +44,7 @@ const Detail = () => {
     const grouping = groupingExpr == null ? '' : groupingExpr
     const groupingLabels = parseLabels(grouping)
 
-    const name: string = labels['__name__']
+    const name: string = labels[MetricName]
 
     const timeRangeQuery = query.get('timerange')
     const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
@@ -159,7 +159,7 @@ const Detail = () => {
   ]
 
   const handleTimeRangeClick = (t: number) => () => {
-    navigate(`/objectives?expr=${expr}&grouping=${groupingExpr}&timerange=${formatDuration(t)}`)
+    navigate(`/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&timerange=${formatDuration(t)}`)
   }
 
   const renderAvailability = () => {
@@ -251,7 +251,7 @@ const Detail = () => {
   }
 
   const labelBadges = Object.entries({ ...objective.labels, ...groupingLabels })
-    .filter((l: [string, string]) => l[0] !== '__name__')
+    .filter((l: [string, string]) => l[0] !== MetricName)
     .map((l: [string, string]) => (
       <Badge key={l[1]} bg='light' text='dark' className="fw-normal">{l[0]}={l[1]}</Badge>
     ))

@@ -20,7 +20,7 @@ const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => 
   useEffect(() => {
     const controller = new AbortController()
 
-    api.getMultiBurnrateAlerts({
+    void api.getMultiBurnrateAlerts({
       expr: labelsString(objective.labels),
       grouping: labelsString(grouping),
       inactive: true

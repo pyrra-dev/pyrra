@@ -7,9 +7,9 @@ export const seriesGaps = (start: number, end: number) => (u: uPlot, seriesID: n
     delta = (2 * (end - start) / 1000)
   }
 
-  let gaps: uPlot.Series.Gaps = []
+  const gaps: uPlot.Series.Gaps = []
 
-  let xData = u.data[0]
+  const xData = u.data[0]
   for (let i = startIdx + 1; i <= endIdx; i++) {
     if (xData[i] - xData[i - 1] > delta) {
       uPlot.addGap(

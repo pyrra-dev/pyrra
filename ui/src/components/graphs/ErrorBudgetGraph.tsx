@@ -29,7 +29,7 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
   const [width, setWidth] = useState<number>(1000)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined && targetRef.current) {
+    if (targetRef !== undefined) {
       setWidth(targetRef.current.offsetWidth)
     }
   }
@@ -82,8 +82,8 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
   const budgetGradient = (u: uPlot) => {
     const width = u.ctx.canvas.width
     const height = u.ctx.canvas.height
-    const min = u.scales['y'].min
-    const max = u.scales['y'].max
+    const min = u.scales.y.min
+    const max = u.scales.y.max
 
     if (min == null || max == null) {
       return '#fff'
