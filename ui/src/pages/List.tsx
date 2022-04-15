@@ -1,5 +1,17 @@
-import React, {useEffect, useMemo, useReducer, useState} from 'react'
-import {Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
+import React, {ChangeEvent, useEffect, useMemo, useReducer, useState} from 'react'
+import {
+  Alert,
+  Badge,
+  Button,
+  Col,
+  Container,
+  Form,
+  OverlayTrigger,
+  Row,
+  Spinner,
+  Table,
+  Tooltip as OverlayTooltip
+} from 'react-bootstrap'
 import {
   Configuration,
   MultiBurnrateAlert,
@@ -12,7 +24,7 @@ import {API_BASEPATH, formatDuration} from '../App'
 import {Link, useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import {IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning} from '../components/Icons'
-import {Labels, labelsString, parseLabels} from "../labels";
+import {Labels, labelsString, MetricName, parseLabels} from "../labels";
 
 enum TableObjectiveState {
   Unknown,
@@ -239,8 +251,15 @@ const List = () => {
   const query = new URLSearchParams(search)
   const queryFilter = query.get('filter')
   try {
-    filterLabels = parseLabels(queryFilter ?? '{}')
-    filter = labelsString(filterLabels)
+    if (queryFilter !== null) {
+      if (queryFilter.indexOf('=') > 0) {
+        filterLabels = parseLabels(queryFilter)
+        filter = labelsString(filterLabels)
+      } else {
+        filterLabels[MetricName] = queryFilter
+        filter = labelsString(filterLabels)
+      }
+    }
   } catch (e) {
     filterError = true
     console.log(e)
@@ -248,11 +267,15 @@ const List = () => {
 
   const updateFilter = (lset: Labels) => {
     // Copy existing filterLabels (from router) and add/overwrite k-v-pairs
-    let updatedFilter: Labels = {...filterLabels}
+    const updatedFilter: Labels = {...filterLabels}
     for (const l in lset) {
       updatedFilter[l] = lset[l]
     }
     navigate(`?filter=${encodeURI(labelsString(updatedFilter))}`)
+  }
+
+  const updateFilterInput = (value: string) => {
+    navigate(`?filter=${encodeURI(value)}`)
   }
 
   useEffect(() => {
@@ -338,6 +361,15 @@ const List = () => {
 
   const tableList = Object.keys(table.objectives)
     .map((k: string) => table.objectives[k])
+    .filter((o: TableObjective) => {
+      for (const k in filterLabels) {
+        // if label doesn't exist by key or if values differ filter out.
+        if (o.labels[k] === undefined || o.labels[k] !== filterLabels[k]) {
+          return false
+        }
+      }
+      return true
+    })
     .sort((a: TableObjective, b: TableObjective) => {
         // TODO: Make higher order function returning the sort function itself.
         switch (tableSortState.type) {
@@ -519,9 +551,9 @@ const List = () => {
                   placeholder="Filter for SLOs"
                   value={filter}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                    // TODO
-                    // updateFilter()
+                    updateFilterInput(e.target.value)
                   }}/>
+                <Button variant="light" onClick={() => navigate('?')}>Clear</Button>
               </Form.Group>
             </Form>
             <Alert show={filterError} variant="danger">Your SLO filter is broken. Please reset the filter.</Alert>
@@ -571,7 +603,11 @@ const List = () => {
                   .filter((l: [string, string]) => l[0] !== MetricName)
                   .map((l: [string, string]) => (
                     <Badge key={l[0]} bg="light" text="dark" className="fw-normal"
-                           onClick={() => setFilter(`${l[0]}=${l[1]}`)}>
+                           onClick={() => {
+                             const lset: Labels = {}
+                             lset[l[0]] = l[1]
+                             updateFilter(lset)
+                           }}>
                       {l[0]}={l[1]}
                     </Badge>
                   ))
