@@ -52,7 +52,7 @@ kubeadmin
 Check out this repository and enter the directory like so:
 
 ```shell
-https://github.com/pyrra-dev/pyrra.git
+git clone https://github.com/pyrra-dev/pyrra.git
 cd pyrra 
 ```
 
