@@ -14,8 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-const PublicLabelsPrefix = "pyrra.dev/"
-
 type MultiBurnRateAlert struct {
 	Severity string
 	Short    time.Duration
