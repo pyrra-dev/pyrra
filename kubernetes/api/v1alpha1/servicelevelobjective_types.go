@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
@@ -228,13 +229,18 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 		return slo.Objective{}, fmt.Errorf("failed to marshal resource as config")
 	}
 
-	ls := labels.Labels{{
-		Name: labels.MetricName, Value: in.GetName(),
-	}}
+	ls := labels.Labels{{Name: labels.MetricName, Value: in.GetName()}}
+
 	if in.GetNamespace() != "" {
 		ls = append(ls, labels.Label{
 			Name: "namespace", Value: in.GetNamespace(),
 		})
+	}
+
+	for name, value := range in.GetLabels() {
+		if strings.HasPrefix(name, slo.PropagationLabelsPrefix) {
+			ls = append(ls, labels.Label{Name: name, Value: value})
+		}
 	}
 
 	return slo.Objective{

@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+const PublicLabelsPrefix = "pyrra.dev/"
+
 type MultiBurnRateAlert struct {
 	Severity string
 	Short    time.Duration
@@ -98,8 +100,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			groupingMap[g] = struct{}{}
 		}
 
-		ruleLabels := map[string]string{}
-		ruleLabels["slo"] = sloName
+		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
 			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 				ruleLabels[m.Name] = m.Value
@@ -130,7 +131,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
 		for _, w := range ws {
-			alertLabels := map[string]string{}
+			alertLabels := o.commonRuleLabels(sloName)
 			for _, m := range matchers {
 				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
@@ -138,7 +139,6 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					}
 				}
 			}
-			alertLabels["slo"] = sloName
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
@@ -172,8 +172,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			groupingMap[g] = struct{}{}
 		}
 
-		ruleLabels := map[string]string{}
-		ruleLabels["slo"] = sloName
+		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
 			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 				ruleLabels[m.Name] = m.Value
@@ -204,7 +203,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
 		for _, w := range ws {
-			alertLabels := map[string]string{}
+			alertLabels := o.commonRuleLabels(sloName)
 			for _, m := range matchers {
 				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
@@ -212,7 +211,6 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					}
 				}
 			}
-			alertLabels["slo"] = sloName
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
@@ -336,6 +334,20 @@ func increaseName(metric string, window model.Duration) string {
 	return fmt.Sprintf("%s:increase%s", metric, window)
 }
 
+func (o Objective) commonRuleLabels(sloName string) map[string]string {
+	ruleLabels := map[string]string{
+		"slo": sloName,
+	}
+
+	for _, label := range o.Labels {
+		if strings.HasPrefix(label.Name, PropagationLabelsPrefix) {
+			ruleLabels[strings.TrimPrefix(label.Name, PropagationLabelsPrefix)] = label.Value
+		}
+	}
+
+	return ruleLabels
+}
+
 func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
@@ -345,8 +357,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 
 	var rules []monitoringv1.Rule
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		ruleLabels := map[string]string{}
-		ruleLabels["slo"] = sloName
+		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
 			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 				ruleLabels[m.Name] = m.Value
@@ -419,8 +430,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		ruleLabels := map[string]string{}
-		ruleLabels["slo"] = sloName
+		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
 			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 				ruleLabels[m.Name] = m.Value
