@@ -1,11 +1,10 @@
-import React, {ChangeEvent, useEffect, useMemo, useReducer, useState} from 'react'
+import React, {useEffect, useMemo, useReducer, useState} from 'react'
 import {
   Alert,
   Badge,
-  Button,
+  Button, CloseButton,
   Col,
   Container,
-  Form,
   OverlayTrigger,
   Row,
   Spinner,
@@ -244,7 +243,6 @@ const List = () => {
     order: TableSortOrder.Ascending
   })
 
-  let filter: string = ''
   let filterLabels: Labels = {}
   let filterError = false
 
@@ -254,10 +252,8 @@ const List = () => {
     if (queryFilter !== null) {
       if (queryFilter.indexOf('=') > 0) {
         filterLabels = parseLabels(queryFilter)
-        filter = labelsString(filterLabels)
       } else {
         filterLabels[MetricName] = queryFilter
-        filter = labelsString(filterLabels)
       }
     }
   } catch (e) {
@@ -274,8 +270,20 @@ const List = () => {
     navigate(`?filter=${encodeURI(labelsString(updatedFilter))}`)
   }
 
-  const updateFilterInput = (value: string) => {
-    navigate(`?filter=${encodeURI(value)}`)
+  const removeFilterLabel = (k: string) => {
+    const updatedFilter: Labels = {}
+    for (const name in filterLabels) {
+      if (name !== k) {
+        updatedFilter[name] = filterLabels[name]
+      }
+    }
+
+    if (Object.keys(updatedFilter).length === 0) {
+      navigate(`?`)
+      return
+    }
+
+    navigate(`?filter=${encodeURI(labelsString(updatedFilter))}`)
   }
 
   useEffect(() => {
@@ -544,18 +552,14 @@ const List = () => {
         </Row>
         <Row>
           <Col>
-            <Form className="row">
-              <Form.Group className="mb-3" controlId="filterSLOs">
-                <Form.Control
-                  type="text"
-                  placeholder="Filter for SLOs"
-                  value={filter}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                    updateFilterInput(e.target.value)
-                  }}/>
-                <Button variant="light" onClick={() => navigate('?')}>Clear</Button>
-              </Form.Group>
-            </Form>
+            {Object.keys(filterLabels).map((k: string) => (
+              <>
+                <Button variant='light' size='sm' onClick={() => removeFilterLabel(k)}>
+                  {`${k}=${filterLabels[k]}`}
+                  <CloseButton style={{width: '0.5em', height:'0.5em', padding: '0.25em 0.5em'}}/>
+                </Button>{' '}
+              </>
+            ))}
             <Alert show={filterError} variant="danger">Your SLO filter is broken. Please reset the filter.</Alert>
           </Col>
         </Row>
@@ -602,6 +606,7 @@ const List = () => {
                 const labelBadges = Object.entries({...o.labels, ...o.groupingLabels})
                   .filter((l: [string, string]) => l[0] !== MetricName)
                   .map((l: [string, string]) => (
+                    <>
                     <Badge key={l[0]} bg="light" text="dark" className="fw-normal"
                            onClick={() => {
                              const lset: Labels = {}
@@ -609,7 +614,8 @@ const List = () => {
                              updateFilter(lset)
                            }}>
                       {l[0]}={l[1]}
-                    </Badge>
+                    </Badge>{' '}
+                    </>
                   ))
 
                 const classes = o.severity !== null ? ['table-row-clickable', 'firing'] : ['table-row-clickable']
