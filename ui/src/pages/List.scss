@@ -30,10 +30,6 @@
     }
   }
 
-  tr:hover {
-    cursor: pointer;
-  }
-
   tr.firing {
     background-color: $red-text;
     border-left: 5px solid $red;
@@ -45,6 +41,10 @@
 
   td a {
     text-decoration: none;
+  }
+
+  td span.badge:hover {
+    cursor: pointer;
   }
 
   td span.bad {

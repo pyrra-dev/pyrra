@@ -1,5 +1,16 @@
 import React, {useEffect, useMemo, useReducer, useState} from 'react'
-import {Badge, Col, Container, OverlayTrigger, Row, Spinner, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
+import {
+  Alert,
+  Badge,
+  Button, CloseButton,
+  Col,
+  Container,
+  OverlayTrigger,
+  Row,
+  Spinner,
+  Table,
+  Tooltip as OverlayTooltip
+} from 'react-bootstrap'
 import {
   Configuration,
   MultiBurnrateAlert,
@@ -9,10 +20,10 @@ import {
   ObjectiveStatus
 } from '../client'
 import {API_BASEPATH, formatDuration} from '../App'
-import {Link, useNavigate} from 'react-router-dom'
+import {Link, useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import {IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning} from '../components/Icons'
-import {Labels, labelsString, MetricName} from "../labels";
+import {Labels, labelsString, MetricName, parseLabels} from "../labels";
 
 enum TableObjectiveState {
   Unknown,
@@ -161,7 +172,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
     case TableActionType.SetAlert: {
       // Find the objective this alert's labels is the super set for.
       const result = Object.entries(state.objectives).find(([, o]) => {
-        const allLabels = {...o.labels, ...o.groupingLabels}
+        const allLabels: Labels = {...o.labels, ...o.groupingLabels}
 
         let isSuperset = true
         Object.entries(action.labels).forEach(([k, v]) => {
@@ -222,6 +233,8 @@ const List = () => {
   }, [])
 
   const navigate = useNavigate()
+  const {search} = useLocation()
+
   const [objectives, setObjectives] = useState<Objective[]>([])
   const initialTableState: TableState = {objectives: {}}
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
@@ -229,6 +242,49 @@ const List = () => {
     type: TableSortType.Budget,
     order: TableSortOrder.Ascending
   })
+
+  let filterLabels: Labels = {}
+  let filterError = false
+
+  const query = new URLSearchParams(search)
+  const queryFilter = query.get('filter')
+  try {
+    if (queryFilter !== null) {
+      if (queryFilter.indexOf('=') > 0) {
+        filterLabels = parseLabels(queryFilter)
+      } else {
+        filterLabels[MetricName] = queryFilter
+      }
+    }
+  } catch (e) {
+    filterError = true
+    console.log(e)
+  }
+
+  const updateFilter = (lset: Labels) => {
+    // Copy existing filterLabels (from router) and add/overwrite k-v-pairs
+    const updatedFilter: Labels = {...filterLabels}
+    for (const l in lset) {
+      updatedFilter[l] = lset[l]
+    }
+    navigate(`?filter=${encodeURI(labelsString(updatedFilter))}`)
+  }
+
+  const removeFilterLabel = (k: string) => {
+    const updatedFilter: Labels = {}
+    for (const name in filterLabels) {
+      if (name !== k) {
+        updatedFilter[name] = filterLabels[name]
+      }
+    }
+
+    if (Object.keys(updatedFilter).length === 0) {
+      navigate(`?`)
+      return
+    }
+
+    navigate(`?filter=${encodeURI(labelsString(updatedFilter))}`)
+  }
 
   useEffect(() => {
     document.title = 'Objectives - Pyrra'
@@ -277,8 +333,8 @@ const List = () => {
                 // Copy the objective
                 const so = {...o}
                 // Identify by the combined labels
-                const sLabels = s.labels !== undefined ? s.labels : {}
-                const soLabels = {...o.labels, ...sLabels}
+                const sLabels: Labels = s.labels !== undefined ? s.labels : {}
+                const soLabels: Labels = {...o.labels, ...sLabels}
 
                 dispatchTable({
                   type: TableActionType.SetObjectiveWithStatus,
@@ -313,6 +369,15 @@ const List = () => {
 
   const tableList = Object.keys(table.objectives)
     .map((k: string) => table.objectives[k])
+    .filter((o: TableObjective) => {
+      for (const k in filterLabels) {
+        // if label doesn't exist by key or if values differ filter out.
+        if (o.labels[k] === undefined || o.labels[k] !== filterLabels[k]) {
+          return false
+        }
+      }
+      return true
+    })
     .sort((a: TableObjective, b: TableObjective) => {
         // TODO: Make higher order function returning the sort function itself.
         switch (tableSortState.type) {
@@ -403,13 +468,6 @@ const List = () => {
     return `/objectives?expr=${labelsString(labels)}&grouping=${labelsString(grouping)}`
   }
 
-  const handleTableRowClick = (
-    labels: Labels,
-    grouping: Labels,
-  ) => () => {
-    navigate(objectivePage(labels, grouping))
-  }
-
   const renderAvailability = (o: TableObjective) => {
     switch (o.state) {
       case TableObjectiveState.Unknown:
@@ -491,6 +549,21 @@ const List = () => {
           <Col>
             <h3>Objectives</h3>
           </Col>
+        </Row>
+        <Row>
+          <Col>
+            {Object.keys(filterLabels).map((k: string) => (
+              <>
+                <Button variant='light' size='sm' onClick={() => removeFilterLabel(k)}>
+                  {`${k}=${filterLabels[k]}`}
+                  <CloseButton style={{width: '0.5em', height:'0.5em', padding: '0.25em 0.5em'}}/>
+                </Button>{' '}
+              </>
+            ))}
+            <Alert show={filterError} variant="danger">Your SLO filter is broken. Please reset the filter.</Alert>
+          </Col>
+        </Row>
+        <Row>
           <div className="table-responsive">
             <Table hover={true}>
               <thead>
@@ -533,14 +606,22 @@ const List = () => {
                 const labelBadges = Object.entries({...o.labels, ...o.groupingLabels})
                   .filter((l: [string, string]) => l[0] !== MetricName)
                   .map((l: [string, string]) => (
-                    <Badge key={l[0]} bg="light" text="dark" className="fw-normal">{l[0]}={l[1]}</Badge>
+                    <>
+                    <Badge key={l[0]} bg="light" text="dark" className="fw-normal"
+                           onClick={() => {
+                             const lset: Labels = {}
+                             lset[l[0]] = l[1]
+                             updateFilter(lset)
+                           }}>
+                      {l[0]}={l[1]}
+                    </Badge>{' '}
+                    </>
                   ))
 
                 const classes = o.severity !== null ? ['table-row-clickable', 'firing'] : ['table-row-clickable']
 
                 return (
-                  <tr key={o.lset} className={classes.join(' ')}
-                      onClick={handleTableRowClick(o.labels, o.groupingLabels)}>
+                  <tr key={o.lset} className={classes.join(' ')}>
                     <td>
                       <Link to={objectivePage(o.labels, o.groupingLabels)} className="text-reset"
                             style={{marginRight: 5}}>
