@@ -66,6 +66,7 @@ metadata:
   labels:
     prometheus: k8s
     role: alert-rules
+    pyrra.dev/team: operations  # Any labels prefixed with 'pyrra.dev/' will be propagated as Prometheus labels, while stripping the prefix.
 spec:
   target: '99'
   window: 2w

@@ -8,6 +8,10 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
+// PropagationLabelsPrefix provides a way to propagate labels from the
+// ObjectMeta to the PrometheusRule.
+const PropagationLabelsPrefix = "pyrra.dev/"
+
 type Objective struct {
 	Labels      labels.Labels
 	Description string
