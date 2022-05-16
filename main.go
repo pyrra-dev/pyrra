@@ -487,9 +487,23 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr, groupin
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 	for _, v := range value.(model.Vector) {
-		s := statuses[v.Metric.Fingerprint()]
-		s.Availability.Errors = float64(v.Value)
-		s.Availability.Percentage = 1 - (s.Availability.Errors / s.Availability.Total)
+		if s, exists := statuses[v.Metric.Fingerprint()]; exists {
+			s.Availability.Errors = float64(v.Value)
+			s.Availability.Percentage = 1 - (s.Availability.Errors / s.Availability.Total)
+		} else {
+			objectiveLabels := make(map[string]string)
+			for k, v := range v.Metric {
+				objectiveLabels[string(k)] = string(v)
+			}
+
+			statuses[v.Metric.Fingerprint()] = &openapiserver.ObjectiveStatus{
+				Labels: objectiveLabels,
+				Availability: openapiserver.ObjectiveStatusAvailability{
+					Percentage: 1 - (s.Availability.Errors / s.Availability.Total),
+					Total:      float64(v.Value),
+				},
+			}
+		}
 	}
 
 	statusSlice := make([]openapiserver.ObjectiveStatus, 0, len(statuses))
