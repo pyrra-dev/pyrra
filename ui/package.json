@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@fontsource/inter": "^4.5.10",
-    "@fontsource/lato": "^4.5.5",
+    "@fontsource/lato": "^4.5.8",
     "@types/node": "^17.0.34",
     "@types/react": "^18.0.3",
     "@types/react-dom": "^18.0.0",
