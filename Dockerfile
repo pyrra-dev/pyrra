@@ -1,5 +1,5 @@
 # Build UI
-FROM node:18.1.0 as uibuilder
+FROM node:18.2.0 as uibuilder
 
 WORKDIR /workspace
 
