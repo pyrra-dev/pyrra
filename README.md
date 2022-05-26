@@ -5,12 +5,12 @@
 <p align="center">Making SLOs with Prometheus manageable, accessible, and easy to use for everyone!
 </p>
 <p align="center"><img src="docs/screenshot-readme.png" width=700 alt="Screenshot of Pyrra"></p>
+<p align="center">Watch the 5min lightning talk at Prometheus Day 2022:</p>
 <p align="center">
   <a href="https://www.youtube.com/watch?v=8Ox0M6HIE3w">
-    <img src="docs/youtube.png" width=700 alt="PrometheusDay 2022: Lightning Talk Pyrra">
+    <img src="docs/youtube.jpg" width=700 alt="PrometheusDay 2022: Lightning Talk Pyrra">
   </a>
 </p>
-
 
 ## Features
 
@@ -71,9 +71,9 @@ metadata:
   labels:
     prometheus: k8s
     role: alert-rules
-    pyrra.dev/team: operations  # Any labels prefixed with 'pyrra.dev/' will be propagated as Prometheus labels, while stripping the prefix.
+    pyrra.dev/team: operations # Any labels prefixed with 'pyrra.dev/' will be propagated as Prometheus labels, while stripping the prefix.
 spec:
-  target: '99'
+  target: "99"
   window: 2w
   description: Pyrra's API requests and response errors over time. For now, this SLO is a comined SLO for all endpoints.
   indicator:
@@ -106,14 +106,14 @@ http_requests:burnrate12h
 http_requests:burnrate2d
 ```
 
-The recording rules names are based on the originally provided metric. 
+The recording rules names are based on the originally provided metric.
 The recording rules contain the necessary labels to uniquely identify the recording rules in case there are multiple ones available.
 
 ### Running inside a Kubernetes cluster
 
 > An example for this mode of operation can be found in [examples/kubernetes](examples/kubernetes).
 
-Here two deployments are needed: one for the API / UI and one for the 
+Here two deployments are needed: one for the API / UI and one for the
 operator. For the first deployment, start the binary with the `api` argument.
 
 When starting the binary with the `kubernetes` argument, the service will watch
@@ -137,12 +137,12 @@ docker pull ghcr.io/pyrra-dev/pyrra:v0.4.0
 
 When running Pyrra outside of Kubernetes, the SLO object can be provided through
 a YAML file read from the file system. For this, one container or binary needs to
-be started with the `api` argument and the reconciler with the `filesystem` 
+be started with the `api` argument and the reconciler with the `filesystem`
 argument.
 
-Here, Pyrra will save the generated recording rules to disk where they can be 
-picked up by a Prometheus instance. While running Pyrra on its own works, there 
-won't be any SLO configured, nor will there be any data from a Prometheus to 
+Here, Pyrra will save the generated recording rules to disk where they can be
+picked up by a Prometheus instance. While running Pyrra on its own works, there
+won't be any SLO configured, nor will there be any data from a Prometheus to
 work with. It's designed to work alongside a Prometheus.
 
 ## Tech Stack
@@ -168,7 +168,7 @@ Please adhere to this project's `code of conduct`.
 ## Maintainers
 
 | Name           | Area        | GitHub                                             | Twitter                                             | Company       |
-|:---------------|:------------|:---------------------------------------------------|:----------------------------------------------------|:--------------|
+| :------------- | :---------- | :------------------------------------------------- | :-------------------------------------------------- | :------------ |
 | Nadine Vehling | UX/UI       | [@nadinevehling](https://github.com/nadinevehling) | [@nadinevehling](https://twitter.com/nadinevehling) | Grafana Labs  |
 | Matthias Loibl | Engineering | [@metalmatze](https://github.com/metalmatze)       | [@metalmatze](https://twitter.com/MetalMatze)       | Polar Signals |
 
@@ -208,5 +208,5 @@ Therefore, we need to pass it as string and internally convert it from string to
 
 Here are some related projects:
 
-* [slok/sloth](https://github.com/slok/sloth)
-* [metalmatze/slo-libsonnet](https://github.com/metalmatze/slo-libsonnet)
+- [slok/sloth](https://github.com/slok/sloth)
+- [metalmatze/slo-libsonnet](https://github.com/metalmatze/slo-libsonnet)
