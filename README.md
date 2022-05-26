@@ -5,6 +5,11 @@
 <p align="center">Making SLOs with Prometheus manageable, accessible, and easy to use for everyone!
 </p>
 <p align="center"><img src="docs/screenshot-readme.png" width=700 alt="Screenshot of Pyrra"></p>
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=8Ox0M6HIE3w">
+    <img src="docs/youtube.png" width=700 alt="PrometheusDay 2022: Lightning Talk Pyrra">
+  </a>
+</p>
 
 
 ## Features
