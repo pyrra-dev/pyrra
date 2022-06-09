@@ -61,6 +61,11 @@ Objectives:
 	for _, o := range os.objectives {
 		for _, m := range ms {
 			v := o.Labels.Get(m.Name)
+			// If there's no label with this exact name,
+			// check if there are labels with the label prefix.
+			if v == "" {
+				v = o.Labels.Get(slo.PropagationLabelsPrefix + m.Name)
+			}
 			if !m.Matches(v) {
 				continue Objectives
 			}
