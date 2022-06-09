@@ -45,6 +45,16 @@ func (o Objective) HasWindows(short, long model.Duration) (Window, bool) {
 	return Window{}, false
 }
 
+func (o Objective) Grouping() []string {
+	if o.Indicator.Ratio != nil {
+		return o.Indicator.Ratio.Grouping
+	}
+	if o.Indicator.Latency != nil {
+		return o.Indicator.Latency.Grouping
+	}
+	return nil
+}
+
 type Indicator struct {
 	Ratio   *RatioIndicator
 	Latency *LatencyIndicator

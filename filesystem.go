@@ -67,7 +67,17 @@ Objectives:
 				v = o.Labels.Get(slo.PropagationLabelsPrefix + m.Name)
 			}
 			if !m.Matches(v) {
-				continue Objectives
+				// If no label matches then maybe the objective is grouped by this label
+				var grouping bool
+				for _, g := range o.Grouping() {
+					if m.Name == g {
+						grouping = true
+					}
+				}
+				// If the label is not a grouping either then skip this objective
+				if !grouping {
+					continue Objectives
+				}
 			}
 		}
 		objectives = append(objectives, o)
