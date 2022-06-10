@@ -2,7 +2,8 @@ import React, {useEffect, useMemo, useReducer, useState} from 'react'
 import {
   Alert,
   Badge,
-  Button, CloseButton,
+  Button,
+  CloseButton,
   Col,
   Container,
   OverlayTrigger,
@@ -243,23 +244,24 @@ const List = () => {
     order: TableSortOrder.Ascending
   })
 
-  let filterLabels: Labels = {}
-  let filterError = false
-
-  const query = new URLSearchParams(search)
-  const queryFilter = query.get('filter')
-  try {
-    if (queryFilter !== null) {
-      if (queryFilter.indexOf('=') > 0) {
-        filterLabels = parseLabels(queryFilter)
-      } else {
-        filterLabels[MetricName] = queryFilter
+  const [filterLabels, filterError] = useMemo((): [Labels, boolean] => {
+    const query = new URLSearchParams(search)
+    const queryFilter = query.get('filter')
+    try {
+      if (queryFilter !== null) {
+        if (queryFilter.indexOf('=') > 0) {
+          return [parseLabels(queryFilter), false]
+        } else {
+          filterLabels[MetricName] = queryFilter
+          return [filterLabels, false]
+        }
       }
+    } catch (e) {
+      console.log(e)
+      return [{}, true]
     }
-  } catch (e) {
-    filterError = true
-    console.log(e)
-  }
+    return [{}, false]
+  }, [search])
 
   const updateFilter = (lset: Labels) => {
     // Copy existing filterLabels (from router) and add/overwrite k-v-pairs
@@ -289,10 +291,10 @@ const List = () => {
   useEffect(() => {
     document.title = 'Objectives - Pyrra'
 
-    api.listObjectives({expr: ''})
+    api.listObjectives({ expr: labelsString(filterLabels) })
       .then((objectives: Objective[]) => setObjectives(objectives))
       .catch((err) => console.log(err))
-  }, [api])
+  }, [api, filterLabels])
 
   useEffect(() => {
     // const controller = new AbortController()
@@ -370,9 +372,10 @@ const List = () => {
   const tableList = Object.keys(table.objectives)
     .map((k: string) => table.objectives[k])
     .filter((o: TableObjective) => {
+      const labels = { ...o.labels, ...o.groupingLabels }
       for (const k in filterLabels) {
         // if label doesn't exist by key or if values differ filter out.
-        if (o.labels[k] === undefined || o.labels[k] !== filterLabels[k]) {
+        if (labels[k] === undefined || labels[k] !== filterLabels[k]) {
           return false
         }
       }
@@ -465,7 +468,7 @@ const List = () => {
     labels: Labels,
     grouping: Labels,
   ) => {
-    return `/objectives?expr=${labelsString(labels)}&grouping=${labelsString(grouping)}`
+    return `/objectives?expr=${encodeURI(labelsString(labels))}&grouping=${encodeURI(labelsString(grouping))}`
   }
 
   const renderAvailability = (o: TableObjective) => {
@@ -553,12 +556,11 @@ const List = () => {
         <Row>
           <Col>
             {Object.keys(filterLabels).map((k: string) => (
-              <>
-                <Button variant='light' size='sm' onClick={() => removeFilterLabel(k)}>
-                  {`${k}=${filterLabels[k]}`}
-                  <CloseButton style={{width: '0.5em', height:'0.5em', padding: '0.25em 0.5em'}}/>
-                </Button>{' '}
-              </>
+              <Button variant="light" size="sm" onClick={() => removeFilterLabel(k)}
+                      style={{ marginTop: 20, marginBottom: 20, marginRight: 10 }}>
+                {`${k}=${filterLabels[k]}`}
+                <CloseButton style={{ width: '0.5em', height: '0.5em', padding: '0.25em 0.5em' }}/>
+              </Button>
             ))}
             <Alert show={filterError} variant="danger">Your SLO filter is broken. Please reset the filter.</Alert>
           </Col>
@@ -606,16 +608,15 @@ const List = () => {
                 const labelBadges = Object.entries({...o.labels, ...o.groupingLabels})
                   .filter((l: [string, string]) => l[0] !== MetricName)
                   .map((l: [string, string]) => (
-                    <>
                     <Badge key={l[0]} bg="light" text="dark" className="fw-normal"
+                           style={{ marginRight: 5 }}
                            onClick={() => {
                              const lset: Labels = {}
                              lset[l[0]] = l[1]
                              updateFilter(lset)
                            }}>
                       {l[0]}={l[1]}
-                    </Badge>{' '}
-                    </>
+                    </Badge>
                   ))
 
                 const classes = o.severity !== null ? ['table-row-clickable', 'firing'] : ['table-row-clickable']
