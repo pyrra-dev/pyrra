@@ -1,4 +1,20 @@
 .content.list {
+
+  button.filter-close {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    margin-right: 10px;
+
+    span.btn-close {
+      display: inline-block;
+      width: 0.3em;
+      height: 0.3em;
+      margin-top: 0.3em;
+      margin-left: 0.3em;
+    }
+  }
+
+
   .table > :not(:first-child) {
     border-top-color: inherit;
   }

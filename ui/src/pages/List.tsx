@@ -3,7 +3,6 @@ import {
   Alert,
   Badge,
   Button,
-  CloseButton,
   Col,
   Container,
   OverlayTrigger,
@@ -556,10 +555,9 @@ const List = () => {
         <Row>
           <Col>
             {Object.keys(filterLabels).map((k: string) => (
-              <Button variant="light" size="sm" onClick={() => removeFilterLabel(k)}
-                      style={{ marginTop: 20, marginBottom: 20, marginRight: 10 }}>
+              <Button variant="light" size="sm" className='filter-close' onClick={() => removeFilterLabel(k)}>
                 {`${k}=${filterLabels[k]}`}
-                <CloseButton style={{ width: '0.5em', height: '0.5em', padding: '0.25em 0.5em' }}/>
+                <span className='btn-close'></span>
               </Button>
             ))}
             <Alert show={filterError} variant="danger">Your SLO filter is broken. Please reset the filter.</Alert>
