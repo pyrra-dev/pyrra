@@ -122,7 +122,7 @@ const Detail = () => {
       <>
         <Navbar/>
         <Container>
-          <div style={{ margin: '50px 0' }}>
+          <div className='header'>
             <h3>{objectiveError}</h3>
             <br/>
             <Link to="/" className="btn btn-light">
@@ -274,7 +274,7 @@ const Detail = () => {
       <div className="content detail">
         <Container>
           <Row>
-            <Col xs={12}>
+            <Col xs={12} className='header'>
               <h3>{name}</h3>
               {labelBadges}
             </Col>

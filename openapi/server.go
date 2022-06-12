@@ -3,6 +3,7 @@ package openapi
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-kit/log"
@@ -10,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/prometheus/util/strutil"
 
 	client "github.com/pyrra-dev/pyrra/openapi/client"
 	server "github.com/pyrra-dev/pyrra/openapi/server/go"
@@ -67,8 +69,15 @@ func ServerFromInternal(objective slo.Objective) server.Objective {
 		latency.Success.Metric = objective.Indicator.Latency.Success.Metric()
 	}
 
+	lset := make(map[string]string, len(objective.Labels))
+	for _, l := range objective.Labels {
+		name := strings.TrimPrefix(l.Name, slo.PropagationLabelsPrefix)
+		name = strutil.SanitizeLabelName(name)
+		lset[name] = l.Value
+	}
+
 	return server.Objective{
-		Labels:      objective.Labels.Map(),
+		Labels:      lset,
 		Description: objective.Description,
 		Target:      objective.Target,
 		Window:      time.Duration(objective.Window).Milliseconds(),

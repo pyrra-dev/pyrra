@@ -3,6 +3,12 @@
     margin-bottom: 100px;
   }
 
+  .header {
+    span.badge {
+      margin-right: 5px;
+    }
+  }
+
   .metrics {
     width: 100%;
     display: grid;
