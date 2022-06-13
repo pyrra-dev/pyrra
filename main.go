@@ -54,8 +54,9 @@ var CLI struct {
 		PrometheusBearerTokenPath string   `default:"" help:"Bearer token path"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
-		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
-		PrometheusFolder string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
+		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		PrometheusURL    *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
+		PrometheusFolder string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
 		MetricsAddr   string `default:":8080" help:"The address the metric endpoint binds to."`
@@ -77,31 +78,36 @@ func main() {
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	)
 
-	var client api.Client
-	if CLI.API.PrometheusURL != nil {
-		roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
-			BearerTokenFile: CLI.API.PrometheusBearerTokenPath,
-		}, "pyrra")
-		if err != nil {
-			level.Error(logger).Log("msg", "failed to create API client round tripper", "err", err)
-			os.Exit(1)
-		}
+	var prometheusURL *url.URL
+	switch ctx.Command() {
+	case "api":
+		prometheusURL = CLI.API.PrometheusURL
+	case "filesystem":
+		prometheusURL = CLI.Filesystem.PrometheusURL
+	}
 
-		client, err = api.NewClient(api.Config{
-			Address:      CLI.API.PrometheusURL.String(),
-			RoundTripper: roundTripper,
-		})
-		if err != nil {
-			level.Error(logger).Log("msg", "failed to create API client", "err", err)
-			os.Exit(1)
-		}
-		// Wrap client to add extra headers for Thanos.
-		client = newThanosClient(client)
-		level.Info(logger).Log("msg", "using Prometheus", "url", CLI.API.PrometheusURL.String())
+	roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
+		BearerTokenFile: CLI.API.PrometheusBearerTokenPath,
+	}, "pyrra")
+	if err != nil {
+		level.Error(logger).Log("msg", "failed to create API client round tripper", "err", err)
+		os.Exit(1)
+	}
 
-		if CLI.API.PrometheusExternalURL == nil {
-			CLI.API.PrometheusExternalURL = CLI.API.PrometheusURL
-		}
+	client, err := api.NewClient(api.Config{
+		Address:      prometheusURL.String(),
+		RoundTripper: roundTripper,
+	})
+	if err != nil {
+		level.Error(logger).Log("msg", "failed to create API client", "err", err)
+		os.Exit(1)
+	}
+	// Wrap client to add extra headers for Thanos.
+	client = newThanosClient(client)
+	level.Info(logger).Log("msg", "using Prometheus", "url", prometheusURL.String())
+
+	if CLI.API.PrometheusExternalURL == nil {
+		CLI.API.PrometheusExternalURL = prometheusURL
 	}
 
 	var code int
