@@ -658,7 +658,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 	// Match alerts that at least have one character for the slo name.
 	queryAlerts := `ALERTS{slo=~".+"}`
 
-	if grouping != "" {
+	if grouping != "" && grouping != "{}" {
 		// If grouping exists we merge those matchers directly into the queryAlerts query.
 		groupingMatchers, err := parser.ParseMetricSelector(grouping)
 		if err != nil {
@@ -697,6 +697,50 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 
 	alerts := alertsMatchingObjectives(vector, objectives, inactive)
 
+	if true {
+		for _, objective := range objectives {
+			mtx := &sync.Mutex{}
+			windowsMap := map[time.Duration]float64{}
+			for _, w := range objective.Windows() {
+				windowsMap[w.Short] = 0
+				windowsMap[w.Long] = 0
+			}
+
+			// TODO: Make concurrent with worker pool
+			for w := range windowsMap {
+				// TODO: Returns incorrect burnrate query for latency (groups by code)
+				value, _, err := o.promAPI.Query(ctx, objective.Burnrate(w), time.Now())
+				if err != nil {
+					return openapiserver.ImplResponse{}, err
+				}
+				vec, ok := value.(model.Vector)
+				if !ok {
+					return openapiserver.ImplResponse{}, fmt.Errorf("expected vector value from Prometheus")
+				}
+				if vec.Len() != 1 {
+					return openapiserver.ImplResponse{}, fmt.Errorf("expected vector with one value from Prometheus")
+				}
+				mtx.Lock()
+				windowsMap[w] = float64(vec[0].Value)
+				mtx.Unlock()
+			}
+
+			// Match objectives to alerts to update response
+		Alerts:
+			for i, alert := range alerts {
+				for k, v := range alert.Labels {
+					if objective.Labels.Get(k) != v {
+						continue Alerts
+					}
+				}
+				short := time.Duration(alert.Short.Window) * time.Millisecond
+				long := time.Duration(alert.Long.Window) * time.Millisecond
+				alerts[i].Short.Current = windowsMap[short]
+				alerts[i].Long.Current = windowsMap[long]
+			}
+		}
+	}
+
 	return openapiserver.ImplResponse{Code: http.StatusOK, Body: alerts}, nil
 }
 
@@ -725,12 +769,12 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 					Short: openapiserver.Burnrate{
 						Window:  w.Short.Milliseconds(),
 						Current: -1,
-						Query:   "",
+						Query:   o.Burnrate(w.Short),
 					},
 					Long: openapiserver.Burnrate{
 						Window:  w.Long.Milliseconds(),
 						Current: -1,
-						Query:   "",
+						Query:   o.Burnrate(w.Long),
 					},
 					State: alertstateInactive,
 				})
@@ -816,12 +860,12 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 					Short: openapiserver.Burnrate{
 						Window:  time.Duration(short).Milliseconds(),
 						Current: -1,
-						Query:   "",
+						Query:   o.Burnrate(time.Duration(short)),
 					},
 					Long: openapiserver.Burnrate{
 						Window:  time.Duration(long).Milliseconds(),
 						Current: -1,
-						Query:   "",
+						Query:   o.Burnrate(time.Duration(long)),
 					},
 				})
 			} else {
