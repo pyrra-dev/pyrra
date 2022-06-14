@@ -84,6 +84,8 @@ func main() {
 		prometheusURL = CLI.API.PrometheusURL
 	case "filesystem":
 		prometheusURL = CLI.Filesystem.PrometheusURL
+	default:
+		prometheusURL, _ = url.Parse("http://localhost:9090")
 	}
 
 	roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
