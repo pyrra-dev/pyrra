@@ -229,6 +229,10 @@ var (
 			Window: model.Duration(14 * 24 * time.Hour),
 			Indicator: Indicator{
 				Latency: &LatencyIndicator{
+					Grouping: []string{
+						"resource",
+						"verb",
+					},
 					Success: Metric{
 						Name: "apiserver_request_duration_seconds_bucket",
 						LabelMatchers: []*labels.Matcher{
