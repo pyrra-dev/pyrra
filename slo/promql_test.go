@@ -229,6 +229,10 @@ var (
 			Window: model.Duration(14 * 24 * time.Hour),
 			Indicator: Indicator{
 				Latency: &LatencyIndicator{
+					Grouping: []string{
+						"resource",
+						"verb",
+					},
 					Success: Metric{
 						Name: "apiserver_request_duration_seconds_bucket",
 						LabelMatchers: []*labels.Matcher{
@@ -312,7 +316,7 @@ func TestObjective_QueryTotal(t *testing.T) {
 	}, {
 		name:      "apiserver-read-resource-latency",
 		objective: objectiveAPIServerLatency(),
-		expected:  `sum(apiserver_request_duration_seconds:increase2w{job="apiserver",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"})`,
+		expected:  `sum by(resource, verb) (apiserver_request_duration_seconds:increase2w{job="apiserver",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"})`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -381,7 +385,7 @@ func TestObjective_QueryErrors(t *testing.T) {
 	}, {
 		name:      "apiserver-read-resource-latency",
 		objective: objectiveAPIServerLatency(),
-		expected:  `sum(apiserver_request_duration_seconds:increase2w{job="apiserver",le="",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"}) - sum(apiserver_request_duration_seconds:increase2w{job="apiserver",le="0.1",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"})`,
+		expected:  `sum by(resource, verb) (apiserver_request_duration_seconds:increase2w{job="apiserver",le="",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"}) - sum by(resource, verb) (apiserver_request_duration_seconds:increase2w{job="apiserver",le="0.1",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"})`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
