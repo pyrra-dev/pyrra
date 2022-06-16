@@ -46,12 +46,14 @@ var ui embed.FS
 
 var CLI struct {
 	API struct {
-		PrometheusURL             *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
-		PrometheusExternalURL     *url.URL `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
-		APIURL                    *url.URL `name:"api-url" default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
-		RoutePrefix               string   `default:"" help:"The route prefix Pyrra uses. If run behind a proxy you can change it to something like /pyrra here."`
-		UIRoutePrefix             string   `default:"" help:"The route prefix Pyrra's UI uses. This is helpful for when the prefix is stripped by a proxy but still runs on /pyrra. Defaults to --route-prefix"`
-		PrometheusBearerTokenPath string   `default:"" help:"Bearer token path"`
+		PrometheusURL               *url.URL          `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
+		PrometheusExternalURL       *url.URL          `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
+		APIURL                      *url.URL          `name:"api-url" default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
+		RoutePrefix                 string            `default:"" help:"The route prefix Pyrra uses. If run behind a proxy you can change it to something like /pyrra here."`
+		UIRoutePrefix               string            `default:"" help:"The route prefix Pyrra's UI uses. This is helpful for when the prefix is stripped by a proxy but still runs on /pyrra. Defaults to --route-prefix"`
+		PrometheusBearerTokenPath   string            `default:"" help:"Bearer token path"`
+		PrometheusBasicAuthUsername string            `default:"" help:"The HTTP basic authentication username"`
+		PrometheusBasicAuthPassword promconfig.Secret `default:"" help:"The HTTP basic authentication password"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
@@ -87,6 +89,10 @@ func main() {
 	}
 
 	roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
+		BasicAuth: &promconfig.BasicAuth{
+			Username: CLI.API.PrometheusBasicAuthUsername,
+			Password: CLI.API.PrometheusBasicAuthPassword,
+		},
 		BearerTokenFile: CLI.API.PrometheusBearerTokenPath,
 	}, "pyrra")
 	if err != nil {
