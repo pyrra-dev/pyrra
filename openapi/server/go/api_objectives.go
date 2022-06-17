@@ -96,7 +96,12 @@ func (c *ObjectivesApiController) GetMultiBurnrateAlerts(w http.ResponseWriter, 
 		w.WriteHeader(500)
 		return
 	}
-	result, err := c.service.GetMultiBurnrateAlerts(r.Context(), exprParam, groupingParam, inactiveParam)
+	currentParam, err := parseBoolParameter(query.Get("current"))
+	if err != nil {
+		w.WriteHeader(500)
+		return
+	}
+	result, err := c.service.GetMultiBurnrateAlerts(r.Context(), exprParam, groupingParam, inactiveParam, currentParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)
