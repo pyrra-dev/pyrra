@@ -634,8 +634,6 @@ func (o *ObjectivesServer) GetObjectiveErrorBudget(ctx context.Context, expr, gr
 
 const (
 	alertstateInactive = "inactive"
-	alertstatePending  = "pending"
-	alertstateFiring   = "firing"
 )
 
 func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string, inactive, current bool) (openapiserver.ImplResponse, error) {
@@ -708,8 +706,8 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 
 			var wg sync.WaitGroup
 			for w := range windowsMap {
+				wg.Add(1)
 				go func(w time.Duration) {
-					wg.Add(1)
 					defer wg.Done()
 
 					// TODO: Improve by using the recording rule
