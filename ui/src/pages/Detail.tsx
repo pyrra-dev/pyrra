@@ -1,6 +1,6 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import React, { useEffect, useMemo, useState } from 'react'
-import { Badge, Button, ButtonGroup, Col, Container, Row, Spinner } from 'react-bootstrap'
+import {Link, useLocation, useNavigate} from 'react-router-dom'
+import React, {useEffect, useMemo, useState} from 'react'
+import {Badge, Button, ButtonGroup, Col, Container, Row, Spinner} from 'react-bootstrap'
 import {
   Configuration,
   Objective,
@@ -9,7 +9,7 @@ import {
   ObjectiveStatusAvailability,
   ObjectiveStatusBudget
 } from '../client'
-import { API_BASEPATH, formatDuration, parseDuration } from '../App'
+import {API_BASEPATH, formatDuration, parseDuration} from '../App'
 import Navbar from '../components/Navbar'
 import {MetricName, parseLabels} from "../labels";
 import ErrorBudgetGraph from "../components/graphs/ErrorBudgetGraph";
@@ -50,7 +50,9 @@ const Detail = () => {
     const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
     const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
 
-    return {timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels};
+    document.title = `${name} - Pyrra`
+
+    return { timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels };
   }, [search]);
 
   const [objective, setObjective] = useState<Objective | null>(null);
@@ -69,19 +71,18 @@ const Detail = () => {
 
   useEffect(() => {
     // const controller = new AbortController()
-    document.title = `${name} - Pyrra`
 
     api.listObjectives({ expr: expr })
       .then((os: Objective[]) => {
-        if (os.length === 1)  {
+        if (os.length === 1) {
           if (os[0].config === objective?.config) {
             // Prevent the setState if the objective is the same
             return;
           }
           setObjective(os[0])
-         } else {
+        } else {
           setObjective(null)
-         }
+        }
       })
       .catch((resp) => {
         if (resp.status !== undefined) {
@@ -361,6 +362,7 @@ const Detail = () => {
             <Col>
               <h4>Multi Burn Rate Alerts</h4>
               <AlertsTable
+                api={api}
                 objective={objective}
                 grouping={groupingLabels}
               />

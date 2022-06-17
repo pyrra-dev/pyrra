@@ -1,34 +1,32 @@
 import { OverlayTrigger, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
-import React, { useEffect, useMemo, useState } from 'react'
-import { API_BASEPATH, formatDuration, PROMETHEUS_URL } from '../App'
-import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
+import React, { useEffect, useState } from 'react'
+import { formatDuration, PROMETHEUS_URL } from '../App'
+import { MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
 import { IconExternal } from './Icons'
 import { Labels, labelsString } from "../labels";
 
 interface AlertsTableProps {
+  api: ObjectivesApi
   objective: Objective
   grouping: Labels
 }
 
-const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => {
-  const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: API_BASEPATH }))
-  }, [])
-
+const AlertsTable = ({ api, objective, grouping }: AlertsTableProps): JSX.Element => {
   const [alerts, setAlerts] = useState<MultiBurnrateAlert[]>([])
 
   useEffect(() => {
-    const controller = new AbortController()
+    // const controller = new AbortController()
 
     void api.getMultiBurnrateAlerts({
       expr: labelsString(objective.labels),
       grouping: labelsString(grouping),
-      inactive: true
+      inactive: true,
+      current: true
     }).then((alerts: MultiBurnrateAlert[]) => setAlerts(alerts))
 
-    return () => {
-      controller.abort()
-    }
+    // return () => {
+    //   controller.abort()
+    // }
   }, [api, objective, grouping])
 
   return (
