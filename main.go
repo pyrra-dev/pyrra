@@ -697,33 +697,47 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 
 	alerts := alertsMatchingObjectives(vector, objectives, inactive)
 
-	if true {
+	if current {
 		for _, objective := range objectives {
 			mtx := &sync.Mutex{}
 			windowsMap := map[time.Duration]float64{}
 			for _, w := range objective.Windows() {
-				windowsMap[w.Short] = 0
-				windowsMap[w.Long] = 0
+				windowsMap[w.Short] = -1
+				windowsMap[w.Long] = -1
 			}
 
-			// TODO: Make concurrent with worker pool
+			var wg sync.WaitGroup
 			for w := range windowsMap {
-				// TODO: Returns incorrect burnrate query for latency (groups by code)
-				value, _, err := o.promAPI.Query(ctx, objective.Burnrate(w), time.Now())
-				if err != nil {
-					return openapiserver.ImplResponse{}, err
-				}
-				vec, ok := value.(model.Vector)
-				if !ok {
-					return openapiserver.ImplResponse{}, fmt.Errorf("expected vector value from Prometheus")
-				}
-				if vec.Len() != 1 {
-					return openapiserver.ImplResponse{}, fmt.Errorf("expected vector with one value from Prometheus")
-				}
-				mtx.Lock()
-				windowsMap[w] = float64(vec[0].Value)
-				mtx.Unlock()
+				go func(w time.Duration) {
+					wg.Add(1)
+					defer wg.Done()
+
+					// TODO: Improve by using the recording rule
+					query := objective.Burnrate(w)
+					value, _, err := o.promAPI.Query(contextSetPromCache(ctx, instantCache(w)), query, time.Now())
+					if err != nil {
+						level.Warn(o.logger).Log("msg", "failed to query current burn rate", "err", err)
+						return
+					}
+					vec, ok := value.(model.Vector)
+					if !ok {
+						level.Warn(o.logger).Log("msg", "failed to query current burn rate", "err", "expected vector value from Prometheus")
+						return
+					}
+					if vec.Len() == 0 {
+						return
+					}
+					if vec.Len() != 1 {
+						level.Warn(o.logger).Log("msg", "failed to query current burn rate", "err", "expected vector with one value from Prometheus")
+						return
+					}
+					mtx.Lock()
+					windowsMap[w] = float64(vec[0].Value)
+					mtx.Unlock()
+				}(w)
 			}
+
+			wg.Wait()
 
 			// Match objectives to alerts to update response
 		Alerts:
@@ -1113,16 +1127,19 @@ func rangeInterval(start, end time.Time) time.Duration {
 }
 
 func rangeCache(start, end time.Time) time.Duration {
-	diff := end.Sub(start)
+	return instantCache(end.Sub(start))
+}
+
+func instantCache(duration time.Duration) time.Duration {
 	d := 15 * time.Second
 	// TODO: Refactor for early returns instead
-	if diff >= month {
+	if duration >= month {
 		d = 5 * time.Minute
-	} else if diff >= week {
+	} else if duration >= week {
 		d = 3 * time.Minute
-	} else if diff >= day {
+	} else if duration >= day {
 		d = 90 * time.Second
-	} else if diff >= hours12 {
+	} else if duration >= hours12 {
 		d = 45 * time.Second
 	}
 	return d
