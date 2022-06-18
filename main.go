@@ -731,8 +731,15 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 						level.Warn(o.logger).Log("msg", "failed to query current burn rate", "err", "expected vector with one value from Prometheus")
 						return
 					}
+
+					current := float64(vec[0].Value)
+					if math.IsNaN(current) {
+						// ignore current values if NaN and return the -1 indicating NaN
+						return
+					}
+
 					mtx.Lock()
-					windowsMap[w] = float64(vec[0].Value)
+					windowsMap[w] = current
 					mtx.Unlock()
 				}(w)
 			}
