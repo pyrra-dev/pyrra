@@ -811,6 +811,75 @@ func TestObjective_Burnrates(t *testing.T) {
 	}
 }
 
+func TestObjective_BurnrateNames(t *testing.T) {
+	testcases := []struct {
+		name     string
+		slo      Objective
+		burnrate string
+	}{{
+		name:     "http-ratio",
+		slo:      objectiveHTTPRatio(),
+		burnrate: "http_requests:burnrate5m",
+	}, {
+		name:     "http-ratio-grouping",
+		slo:      objectiveHTTPRatioGrouping(),
+		burnrate: "http_requests:burnrate5m",
+	}, {
+		name:     "http-ratio-grouping-regex",
+		slo:      objectiveHTTPRatioGroupingRegex(),
+		burnrate: "http_requests:burnrate5m",
+	}, {
+		name:     "grpc-errors",
+		slo:      objectiveGRPCRatio(),
+		burnrate: "grpc_server_handled:burnrate5m",
+	}, {
+		name:     "grpc-errors-grouping",
+		slo:      objectiveGRPCRatioGrouping(),
+		burnrate: "grpc_server_handled:burnrate5m",
+	}, {
+		name:     "http-latency",
+		slo:      objectiveHTTPLatency(),
+		burnrate: "http_request_duration_seconds:burnrate5m",
+	}, {
+		name:     "http-latency-grouping",
+		slo:      objectiveHTTPLatencyGrouping(),
+		burnrate: "http_request_duration_seconds:burnrate5m",
+	}, {
+		name:     "http-latency-grouping-regex",
+		slo:      objectiveHTTPLatencyGroupingRegex(),
+		burnrate: "http_request_duration_seconds:burnrate5m",
+	}, {
+		name:     "grpc-latency",
+		slo:      objectiveGRPCLatency(),
+		burnrate: "grpc_server_handling_seconds:burnrate5m",
+	}, {
+		name:     "grpc-latency-grouping",
+		slo:      objectiveGRPCLatencyGrouping(),
+		burnrate: "grpc_server_handling_seconds:burnrate5m",
+	}, {
+		name:     "operator-ratio",
+		slo:      objectiveOperator(),
+		burnrate: "prometheus_operator_reconcile_operations:burnrate5m",
+	}, {
+		name:     "operator-ratio-grouping",
+		slo:      objectiveOperatorGrouping(),
+		burnrate: "prometheus_operator_reconcile_operations:burnrate5m",
+	}, {
+		name:     "apiserver-write-response-errors",
+		slo:      objectiveAPIServerRatio(),
+		burnrate: "apiserver_request:burnrate5m",
+	}, {
+		name:     "apiserver-read-resource-latency",
+		slo:      objectiveAPIServerLatency(),
+		burnrate: "apiserver_request_duration_seconds:burnrate5m",
+	}}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.burnrate, tc.slo.BurnrateName(5*time.Minute))
+		})
+	}
+}
+
 func TestObjective_IncreaseRules(t *testing.T) {
 	testcases := []struct {
 		name  string

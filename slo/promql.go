@@ -257,6 +257,51 @@ func (o Objective) QueryErrorBudget() string {
 	return ""
 }
 
+// TODO: Add grouping support!
+func (o Objective) QueryBurnrate(timerange time.Duration) (string, error) {
+	var (
+		metric   string
+		matchers []*labels.Matcher
+	)
+
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		metric = o.BurnrateName(timerange)
+		matchers = o.Indicator.Ratio.Total.LabelMatchers
+	}
+
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		metric = o.BurnrateName(timerange)
+		matchers = o.Indicator.Latency.Total.LabelMatchers
+	}
+
+	if metric == "" {
+		return "", fmt.Errorf("objective misses indicator")
+	}
+
+	expr, err := parser.ParseExpr(`metric{}`)
+	if err != nil {
+		return "", err
+	}
+
+	for i, m := range matchers {
+		if m.Name == labels.MetricName {
+			matchers[i].Value = metric
+		}
+	}
+	matchers = append(matchers, &labels.Matcher{
+		Type:  labels.MatchEqual,
+		Name:  "slo",
+		Value: o.Name(),
+	})
+
+	objectiveReplacer{
+		metric:   metric,
+		matchers: matchers,
+	}.replace(expr)
+
+	return expr.String(), nil
+}
+
 type objectiveReplacer struct {
 	metric        string
 	matchers      []*labels.Matcher

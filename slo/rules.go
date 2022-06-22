@@ -26,48 +26,19 @@ type MultiBurnRateAlert struct {
 }
 
 func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
-	sloName := o.Labels.Get(labels.MetricName)
 	ws := Windows(time.Duration(o.Window))
-
-	var (
-		metric         string
-		matchersString string
-	)
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		metric = o.Indicator.Ratio.Total.Name
-
-		// TODO: Make this a shared function with below and Burnrates func
-		var alertMatchers []string
-		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			if m.Name == labels.MetricName {
-				continue
-			}
-			alertMatchers = append(alertMatchers, m.String())
-		}
-		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
-		sort.Strings(alertMatchers)
-		matchersString = strings.Join(alertMatchers, ",")
-	}
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		metric = o.Indicator.Latency.Total.Name
-
-		// TODO: Make this a shared function with below and Burnrates func
-		var alertMatchers []string
-		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			if m.Name == labels.MetricName {
-				continue
-			}
-			alertMatchers = append(alertMatchers, m.String())
-		}
-		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
-		sort.Strings(alertMatchers)
-		matchersString = strings.Join(alertMatchers, ",")
-	}
 
 	mbras := make([]MultiBurnRateAlert, len(ws))
 	for i, w := range ws {
-		queryShort := fmt.Sprintf("%s{%s}", burnrateName(metric, w.Short), matchersString)
-		queryLong := fmt.Sprintf("%s{%s}", burnrateName(metric, w.Long), matchersString)
+		queryShort, err := o.QueryBurnrate(w.Short)
+		if err != nil {
+			return nil, err
+		}
+		queryLong, err := o.QueryBurnrate(w.Long)
+		if err != nil {
+			return nil, err
+		}
+
 		mbras[i] = MultiBurnRateAlert{
 			Severity:   string(w.Severity),
 			Short:      w.Short,
@@ -90,7 +61,6 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	rules := make([]monitoringv1.Rule, 0, len(burnrates))
 
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		metric := o.Indicator.Ratio.Total.Name
 		matchers := o.Indicator.Ratio.Total.LabelMatchers
 
 		groupingMap := map[string]struct{}{}
@@ -111,7 +81,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
-				Record: burnrateName(metric, br),
+				Record: o.BurnrateName(br),
 				Expr:   intstr.FromString(o.Burnrate(br)),
 				Labels: ruleLabels,
 			})
@@ -145,11 +115,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 				Alert: "ErrorBudgetBurn",
 				// TODO: Use expr replacer
 				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-					burnrateName(metric, w.Short),
+					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
-					burnrateName(metric, w.Long),
+					o.BurnrateName(w.Long),
 					alertMatchersString,
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
@@ -162,7 +132,6 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		metric := o.Indicator.Latency.Total.Name
 		matchers := o.Indicator.Latency.Total.LabelMatchers
 
 		groupingMap := map[string]struct{}{}
@@ -183,7 +152,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
-				Record: burnrateName(metric, br),
+				Record: o.BurnrateName(br),
 				Expr:   intstr.FromString(o.Burnrate(br)),
 				Labels: ruleLabels,
 			})
@@ -223,11 +192,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 				Alert: "ErrorBudgetBurn",
 				// TODO: Use expr replacer
 				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-					burnrateName(metric, w.Short),
+					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
-					burnrateName(metric, w.Long),
+					o.BurnrateName(w.Long),
 					alertMatchersString,
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
@@ -246,7 +215,15 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	}, nil
 }
 
-func burnrateName(metric string, rate time.Duration) string {
+func (o Objective) BurnrateName(rate time.Duration) string {
+	var metric string
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		metric = o.Indicator.Ratio.Total.Name
+	}
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		metric = o.Indicator.Latency.Total.Name
+	}
+
 	metric = strings.TrimSuffix(metric, "_total")
 	metric = strings.TrimSuffix(metric, "_count")
 	return fmt.Sprintf("%s:burnrate%s", metric, model.Duration(rate))
