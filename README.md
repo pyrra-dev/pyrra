@@ -125,6 +125,10 @@ If you're unable to run the Prometheus Operator inside your cluster, you can add
 the `--config-map-mode=true` flag after the `kubernetes` argument. This will
 save each recording rule in a separate `ConfigMap`.
 
+#### Install with Helm
+
+Thanks to @rlex there is a [Helm chart](https://artifacthub.io/packages/helm/rlex/pyrra) for deploying Pyrra too. 
+
 ### Running inside Docker / Filesystem
 
 > An example for this mode of operation can be found in [examples/docker-compose](examples/docker-compose).
