@@ -127,7 +127,7 @@ save each recording rule in a separate `ConfigMap`.
 
 #### Install with Helm
 
-Thanks to @rlex there is a [Helm chart](https://artifacthub.io/packages/helm/rlex/pyrra) for deploying Pyrra too. 
+Thanks to [@rlex](https://github.com/rlex) there is a [Helm chart](https://artifacthub.io/packages/helm/rlex/pyrra) for deploying Pyrra too. 
 
 ### Running inside Docker / Filesystem
 
