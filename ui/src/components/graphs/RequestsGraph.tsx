@@ -1,14 +1,14 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Spinner } from 'react-bootstrap'
+import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
+import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react';
-import uPlot, { AlignedData } from 'uplot'
+import uPlot, {AlignedData} from 'uplot'
 
-import { ObjectivesApi, QueryRange } from '../../client'
-import { formatDuration, PROMETHEUS_URL } from '../../App'
-import { IconExternal } from '../Icons'
-import { Labels, labelsString, parseLabelValue } from "../../labels";
-import { blues, greens, reds, yellows } from './colors';
-import { seriesGaps } from './gaps';
+import {ObjectivesApi, QueryRange} from '../../client'
+import {formatDuration, PROMETHEUS_URL} from '../../App'
+import {IconExternal} from '../Icons'
+import {Labels, labelsString, parseLabelValue} from "../../labels";
+import {blues, greens, reds, yellows} from './colors';
+import {seriesGaps} from './gaps';
 
 interface RequestsGraphProps {
   api: ObjectivesApi
@@ -18,7 +18,7 @@ interface RequestsGraphProps {
   uPlotCursor: uPlot.Cursor,
 }
 
-const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: RequestsGraphProps): JSX.Element => {
+const RequestsGraph = ({api, labels, grouping, timeRange, uPlotCursor}: RequestsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>;
 
   const [requests, setRequests] = useState<AlignedData>()
@@ -46,7 +46,7 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
     const end = Math.floor(now / 1000)
 
     setRequestsLoading(true)
-    api.getREDRequests({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
+    api.getREDRequests({expr: labelsString(labels), grouping: labelsString(grouping), start, end})
       .then((r: QueryRange) => {
         const [x, ...ys] = r.values
         const data: AlignedData = [x, ...ys] // explicitly give it the x then the rest of ys
@@ -75,7 +75,7 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+      <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4>
           Requests
           {requestsLoading ? <Spinner animation="border" style={{
@@ -115,10 +115,10 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
               }
             })],
             scales: {
-              x: { min: start, max: end },
+              x: {min: start, max: end},
               y: {
                 range: {
-                  min: { hard: 0 },
+                  min: {hard: 0},
                   max: {}
                 }
               }
@@ -131,8 +131,8 @@ const RequestsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Reques
             padding: [15, 0, 0, 0],
             series: [{}, {}],
             scales: {
-              x: { min: start, max: end },
-              y: { min: 0, max: 1 }
+              x: {min: start, max: end},
+              y: {min: 0, max: 1}
             }
           }} data={[[], []]}/>
         )}

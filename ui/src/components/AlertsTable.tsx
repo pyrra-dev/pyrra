@@ -1,18 +1,18 @@
-import { OverlayTrigger, Table, Tooltip as OverlayTooltip } from 'react-bootstrap'
-import React, { useEffect, useMemo, useState } from 'react'
-import { API_BASEPATH, formatDuration, PROMETHEUS_URL } from '../App'
-import { Configuration, MultiBurnrateAlert, Objective, ObjectivesApi } from '../client'
-import { IconExternal } from './Icons'
-import { Labels, labelsString } from "../labels";
+import {OverlayTrigger, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
+import React, {useEffect, useMemo, useState} from 'react'
+import {API_BASEPATH, formatDuration, PROMETHEUS_URL} from '../App'
+import {Configuration, MultiBurnrateAlert, Objective, ObjectivesApi} from '../client'
+import {IconExternal} from './Icons'
+import {Labels, labelsString} from "../labels";
 
 interface AlertsTableProps {
   objective: Objective
   grouping: Labels
 }
 
-const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => {
+const AlertsTable = ({objective, grouping}: AlertsTableProps): JSX.Element => {
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: API_BASEPATH }))
+    return new ObjectivesApi(new Configuration({basePath: API_BASEPATH}))
   }, [])
 
   const [alerts, setAlerts] = useState<MultiBurnrateAlert[]>([])
@@ -36,16 +36,16 @@ const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => 
       <Table className="table-alerts">
         <thead>
         <tr>
-          <th style={{ width: '10%' }}>State</th>
-          <th style={{ width: '10%' }}>Severity</th>
-          <th style={{ width: '10%', textAlign: 'right' }}>Exhaustion</th>
-          <th style={{ width: '12%', textAlign: 'right' }}>Threshold</th>
-          <th style={{ width: '5%' }}/>
-          <th style={{ width: '10%', textAlign: 'left' }}>Short Burn</th>
-          <th style={{ width: '5%' }}/>
-          <th style={{ width: '10%', textAlign: 'left' }}>Long Burn</th>
-          <th style={{ width: '5%', textAlign: 'right' }}>For</th>
-          <th style={{ width: '10%', textAlign: 'left' }}>Prometheus</th>
+          <th style={{width: '10%'}}>State</th>
+          <th style={{width: '10%'}}>Severity</th>
+          <th style={{width: '10%', textAlign: 'right'}}>Exhaustion</th>
+          <th style={{width: '12%', textAlign: 'right'}}>Threshold</th>
+          <th style={{width: '5%'}}/>
+          <th style={{width: '10%', textAlign: 'left'}}>Short Burn</th>
+          <th style={{width: '5%'}}/>
+          <th style={{width: '10%', textAlign: 'left'}}>Long Burn</th>
+          <th style={{width: '5%', textAlign: 'right'}}>For</th>
+          <th style={{width: '10%', textAlign: 'left'}}>Prometheus</th>
         </tr>
         </thead>
         <tbody>
@@ -71,7 +71,7 @@ const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => 
             <tr key={i} className={a.state}>
               <td>{a.state}</td>
               <td>{a.severity}</td>
-              <td style={{ textAlign: 'right' }}>
+              <td style={{textAlign: 'right'}}>
                 <OverlayTrigger
                   key={i}
                   overlay={
@@ -82,7 +82,7 @@ const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => 
                   <span>{formatDuration(objective.window / a.factor)}</span>
                 </OverlayTrigger>
               </td>
-              <td style={{ textAlign: 'right' }}>
+              <td style={{textAlign: 'right'}}>
                 <OverlayTrigger
                   key={i}
                   overlay={
@@ -93,19 +93,19 @@ const AlertsTable = ({ objective, grouping }: AlertsTableProps): JSX.Element => 
                   <span>{(a.factor * (1 - objective?.target)).toFixed(3)}</span>
                 </OverlayTrigger>
               </td>
-              <td style={{ textAlign: 'center' }}>
-                <small style={{ opacity: 0.5 }}>&gt;</small>
+              <td style={{textAlign: 'center'}}>
+                <small style={{opacity: 0.5}}>&gt;</small>
               </td>
-              <td style={{ textAlign: 'left' }}>
+              <td style={{textAlign: 'left'}}>
                 {shortCurrent} ({formatDuration(a._short.window)})
               </td>
-              <td style={{ textAlign: 'left' }}>
-                <small style={{ opacity: 0.5 }}>and</small>
+              <td style={{textAlign: 'left'}}>
+                <small style={{opacity: 0.5}}>and</small>
               </td>
-              <td style={{ textAlign: 'left' }}>
+              <td style={{textAlign: 'left'}}>
                 {longCurrent} ({formatDuration(a._long.window)})
               </td>
-              <td style={{ textAlign: 'right' }}>{formatDuration(a._for)}</td>
+              <td style={{textAlign: 'right'}}>{formatDuration(a._for)}</td>
               <td>
                 <a className="external-prometheus"
                    target="_blank"

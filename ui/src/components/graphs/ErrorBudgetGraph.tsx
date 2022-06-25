@@ -1,14 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Spinner } from 'react-bootstrap'
+import React, {useEffect, useRef, useState} from 'react'
+import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react';
-import uPlot, { AlignedData } from 'uplot'
+import uPlot, {AlignedData} from 'uplot'
 
-import { formatDuration, PROMETHEUS_URL } from '../../App'
-import { ObjectivesApi, QueryRange } from '../../client'
-import { IconExternal } from '../Icons'
-import { greens, reds } from './colors';
-import { Labels, labelsString } from "../../labels";
-import { seriesGaps } from './gaps'
+import {formatDuration, PROMETHEUS_URL} from '../../App'
+import {ObjectivesApi, QueryRange} from '../../client'
+import {IconExternal} from '../Icons'
+import {greens, reds} from './colors';
+import {Labels, labelsString} from "../../labels";
+import {seriesGaps} from './gaps'
 
 interface ErrorBudgetGraphProps {
   api: ObjectivesApi
@@ -18,7 +18,7 @@ interface ErrorBudgetGraphProps {
   uPlotCursor: uPlot.Cursor,
 }
 
-const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorBudgetGraphProps): JSX.Element => {
+const ErrorBudgetGraph = ({api, labels, grouping, timeRange, uPlotCursor}: ErrorBudgetGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
   const [samples, setSamples] = useState<AlignedData>()
@@ -52,7 +52,7 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
     const start = Math.floor((now - timeRange) / 1000)
     const end = Math.floor(now / 1000)
 
-    api.getObjectiveErrorBudget({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
+    api.getObjectiveErrorBudget({expr: labelsString(labels), grouping: labelsString(grouping), start, end})
       .then((r: QueryRange) => {
         setSamples([
           r.values[0],
@@ -111,7 +111,7 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+      <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4>
           Error Budget
           {loading ? (
@@ -150,11 +150,11 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
               gaps: seriesGaps(start, end)
             }],
             scales: {
-              x: { min: start, max: end },
+              x: {min: start, max: end},
               y: {
                 range: {
                   min: {},
-                  max: { hard: 100 }
+                  max: {hard: 100}
                 }
               }
             },
@@ -168,8 +168,8 @@ const ErrorBudgetGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: Err
             height: 300,
             series: [{}, {}],
             scales: {
-              x: { min: start, max: end },
-              y: { min: 0, max: 1 }
+              x: {min: start, max: end},
+              y: {min: 0, max: 1}
             }
           }} data={[[], []]}/>
         )}

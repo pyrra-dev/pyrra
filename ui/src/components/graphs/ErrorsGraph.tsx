@@ -1,14 +1,14 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Spinner } from 'react-bootstrap'
+import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
+import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react';
-import uPlot, { AlignedData } from 'uplot'
+import uPlot, {AlignedData} from 'uplot'
 
-import { ObjectivesApi, QueryRange } from '../../client'
-import { formatDuration, PROMETHEUS_URL } from '../../App'
-import { IconExternal } from '../Icons'
-import { Labels, labelsString, parseLabelValue } from "../../labels";
-import { reds } from './colors';
-import { seriesGaps } from './gaps';
+import {ObjectivesApi, QueryRange} from '../../client'
+import {formatDuration, PROMETHEUS_URL} from '../../App'
+import {IconExternal} from '../Icons'
+import {Labels, labelsString, parseLabelValue} from "../../labels";
+import {reds} from './colors';
+import {seriesGaps} from './gaps';
 
 interface ErrorsGraphProps {
   api: ObjectivesApi,
@@ -18,7 +18,7 @@ interface ErrorsGraphProps {
   uPlotCursor: uPlot.Cursor,
 }
 
-const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGraphProps): JSX.Element => {
+const ErrorsGraph = ({api, labels, grouping, timeRange, uPlotCursor}: ErrorsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
   const [errors, setErrors] = useState<AlignedData>()
@@ -46,7 +46,7 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
     const end = Math.floor(now / 1000)
 
     setErrorsLoading(true)
-    api.getREDErrors({ expr: labelsString(labels), grouping: labelsString(grouping), start, end })
+    api.getREDErrors({expr: labelsString(labels), grouping: labelsString(grouping), start, end})
       .then((r: QueryRange) => {
         let [x, ...ys] = r.values
         ys = ys.map((y: number[]) =>
@@ -72,7 +72,7 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+      <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4>
           Errors
           {errorsLoading ? <Spinner animation="border" style={{
@@ -113,11 +113,11 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
               }
             })],
             scales: {
-              x: { min: start, max: end },
+              x: {min: start, max: end},
               y: {
                 range: {
-                  min: { hard: 0 },
-                  max: { hard: 100 }
+                  min: {hard: 0},
+                  max: {hard: 100}
                 }
               }
             },
@@ -132,8 +132,8 @@ const ErrorsGraph = ({ api, labels, grouping, timeRange, uPlotCursor }: ErrorsGr
             padding: [15, 0, 0, 0],
             series: [{}, {}],
             scales: {
-              x: { min: start, max: end },
-              y: { min: 0, max: 1 }
+              x: {min: start, max: end},
+              y: {min: 0, max: 1}
             }
           }} data={[[], []]}/>
         )}
