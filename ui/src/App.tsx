@@ -2,6 +2,7 @@ import React from 'react'
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import List from './pages/List'
 import Detail from './pages/Detail'
+import {LabelMatcher, Latency, Objective} from './proto/objectives/v1alpha1/objectives_pb'
 
 // @ts-expect-error - this is passed from the HTML template.
 export const PATH_PREFIX: string = window.PATH_PREFIX
@@ -20,6 +21,36 @@ const App = () => {
       </Routes>
     </BrowserRouter>
   )
+}
+
+export enum ObjectiveType {
+  Ratio,
+  Latency,
+}
+
+export const hasObjectiveType = (o: Objective): ObjectiveType => {
+  if (o.indicator?.options.case === 'latency') {
+    return ObjectiveType.Latency
+  }
+  return ObjectiveType.Ratio
+}
+
+export const renderLatencyTarget = (o: Objective): string => {
+  if (hasObjectiveType(o) !== ObjectiveType.Latency) {
+    return ''
+  }
+
+  const latency: Latency = o.indicator?.options.value as Latency
+
+  const m = latency.success?.matchers.find((m: LabelMatcher) => {
+    return m.name === 'le'
+  })
+
+  if (m !== undefined) {
+    // multiply with 1000 to get values from seconds to milliseconds
+    return formatDuration(1000 * parseFloat(m.value))
+  }
+  return ''
 }
 
 export const dateFormatter =
