@@ -1,39 +1,31 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import React, { useEffect, useMemo, useState } from 'react'
-import { Badge, Button, ButtonGroup, Col, Container, Row, Spinner } from 'react-bootstrap'
+import {Link, useLocation, useNavigate} from 'react-router-dom'
+import React, {useEffect, useMemo, useState} from 'react'
+import {Badge, Button, ButtonGroup, Col, Container, Row, Spinner} from 'react-bootstrap'
 import {
   Configuration,
   Objective,
   ObjectivesApi,
   ObjectiveStatus,
   ObjectiveStatusAvailability,
-  ObjectiveStatusBudget
+  ObjectiveStatusBudget,
 } from '../client'
-import { API_BASEPATH, formatDuration, parseDuration } from '../App'
+import {API_BASEPATH, formatDuration, parseDuration} from '../App'
 import Navbar from '../components/Navbar'
-import {MetricName, parseLabels} from "../labels";
-import ErrorBudgetGraph from "../components/graphs/ErrorBudgetGraph";
-import RequestsGraph from "../components/graphs/RequestsGraph";
-import ErrorsGraph from "../components/graphs/ErrorsGraph";
-import AlertsTable from "../components/AlertsTable";
+import {MetricName, parseLabels} from '../labels'
+import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
+import RequestsGraph from '../components/graphs/RequestsGraph'
+import ErrorsGraph from '../components/graphs/ErrorsGraph'
+import AlertsTable from '../components/AlertsTable'
 
 const Detail = () => {
   const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({ basePath: API_BASEPATH }))
-  }, []);
+    return new ObjectivesApi(new Configuration({basePath: API_BASEPATH}))
+  }, [])
 
   const navigate = useNavigate()
   const {search} = useLocation()
 
-  const {
-    timeRange,
-    expr,
-    grouping,
-    groupingExpr,
-    groupingLabels,
-    name,
-    labels,
-  } = useMemo(() => {
+  const {timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels} = useMemo(() => {
     const query = new URLSearchParams(search)
 
     const queryExpr = query.get('expr')
@@ -50,11 +42,11 @@ const Detail = () => {
     const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
     const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
 
-    return {timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels};
-  }, [search]);
+    return {timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels}
+  }, [search])
 
-  const [objective, setObjective] = useState<Objective | null>(null);
-  const [objectiveError, setObjectiveError] = useState<string>('');
+  const [objective, setObjective] = useState<Objective | null>(null)
+  const [objectiveError, setObjectiveError] = useState<string>('')
 
   enum StatusState {
     Unknown,
@@ -63,35 +55,37 @@ const Detail = () => {
     Success,
   }
 
-  const [statusState, setStatusState] = useState<StatusState>(StatusState.Unknown);
-  const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null);
-  const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null);
+  const [statusState, setStatusState] = useState<StatusState>(StatusState.Unknown)
+  const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null)
+  const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null)
 
   useEffect(() => {
     // const controller = new AbortController()
     document.title = `${name} - Pyrra`
 
-    api.listObjectives({ expr: expr })
+    api
+      .listObjectives({expr: expr})
       .then((os: Objective[]) => {
-        if (os.length === 1)  {
+        if (os.length === 1) {
           if (os[0].config === objective?.config) {
             // Prevent the setState if the objective is the same
-            return;
+            return
           }
           setObjective(os[0])
-         } else {
+        } else {
           setObjective(null)
-         }
+        }
       })
       .catch((resp) => {
         if (resp.status !== undefined) {
-          resp.text().then((err: string) => (setObjectiveError(err)))
+          resp.text().then((err: string) => setObjectiveError(err))
         } else {
           setObjectiveError(resp.message)
         }
       })
 
-    api.getObjectiveStatus({ expr: expr, grouping: grouping })
+    api
+      .getObjectiveStatus({expr: expr, grouping: grouping})
       .then((s: ObjectiveStatus[]) => {
         if (s.length === 0) {
           setStatusState(StatusState.NoData)
@@ -115,16 +109,26 @@ const Detail = () => {
     //     // cancel any pending requests.
     //     controller.abort()
     // }
-  }, [api, name, expr, grouping, timeRange, StatusState.Error, StatusState.NoData, StatusState.Success, objective?.config])
+  }, [
+    api,
+    name,
+    expr,
+    grouping,
+    timeRange,
+    StatusState.Error,
+    StatusState.NoData,
+    StatusState.Success,
+    objective?.config,
+  ])
 
   if (objectiveError !== '') {
     return (
       <>
-        <Navbar/>
+        <Navbar />
         <Container>
-          <div className='header'>
+          <div className="header">
             <h3>{objectiveError}</h3>
-            <br/>
+            <br />
             <Link to="/" className="btn btn-light">
               Go Back
             </Link>
@@ -136,7 +140,7 @@ const Detail = () => {
 
   if (objective == null) {
     return (
-      <div style={{ marginTop: '50px', textAlign: 'center' }}>
+      <div style={{marginTop: '50px', textAlign: 'center'}}>
         <Spinner animation="border" role="status">
           <span className="visually-hidden">Loading...</span>
         </Spinner>
@@ -145,9 +149,7 @@ const Detail = () => {
   }
 
   if (objective.labels === undefined) {
-    return (
-      <></>
-    )
+    return <></>
   }
 
   const timeRanges = [
@@ -155,28 +157,33 @@ const Detail = () => {
     7 * 24 * 3600 * 1000, // 1w
     24 * 3600 * 1000, // 1d
     12 * 3600 * 1000, // 12h
-    3600 * 1000 // 1h
+    3600 * 1000, // 1h
   ]
 
   const handleTimeRangeClick = (t: number) => () => {
-    navigate(`/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&timerange=${formatDuration(t)}`)
+    navigate(
+      `/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&timerange=${formatDuration(t)}`,
+    )
   }
 
   const renderAvailability = () => {
-    const headline = (<h6>Availability</h6>)
+    const headline = <h6>Availability</h6>
     switch (statusState) {
       case StatusState.Unknown:
         return (
           <div>
             {headline}
-            <Spinner animation={'border'} style={{
-              width: 50,
-              height: 50,
-              padding: 0,
-              borderRadius: 50,
-              borderWidth: 2,
-              opacity: 0.25
-            }}/>
+            <Spinner
+              animation={'border'}
+              style={{
+                width: 50,
+                height: 50,
+                padding: 0,
+                borderRadius: 50,
+                borderWidth: 2,
+                opacity: 0.25,
+              }}
+            />
           </div>
         )
       case StatusState.Error:
@@ -207,20 +214,23 @@ const Detail = () => {
   }
 
   const renderErrorBudget = () => {
-    const headline = (<h6>Error Budget</h6>)
+    const headline = <h6>Error Budget</h6>
     switch (statusState) {
       case StatusState.Unknown:
         return (
           <div>
             {headline}
-            <Spinner animation={'border'} style={{
-              width: 50,
-              height: 50,
-              padding: 0,
-              borderRadius: 50,
-              borderWidth: 2,
-              opacity: 0.25
-            }}/>
+            <Spinner
+              animation={'border'}
+              style={{
+                width: 50,
+                height: 50,
+                padding: 0,
+                borderRadius: 50,
+                borderWidth: 2,
+                opacity: 0.25,
+              }}
+            />
           </div>
         )
       case StatusState.Error:
@@ -250,18 +260,20 @@ const Detail = () => {
     }
   }
 
-  const labelBadges = Object.entries({ ...objective.labels, ...groupingLabels })
+  const labelBadges = Object.entries({...objective.labels, ...groupingLabels})
     .filter((l: [string, string]) => l[0] !== MetricName)
     .map((l: [string, string]) => (
-      <Badge key={l[1]} bg='light' text='dark' className="fw-normal">{l[0]}={l[1]}</Badge>
+      <Badge key={l[1]} bg="light" text="dark" className="fw-normal">
+        {l[0]}={l[1]}
+      </Badge>
     ))
 
   const uPlotCursor = {
     lock: true,
     sync: {
-      key: 'detail'
-    }
-  };
+      key: 'detail',
+    },
+  }
 
   return (
     <>
@@ -274,28 +286,30 @@ const Detail = () => {
       <div className="content detail">
         <Container>
           <Row>
-            <Col xs={12} className='header'>
+            <Col xs={12} className="header">
               <h3>{name}</h3>
               {labelBadges}
             </Col>
             {objective.description !== undefined && objective.description !== '' ? (
-                <Col xs={12} md={6} style={{ marginTop: 12 }}>
-                  <p>{objective.description}</p>
-                </Col>
-              )
-              : (<></>)}
+              <Col xs={12} md={6} style={{marginTop: 12}}>
+                <p>{objective.description}</p>
+              </Col>
+            ) : (
+              <></>
+            )}
           </Row>
           <Row>
             <div className="metrics">
               <div>
-                <h6>Objective in <strong>{formatDuration(objective.window)}</strong></h6>
+                <h6>
+                  Objective in <strong>{formatDuration(objective.window)}</strong>
+                </h6>
                 <h2>{(100 * objective.target).toFixed(3)}%</h2>
               </div>
 
               {renderAvailability()}
 
               {renderErrorBudget()}
-
             </div>
           </Row>
           <Row>
@@ -307,14 +321,15 @@ const Detail = () => {
                       key={t}
                       variant="light"
                       onClick={handleTimeRangeClick(t)}
-                      active={timeRange === t}
-                    >{formatDuration(t)}</Button>
+                      active={timeRange === t}>
+                      {formatDuration(t)}
+                    </Button>
                   ))}
                 </ButtonGroup>
               </div>
             </Col>
           </Row>
-          <Row style={{ marginBottom: 0 }}>
+          <Row style={{marginBottom: 0}}>
             <Col>
               <ErrorBudgetGraph
                 api={api}
@@ -326,7 +341,7 @@ const Detail = () => {
             </Col>
           </Row>
           <Row>
-            <Col style={{ textAlign: 'right' }}>
+            <Col style={{textAlign: 'right'}}>
               {availability != null ? (
                 <>
                   <small>Errors: {Math.floor(availability.errors).toLocaleString()}</small>&nbsp;
@@ -360,16 +375,13 @@ const Detail = () => {
           <Row>
             <Col>
               <h4>Multi Burn Rate Alerts</h4>
-              <AlertsTable
-                objective={objective}
-                grouping={groupingLabels}
-              />
+              <AlertsTable objective={objective} grouping={groupingLabels} />
             </Col>
           </Row>
           <Row>
             <Col>
               <h4>Config</h4>
-              <pre style={{ padding: 20, borderRadius: 4 }}>
+              <pre style={{padding: 20, borderRadius: 4}}>
                 <code>{objective.config}</code>
               </pre>
             </Col>
@@ -377,7 +389,7 @@ const Detail = () => {
         </Container>
       </div>
     </>
-  );
-};
+  )
+}
 
 export default Detail

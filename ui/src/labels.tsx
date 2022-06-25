@@ -10,7 +10,7 @@ export const labelsString = (lset: Labels | undefined): string => {
   }
 
   // TODO: Sort these labels before mapping or are they always sorted?
-  let s = '';
+  let s = ''
   s += '{'
   s += Object.entries(lset)
     .map((l) => `${l[0]}="${l[1]}"`)
@@ -24,7 +24,7 @@ export const parseLabels = (expr: string | null): Labels => {
     return {}
   }
   expr = expr.replace(/^{+|}+$/gm, '')
-  const lset: { [key: string]: string; } = {}
+  const lset: {[key: string]: string} = {}
   expr.split(',').forEach((s: string) => {
     const pair = s.split('=')
     if (pair.length !== 2) {
