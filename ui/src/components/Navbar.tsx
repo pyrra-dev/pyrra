@@ -10,14 +10,15 @@ interface NavbarProps {
 const Navbar = ({children}: NavbarProps): JSX.Element => {
   return (
     <BootstrapNavbar className={children !== undefined ? 'navbar-tall' : ''}>
-      {children !== undefined ?
+      {children !== undefined ? (
         <Container>
           <div className="breadcrumb">{children}</div>
-        </Container> :
+        </Container>
+      ) : (
         <></>
-      }
+      )}
       <Link to="/" className="logo">
-        <img src={logo} alt="" height={40}/>
+        <img src={logo} alt="" height={40} />
       </Link>
     </BootstrapNavbar>
   )
