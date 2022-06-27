@@ -658,9 +658,11 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 	// Match alerts that at least have one character for the slo name.
 	queryAlerts := `ALERTS{slo=~".+"}`
 
+	var groupingMatchers []*labels.Matcher
+
 	if grouping != "" && grouping != "{}" {
 		// If grouping exists we merge those matchers directly into the queryAlerts query.
-		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		groupingMatchers, err = parser.ParseMetricSelector(grouping)
 		if err != nil {
 			return openapiserver.ImplResponse{}, fmt.Errorf("failed parsing grouping matchers: %w", err)
 		}
@@ -695,7 +697,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 		return openapiserver.ImplResponse{Code: http.StatusInternalServerError}, err
 	}
 
-	alerts := alertsMatchingObjectives(vector, objectives, inactive)
+	alerts := alertsMatchingObjectives(vector, objectives, groupingMatchers, inactive)
 
 	if current {
 		for _, objective := range objectives {
@@ -712,8 +714,11 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 				go func(w time.Duration) {
 					defer wg.Done()
 
-					// TODO: Improve by using the recording rule
-					query := objective.Burnrate(w)
+					query, err := objective.QueryBurnrate(w, groupingMatchers)
+					if err != nil {
+						level.Warn(o.logger).Log("msg", "failed to query current burn rate", "err", err)
+						return
+					}
 					value, _, err := o.promAPI.Query(contextSetPromCache(ctx, instantCache(w)), query, time.Now())
 					if err != nil {
 						level.Warn(o.logger).Log("msg", "failed to query current burn rate", "err", err)
@@ -769,7 +774,7 @@ func (o *ObjectivesServer) GetMultiBurnrateAlerts(ctx context.Context, expr, gro
 // All labels of an objective need to be equal if they exist on the ALERTS metric.
 // Therefore, only a subset on labels are taken into account
 // which gives the ALERTS metric the opportunity to include more custom labels.
-func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, inactive bool) []openapiserver.MultiBurnrateAlert {
+func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, grouping []*labels.Matcher, inactive bool) []openapiserver.MultiBurnrateAlert {
 	alerts := make([]openapiserver.MultiBurnrateAlert, 0, len(metrics))
 
 	if inactive {
@@ -782,6 +787,9 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 				lset[l.Name] = l.Value
 			}
 			for _, w := range o.Windows() {
+				queryShort, _ := o.QueryBurnrate(w.Short, grouping)
+				queryLong, _ := o.QueryBurnrate(w.Long, grouping)
+
 				alerts = append(alerts, openapiserver.MultiBurnrateAlert{
 					Labels:   lset,
 					Severity: string(w.Severity),
@@ -790,12 +798,12 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 					Short: openapiserver.Burnrate{
 						Window:  w.Short.Milliseconds(),
 						Current: -1,
-						Query:   o.Burnrate(w.Short),
+						Query:   queryShort,
 					},
 					Long: openapiserver.Burnrate{
 						Window:  w.Long.Milliseconds(),
 						Current: -1,
-						Query:   o.Burnrate(w.Long),
+						Query:   queryLong,
 					},
 					State: alertstateInactive,
 				})

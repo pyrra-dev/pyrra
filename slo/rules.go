@@ -30,11 +30,11 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 
 	mbras := make([]MultiBurnRateAlert, len(ws))
 	for i, w := range ws {
-		queryShort, err := o.QueryBurnrate(w.Short)
+		queryShort, err := o.QueryBurnrate(w.Short, nil)
 		if err != nil {
 			return nil, err
 		}
-		queryLong, err := o.QueryBurnrate(w.Long)
+		queryLong, err := o.QueryBurnrate(w.Long, nil)
 		if err != nil {
 			return nil, err
 		}

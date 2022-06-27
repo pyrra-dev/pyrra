@@ -257,21 +257,22 @@ func (o Objective) QueryErrorBudget() string {
 	return ""
 }
 
-// TODO: Add grouping support!
-func (o Objective) QueryBurnrate(timerange time.Duration) (string, error) {
-	var (
-		metric   string
-		matchers []*labels.Matcher
-	)
+func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*labels.Matcher) (string, error) {
+	metric := ""
+	matchers := map[string]*labels.Matcher{}
 
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
 		metric = o.BurnrateName(timerange)
-		matchers = o.Indicator.Ratio.Total.LabelMatchers
+		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
+			matchers[m.Name] = m
+		}
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		metric = o.BurnrateName(timerange)
-		matchers = o.Indicator.Latency.Total.LabelMatchers
+		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
+			matchers[m.Name] = m
+		}
 	}
 
 	if metric == "" {
@@ -288,15 +289,33 @@ func (o Objective) QueryBurnrate(timerange time.Duration) (string, error) {
 			matchers[i].Value = metric
 		}
 	}
-	matchers = append(matchers, &labels.Matcher{
+
+	for _, m := range groupingMatchers {
+		if m.Type != labels.MatchEqual {
+			return "", fmt.Errorf("grouping matcher has to be MatchEqual not %s", m.Type.String())
+		}
+
+		matchers[m.Name] = &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  m.Name,
+			Value: m.Value,
+		}
+	}
+
+	matchers["slo"] = &labels.Matcher{
 		Type:  labels.MatchEqual,
 		Name:  "slo",
 		Value: o.Name(),
-	})
+	}
+
+	matchersSlice := make([]*labels.Matcher, 0, len(matchers))
+	for _, m := range matchers {
+		matchersSlice = append(matchersSlice, m)
+	}
 
 	objectiveReplacer{
 		metric:   metric,
-		matchers: matchers,
+		matchers: matchersSlice,
 	}.replace(expr)
 
 	return expr.String(), nil
