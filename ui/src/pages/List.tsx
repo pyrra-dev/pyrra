@@ -316,7 +316,7 @@ const List = () => {
     // One solution would be to store this in a separate array and reconcile against that array after every status update.
     if (objectives.length > 0) {
       api
-        .getMultiBurnrateAlerts({expr: '', inactive: false})
+        .getMultiBurnrateAlerts({expr: '', inactive: false, current: false})
         .then((alerts: MultiBurnrateAlert[]) => {
           alerts.forEach((alert: MultiBurnrateAlert) => {
             if (alert.state === MultiBurnrateAlertStateEnum.Firing) {

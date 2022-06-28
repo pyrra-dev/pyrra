@@ -42,7 +42,9 @@ const Detail = () => {
     const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
     const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
 
-    return {timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels}
+    document.title = `${name} - Pyrra`
+
+    return { timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels }
   }, [search])
 
   const [objective, setObjective] = useState<Objective | null>(null)
@@ -61,7 +63,6 @@ const Detail = () => {
 
   useEffect(() => {
     // const controller = new AbortController()
-    document.title = `${name} - Pyrra`
 
     api
       .listObjectives({expr: expr})
@@ -375,7 +376,10 @@ const Detail = () => {
           <Row>
             <Col>
               <h4>Multi Burn Rate Alerts</h4>
-              <AlertsTable objective={objective} grouping={groupingLabels} />
+              <AlertsTable
+                api={api}
+                objective={objective}
+                grouping={groupingLabels}              />
             </Col>
           </Row>
           <Row>

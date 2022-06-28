@@ -33,6 +33,7 @@ export interface GetMultiBurnrateAlertsRequest {
     expr: string;
     grouping?: string;
     inactive?: boolean;
+    current?: boolean;
 }
 
 export interface GetObjectiveErrorBudgetRequest {
@@ -90,6 +91,10 @@ export class ObjectivesApi extends runtime.BaseAPI {
 
         if (requestParameters.inactive !== undefined) {
             queryParameters['inactive'] = requestParameters.inactive;
+        }
+
+        if (requestParameters.current !== undefined) {
+            queryParameters['current'] = requestParameters.current;
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
