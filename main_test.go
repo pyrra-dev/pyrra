@@ -419,7 +419,7 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.alerts, alertsMatchingObjectives(tc.metrics, tc.objectives, tc.inactive))
+			require.Equal(t, tc.alerts, alertsMatchingObjectives(tc.metrics, tc.objectives, nil, tc.inactive))
 		})
 	}
 }

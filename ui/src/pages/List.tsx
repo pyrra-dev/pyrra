@@ -305,7 +305,7 @@ const List = () => {
     // TODO: This is prone to a concurrency race with updates of status that have additional groupings...
     // One solution would be to store this in a separate array and reconcile against that array after every status update.
     if (objectives.length > 0) {
-      api.getMultiBurnrateAlerts({expr: '', inactive: false})
+      api.getMultiBurnrateAlerts({expr: '', inactive: false, current: false})
         .then((alerts: MultiBurnrateAlert[]) => {
           alerts.forEach((alert: MultiBurnrateAlert) => {
             if (alert.state === MultiBurnrateAlertStateEnum.Firing) {
