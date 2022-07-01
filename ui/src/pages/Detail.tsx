@@ -1,5 +1,5 @@
 import {Link, useLocation, useNavigate} from 'react-router-dom'
-import React, {useEffect, useMemo, useState} from 'react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import {Badge, Button, ButtonGroup, Col, Container, Row, Spinner} from 'react-bootstrap'
 import {
   Configuration,
@@ -9,7 +9,7 @@ import {
   ObjectiveStatusAvailability,
   ObjectiveStatusBudget,
 } from '../client'
-import {API_BASEPATH, formatDuration, parseDuration} from '../App'
+import {API_BASEPATH, formatDuration} from '../App'
 import Navbar from '../components/Navbar'
 import {MetricName, parseLabels} from '../labels'
 import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
@@ -25,7 +25,7 @@ const Detail = () => {
   const navigate = useNavigate()
   const {search} = useLocation()
 
-  const {timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels} = useMemo(() => {
+  const {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels} = useMemo(() => {
     const query = new URLSearchParams(search)
 
     const queryExpr = query.get('expr')
@@ -38,13 +38,15 @@ const Detail = () => {
 
     const name: string = labels[MetricName]
 
-    const timeRangeQuery = query.get('timerange')
-    const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
-    const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
+    const toQuery = query.get('to')
+    const to = toQuery != null ? parseInt(toQuery) : Date.now()
+
+    const fromQuery = query.get('from')
+    const from = fromQuery != null ? parseInt(fromQuery) : to - 3600 * 1000
 
     document.title = `${name} - Pyrra`
 
-    return { timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels }
+    return {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels}
   }, [search])
 
   const [objective, setObjective] = useState<Objective | null>(null)
@@ -61,9 +63,7 @@ const Detail = () => {
   const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null)
   const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null)
 
-  useEffect(() => {
-    // const controller = new AbortController()
-
+  const getObjective = useCallback(() => {
     api
       .listObjectives({expr: expr})
       .then((os: Objective[]) => {
@@ -84,7 +84,9 @@ const Detail = () => {
           setObjectiveError(resp.message)
         }
       })
+  }, [api, expr, objective?.config])
 
+  const getObjectiveStatus = useCallback(() => {
     api
       .getObjectiveStatus({expr: expr, grouping: grouping})
       .then((s: ObjectiveStatus[]) => {
@@ -105,22 +107,22 @@ const Detail = () => {
           setStatusState(StatusState.Error)
         }
       })
+  }, [api, expr, grouping, StatusState.NoData, StatusState.Success, StatusState.Error])
 
-    // return () => {
-    //     // cancel any pending requests.
-    //     controller.abort()
-    // }
-  }, [
-    api,
-    name,
-    expr,
-    grouping,
-    timeRange,
-    StatusState.Error,
-    StatusState.NoData,
-    StatusState.Success,
-    objective?.config,
-  ])
+  useEffect(() => {
+    getObjective()
+    getObjectiveStatus()
+  }, [getObjective, getObjectiveStatus])
+
+  const updateTimeRange = (from: number, to: number) => {
+    navigate(`/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&from=${from}&to=${to}`)
+  }
+
+  const handleTimeRangeClick = (t: number) => () => {
+    const to = Date.now()
+    const from = to - t
+    updateTimeRange(from, to)
+  }
 
   if (objectiveError !== '') {
     return (
@@ -160,12 +162,6 @@ const Detail = () => {
     12 * 3600 * 1000, // 12h
     3600 * 1000, // 1h
   ]
-
-  const handleTimeRangeClick = (t: number) => () => {
-    navigate(
-      `/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&timerange=${formatDuration(t)}`,
-    )
-  }
 
   const renderAvailability = () => {
     const headline = <h6>Availability</h6>
@@ -322,7 +318,7 @@ const Detail = () => {
                       key={t}
                       variant="light"
                       onClick={handleTimeRangeClick(t)}
-                      active={timeRange === t}>
+                      active={to - from === t}>
                       {formatDuration(t)}
                     </Button>
                   ))}
@@ -336,7 +332,8 @@ const Detail = () => {
                 api={api}
                 labels={labels}
                 grouping={groupingLabels}
-                timeRange={timeRange}
+                from={from}
+                to={to}
                 uPlotCursor={uPlotCursor}
               />
             </Col>
@@ -359,7 +356,8 @@ const Detail = () => {
                 api={api}
                 labels={labels}
                 grouping={groupingLabels}
-                timeRange={timeRange}
+                from={from}
+                to={to}
                 uPlotCursor={uPlotCursor}
               />
             </Col>
@@ -368,7 +366,8 @@ const Detail = () => {
                 api={api}
                 labels={labels}
                 grouping={groupingLabels}
-                timeRange={timeRange}
+                from={from}
+                to={to}
                 uPlotCursor={uPlotCursor}
               />
             </Col>
@@ -376,10 +375,7 @@ const Detail = () => {
           <Row>
             <Col>
               <h4>Multi Burn Rate Alerts</h4>
-              <AlertsTable
-                api={api}
-                objective={objective}
-                grouping={groupingLabels}              />
+              <AlertsTable api={api} objective={objective} grouping={groupingLabels} />
             </Col>
           </Row>
           <Row>
