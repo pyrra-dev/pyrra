@@ -51,6 +51,7 @@ const Detail = () => {
 
   const [objective, setObjective] = useState<Objective | null>(null)
   const [objectiveError, setObjectiveError] = useState<string>('')
+  const [autoReload, setAutoReload] = useState<boolean>(true)
 
   enum StatusState {
     Unknown,
@@ -114,8 +115,39 @@ const Detail = () => {
     getObjectiveStatus()
   }, [getObjective, getObjectiveStatus])
 
-  const updateTimeRange = (from: number, to: number) => {
-    navigate(`/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&from=${from}&to=${to}`)
+  const updateTimeRange = useCallback(
+    (from: number, to: number) => {
+      navigate(`/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&from=${from}&to=${to}`)
+    },
+    [navigate, expr, groupingExpr],
+  )
+
+  useEffect(() => {
+    if (autoReload) {
+      const duration = to - from
+
+      // limit the interval to reload at most every 10s
+      const interval = duration < 10 * 1000 * 1000 ? 10 * 1000 : duration / 1000
+
+      console.log(duration, interval)
+
+      const id = setTimeout(() => {
+        const newTo = Date.now()
+        const newFrom = newTo - duration
+        updateTimeRange(newFrom, newTo)
+      }, interval)
+
+      return () => {
+        clearTimeout(id)
+      }
+    }
+  }, [updateTimeRange, autoReload, from, to])
+
+  const reload = () => {
+    const duration = to - from
+    const newTo = Date.now()
+    const newFrom = newTo - duration
+    updateTimeRange(newFrom, newTo)
   }
 
   const handleTimeRangeClick = (t: number) => () => {
@@ -322,6 +354,28 @@ const Detail = () => {
                       {formatDuration(t)}
                     </Button>
                   ))}
+                </ButtonGroup>
+                &nbsp; &nbsp; &nbsp;
+                <ButtonGroup>
+                  <Button variant="light" onClick={() => reload()}>
+                    R
+                  </Button>
+                  <input
+                    type="checkbox"
+                    id="auto-reload"
+                    className="btn-check"
+                    autoComplete="off"
+                    checked={autoReload}
+                    onChange={() => setAutoReload(!autoReload)}
+                  />
+                  <label
+                    className={(autoReload
+                      ? ['btn', 'btn-light', 'active']
+                      : ['btn', 'btn-light']
+                    ).join(' ')}
+                    htmlFor="auto-reload">
+                    auto
+                  </label>
                 </ButtonGroup>
               </div>
             </Col>
