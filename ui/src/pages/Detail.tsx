@@ -138,14 +138,14 @@ const Detail = () => {
 
   useEffect(() => {
     if (autoReload) {
-      const id = setTimeout(() => {
+      const id = setInterval(() => {
         const newTo = Date.now()
         const newFrom = newTo - duration
         updateTimeRange(newFrom, newTo)
       }, interval)
 
       return () => {
-        clearTimeout(id)
+        clearInterval(id)
       }
     }
   }, [updateTimeRange, autoReload, duration, interval])
