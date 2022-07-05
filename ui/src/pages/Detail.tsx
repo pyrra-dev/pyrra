@@ -100,7 +100,7 @@ const Detail = () => {
 
   const getObjectiveStatus = useCallback(() => {
     api
-      .getObjectiveStatus({expr: expr, grouping: grouping})
+      .getObjectiveStatus({expr: expr, grouping: grouping, time: Math.floor(to / 1000)})
       .then((s: ObjectiveStatus[]) => {
         if (s.length === 0) {
           setStatusState(StatusState.NoData)
@@ -119,7 +119,7 @@ const Detail = () => {
           setStatusState(StatusState.Error)
         }
       })
-  }, [api, expr, grouping, StatusState.NoData, StatusState.Success, StatusState.Error])
+  }, [api, expr, grouping, to, StatusState.NoData, StatusState.Success, StatusState.Error])
 
   useEffect(() => {
     getObjective()
@@ -299,7 +299,7 @@ const Detail = () => {
   const labelBadges = Object.entries({...objective.labels, ...groupingLabels})
     .filter((l: [string, string]) => l[0] !== MetricName)
     .map((l: [string, string]) => (
-      <Badge key={l[1]} bg="light" text="dark" className="fw-normal">
+      <Badge key={l[0]} bg="light" text="dark" className="fw-normal">
         {l[0]}={l[1]}
       </Badge>
     ))
@@ -379,7 +379,7 @@ const Detail = () => {
                     key="auto-reload"
                     overlay={
                       <OverlayTooltip id={`tooltip-auto-reload`}>
-                        Automatically reload every
+                        Automatically reload
                       </OverlayTooltip>
                     }>
                     <label
