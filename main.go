@@ -466,7 +466,10 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr, groupin
 		}
 	}
 
-	ts := time.Unix(int64(tsUnix), 0)
+	ts := time.Now()
+	if tsUnix > 0 {
+		ts = time.Unix(int64(tsUnix), 0)
+	}
 
 	queryTotal := objective.QueryTotal(objective.Window)
 	level.Debug(o.logger).Log("msg", "sending query total", "query", queryTotal)
