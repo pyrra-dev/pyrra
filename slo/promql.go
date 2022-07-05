@@ -264,14 +264,22 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			matchers[m.Name] = m
+			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+				Type:  m.Type,
+				Name:  m.Name,
+				Value: m.Value,
+			}
 		}
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			matchers[m.Name] = m
+			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+				Type:  m.Type,
+				Name:  m.Name,
+				Value: m.Value,
+			}
 		}
 	}
 
