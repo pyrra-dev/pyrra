@@ -1,6 +1,16 @@
 import {Link, useLocation, useNavigate} from 'react-router-dom'
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
-import {Badge, Button, ButtonGroup, Col, Container, Row, Spinner} from 'react-bootstrap'
+import {
+  Badge,
+  Button,
+  ButtonGroup,
+  Col,
+  Container,
+  OverlayTrigger,
+  Row,
+  Spinner,
+  Tooltip as OverlayTooltip,
+} from 'react-bootstrap'
 import {
   Configuration,
   Objective,
@@ -16,6 +26,7 @@ import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
 import RequestsGraph from '../components/graphs/RequestsGraph'
 import ErrorsGraph from '../components/graphs/ErrorsGraph'
 import AlertsTable from '../components/AlertsTable'
+import {IconRotate} from '../components/Icons'
 
 const Detail = () => {
   const api = useMemo(() => {
@@ -122,15 +133,11 @@ const Detail = () => {
     [navigate, expr, groupingExpr],
   )
 
+  const duration = to - from
+  const interval = intervalFromDuration(duration)
+
   useEffect(() => {
     if (autoReload) {
-      const duration = to - from
-
-      // limit the interval to reload at most every 10s
-      const interval = duration < 10 * 1000 * 1000 ? 10 * 1000 : duration / 1000
-
-      console.log(duration, interval)
-
       const id = setTimeout(() => {
         const newTo = Date.now()
         const newFrom = newTo - duration
@@ -141,7 +148,7 @@ const Detail = () => {
         clearTimeout(id)
       }
     }
-  }, [updateTimeRange, autoReload, from, to])
+  }, [updateTimeRange, autoReload, duration, interval])
 
   const reload = () => {
     const duration = to - from
@@ -358,7 +365,7 @@ const Detail = () => {
                 &nbsp; &nbsp; &nbsp;
                 <ButtonGroup>
                   <Button variant="light" onClick={() => reload()}>
-                    R
+                    {IconRotate({height: 16, width: 16})}
                   </Button>
                   <input
                     type="checkbox"
@@ -368,14 +375,22 @@ const Detail = () => {
                     checked={autoReload}
                     onChange={() => setAutoReload(!autoReload)}
                   />
-                  <label
-                    className={(autoReload
-                      ? ['btn', 'btn-light', 'active']
-                      : ['btn', 'btn-light']
-                    ).join(' ')}
-                    htmlFor="auto-reload">
-                    auto
-                  </label>
+                  <OverlayTrigger
+                    key="auto-reload"
+                    overlay={
+                      <OverlayTooltip id={`tooltip-auto-reload`}>
+                        Automatically reload every
+                      </OverlayTooltip>
+                    }>
+                    <label
+                      className={(autoReload
+                        ? ['btn', 'btn-light', 'active']
+                        : ['btn', 'btn-light']
+                      ).join(' ')}
+                      htmlFor="auto-reload">
+                      {formatDuration(interval)}
+                    </label>
+                  </OverlayTrigger>
                 </ButtonGroup>
               </div>
             </Col>
@@ -444,6 +459,27 @@ const Detail = () => {
       </div>
     </>
   )
+}
+
+const intervalFromDuration = (duration: number): number => {
+  // map some preset duration to nicer looking intervals
+  switch (duration) {
+    case 60 * 60 * 1000: // 1h => 10s
+      return 10 * 1000
+    case 12 * 60 * 60 * 1000: // 12h => 30s
+      return 30 * 1000
+    case 24 * 60 * 60 * 1000: // 12h => 30s
+      return 90 * 1000
+  }
+
+  if (duration < 10 * 1000 * 1000) {
+    return 10 * 1000
+  }
+  if (duration < 10 * 60 * 1000 * 1000) {
+    return Math.floor(duration / 1000 / 1000) * 1000 // round to seconds
+  }
+
+  return Math.floor(duration / 60 / 1000 / 1000) * 60 * 1000
 }
 
 export default Detail
