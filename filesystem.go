@@ -170,53 +170,11 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "reading", "file", f)
 					reconcilesTotal.Inc()
 
-					bytes, err := ioutil.ReadFile(f)
+					objective, err := objectiveAsRuleFile(f, prometheusFolder)
 					if err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to read file %q: %w", f, err)
+						return fmt.Errorf("failed to create rule file %q: %w", f, err)
 					}
-
-					var config v1alpha1.ServiceLevelObjective
-					if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to unmarshal objective %q: %w", f, err)
-					}
-
-					objective, err := config.Internal()
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to get objective: %w", err)
-					}
-
-					increases, err := objective.IncreaseRules()
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to get increase rules: %w", err)
-					}
-					burnrates, err := objective.Burnrates()
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to get burn rate rules: %w", err)
-					}
-
-					rule := monitoringv1.PrometheusRuleSpec{
-						Groups: []monitoringv1.RuleGroup{increases, burnrates},
-					}
-
-					bytes, err = yaml.Marshal(rule)
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to marshal recording rules: %w", err)
-					}
-
-					_, file := filepath.Split(f)
-					path := filepath.Join(prometheusFolder, file)
-
-					if err := ioutil.WriteFile(path, bytes, 0o644); err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to write file %q: %w", path, err)
-					}
-
 					objectives.Set(objective)
 
 					reload <- struct{}{} // Trigger a Prometheus reload
@@ -352,4 +310,46 @@ func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, expr, gro
 
 func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
 	return openapiserver.ImplResponse{}, errEndpointNotImplemented
+}
+
+// objectiveAsRuleFile reads a ServiceLevelObjective YAML manifest and outputs the corresponding
+// Prometheus rules as a file in the desired directory.
+func objectiveAsRuleFile(file, prometheusFolder string) (slo.Objective, error) {
+	bytes, err := ioutil.ReadFile(file)
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to read file %q: %w", file, err)
+	}
+
+	var config v1alpha1.ServiceLevelObjective
+	if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to unmarshal objective %q: %w", file, err)
+	}
+
+	objective, err := config.Internal()
+	increases, err := objective.IncreaseRules()
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to get increase rules: %w", err)
+	}
+	burnrates, err := objective.Burnrates()
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to get burn rate rules: %w", err)
+	}
+
+	rule := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{increases, burnrates},
+	}
+
+	bytes, err = yaml.Marshal(rule)
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to marshal recording rules: %w", err)
+	}
+
+	_, f := filepath.Split(file)
+	path := filepath.Join(prometheusFolder, f)
+
+	if err := ioutil.WriteFile(path, bytes, 0o644); err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to write file %q: %w", path, err)
+	}
+
+	return objective, nil
 }
