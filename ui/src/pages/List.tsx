@@ -608,7 +608,9 @@ const List = () => {
                   .map((l: [string, string]) => (
                     <Badge key={l[0]} bg="light" text="dark" className="fw-normal"
                            style={{ marginRight: 5 }}
-                           onClick={() => {
+                           onClick={(event) => {
+                             event.stopPropagation()
+
                              const lset: Labels = {}
                              lset[l[0]] = l[1]
                              updateFilter(lset)
@@ -620,7 +622,9 @@ const List = () => {
                 const classes = o.severity !== null ? ['table-row-clickable', 'firing'] : ['table-row-clickable']
 
                 return (
-                  <tr key={o.lset} className={classes.join(' ')}>
+                  <tr key={o.lset} className={classes.join(' ')} onClick={() => {
+                    navigate(objectivePage(o.labels, o.groupingLabels))
+                  }}>
                     <td>
                       <Link to={objectivePage(o.labels, o.groupingLabels)} className="text-reset"
                             style={{marginRight: 5}}>
