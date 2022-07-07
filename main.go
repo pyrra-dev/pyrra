@@ -311,14 +311,6 @@ type prometheusAPI interface {
 	QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error)
 }
 
-func RoundUp(t time.Time, d time.Duration) time.Time {
-	n := t.Round(d)
-	if n.Before(t) {
-		return n.Add(d)
-	}
-	return n
-}
-
 type promCache struct {
 	api   prometheusAPI
 	cache *ristretto.Cache
@@ -466,7 +458,7 @@ func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr, groupin
 		}
 	}
 
-	ts := RoundUp(time.Now().UTC(), 5*time.Minute)
+	ts := time.Now().UTC()
 
 	queryTotal := objective.QueryTotal(objective.Window)
 	level.Debug(o.logger).Log("msg", "sending query total", "query", queryTotal)
