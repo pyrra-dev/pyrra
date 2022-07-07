@@ -21,5 +21,6 @@ bin
 *.swp
 *.swo
 *~
+.vscode
 
 /pyrra

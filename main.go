@@ -64,6 +64,10 @@ var CLI struct {
 		MetricsAddr   string `default:":8080" help:"The address the metric endpoint binds to."`
 		ConfigMapMode bool   `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
+	Generate struct {
+		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		PrometheusFolder string `default:"/etc/prometheus/pyrra" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
+	} `cmd:"" help:"Generate Prometheus rules and alerts for the specified config files."`
 }
 
 func main() {
@@ -126,6 +130,8 @@ func main() {
 		code = cmdFilesystem(logger, reg, client, CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
 	case "kubernetes":
 		code = cmdKubernetes(logger, CLI.Kubernetes.MetricsAddr, CLI.Kubernetes.ConfigMapMode)
+	case "generate":
+		code = cmdGenerate(logger, CLI.Generate.ConfigFiles, CLI.Generate.PrometheusFolder)
 	}
 	os.Exit(code)
 }

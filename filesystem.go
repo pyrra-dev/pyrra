@@ -86,6 +86,50 @@ Objectives:
 	return objectives
 }
 
+func processFileSLO(f, prometheusFolder string) (slo.Objective, error) {
+
+	bytes, err := ioutil.ReadFile(f)
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to read file %q: %w", f, err)
+	}
+
+	var config v1alpha1.ServiceLevelObjective
+	if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to unmarshal objective %q: %w", f, err)
+	}
+
+	objective, err := config.Internal()
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to get objective: %w", err)
+	}
+
+	increases, err := objective.IncreaseRules()
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to get increase rules: %w", err)
+	}
+	burnrates, err := objective.Burnrates()
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to get burn rate rules: %w", err)
+	}
+
+	rule := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{increases, burnrates},
+	}
+
+	bytes, err = yaml.Marshal(rule)
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to marshal recording rules: %w", err)
+	}
+
+	_, file := filepath.Split(f)
+	path := filepath.Join(prometheusFolder, file)
+
+	if err := ioutil.WriteFile(path, bytes, 0o644); err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to write file %q: %w", path, err)
+	}
+	return objective, nil
+}
+
 func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
@@ -170,51 +214,10 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "reading", "file", f)
 					reconcilesTotal.Inc()
 
-					bytes, err := ioutil.ReadFile(f)
+					objective, err := processFileSLO(f, prometheusFolder)
 					if err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to read file %q: %w", f, err)
-					}
-
-					var config v1alpha1.ServiceLevelObjective
-					if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to unmarshal objective %q: %w", f, err)
-					}
-
-					objective, err := config.Internal()
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to get objective: %w", err)
-					}
-
-					increases, err := objective.IncreaseRules()
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to get increase rules: %w", err)
-					}
-					burnrates, err := objective.Burnrates()
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to get burn rate rules: %w", err)
-					}
-
-					rule := monitoringv1.PrometheusRuleSpec{
-						Groups: []monitoringv1.RuleGroup{increases, burnrates},
-					}
-
-					bytes, err = yaml.Marshal(rule)
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to marshal recording rules: %w", err)
-					}
-
-					_, file := filepath.Split(f)
-					path := filepath.Join(prometheusFolder, file)
-
-					if err := ioutil.WriteFile(path, bytes, 0o644); err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to write file %q: %w", path, err)
+						return err
 					}
 
 					objectives.Set(objective)
