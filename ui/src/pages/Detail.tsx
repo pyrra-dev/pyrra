@@ -26,7 +26,7 @@ import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
 import RequestsGraph from '../components/graphs/RequestsGraph'
 import ErrorsGraph from '../components/graphs/ErrorsGraph'
 import AlertsTable from '../components/AlertsTable'
-import {IconRotate} from '../components/Icons'
+import Toggle from '../components/Toggle'
 
 const Detail = () => {
   const api = useMemo(() => {
@@ -149,13 +149,6 @@ const Detail = () => {
       }
     }
   }, [updateTimeRange, autoReload, duration, interval])
-
-  const reload = () => {
-    const duration = to - from
-    const newTo = Date.now()
-    const newFrom = newTo - duration
-    updateTimeRange(newFrom, newTo)
-  }
 
   const handleTimeRangeClick = (t: number) => () => {
     const to = Date.now()
@@ -363,35 +356,19 @@ const Detail = () => {
                   ))}
                 </ButtonGroup>
                 &nbsp; &nbsp; &nbsp;
-                <ButtonGroup>
-                  <Button variant="light" onClick={() => reload()}>
-                    {IconRotate({height: 16, width: 16})}
-                  </Button>
-                  <input
-                    type="checkbox"
-                    id="auto-reload"
-                    className="btn-check"
-                    autoComplete="off"
-                    checked={autoReload}
-                    onChange={() => setAutoReload(!autoReload)}
-                  />
-                  <OverlayTrigger
-                    key="auto-reload"
-                    overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>
-                        Automatically reload
-                      </OverlayTooltip>
-                    }>
-                    <label
-                      className={(autoReload
-                        ? ['btn', 'btn-light', 'active']
-                        : ['btn', 'btn-light']
-                      ).join(' ')}
-                      htmlFor="auto-reload">
-                      {formatDuration(interval)}
-                    </label>
-                  </OverlayTrigger>
-                </ButtonGroup>
+                <OverlayTrigger
+                  key="auto-reload"
+                  overlay={
+                    <OverlayTooltip id={`tooltip-auto-reload`}>Automatically reload</OverlayTooltip>
+                  }>
+                  <span>
+                    <Toggle
+                      checked={autoReload}
+                      onChange={() => setAutoReload(!autoReload)}
+                      onText={formatDuration(interval)}
+                    />
+                  </span>
+                </OverlayTrigger>
               </div>
             </Col>
           </Row>
