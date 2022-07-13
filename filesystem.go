@@ -326,6 +326,9 @@ func objectiveAsRuleFile(file, prometheusFolder string) (slo.Objective, error) {
 	}
 
 	objective, err := config.Internal()
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to get objective: %w", err)
+	}
 	increases, err := objective.IncreaseRules()
 	if err != nil {
 		return slo.Objective{}, fmt.Errorf("failed to get increase rules: %w", err)
