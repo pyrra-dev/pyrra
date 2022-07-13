@@ -31,7 +31,7 @@ func cmdGenerate(logger log.Logger, configFiles, prometheusFolder string) int {
 	}
 
 	for _, file := range filenames {
-		_, err := objectiveAsRuleFile(file, prometheusFolder)
+		err := writeRuleFile(file, prometheusFolder)
 		if err != nil {
 			level.Error(logger).Log("msg", "generating rule files", "err", err)
 			return 1
