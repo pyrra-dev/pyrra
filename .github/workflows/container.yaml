@@ -38,6 +38,7 @@ jobs:
         uses: docker/build-push-action@e551b19e49efd4e98792db7592c17c09b89db8d8
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.repository == 'pyrra-dev/pyrra'}}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
