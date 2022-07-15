@@ -311,14 +311,6 @@ type prometheusAPI interface {
 	QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error)
 }
 
-func RoundUp(t time.Time, d time.Duration) time.Time {
-	n := t.Round(d)
-	if n.Before(t) {
-		return n.Add(d)
-	}
-	return n
-}
-
 type promCache struct {
 	api   prometheusAPI
 	cache *ristretto.Cache
