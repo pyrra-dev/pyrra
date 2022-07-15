@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react'
+import React, {useCallback, useEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
@@ -14,7 +14,8 @@ interface ErrorBudgetGraphProps {
   api: ObjectivesApi
   labels: Labels
   grouping: Labels
-  timeRange: number
+  from: number
+  to: number
   uPlotCursor: uPlot.Cursor
 }
 
@@ -22,7 +23,8 @@ const ErrorBudgetGraph = ({
   api,
   labels,
   grouping,
-  timeRange,
+  from,
+  to,
   uPlotCursor,
 }: ErrorBudgetGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
@@ -30,8 +32,6 @@ const ErrorBudgetGraph = ({
   const [samples, setSamples] = useState<AlignedData>()
   const [query, setQuery] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(true)
-  const [start, setStart] = useState<number>()
-  const [end, setEnd] = useState<number>()
   const [width, setWidth] = useState<number>(1000)
 
   const setWidthFromContainer = () => {
@@ -39,6 +39,26 @@ const ErrorBudgetGraph = ({
       setWidth(targetRef.current.offsetWidth)
     }
   }
+
+  const getObjectiveErrorBudget = useCallback(() => {
+    setLoading(true)
+
+    api
+      .getObjectiveErrorBudget({
+        expr: labelsString(labels),
+        grouping: labelsString(grouping),
+        start: Math.floor(from / 1000),
+        end: Math.floor(to / 1000),
+      })
+      .then((r: QueryRange) => {
+        setSamples([r.values[0], r.values[1].map((v: number) => 100 * v)])
+        setQuery(r.query)
+      })
+      .catch(() => {
+        setSamples(undefined)
+      })
+      .finally(() => setLoading(false))
+  }, [api, labels, grouping, from, to])
 
   // Set width on first render
   useEffect(() => {
@@ -52,32 +72,8 @@ const ErrorBudgetGraph = ({
   }, [])
 
   useEffect(() => {
-    setLoading(true)
-
-    const now = Date.now()
-    const start = Math.floor((now - timeRange) / 1000)
-    const end = Math.floor(now / 1000)
-
-    api
-      .getObjectiveErrorBudget({
-        expr: labelsString(labels),
-        grouping: labelsString(grouping),
-        start,
-        end,
-      })
-      .then((r: QueryRange) => {
-        setSamples([r.values[0], r.values[1].map((v: number) => 100 * v)])
-        setQuery(r.query)
-        setStart(start)
-        setEnd(end)
-      })
-      .catch(() => {
-        setSamples(undefined)
-        setStart(start)
-        setEnd(end)
-      })
-      .finally(() => setLoading(false))
-  }, [api, labels, grouping, timeRange])
+    getObjectiveErrorBudget()
+  }, [getObjectiveErrorBudget])
 
   if (!loading && samples === undefined) {
     return (
@@ -154,7 +150,7 @@ const ErrorBudgetGraph = ({
             rel="noreferrer"
             href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
               query,
-            )}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
+            )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
             <IconExternal height={20} width={20} />
             Prometheus
           </a>
@@ -167,7 +163,7 @@ const ErrorBudgetGraph = ({
       </div>
 
       <div ref={targetRef}>
-        {samples !== undefined && start !== undefined && end !== undefined ? (
+        {samples !== undefined ? (
           <UplotReact
             options={{
               width: width,
@@ -178,11 +174,11 @@ const ErrorBudgetGraph = ({
                 {},
                 {
                   fill: budgetGradient,
-                  gaps: seriesGaps(start, end),
+                  gaps: seriesGaps(from / 1000, to / 1000),
                 },
               ],
               scales: {
-                x: {min: start, max: end},
+                x: {min: from / 1000, max: to / 1000},
                 y: {
                   range: {
                     min: {},
@@ -206,7 +202,7 @@ const ErrorBudgetGraph = ({
               height: 300,
               series: [{}, {}],
               scales: {
-                x: {min: start, max: end},
+                x: {min: from / 1000, max: to / 1000},
                 y: {min: 0, max: 1},
               },
             }}

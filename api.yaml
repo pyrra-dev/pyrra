@@ -39,6 +39,11 @@ paths:
           name: grouping
           schema:
             type: string
+        - in: query
+          name: time
+          required: false
+          schema:
+            type: integer
       responses:
         '200':
           description: Get objective status

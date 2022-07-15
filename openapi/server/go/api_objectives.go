@@ -143,7 +143,12 @@ func (c *ObjectivesApiController) GetObjectiveStatus(w http.ResponseWriter, r *h
 	query := r.URL.Query()
 	exprParam := query.Get("expr")
 	groupingParam := query.Get("grouping")
-	result, err := c.service.GetObjectiveStatus(r.Context(), exprParam, groupingParam)
+	timeParam, err := parseInt32Parameter(query.Get("time"), false)
+	if err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
+	result, err := c.service.GetObjectiveStatus(r.Context(), exprParam, groupingParam, timeParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)

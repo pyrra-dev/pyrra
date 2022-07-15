@@ -14,7 +14,8 @@ interface RequestsGraphProps {
   api: ObjectivesApi
   labels: Labels
   grouping: Labels
-  timeRange: number
+  from: number
+  to: number
   uPlotCursor: uPlot.Cursor
 }
 
@@ -22,7 +23,8 @@ const RequestsGraph = ({
   api,
   labels,
   grouping,
-  timeRange,
+  from,
+  to,
   uPlotCursor,
 }: RequestsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
@@ -31,8 +33,6 @@ const RequestsGraph = ({
   const [requestsQuery, setRequestsQuery] = useState<string>('')
   const [requestsLabels, setRequestsLabels] = useState<string[]>([])
   const [requestsLoading, setRequestsLoading] = useState<boolean>(true)
-  const [start, setStart] = useState<number>()
-  const [end, setEnd] = useState<number>()
   const [width, setWidth] = useState<number>(500)
 
   const setWidthFromContainer = () => {
@@ -47,13 +47,14 @@ const RequestsGraph = ({
   window.addEventListener('resize', setWidthFromContainer)
 
   useEffect(() => {
-    const now = Date.now()
-    const start = Math.floor((now - timeRange) / 1000)
-    const end = Math.floor(now / 1000)
-
     setRequestsLoading(true)
     api
-      .getREDRequests({expr: labelsString(labels), grouping: labelsString(grouping), start, end})
+      .getREDRequests({
+        expr: labelsString(labels),
+        grouping: labelsString(grouping),
+        start: Math.floor(from / 1000),
+        end: Math.floor(to / 1000),
+      })
       .then((r: QueryRange) => {
         const [x, ...ys] = r.values
         const data: AlignedData = [x, ...ys] // explicitly give it the x then the rest of ys
@@ -61,16 +62,12 @@ const RequestsGraph = ({
         setRequestsLabels(r.labels)
         setRequestsQuery(r.query)
         setRequests(data)
-        setStart(start)
-        setEnd(end)
       })
       .catch(() => {
         setRequests(undefined)
-        setStart(start)
-        setEnd(end)
       })
       .finally(() => setRequestsLoading(false))
-  }, [api, labels, grouping, timeRange])
+  }, [api, labels, grouping, from, to])
 
   // small state used while picking colors to reuse as little as possible
   const pickedColors = {
@@ -107,7 +104,7 @@ const RequestsGraph = ({
             rel="noreferrer"
             href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
               requestsQuery,
-            )}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
+            )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
             <IconExternal height={20} width={20} />
             <span>Prometheus</span>
           </a>
@@ -120,7 +117,7 @@ const RequestsGraph = ({
       </div>
 
       <div ref={targetRef}>
-        {requests !== undefined && start !== undefined && end !== undefined ? (
+        {requests !== undefined ? (
           <UplotReact
             options={{
               width: width,
@@ -133,12 +130,12 @@ const RequestsGraph = ({
                   return {
                     label: parseLabelValue(label),
                     stroke: `#${labelColor(pickedColors, label)}`,
-                    gaps: seriesGaps(start, end),
+                    gaps: seriesGaps(from / 1000, to / 1000),
                   }
                 }),
               ],
               scales: {
-                x: {min: start, max: end},
+                x: {min: from / 1000, max: to / 1000},
                 y: {
                   range: {
                     min: {hard: 0},
@@ -157,7 +154,7 @@ const RequestsGraph = ({
               padding: [15, 0, 0, 0],
               series: [{}, {}],
               scales: {
-                x: {min: start, max: end},
+                x: {min: from / 1000, max: to / 1000},
                 y: {min: 0, max: 1},
               },
             }}
