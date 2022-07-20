@@ -87,6 +87,14 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
+		if o.Alerting.Disabled {
+			return monitoringv1.RuleGroup{
+				Name:     sloName,
+				Interval: "30s", // TODO: Increase or decrease based on availability target
+				Rules:    rules,
+			}, nil
+		}
+
 		var alertMatchers []string
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -158,6 +166,14 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
+		if o.Alerting.Disabled {
+			return monitoringv1.RuleGroup{
+				Name:     sloName,
+				Interval: "30s", // TODO: Increase or decrease based on availability target
+				Rules:    rules,
+			}, nil
+		}
+
 		var alertMatchers []string
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -208,6 +224,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		}
 	}
 
+	// We only get here if alerting was not disabled
 	return monitoringv1.RuleGroup{
 		Name:     sloName,
 		Interval: "30s", // TODO: Increase or decrease based on availability target

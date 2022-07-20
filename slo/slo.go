@@ -19,6 +19,7 @@ type Objective struct {
 	Window      model.Duration
 	Config      string
 
+	Alerting  Alerting
 	Indicator Indicator
 }
 
@@ -70,6 +71,10 @@ type LatencyIndicator struct {
 	Success  Metric
 	Total    Metric
 	Grouping []string
+}
+
+type Alerting struct {
+	Disabled bool
 }
 
 type Metric struct {
