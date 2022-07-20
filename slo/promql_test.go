@@ -222,6 +222,11 @@ var (
 			},
 		}
 	}
+	objectiveAPIServerRatioAlertingDisabled = func() Objective {
+		o := objectiveAPIServerRatio()
+		o.Alerting.Disabled = true
+		return o
+	}
 	objectiveAPIServerLatency = func() Objective {
 		return Objective{
 			Labels: labels.FromStrings(labels.MetricName, "apiserver-read-resource-latency"),
@@ -253,6 +258,11 @@ var (
 				},
 			},
 		}
+	}
+	objectiveAPIServerLatencyAlertingDisabled = func() Objective {
+		o := objectiveAPIServerLatency()
+		o.Alerting.Disabled = true
+		return o
 	}
 )
 
