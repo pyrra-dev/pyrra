@@ -1,0 +1,80 @@
+metadata:
+  name: pyrra-kubernetes
+  namespace: openshift-monitoring
+  labels:
+    app.kubernetes.io/name: pyrra-kubernetes
+spec:
+  ports:
+  - name: internal
+    port: 9443
+  - name: api
+    port: 9444
+  selector:
+    app.kubernetes.io/name: pyrra-kubernetes
+kind: Service
+apiVersion: v1
+---
+metadata:
+  name: pyrra-kubernetes
+  namespace: openshift-monitoring
+  labels:
+    app.kubernetes.io/name: pyrra-kubernetes
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pyrra-kubernetes
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pyrra-kubernetes
+    spec:
+      serviceAccountName: pyrra-kubernetes
+      containers:
+      - args:
+        - kubernetes
+        image: ghcr.io/pyrra-dev/pyrra:v0.3.4
+        name: pyrra-kubernetes
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+kind: Deployment
+apiVersion: apps/v1
+---
+metadata:
+  name: pyrra-kubernetes
+  namespace: openshift-monitoring
+kind: ServiceAccount
+apiVersion: v1
+---
+metadata:
+  name: pyrra-kubernetes
+  namespace: openshift-monitoring
+subjects:
+- kind: ServiceAccount
+  name: pyrra-kubernetes
+  namespace: openshift-monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pyrra-kubernetes
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-monitoring-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: pyrra-kubernetes
+    namespace: openshift-monitoring
+
