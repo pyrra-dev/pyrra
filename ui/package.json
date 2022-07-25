@@ -15,7 +15,7 @@
   "devDependencies": {
     "@fontsource/inter": "^4.5.11",
     "@fontsource/lato": "^4.5.8",
-    "@types/node": "^18.0.0",
+    "@types/node": "^18.6.1",
     "@types/react": "^18.0.9",
     "@types/react-dom": "^18.0.4",
     "cra-template-typescript": "^1.2.0",
