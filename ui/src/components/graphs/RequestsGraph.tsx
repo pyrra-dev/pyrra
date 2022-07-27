@@ -175,17 +175,17 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
     color = greens[picked.greens % greens.length]
     picked.greens++
   }
-  if (label.match(/"(2\d{2}|OK)"/) != null) {
+  if (label.match(/"(2\d{2}|2\w{2}|OK)"/) != null) {
     color = greens[picked.greens % greens.length]
     picked.greens++
   }
-  if (label.match(/"(3\d{2})"/) != null) {
+  if (label.match(/"(3\d{2}|3\w{2})"/) != null) {
     color = yellows[picked.yellows % yellows.length]
     picked.yellows++
   }
   if (
     label.match(
-      /"(4\d{2}|Canceled|InvalidArgument|NotFound|AlreadyExists|PermissionDenied|Unauthenticated|ResourceExhausted|FailedPrecondition|Aborted|OutOfRange)"/,
+      /"(4\d{2}|4\w{2}|Canceled|InvalidArgument|NotFound|AlreadyExists|PermissionDenied|Unauthenticated|ResourceExhausted|FailedPrecondition|Aborted|OutOfRange)"/,
     ) != null
   ) {
     color = blues[picked.blues % blues.length]
@@ -193,7 +193,7 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
   }
   if (
     label.match(
-      /"(5\d{2}|Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss)"/,
+      /"(5\d{2}|5\w{2}|Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss)"/,
     ) != null
   ) {
     color = reds[picked.reds % reds.length]
