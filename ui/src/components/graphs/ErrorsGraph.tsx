@@ -4,7 +4,7 @@ import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
 
 import {ObjectivesApi, QueryRange} from '../../client'
-import {formatDuration, PROMETHEUS_URL} from '../../App'
+import {formatDuration, ObjectiveType, PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {Labels, labelsString, parseLabelValue} from '../../labels'
 import {reds} from './colors'
@@ -12,6 +12,7 @@ import {seriesGaps} from './gaps'
 
 interface ErrorsGraphProps {
   api: ObjectivesApi
+  type: ObjectiveType
   labels: Labels
   grouping: Labels
   timeRange: number
@@ -20,6 +21,7 @@ interface ErrorsGraphProps {
 
 const ErrorsGraph = ({
   api,
+  type,
   labels,
   grouping,
   timeRange,
@@ -108,7 +110,11 @@ const ErrorsGraph = ({
         )}
       </div>
       <div>
-        <p>What percentage of requests were errors?</p>
+        {type === ObjectiveType.Ratio ? (
+          <p>What percentage of requests were errors?</p>
+        ) : (
+          <p>What percentage of requests were too slow?</p>
+        )}
       </div>
 
       <div ref={targetRef}>

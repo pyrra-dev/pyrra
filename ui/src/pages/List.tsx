@@ -19,7 +19,13 @@ import {
   ObjectivesApi,
   ObjectiveStatus,
 } from '../client'
-import {API_BASEPATH, formatDuration} from '../App'
+import {
+  API_BASEPATH,
+  formatDuration,
+  hasObjectiveType,
+  ObjectiveType,
+  renderLatencyTarget,
+} from '../App'
 import {Link, useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import {IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning} from '../components/Icons'
@@ -91,6 +97,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             window: action.objective.window,
             target: action.objective.target,
             config: action.objective.config,
+            indicator: action.objective.indicator,
             state: TableObjectiveState.Unknown,
             severity: null,
             availability: undefined,
@@ -139,6 +146,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             window: action.objective.window,
             target: action.objective.target,
             config: action.objective.config,
+            indicator: action.objective.indicator,
             state: TableObjectiveState.Success,
             severity: severity,
             availability: {
@@ -508,6 +516,21 @@ const List = () => {
     )}`
   }
 
+  const renderObjective = (o: TableObjective) => {
+    switch (hasObjectiveType(o)) {
+      case ObjectiveType.Ratio:
+        return <>{(100 * o.target).toFixed(2)}%</>
+      case ObjectiveType.Latency:
+        return (
+          <>
+            {(100 * o.target).toFixed(2)}% &lt; {renderLatencyTarget(o)}
+          </>
+        )
+      default:
+        return <></>
+    }
+  }
+
   const renderAvailability = (o: TableObjective) => {
     switch (o.state) {
       case TableObjectiveState.Unknown:
@@ -605,6 +628,7 @@ const List = () => {
           <Col>
             {Object.keys(filterLabels).map((k: string) => (
               <Button
+                key={k}
                 variant="light"
                 size="sm"
                 className="filter-close"
@@ -723,7 +747,7 @@ const List = () => {
                         {labelBadges}
                       </td>
                       <td>{formatDuration(o.window)}</td>
-                      <td>{(100 * o.target).toFixed(2)}%</td>
+                      <td>{renderObjective(o)}</td>
                       <td>{renderAvailability(o)}</td>
                       <td>{renderErrorBudget(o)}</td>
                       <td>
