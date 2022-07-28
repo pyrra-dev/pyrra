@@ -120,7 +120,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["severity"] = string(w.Severity)
 
 			r := monitoringv1.Rule{
-				Alert: "ErrorBudgetBurn",
+				Alert: o.AlertName(),
 				// TODO: Use expr replacer
 				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
 					o.BurnrateName(w.Short),
@@ -205,7 +205,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["severity"] = string(w.Severity)
 
 			r := monitoringv1.Rule{
-				Alert: "ErrorBudgetBurn",
+				Alert: o.AlertName(),
 				// TODO: Use expr replacer
 				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
 					o.BurnrateName(w.Short),

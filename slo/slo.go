@@ -8,9 +8,12 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
-// PropagationLabelsPrefix provides a way to propagate labels from the
-// ObjectMeta to the PrometheusRule.
-const PropagationLabelsPrefix = "pyrra.dev/"
+const (
+	// PropagationLabelsPrefix provides a way to propagate labels from the
+	// ObjectMeta to the PrometheusRule.
+	PropagationLabelsPrefix = "pyrra.dev/"
+	defaultAlertname        = "ErrorBudgetBurn"
+)
 
 type Objective struct {
 	Labels      labels.Labels
@@ -56,6 +59,14 @@ func (o Objective) Grouping() []string {
 	return nil
 }
 
+func (o Objective) AlertName() string {
+	if o.Alerting.Name != "" {
+		return o.Alerting.Name
+	}
+
+	return defaultAlertname
+}
+
 type Indicator struct {
 	Ratio   *RatioIndicator
 	Latency *LatencyIndicator
@@ -75,6 +86,7 @@ type LatencyIndicator struct {
 
 type Alerting struct {
 	Disabled bool
+	Name     string
 }
 
 type Metric struct {
