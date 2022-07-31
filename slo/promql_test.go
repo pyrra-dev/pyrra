@@ -199,7 +199,7 @@ var (
 	objectiveAPIServerRatio = func() Objective {
 		return Objective{
 			Labels: labels.FromStrings(labels.MetricName, "apiserver-write-response-errors"),
-			Target: 99,
+			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Indicator: Indicator{
 				Ratio: &RatioIndicator{
@@ -230,7 +230,7 @@ var (
 	objectiveAPIServerLatency = func() Objective {
 		return Objective{
 			Labels: labels.FromStrings(labels.MetricName, "apiserver-read-resource-latency"),
-			Target: 99,
+			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Indicator: Indicator{
 				Latency: &LatencyIndicator{

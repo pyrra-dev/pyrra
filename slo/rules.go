@@ -601,3 +601,120 @@ func burnratesFromWindows(ws []Window) []time.Duration {
 
 	return burnrates
 }
+
+func (o Objective) GrafanaRules() (monitoringv1.RuleGroup, error) {
+	sloName := o.Labels.Get(labels.MetricName)
+	var rules []monitoringv1.Rule
+
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		ruleLabels := map[string]string{
+			"slo": sloName,
+		}
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: "pyrra_objective",
+			Expr:   intstr.FromString(strconv.FormatFloat(o.Target, 'f', -1, 64)),
+			Labels: ruleLabels,
+		})
+		rules = append(rules, monitoringv1.Rule{
+			Record: "pyrra_window",
+			Expr:   intstr.FromInt(int(time.Duration(o.Window).Seconds())),
+			Labels: ruleLabels,
+		})
+
+		availabilityExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+			return parser.ParseExpr(`1 - sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
+		}
+
+		availability, err := availabilityExpr()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		name := o.Indicator.Ratio.Total.Name
+		increaseName := increaseName(name, o.Window)
+
+		// Copy the list of matchers to modify them
+		totalMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Total.LabelMatchers))
+		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
+			value := m.Value
+			if m.Name == labels.MetricName {
+				value = increaseName
+			}
+			totalMatchers = append(totalMatchers, &labels.Matcher{
+				Type:  m.Type,
+				Name:  m.Name,
+				Value: value,
+			})
+		}
+
+		errorMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Errors.LabelMatchers))
+		for _, m := range o.Indicator.Ratio.Errors.LabelMatchers {
+			value := m.Value
+			if m.Name == labels.MetricName {
+				value = increaseName
+			}
+			errorMatchers = append(errorMatchers, &labels.Matcher{
+				Type:  m.Type,
+				Name:  m.Name,
+				Value: value,
+			})
+		}
+
+		objectiveReplacer{
+			metric:        increaseName,
+			matchers:      totalMatchers,
+			errorMetric:   increaseName,
+			errorMatchers: errorMatchers,
+		}.replace(availability)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: "pyrra_availability",
+			Expr:   intstr.FromString(availability.String()),
+			Labels: ruleLabels,
+		})
+
+		rateExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+			return parser.ParseExpr(`sum(metric{matchers="total"})`)
+		}
+		rate, err := rateExpr()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Total.Name,
+			matchers: o.Indicator.Ratio.Total.LabelMatchers,
+		}.replace(rate)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: "pyrra_requests_total",
+			Expr:   intstr.FromString(rate.String()),
+			Labels: ruleLabels,
+		})
+
+		errorsExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+			return parser.ParseExpr(`sum(metric{matchers="total"})`)
+		}
+		errors, err := errorsExpr()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Errors.Name,
+			matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+		}.replace(errors)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: "pyrra_errors_total",
+			Expr:   intstr.FromString(errors.String()),
+			Labels: ruleLabels,
+		})
+	}
+	return monitoringv1.RuleGroup{
+		Name:     sloName + "-grafana",
+		Interval: "30s",
+		Rules:    rules,
+	}, nil
+}

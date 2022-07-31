@@ -1262,89 +1262,304 @@ func Test_windows(t *testing.T) {
 	}, ws[3])
 }
 
-func TestObjective_Alerts(t *testing.T) {
+func TestObjective_GrafanaRules(t *testing.T) {
 	testcases := []struct {
-		name   string
-		slo    Objective
-		alerts []MultiBurnRateAlert
+		name  string
+		slo   Objective
+		rules monitoringv1.RuleGroup
 	}{{
 		name: "http-ratio",
 		slo:  objectiveHTTPRatio(),
-		alerts: []MultiBurnRateAlert{{
-			Severity:   "critical",
-			Short:      5 * time.Minute,
-			Long:       1 * time.Hour,
-			For:        2 * time.Minute,
-			Factor:     14,
-			QueryShort: `http_requests:burnrate5m{job="thanos-receive-default",slo="monitoring-http-errors"}`,
-			QueryLong:  `http_requests:burnrate1h{job="thanos-receive-default",slo="monitoring-http-errors"}`,
-		}, {
-			Severity:   "critical",
-			Short:      30 * time.Minute,
-			Long:       6 * time.Hour,
-			For:        15 * time.Minute,
-			Factor:     7,
-			QueryShort: `http_requests:burnrate30m{job="thanos-receive-default",slo="monitoring-http-errors"}`,
-			QueryLong:  `http_requests:burnrate6h{job="thanos-receive-default",slo="monitoring-http-errors"}`,
-		}, {
-			Severity:   "warning",
-			Short:      2 * time.Hour,
-			Long:       24 * time.Hour,
-			For:        time.Hour,
-			Factor:     2,
-			QueryShort: `http_requests:burnrate2h{job="thanos-receive-default",slo="monitoring-http-errors"}`,
-			QueryLong:  `http_requests:burnrate1d{job="thanos-receive-default",slo="monitoring-http-errors"}`,
-		}, {
-			Severity:   "warning",
-			Short:      6 * time.Hour,
-			Long:       4 * 24 * time.Hour,
-			For:        3 * time.Hour,
-			Factor:     1,
-			QueryShort: `http_requests:burnrate6h{job="thanos-receive-default",slo="monitoring-http-errors"}`,
-			QueryLong:  `http_requests:burnrate4d{job="thanos-receive-default",slo="monitoring-http-errors"}`,
-		}},
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-grafana",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.99`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(http_requests_total{job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(http_requests_total{code=~"5..",job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}},
+		},
 	}, {
-		name: "http-latency",
-		slo:  objectiveHTTPLatency(),
-		alerts: []MultiBurnRateAlert{{
-			Severity:   "critical",
-			Short:      5 * time.Minute,
-			Long:       1 * time.Hour,
-			For:        2 * time.Minute,
-			Factor:     14,
-			QueryShort: `http_request_duration_seconds:burnrate5m{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
-			QueryLong:  `http_request_duration_seconds:burnrate1h{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
-		}, {
-			Severity:   "critical",
-			Short:      30 * time.Minute,
-			Long:       6 * time.Hour,
-			For:        15 * time.Minute,
-			Factor:     7,
-			QueryShort: `http_request_duration_seconds:burnrate30m{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
-			QueryLong:  `http_request_duration_seconds:burnrate6h{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
-		}, {
-			Severity:   "warning",
-			Short:      2 * time.Hour,
-			Long:       24 * time.Hour,
-			For:        time.Hour,
-			Factor:     2,
-			QueryShort: `http_request_duration_seconds:burnrate2h{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
-			QueryLong:  `http_request_duration_seconds:burnrate1d{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
-		}, {
-			Severity:   "warning",
-			Short:      6 * time.Hour,
-			Long:       4 * 24 * time.Hour,
-			For:        3 * time.Hour,
-			Factor:     1,
-			QueryShort: `http_request_duration_seconds:burnrate6h{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
-			QueryLong:  `http_request_duration_seconds:burnrate4d{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
-		}},
+		name: "http-ratio-grouping",
+		slo:  objectiveHTTPRatioGrouping(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-grafana",
+			Interval: "30s",
+
+			// TODO: Still not sure how to proceed with groupings...
+			// It won't be really properly possible in Grafana dropdowns
+
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.99`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(http_requests_total{job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(http_requests_total{code=~"5..",job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}},
+		},
+	}, {
+		name: "http-ratio-grouping-regex",
+		slo:  objectiveHTTPRatioGroupingRegex(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-grafana",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.99`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(http_requests:increase4w{code=~"5..",handler=~"/api.*",job="thanos-receive-default"} or vector(0)) / sum(http_requests:increase4w{handler=~"/api.*",job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(http_requests_total{handler=~"/api.*",job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(http_requests_total{code=~"5..",handler=~"/api.*",job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}},
+		},
+	}, {
+		name: "grpc-errors",
+		slo:  objectiveGRPCRatio(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-errors-grafana",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.999`),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"} or vector(0)) / sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
+			}},
+		},
+		//}, {
+		//	name: "grpc-errors-grouping",
+		//	slo:  objectiveGRPCRatioGrouping(),
+		//	rules: monitoringv1.RuleGroup{
+		//		Name:     "monitoring-grpc-errors-increase",
+		//		Interval: "2m30s",
+		//		Rules: []monitoringv1.Rule{{
+		//			Record: "grpc_server_handled:increase4w",
+		//			Expr:   intstr.FromString(`sum by(grpc_code, handler, job) (increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`),
+		//			Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors"},
+		//		}},
+		//	},
+		//}, {
+		//	name: "http-latency",
+		//	slo:  objectiveHTTPLatency(),
+		//	rules: monitoringv1.RuleGroup{
+		//		Name:     "monitoring-http-latency-increase",
+		//		Interval: "2m30s",
+		//		Rules: []monitoringv1.Rule{{
+		//			Record: "http_request_duration_seconds:increase4w",
+		//			Expr:   intstr.FromString(`sum by(code) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
+		//			Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+		//		}, {
+		//			Record: "http_request_duration_seconds:increase4w",
+		//			Expr:   intstr.FromString(`sum by(code) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+		//			Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1"},
+		//		}},
+		//	},
+		//}, {
+		//	name: "http-latency-grouping",
+		//	slo:  objectiveHTTPLatencyGrouping(),
+		//	rules: monitoringv1.RuleGroup{
+		//		Name:     "monitoring-http-latency-increase",
+		//		Interval: "2m30s",
+		//		Rules: []monitoringv1.Rule{{
+		//			Record: "http_request_duration_seconds:increase4w",
+		//			Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-http-latency"},
+		//		}, {
+		//			Record: "http_request_duration_seconds:increase4w",
+		//			Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+		//		}},
+		//	},
+		//}, {
+		//	name: "http-latency-grouping-regex",
+		//	slo:  objectiveHTTPLatencyGroupingRegex(),
+		//	rules: monitoringv1.RuleGroup{
+		//		Name:     "monitoring-http-latency-increase",
+		//		Interval: "2m30s",
+		//		Rules: []monitoringv1.Rule{{
+		//			Record: "http_request_duration_seconds:increase4w",
+		//			Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[4w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-http-latency"},
+		//		}, {
+		//			Record: "http_request_duration_seconds:increase4w",
+		//			Expr:   intstr.FromString(`sum by(code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+		//		}},
+		//	},
+		//}, {
+		//	name: "grpc-latency",
+		//	slo:  objectiveGRPCLatency(),
+		//	rules: monitoringv1.RuleGroup{
+		//		Name:     "monitoring-grpc-latency-increase",
+		//		Interval: "1m",
+		//		Rules: []monitoringv1.Rule{{
+		//			Record: "grpc_server_handling_seconds:increase1w",
+		//			Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+		//		}, {
+		//			Record: "grpc_server_handling_seconds:increase1w",
+		//			Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
+		//		}},
+		//	},
+		//}, {
+		//	name: "grpc-latency-grouping",
+		//	slo:  objectiveGRPCLatencyGrouping(),
+		//	rules: monitoringv1.RuleGroup{
+		//		Name:     "monitoring-grpc-latency-increase",
+		//		Interval: "1m",
+		//		Rules: []monitoringv1.Rule{{
+		//			Record: "grpc_server_handling_seconds:increase1w",
+		//			Expr:   intstr.FromString(`sum by(handler, job) (increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+		//		}, {
+		//			Record: "grpc_server_handling_seconds:increase1w",
+		//			Expr:   intstr.FromString(`sum by(handler, job) (increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
+		//		}},
+		//	},
+		//}, {
+		//	name: "operator-ratio",
+		//	slo:  objectiveOperator(),
+		//	rules: monitoringv1.RuleGroup{
+		//		Name:     "monitoring-prometheus-operator-errors-increase",
+		//		Interval: "1m30s",
+		//		Rules: []monitoringv1.Rule{{
+		//			Record: "prometheus_operator_reconcile_operations:increase2w",
+		//			Expr:   intstr.FromString(`sum(increase(prometheus_operator_reconcile_operations_total[2w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+		//		}, {
+		//			Record: "prometheus_operator_reconcile_errors:increase2w",
+		//			Expr:   intstr.FromString(`sum(increase(prometheus_operator_reconcile_errors_total[2w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+		//		}},
+		//	},
+		//}, {
+		//	name: "operator-ratio-grouping",
+		//	slo:  objectiveOperatorGrouping(),
+		//	rules: monitoringv1.RuleGroup{
+		//		Name:     "monitoring-prometheus-operator-errors-increase",
+		//		Interval: "1m30s",
+		//		Rules: []monitoringv1.Rule{{
+		//			Record: "prometheus_operator_reconcile_operations:increase2w",
+		//			Expr:   intstr.FromString(`sum by(namespace) (increase(prometheus_operator_reconcile_operations_total[2w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+		//		}, {
+		//			Record: "prometheus_operator_reconcile_errors:increase2w",
+		//			Expr:   intstr.FromString(`sum by(namespace) (increase(prometheus_operator_reconcile_errors_total[2w]))`),
+		//			Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+		//		}},
+		//	},
+	}, {
+		name: "apiserver-write-response-errors",
+		slo:  objectiveAPIServerRatio(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "apiserver-write-response-errors-grafana",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.99`),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromInt(int((14 * 24 * time.Hour).Seconds())),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(apiserver_request:increase2w{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"})`),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"})`),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"})`),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
+			}},
+		},
+		//}, {
+		//	name: "apiserver-read-resource-latency",
+		//	slo:  objectiveAPIServerLatency(),
+		//	rules: monitoringv1.RuleGroup{
+		//		Name:     "apiserver-read-resource-latency-increase",
+		//		Interval: "1m30s",
+		//		Rules: []monitoringv1.Rule{{
+		//			Record: "apiserver_request_duration_seconds:increase2w",
+		//			Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
+		//			Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency"},
+		//		}, {
+		//			Record: "apiserver_request_duration_seconds:increase2w",
+		//			Expr:   intstr.FromString(`sum by(resource, verb) (increase(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
+		//			Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1"},
+		//		}},
+		//	},
 	}}
+
+	//require.Len(t, testcases, 14)
+
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			alerts, err := tc.slo.Alerts()
+			group, err := tc.slo.GrafanaRules()
 			require.NoError(t, err)
-			require.Equal(t, tc.alerts, alerts)
+			require.Equal(t, tc.rules, group)
 		})
 	}
 }
