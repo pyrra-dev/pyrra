@@ -28,6 +28,6 @@ spec:
   indicator:
     latency:
       success:
-        metric: nginx_ingress_controller_request_duration_seconds_bucket{namespace="lastfm",ingress="lastfm",service="lastfm",status=~"5.."}
+        metric: nginx_ingress_controller_request_duration_seconds_bucket{namespace="lastfm",ingress="lastfm",service="lastfm",status=~"5..",le="1"}
       total:
         metric: nginx_ingress_controller_request_duration_seconds_count{namespace="lastfm",ingress="lastfm",service="lastfm"}
