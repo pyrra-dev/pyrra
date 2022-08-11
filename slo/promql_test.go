@@ -264,6 +264,11 @@ var (
 		o.Alerting.Disabled = true
 		return o
 	}
+	objectiveAPIServerLatencyCustomAlertname = func() Objective {
+		o := objectiveAPIServerLatency()
+		o.Alerting.Name = "APIServerLatencyErrorBudgetBurn"
+		return o
+	}
 )
 
 func TestObjective_QueryTotal(t *testing.T) {
