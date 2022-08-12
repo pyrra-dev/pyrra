@@ -15,7 +15,7 @@ require (
 	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/common v0.36.0
 	github.com/prometheus/prometheus v1.8.2-0.20220211202545-56e14463bccf
-	github.com/stretchr/testify v1.7.5
+	github.com/stretchr/testify v1.8.0
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	k8s.io/api v0.24.3
 	k8s.io/apimachinery v0.24.3
