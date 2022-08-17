@@ -57,6 +57,7 @@
 }
 
 .toggle-on {
+    display: table;
     position: absolute;
     top: 0;
     bottom: 0;
@@ -68,6 +69,7 @@
 }
 
 .toggle-off {
+    display: table;
     position: absolute;
     top: 0;
     bottom: 0;
@@ -145,10 +147,12 @@
 
 .toggle-on.btn {
     padding-right: 1.5rem;
+    min-height: 38px; // hack to get the exact height for now
 }
 
 .toggle-off.btn {
     padding-left: 1.5rem;
+    min-height: 38px; // hack to get the exact height for now
 }
 
 /* `lg` (bootstrap-4.1.3 - .btn - h:48px) */

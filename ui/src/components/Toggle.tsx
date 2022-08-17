@@ -15,7 +15,7 @@ const Toggle = ({checked, onChange, onText, offText}: ToggleProps): JSX.Element 
   let width = 0
   let height = 0
   if (element.current !== null && elementOn.current !== null && elementOff.current !== null) {
-    width = Math.max(elementOn.current.clientWidth, elementOff.current.clientWidth)
+    width = elementOn.current.clientWidth
     height = Math.max(elementOn.current.clientHeight, elementOff.current.clientHeight)
   }
 
@@ -37,7 +37,11 @@ const Toggle = ({checked, onChange, onText, offText}: ToggleProps): JSX.Element 
         <label htmlFor="" className="btn btn-light active toggle-on" ref={elementOn}>
           {onText !== undefined ? onText : 'On'}
         </label>
-        <label htmlFor="" className="btn btn-light toggle-off" ref={elementOff}>
+        <label
+          htmlFor=""
+          className="btn btn-light toggle-off"
+          ref={elementOff}
+          style={{width: width}}>
           {offText !== undefined ? offText : 'Off'}
         </label>
         <span className="toggle-handle btn btn-light"></span>
