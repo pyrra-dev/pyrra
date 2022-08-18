@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package objectives.v1alpha1;
+
+option go_package = "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1;objectivesv1alpha1";
+
+service ObjectiveService {
+  rpc ListObjectives(ListObjectivesRequest) returns (ListObjectivesResponse) {}
+}
+
+service ObjectiveBackendService {
+  rpc ListObjectives(ListObjectivesRequest) returns (ListObjectivesResponse) {}
+}
+
+message ListObjectivesRequest {
+  string expr = 1;
+}
+
+message ListObjectivesResponse {
+  repeated Objective objectives = 1;
+}
+
+message Objective {
+  map<string, string> labels = 1;
+  string description = 2;
+  double target = 3;
+  int64 window = 4;
+}

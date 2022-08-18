@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
+	"github.com/bufbuild/connect-go"
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -34,10 +35,14 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiclient "github.com/pyrra-dev/pyrra/openapi/client"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
+	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
+	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/slo"
 )
 
@@ -242,7 +247,15 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 		})
 	}
 
-	if err := http.ListenAndServe(":9099", r); err != nil {
+	objectiveService := &connectObjectiveServer{
+		logger:  logger,
+		promAPI: promAPI,
+		client:  objectivesv1alpha1connect.NewObjectiveBackendServiceClient(http.DefaultClient, apiURL.String()),
+	}
+	// TODO: move to route with routePrefix?
+	r.Mount(objectivesv1alpha1connect.NewObjectiveServiceHandler(objectiveService))
+
+	if err := http.ListenAndServe(":9099", h2c.NewHandler(r, &http2.Server{})); err != nil {
 		level.Error(logger).Log("msg", "failed to run HTTP server", "err", err)
 		return 2
 	}
@@ -397,6 +410,12 @@ type ObjectivesServer struct {
 	apiclient *openapiclient.APIClient
 }
 
+type connectObjectiveServer struct {
+	logger  log.Logger
+	promAPI *promCache
+	client  objectivesv1alpha1connect.ObjectiveBackendServiceClient
+}
+
 func (o *ObjectivesServer) ListObjectives(ctx context.Context, query string) (openapiserver.ImplResponse, error) {
 	if query != "" {
 		// We'll parse the query matchers already to make sure it's valid before passing on to the backend.
@@ -419,6 +438,27 @@ func (o *ObjectivesServer) ListObjectives(ctx context.Context, query string) (op
 		Code: http.StatusOK,
 		Body: apiObjectives,
 	}, nil
+}
+
+func (c *connectObjectiveServer) ListObjectives(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListObjectivesRequest]) (*connect.Response[objectivesv1alpha1.ListObjectivesResponse], error) {
+	c.logger.Log("msg", "got request", "expr", req.Msg.Expr)
+
+	if expr := req.Msg.Expr; expr != "" {
+		if _, err := parser.ParseMetricSelector(expr); err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
+		}
+	}
+
+	resp, err := c.client.ListObjectives(ctx, connect.NewRequest[objectivesv1alpha1.ListObjectivesRequest](&objectivesv1alpha1.ListObjectivesRequest{
+		Expr: req.Msg.Expr,
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse[objectivesv1alpha1.ListObjectivesResponse](&objectivesv1alpha1.ListObjectivesResponse{
+		Objectives: resp.Msg.Objectives,
+	}), nil
 }
 
 func (o *ObjectivesServer) GetObjectiveStatus(ctx context.Context, expr, grouping string, tsUnix int32) (openapiserver.ImplResponse, error) {

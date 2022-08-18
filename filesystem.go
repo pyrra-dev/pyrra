@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/bufbuild/connect-go"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -20,11 +21,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"sigs.k8s.io/yaml"
 
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/openapi"
 	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
+	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
+	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/slo"
 )
 
@@ -170,7 +175,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "reading", "file", f)
 					reconcilesTotal.Inc()
 
-					bytes, err := ioutil.ReadFile(f)
+					bytes, err := os.ReadFile(f)
 					if err != nil {
 						reconcilesErrors.Inc()
 						return fmt.Errorf("failed to read file %q: %w", f, err)
@@ -212,7 +217,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					_, file := filepath.Split(f)
 					path := filepath.Join(prometheusFolder, file)
 
-					if err := ioutil.WriteFile(path, bytes, 0o644); err != nil {
+					if err := os.WriteFile(path, bytes, 0o644); err != nil {
 						reconcilesErrors.Inc()
 						return fmt.Errorf("failed to write file %q: %w", path, err)
 					}
@@ -268,14 +273,21 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 		})
 	}
 	{
-		router := openapiserver.NewRouter(
-			openapiserver.NewObjectivesApiController(&FilesystemObjectiveServer{
-				objectives: objectives,
-			}),
-		)
-		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		//router := openapiserver.NewRouter(
+		//	openapiserver.NewObjectivesApiController(&FilesystemObjectiveServer{
+		//		objectives: objectives,
+		//	}),
+		//)
+		mux := http.NewServeMux()
+		mux.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&connectFilesystemObjectiveServer{
+			objectives: objectives,
+		}))
+		mux.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
-		server := http.Server{Addr: ":9444", Handler: router}
+		server := http.Server{
+			Addr:    ":9444",
+			Handler: h2c.NewHandler(mux, &http2.Server{}),
+		}
 
 		gr.Add(func() error {
 			level.Info(logger).Log("msg", "starting up HTTP API", "address", server.Addr)
@@ -294,6 +306,36 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 
 type FilesystemObjectiveServer struct {
 	objectives *Objectives
+}
+
+type connectFilesystemObjectiveServer struct {
+	objectives *Objectives
+}
+
+func (s *connectFilesystemObjectiveServer) ListObjectives(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListObjectivesRequest]) (*connect.Response[objectivesv1alpha1.ListObjectivesResponse], error) {
+	var matchers []*labels.Matcher
+	if expr := req.Msg.Expr; expr != "" {
+		var err error
+		matchers, err = parser.ParseMetricSelector(expr)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
+		}
+	}
+
+	matchingObjectives := s.objectives.Match(matchers)
+	objectives := make([]*objectivesv1alpha1.Objective, 0, len(matchingObjectives))
+	for _, o := range matchingObjectives {
+		objectives = append(objectives, &objectivesv1alpha1.Objective{
+			Labels:      o.Labels.Map(),
+			Description: o.Description,
+			Target:      o.Target,
+			Window:      time.Duration(o.Window).Milliseconds(),
+		})
+	}
+
+	return connect.NewResponse[objectivesv1alpha1.ListObjectivesResponse](&objectivesv1alpha1.ListObjectivesResponse{
+		Objectives: objectives,
+	}), nil
 }
 
 func (f FilesystemObjectiveServer) ListObjectives(ctx context.Context, query string) (openapiserver.ImplResponse, error) {
