@@ -4,6 +4,8 @@ package objectives.v1alpha1;
 
 option go_package = "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1;objectivesv1alpha1";
 
+import "types.proto";
+
 service ObjectiveService {
   rpc ListObjectives(ListObjectivesRequest) returns (ListObjectivesResponse) {}
 }
@@ -22,7 +24,33 @@ message ListObjectivesResponse {
 
 message Objective {
   map<string, string> labels = 1;
-  string description = 2;
-  double target = 3;
-  int64 window = 4;
+  double target = 2;
+  int64 window = 3;
+  string description = 4;
+  Indicator indicator = 5;
+}
+
+message Indicator {
+  oneof options {
+    Ratio ratio = 1;
+    Latency latency = 2;
+  }
+}
+
+message Ratio {
+  Query total = 1;
+  Query errors = 2;
+  repeated string grouping = 3;
+}
+
+message Latency {
+  Query total = 1;
+  Query success = 2;
+  repeated string grouping = 3;
+}
+
+message Query {
+  string metric = 1;
+  string name = 2;
+  repeated prometheus.LabelMatcher matchers = 3;
 }
