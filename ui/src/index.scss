@@ -81,6 +81,8 @@ $table-th-font-weight: 600;
 
 // Add our application specific overwrites.
 
+@import './components/Toggle';
+
 .navbar {
   background-color: $gray-300;
 }

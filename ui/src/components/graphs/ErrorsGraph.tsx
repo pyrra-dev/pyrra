@@ -14,7 +14,8 @@ interface ErrorsGraphProps {
   api: ObjectivesApi
   labels: Labels
   grouping: Labels
-  timeRange: number
+  from: number
+  to: number
   uPlotCursor: uPlot.Cursor
 }
 
@@ -22,7 +23,8 @@ const ErrorsGraph = ({
   api,
   labels,
   grouping,
-  timeRange,
+  from,
+  to,
   uPlotCursor,
 }: ErrorsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
@@ -31,8 +33,6 @@ const ErrorsGraph = ({
   const [errorsQuery, setErrorsQuery] = useState<string>('')
   const [errorsLabels, setErrorsLabels] = useState<string[]>([])
   const [errorsLoading, setErrorsLoading] = useState<boolean>(true)
-  const [start, setStart] = useState<number>()
-  const [end, setEnd] = useState<number>()
   const [width, setWidth] = useState<number>(500)
 
   const setWidthFromContainer = () => {
@@ -47,13 +47,14 @@ const ErrorsGraph = ({
   window.addEventListener('resize', setWidthFromContainer)
 
   useEffect(() => {
-    const now = Date.now()
-    const start = Math.floor((now - timeRange) / 1000)
-    const end = Math.floor(now / 1000)
-
     setErrorsLoading(true)
     api
-      .getREDErrors({expr: labelsString(labels), grouping: labelsString(grouping), start, end})
+      .getREDErrors({
+        expr: labelsString(labels),
+        grouping: labelsString(grouping),
+        start: Math.floor(from / 1000),
+        end: Math.floor(to / 1000),
+      })
       .then((r: QueryRange) => {
         let [x, ...ys] = r.values
         ys = ys.map((y: number[]) => y.map((v: number) => 100 * v))
@@ -61,16 +62,12 @@ const ErrorsGraph = ({
         setErrorsLabels(r.labels)
         setErrorsQuery(r.query)
         setErrors([x, ...ys])
-        setStart(start)
-        setEnd(end)
       })
       .catch(() => {
         setErrors(undefined)
-        setStart(start)
-        setEnd(end)
       })
       .finally(() => setErrorsLoading(false))
-  }, [api, labels, grouping, timeRange])
+  }, [api, labels, grouping, from, to])
 
   return (
     <>
@@ -99,7 +96,7 @@ const ErrorsGraph = ({
             rel="noreferrer"
             href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
               errorsQuery,
-            )}&g0.range_input=${formatDuration(timeRange)}&g0.tab=0`}>
+            )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
             <IconExternal height={20} width={20} />
             Prometheus
           </a>
@@ -112,7 +109,7 @@ const ErrorsGraph = ({
       </div>
 
       <div ref={targetRef}>
-        {errors !== undefined && start !== undefined && end !== undefined ? (
+        {errors !== undefined ? (
           <UplotReact
             options={{
               width: width,
@@ -126,12 +123,12 @@ const ErrorsGraph = ({
                     min: 0,
                     stroke: `#${reds[i]}`,
                     label: parseLabelValue(label),
-                    gaps: seriesGaps(start, end),
+                    gaps: seriesGaps(from / 1000, to / 1000),
                   }
                 }),
               ],
               scales: {
-                x: {min: start, max: end},
+                x: {min: from / 1000, max: to / 1000},
                 y: {
                   range: {
                     min: {hard: 0},
@@ -156,7 +153,7 @@ const ErrorsGraph = ({
               padding: [15, 0, 0, 0],
               series: [{}, {}],
               scales: {
-                x: {min: start, max: end},
+                x: {min: from / 1000, max: to / 1000},
                 y: {min: 0, max: 1},
               },
             }}

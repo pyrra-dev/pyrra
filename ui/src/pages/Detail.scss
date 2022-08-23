@@ -74,7 +74,13 @@
       background-color: $body-bg;
 
       @media (min-width: 576px) {
-        width: 30%;
+        width: 66%;
+      }
+      @media (min-width: 768px) {
+        width: 50%;
+      }
+      @media (min-width: 1440px) {
+        width: 33%;
       }
     }
   }

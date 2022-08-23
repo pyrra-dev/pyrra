@@ -1,6 +1,16 @@
 import {Link, useLocation, useNavigate} from 'react-router-dom'
-import React, {useEffect, useMemo, useState} from 'react'
-import {Badge, Button, ButtonGroup, Col, Container, Row, Spinner} from 'react-bootstrap'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import {
+  Badge,
+  Button,
+  ButtonGroup,
+  Col,
+  Container,
+  OverlayTrigger,
+  Row,
+  Spinner,
+  Tooltip as OverlayTooltip,
+} from 'react-bootstrap'
 import {
   Configuration,
   Objective,
@@ -9,13 +19,14 @@ import {
   ObjectiveStatusAvailability,
   ObjectiveStatusBudget,
 } from '../client'
-import {API_BASEPATH, formatDuration, parseDuration} from '../App'
+import {API_BASEPATH, formatDuration} from '../App'
 import Navbar from '../components/Navbar'
 import {MetricName, parseLabels} from '../labels'
 import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
 import RequestsGraph from '../components/graphs/RequestsGraph'
 import ErrorsGraph from '../components/graphs/ErrorsGraph'
 import AlertsTable from '../components/AlertsTable'
+import Toggle from '../components/Toggle'
 
 const Detail = () => {
   const api = useMemo(() => {
@@ -25,7 +36,7 @@ const Detail = () => {
   const navigate = useNavigate()
   const {search} = useLocation()
 
-  const {timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels} = useMemo(() => {
+  const {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels} = useMemo(() => {
     const query = new URLSearchParams(search)
 
     const queryExpr = query.get('expr')
@@ -38,17 +49,20 @@ const Detail = () => {
 
     const name: string = labels[MetricName]
 
-    const timeRangeQuery = query.get('timerange')
-    const timeRangeParsed = timeRangeQuery != null ? parseDuration(timeRangeQuery) : null
-    const timeRange: number = timeRangeParsed != null ? timeRangeParsed : 3600 * 1000
+    const toQuery = query.get('to')
+    const to = toQuery != null ? parseInt(toQuery) : Date.now()
+
+    const fromQuery = query.get('from')
+    const from = fromQuery != null ? parseInt(fromQuery) : to - 3600 * 1000
 
     document.title = `${name} - Pyrra`
 
-    return { timeRange, expr, grouping, groupingExpr, groupingLabels, name, labels }
+    return {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels}
   }, [search])
 
   const [objective, setObjective] = useState<Objective | null>(null)
   const [objectiveError, setObjectiveError] = useState<string>('')
+  const [autoReload, setAutoReload] = useState<boolean>(true)
 
   enum StatusState {
     Unknown,
@@ -61,9 +75,7 @@ const Detail = () => {
   const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null)
   const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null)
 
-  useEffect(() => {
-    // const controller = new AbortController()
-
+  const getObjective = useCallback(() => {
     api
       .listObjectives({expr: expr})
       .then((os: Objective[]) => {
@@ -84,9 +96,11 @@ const Detail = () => {
           setObjectiveError(resp.message)
         }
       })
+  }, [api, expr, objective?.config])
 
+  const getObjectiveStatus = useCallback(() => {
     api
-      .getObjectiveStatus({expr: expr, grouping: grouping})
+      .getObjectiveStatus({expr: expr, grouping: grouping, time: Math.floor(to / 1000)})
       .then((s: ObjectiveStatus[]) => {
         if (s.length === 0) {
           setStatusState(StatusState.NoData)
@@ -105,22 +119,42 @@ const Detail = () => {
           setStatusState(StatusState.Error)
         }
       })
+  }, [api, expr, grouping, to, StatusState.NoData, StatusState.Success, StatusState.Error])
 
-    // return () => {
-    //     // cancel any pending requests.
-    //     controller.abort()
-    // }
-  }, [
-    api,
-    name,
-    expr,
-    grouping,
-    timeRange,
-    StatusState.Error,
-    StatusState.NoData,
-    StatusState.Success,
-    objective?.config,
-  ])
+  useEffect(() => {
+    getObjective()
+    getObjectiveStatus()
+  }, [getObjective, getObjectiveStatus])
+
+  const updateTimeRange = useCallback(
+    (from: number, to: number) => {
+      navigate(`/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&from=${from}&to=${to}`)
+    },
+    [navigate, expr, groupingExpr],
+  )
+
+  const duration = to - from
+  const interval = intervalFromDuration(duration)
+
+  useEffect(() => {
+    if (autoReload) {
+      const id = setInterval(() => {
+        const newTo = Date.now()
+        const newFrom = newTo - duration
+        updateTimeRange(newFrom, newTo)
+      }, interval)
+
+      return () => {
+        clearInterval(id)
+      }
+    }
+  }, [updateTimeRange, autoReload, duration, interval])
+
+  const handleTimeRangeClick = (t: number) => () => {
+    const to = Date.now()
+    const from = to - t
+    updateTimeRange(from, to)
+  }
 
   if (objectiveError !== '') {
     return (
@@ -160,12 +194,6 @@ const Detail = () => {
     12 * 3600 * 1000, // 12h
     3600 * 1000, // 1h
   ]
-
-  const handleTimeRangeClick = (t: number) => () => {
-    navigate(
-      `/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&timerange=${formatDuration(t)}`,
-    )
-  }
 
   const renderAvailability = () => {
     const headline = <h6>Availability</h6>
@@ -264,7 +292,7 @@ const Detail = () => {
   const labelBadges = Object.entries({...objective.labels, ...groupingLabels})
     .filter((l: [string, string]) => l[0] !== MetricName)
     .map((l: [string, string]) => (
-      <Badge key={l[1]} bg="light" text="dark" className="fw-normal">
+      <Badge key={l[0]} bg="light" text="dark" className="fw-normal">
         {l[0]}={l[1]}
       </Badge>
     ))
@@ -322,11 +350,25 @@ const Detail = () => {
                       key={t}
                       variant="light"
                       onClick={handleTimeRangeClick(t)}
-                      active={timeRange === t}>
+                      active={to - from === t}>
                       {formatDuration(t)}
                     </Button>
                   ))}
                 </ButtonGroup>
+                &nbsp; &nbsp; &nbsp;
+                <OverlayTrigger
+                  key="auto-reload"
+                  overlay={
+                    <OverlayTooltip id={`tooltip-auto-reload`}>Automatically reload</OverlayTooltip>
+                  }>
+                  <span>
+                    <Toggle
+                      checked={autoReload}
+                      onChange={() => setAutoReload(!autoReload)}
+                      onText={formatDuration(interval)}
+                    />
+                  </span>
+                </OverlayTrigger>
               </div>
             </Col>
           </Row>
@@ -336,7 +378,8 @@ const Detail = () => {
                 api={api}
                 labels={labels}
                 grouping={groupingLabels}
-                timeRange={timeRange}
+                from={from}
+                to={to}
                 uPlotCursor={uPlotCursor}
               />
             </Col>
@@ -359,7 +402,8 @@ const Detail = () => {
                 api={api}
                 labels={labels}
                 grouping={groupingLabels}
-                timeRange={timeRange}
+                from={from}
+                to={to}
                 uPlotCursor={uPlotCursor}
               />
             </Col>
@@ -368,7 +412,8 @@ const Detail = () => {
                 api={api}
                 labels={labels}
                 grouping={groupingLabels}
-                timeRange={timeRange}
+                from={from}
+                to={to}
                 uPlotCursor={uPlotCursor}
               />
             </Col>
@@ -376,10 +421,7 @@ const Detail = () => {
           <Row>
             <Col>
               <h4>Multi Burn Rate Alerts</h4>
-              <AlertsTable
-                api={api}
-                objective={objective}
-                grouping={groupingLabels}              />
+              <AlertsTable api={api} objective={objective} grouping={groupingLabels} />
             </Col>
           </Row>
           <Row>
@@ -394,6 +436,27 @@ const Detail = () => {
       </div>
     </>
   )
+}
+
+const intervalFromDuration = (duration: number): number => {
+  // map some preset duration to nicer looking intervals
+  switch (duration) {
+    case 60 * 60 * 1000: // 1h => 10s
+      return 10 * 1000
+    case 12 * 60 * 60 * 1000: // 12h => 30s
+      return 30 * 1000
+    case 24 * 60 * 60 * 1000: // 12h => 30s
+      return 90 * 1000
+  }
+
+  if (duration < 10 * 1000 * 1000) {
+    return 10 * 1000
+  }
+  if (duration < 10 * 60 * 1000 * 1000) {
+    return Math.floor(duration / 1000 / 1000) * 1000 // round to seconds
+  }
+
+  return Math.floor(duration / 60 / 1000 / 1000) * 60 * 1000
 }
 
 export default Detail

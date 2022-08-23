@@ -297,6 +297,7 @@ type ApiGetObjectiveStatusRequest struct {
 	ApiService *ObjectivesApiService
 	expr       *string
 	grouping   *string
+	time       *int32
 }
 
 func (r ApiGetObjectiveStatusRequest) Expr(expr string) ApiGetObjectiveStatusRequest {
@@ -305,6 +306,10 @@ func (r ApiGetObjectiveStatusRequest) Expr(expr string) ApiGetObjectiveStatusReq
 }
 func (r ApiGetObjectiveStatusRequest) Grouping(grouping string) ApiGetObjectiveStatusRequest {
 	r.grouping = &grouping
+	return r
+}
+func (r ApiGetObjectiveStatusRequest) Time(time int32) ApiGetObjectiveStatusRequest {
+	r.time = &time
 	return r
 }
 
@@ -352,6 +357,9 @@ func (a *ObjectivesApiService) GetObjectiveStatusExecute(r ApiGetObjectiveStatus
 	localVarQueryParams.Add("expr", parameterToString(*r.expr, ""))
 	if r.grouping != nil {
 		localVarQueryParams.Add("grouping", parameterToString(*r.grouping, ""))
+	}
+	if r.time != nil {
+		localVarQueryParams.Add("time", parameterToString(*r.time, ""))
 	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
