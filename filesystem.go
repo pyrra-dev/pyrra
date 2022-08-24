@@ -26,8 +26,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
-	"github.com/pyrra-dev/pyrra/openapi"
-	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/slo"
@@ -273,20 +271,15 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 		})
 	}
 	{
-		//router := openapiserver.NewRouter(
-		//	openapiserver.NewObjectivesApiController(&FilesystemObjectiveServer{
-		//		objectives: objectives,
-		//	}),
-		//)
-		mux := http.NewServeMux()
-		mux.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&connectFilesystemObjectiveServer{
+		router := http.NewServeMux()
+		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&FilesystemObjectiveServer{
 			objectives: objectives,
 		}))
-		mux.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 		server := http.Server{
 			Addr:    ":9444",
-			Handler: h2c.NewHandler(mux, &http2.Server{}),
+			Handler: h2c.NewHandler(router, &http2.Server{}),
 		}
 
 		gr.Add(func() error {
@@ -308,11 +301,7 @@ type FilesystemObjectiveServer struct {
 	objectives *Objectives
 }
 
-type connectFilesystemObjectiveServer struct {
-	objectives *Objectives
-}
-
-func (s *connectFilesystemObjectiveServer) ListObjectives(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListObjectivesRequest]) (*connect.Response[objectivesv1alpha1.ListObjectivesResponse], error) {
+func (s *FilesystemObjectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
 	var matchers []*labels.Matcher
 	if expr := req.Msg.Expr; expr != "" {
 		var err error
@@ -325,73 +314,14 @@ func (s *connectFilesystemObjectiveServer) ListObjectives(ctx context.Context, r
 	matchingObjectives := s.objectives.Match(matchers)
 	objectives := make([]*objectivesv1alpha1.Objective, 0, len(matchingObjectives))
 	for _, o := range matchingObjectives {
-		objectives = append(objectives, &objectivesv1alpha1.Objective{
-			Labels:      o.Labels.Map(),
-			Description: o.Description,
-			Target:      o.Target,
-			Window:      time.Duration(o.Window).Milliseconds(),
-		})
+		objectives = append(objectives, objectivesv1alpha1.FromInternal(o))
 	}
 
-	return connect.NewResponse[objectivesv1alpha1.ListObjectivesResponse](&objectivesv1alpha1.ListObjectivesResponse{
+	if len(objectives) == 0 {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no objectives found"))
+	}
+
+	return connect.NewResponse(&objectivesv1alpha1.ListResponse{
 		Objectives: objectives,
 	}), nil
-}
-
-func (f FilesystemObjectiveServer) ListObjectives(ctx context.Context, query string) (openapiserver.ImplResponse, error) {
-	var matchers []*labels.Matcher
-	if query != "" {
-		var err error
-		matchers, err = parser.ParseMetricSelector(query)
-		if err != nil {
-			return openapiserver.ImplResponse{Code: http.StatusBadRequest}, err
-		}
-	}
-
-	objectives := f.objectives.Match(matchers)
-	list := make([]openapiserver.Objective, 0, len(objectives))
-	for _, o := range objectives {
-		list = append(list, openapi.ServerFromInternal(o))
-	}
-
-	return openapiserver.ImplResponse{
-		Code: http.StatusOK,
-		Body: list,
-	}, nil
-}
-
-func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
-	// TODO: Parse expr to match properly
-
-	f.objectives.mu.RLock()
-	objective, ok := f.objectives.objectives[expr]
-	f.objectives.mu.RUnlock()
-	if !ok {
-		return openapiserver.ImplResponse{Code: http.StatusNotFound}, nil
-	}
-
-	return openapiserver.ImplResponse{
-		Code: http.StatusOK,
-		Body: openapi.ServerFromInternal(objective),
-	}, nil
-}
-
-func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string, inactive, current bool) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
-}
-
-func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
-}
-
-func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, expr, grouping string, ts int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
-}
-
-func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
-}
-
-func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
 }
