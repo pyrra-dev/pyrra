@@ -2,25 +2,27 @@ import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
-
-import {ObjectivesApi, QueryRange} from '../../client'
 import {formatDuration, PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {Labels, labelsString, parseLabelValue} from '../../labels'
 import {reds} from './colors'
 import {seriesGaps} from './gaps'
+import {PromiseClient} from '@bufbuild/connect-web'
+import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
+import {Timestamp} from '@bufbuild/protobuf'
+import {GraphErrorsResponse, Series} from '../../proto/objectives/v1alpha1/objectives_pb'
 
 interface ErrorsGraphProps {
-  api: ObjectivesApi
+  client: PromiseClient<typeof ObjectiveService>
   labels: Labels
   grouping: Labels
-  from: number
-  to: number
+  from: Timestamp
+  to: Timestamp
   uPlotCursor: uPlot.Cursor
 }
 
 const ErrorsGraph = ({
-  api,
+  client,
   labels,
   grouping,
   from,
@@ -48,26 +50,32 @@ const ErrorsGraph = ({
 
   useEffect(() => {
     setErrorsLoading(true)
-    api
-      .getREDErrors({
+    client
+      .graphErrors({
         expr: labelsString(labels),
         grouping: labelsString(grouping),
-        start: Math.floor(from / 1000),
-        end: Math.floor(to / 1000),
+        from,
+        to,
       })
-      .then((r: QueryRange) => {
-        let [x, ...ys] = r.values
-        ys = ys.map((y: number[]) => y.map((v: number) => 100 * v))
-
-        setErrorsLabels(r.labels)
-        setErrorsQuery(r.query)
-        setErrors([x, ...ys])
+      .then((resp: GraphErrorsResponse) => {
+        if (resp.timeseries !== undefined) {
+          const [x, ...series] = resp.timeseries.series
+          const ys: number[][] = []
+          series.forEach((s: Series) => {
+            ys.push(s.values.map((v: number) => 100 * v))
+          })
+          setErrors([x.values, ...ys])
+          setErrorsLabels(resp.timeseries.labels)
+          setErrorsQuery(resp.timeseries.query)
+        }
       })
       .catch(() => {
         setErrors(undefined)
       })
-      .finally(() => setErrorsLoading(false))
-  }, [api, labels, grouping, from, to])
+      .finally(() => {
+        setErrorsLoading(false)
+      })
+  }, [client, labels, grouping, from, to])
 
   return (
     <>
@@ -96,7 +104,7 @@ const ErrorsGraph = ({
             rel="noreferrer"
             href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
               errorsQuery,
-            )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
+            )}&g0.range_input=${formatDuration(Number(to.seconds - from.seconds))}&g0.tab=0`}>
             <IconExternal height={20} width={20} />
             Prometheus
           </a>
@@ -123,12 +131,12 @@ const ErrorsGraph = ({
                     min: 0,
                     stroke: `#${reds[i]}`,
                     label: parseLabelValue(label),
-                    gaps: seriesGaps(from / 1000, to / 1000),
+                    gaps: seriesGaps(Number(from.seconds), Number(to.seconds)),
                   }
                 }),
               ],
               scales: {
-                x: {min: from / 1000, max: to / 1000},
+                x: {min: Number(from.seconds), max: Number(to.seconds)},
                 y: {
                   range: {
                     min: {hard: 0},
@@ -153,7 +161,7 @@ const ErrorsGraph = ({
               padding: [15, 0, 0, 0],
               series: [{}, {}],
               scales: {
-                x: {min: from / 1000, max: to / 1000},
+                x: {min: Number(from.seconds), max: Number(to.seconds)},
                 y: {min: 0, max: 1},
               },
             }}
