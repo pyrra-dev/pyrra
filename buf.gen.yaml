@@ -1,10 +1,4 @@
 version: v1
-managed:
-  enabled: true
-  go_package_prefix:
-    default: github.com/pyrra-dev/pyrra/proto
-    override:
-      buf.build/prometheus/prometheus: github.com/pyrra-dev/pyrra/proto
 plugins:
   - name: go
     out: proto
@@ -15,8 +9,8 @@ plugins:
   - name: es
     path: ui/node_modules/.bin/protoc-gen-es
     out: ui/src/proto
-    opt: target=ts
+    opt: target=js+dts
   - name: connect-web
     path: ui/node_modules/.bin/protoc-gen-connect-web
     out: ui/src/proto
-    opt: target=ts
+    opt: target=js+dts

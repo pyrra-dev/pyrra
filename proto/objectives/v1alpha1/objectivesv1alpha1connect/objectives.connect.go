@@ -29,7 +29,12 @@ const (
 
 // ObjectiveServiceClient is a client for the objectives.v1alpha1.ObjectiveService service.
 type ObjectiveServiceClient interface {
-	ListObjectives(context.Context, *connect_go.Request[v1alpha1.ListObjectivesRequest]) (*connect_go.Response[v1alpha1.ListObjectivesResponse], error)
+	List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error)
+	GetStatus(context.Context, *connect_go.Request[v1alpha1.GetStatusRequest]) (*connect_go.Response[v1alpha1.GetStatusResponse], error)
+	GetAlerts(context.Context, *connect_go.Request[v1alpha1.GetAlertsRequest]) (*connect_go.Response[v1alpha1.GetAlertsResponse], error)
+	GraphErrorBudget(context.Context, *connect_go.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect_go.Response[v1alpha1.GraphErrorBudgetResponse], error)
+	GraphRate(context.Context, *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error)
+	GraphErrors(context.Context, *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error)
 }
 
 // NewObjectiveServiceClient constructs a client for the objectives.v1alpha1.ObjectiveService
@@ -42,9 +47,34 @@ type ObjectiveServiceClient interface {
 func NewObjectiveServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) ObjectiveServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &objectiveServiceClient{
-		listObjectives: connect_go.NewClient[v1alpha1.ListObjectivesRequest, v1alpha1.ListObjectivesResponse](
+		list: connect_go.NewClient[v1alpha1.ListRequest, v1alpha1.ListResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveService/ListObjectives",
+			baseURL+"/objectives.v1alpha1.ObjectiveService/List",
+			opts...,
+		),
+		getStatus: connect_go.NewClient[v1alpha1.GetStatusRequest, v1alpha1.GetStatusResponse](
+			httpClient,
+			baseURL+"/objectives.v1alpha1.ObjectiveService/GetStatus",
+			opts...,
+		),
+		getAlerts: connect_go.NewClient[v1alpha1.GetAlertsRequest, v1alpha1.GetAlertsResponse](
+			httpClient,
+			baseURL+"/objectives.v1alpha1.ObjectiveService/GetAlerts",
+			opts...,
+		),
+		graphErrorBudget: connect_go.NewClient[v1alpha1.GraphErrorBudgetRequest, v1alpha1.GraphErrorBudgetResponse](
+			httpClient,
+			baseURL+"/objectives.v1alpha1.ObjectiveService/GraphErrorBudget",
+			opts...,
+		),
+		graphRate: connect_go.NewClient[v1alpha1.GraphRateRequest, v1alpha1.GraphRateResponse](
+			httpClient,
+			baseURL+"/objectives.v1alpha1.ObjectiveService/GraphRate",
+			opts...,
+		),
+		graphErrors: connect_go.NewClient[v1alpha1.GraphErrorsRequest, v1alpha1.GraphErrorsResponse](
+			httpClient,
+			baseURL+"/objectives.v1alpha1.ObjectiveService/GraphErrors",
 			opts...,
 		),
 	}
@@ -52,17 +82,52 @@ func NewObjectiveServiceClient(httpClient connect_go.HTTPClient, baseURL string,
 
 // objectiveServiceClient implements ObjectiveServiceClient.
 type objectiveServiceClient struct {
-	listObjectives *connect_go.Client[v1alpha1.ListObjectivesRequest, v1alpha1.ListObjectivesResponse]
+	list             *connect_go.Client[v1alpha1.ListRequest, v1alpha1.ListResponse]
+	getStatus        *connect_go.Client[v1alpha1.GetStatusRequest, v1alpha1.GetStatusResponse]
+	getAlerts        *connect_go.Client[v1alpha1.GetAlertsRequest, v1alpha1.GetAlertsResponse]
+	graphErrorBudget *connect_go.Client[v1alpha1.GraphErrorBudgetRequest, v1alpha1.GraphErrorBudgetResponse]
+	graphRate        *connect_go.Client[v1alpha1.GraphRateRequest, v1alpha1.GraphRateResponse]
+	graphErrors      *connect_go.Client[v1alpha1.GraphErrorsRequest, v1alpha1.GraphErrorsResponse]
 }
 
-// ListObjectives calls objectives.v1alpha1.ObjectiveService.ListObjectives.
-func (c *objectiveServiceClient) ListObjectives(ctx context.Context, req *connect_go.Request[v1alpha1.ListObjectivesRequest]) (*connect_go.Response[v1alpha1.ListObjectivesResponse], error) {
-	return c.listObjectives.CallUnary(ctx, req)
+// List calls objectives.v1alpha1.ObjectiveService.List.
+func (c *objectiveServiceClient) List(ctx context.Context, req *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error) {
+	return c.list.CallUnary(ctx, req)
+}
+
+// GetStatus calls objectives.v1alpha1.ObjectiveService.GetStatus.
+func (c *objectiveServiceClient) GetStatus(ctx context.Context, req *connect_go.Request[v1alpha1.GetStatusRequest]) (*connect_go.Response[v1alpha1.GetStatusResponse], error) {
+	return c.getStatus.CallUnary(ctx, req)
+}
+
+// GetAlerts calls objectives.v1alpha1.ObjectiveService.GetAlerts.
+func (c *objectiveServiceClient) GetAlerts(ctx context.Context, req *connect_go.Request[v1alpha1.GetAlertsRequest]) (*connect_go.Response[v1alpha1.GetAlertsResponse], error) {
+	return c.getAlerts.CallUnary(ctx, req)
+}
+
+// GraphErrorBudget calls objectives.v1alpha1.ObjectiveService.GraphErrorBudget.
+func (c *objectiveServiceClient) GraphErrorBudget(ctx context.Context, req *connect_go.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect_go.Response[v1alpha1.GraphErrorBudgetResponse], error) {
+	return c.graphErrorBudget.CallUnary(ctx, req)
+}
+
+// GraphRate calls objectives.v1alpha1.ObjectiveService.GraphRate.
+func (c *objectiveServiceClient) GraphRate(ctx context.Context, req *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error) {
+	return c.graphRate.CallUnary(ctx, req)
+}
+
+// GraphErrors calls objectives.v1alpha1.ObjectiveService.GraphErrors.
+func (c *objectiveServiceClient) GraphErrors(ctx context.Context, req *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error) {
+	return c.graphErrors.CallUnary(ctx, req)
 }
 
 // ObjectiveServiceHandler is an implementation of the objectives.v1alpha1.ObjectiveService service.
 type ObjectiveServiceHandler interface {
-	ListObjectives(context.Context, *connect_go.Request[v1alpha1.ListObjectivesRequest]) (*connect_go.Response[v1alpha1.ListObjectivesResponse], error)
+	List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error)
+	GetStatus(context.Context, *connect_go.Request[v1alpha1.GetStatusRequest]) (*connect_go.Response[v1alpha1.GetStatusResponse], error)
+	GetAlerts(context.Context, *connect_go.Request[v1alpha1.GetAlertsRequest]) (*connect_go.Response[v1alpha1.GetAlertsResponse], error)
+	GraphErrorBudget(context.Context, *connect_go.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect_go.Response[v1alpha1.GraphErrorBudgetResponse], error)
+	GraphRate(context.Context, *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error)
+	GraphErrors(context.Context, *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error)
 }
 
 // NewObjectiveServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -72,9 +137,34 @@ type ObjectiveServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewObjectiveServiceHandler(svc ObjectiveServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
 	mux := http.NewServeMux()
-	mux.Handle("/objectives.v1alpha1.ObjectiveService/ListObjectives", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveService/ListObjectives",
-		svc.ListObjectives,
+	mux.Handle("/objectives.v1alpha1.ObjectiveService/List", connect_go.NewUnaryHandler(
+		"/objectives.v1alpha1.ObjectiveService/List",
+		svc.List,
+		opts...,
+	))
+	mux.Handle("/objectives.v1alpha1.ObjectiveService/GetStatus", connect_go.NewUnaryHandler(
+		"/objectives.v1alpha1.ObjectiveService/GetStatus",
+		svc.GetStatus,
+		opts...,
+	))
+	mux.Handle("/objectives.v1alpha1.ObjectiveService/GetAlerts", connect_go.NewUnaryHandler(
+		"/objectives.v1alpha1.ObjectiveService/GetAlerts",
+		svc.GetAlerts,
+		opts...,
+	))
+	mux.Handle("/objectives.v1alpha1.ObjectiveService/GraphErrorBudget", connect_go.NewUnaryHandler(
+		"/objectives.v1alpha1.ObjectiveService/GraphErrorBudget",
+		svc.GraphErrorBudget,
+		opts...,
+	))
+	mux.Handle("/objectives.v1alpha1.ObjectiveService/GraphRate", connect_go.NewUnaryHandler(
+		"/objectives.v1alpha1.ObjectiveService/GraphRate",
+		svc.GraphRate,
+		opts...,
+	))
+	mux.Handle("/objectives.v1alpha1.ObjectiveService/GraphErrors", connect_go.NewUnaryHandler(
+		"/objectives.v1alpha1.ObjectiveService/GraphErrors",
+		svc.GraphErrors,
 		opts...,
 	))
 	return "/objectives.v1alpha1.ObjectiveService/", mux
@@ -83,14 +173,34 @@ func NewObjectiveServiceHandler(svc ObjectiveServiceHandler, opts ...connect_go.
 // UnimplementedObjectiveServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedObjectiveServiceHandler struct{}
 
-func (UnimplementedObjectiveServiceHandler) ListObjectives(context.Context, *connect_go.Request[v1alpha1.ListObjectivesRequest]) (*connect_go.Response[v1alpha1.ListObjectivesResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.ListObjectives is not implemented"))
+func (UnimplementedObjectiveServiceHandler) List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.List is not implemented"))
+}
+
+func (UnimplementedObjectiveServiceHandler) GetStatus(context.Context, *connect_go.Request[v1alpha1.GetStatusRequest]) (*connect_go.Response[v1alpha1.GetStatusResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GetStatus is not implemented"))
+}
+
+func (UnimplementedObjectiveServiceHandler) GetAlerts(context.Context, *connect_go.Request[v1alpha1.GetAlertsRequest]) (*connect_go.Response[v1alpha1.GetAlertsResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GetAlerts is not implemented"))
+}
+
+func (UnimplementedObjectiveServiceHandler) GraphErrorBudget(context.Context, *connect_go.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect_go.Response[v1alpha1.GraphErrorBudgetResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphErrorBudget is not implemented"))
+}
+
+func (UnimplementedObjectiveServiceHandler) GraphRate(context.Context, *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphRate is not implemented"))
+}
+
+func (UnimplementedObjectiveServiceHandler) GraphErrors(context.Context, *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphErrors is not implemented"))
 }
 
 // ObjectiveBackendServiceClient is a client for the objectives.v1alpha1.ObjectiveBackendService
 // service.
 type ObjectiveBackendServiceClient interface {
-	ListObjectives(context.Context, *connect_go.Request[v1alpha1.ListObjectivesRequest]) (*connect_go.Response[v1alpha1.ListObjectivesResponse], error)
+	List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error)
 }
 
 // NewObjectiveBackendServiceClient constructs a client for the
@@ -104,9 +214,9 @@ type ObjectiveBackendServiceClient interface {
 func NewObjectiveBackendServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) ObjectiveBackendServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &objectiveBackendServiceClient{
-		listObjectives: connect_go.NewClient[v1alpha1.ListObjectivesRequest, v1alpha1.ListObjectivesResponse](
+		list: connect_go.NewClient[v1alpha1.ListRequest, v1alpha1.ListResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveBackendService/ListObjectives",
+			baseURL+"/objectives.v1alpha1.ObjectiveBackendService/List",
 			opts...,
 		),
 	}
@@ -114,18 +224,18 @@ func NewObjectiveBackendServiceClient(httpClient connect_go.HTTPClient, baseURL 
 
 // objectiveBackendServiceClient implements ObjectiveBackendServiceClient.
 type objectiveBackendServiceClient struct {
-	listObjectives *connect_go.Client[v1alpha1.ListObjectivesRequest, v1alpha1.ListObjectivesResponse]
+	list *connect_go.Client[v1alpha1.ListRequest, v1alpha1.ListResponse]
 }
 
-// ListObjectives calls objectives.v1alpha1.ObjectiveBackendService.ListObjectives.
-func (c *objectiveBackendServiceClient) ListObjectives(ctx context.Context, req *connect_go.Request[v1alpha1.ListObjectivesRequest]) (*connect_go.Response[v1alpha1.ListObjectivesResponse], error) {
-	return c.listObjectives.CallUnary(ctx, req)
+// List calls objectives.v1alpha1.ObjectiveBackendService.List.
+func (c *objectiveBackendServiceClient) List(ctx context.Context, req *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error) {
+	return c.list.CallUnary(ctx, req)
 }
 
 // ObjectiveBackendServiceHandler is an implementation of the
 // objectives.v1alpha1.ObjectiveBackendService service.
 type ObjectiveBackendServiceHandler interface {
-	ListObjectives(context.Context, *connect_go.Request[v1alpha1.ListObjectivesRequest]) (*connect_go.Response[v1alpha1.ListObjectivesResponse], error)
+	List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error)
 }
 
 // NewObjectiveBackendServiceHandler builds an HTTP handler from the service implementation. It
@@ -135,9 +245,9 @@ type ObjectiveBackendServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewObjectiveBackendServiceHandler(svc ObjectiveBackendServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
 	mux := http.NewServeMux()
-	mux.Handle("/objectives.v1alpha1.ObjectiveBackendService/ListObjectives", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveBackendService/ListObjectives",
-		svc.ListObjectives,
+	mux.Handle("/objectives.v1alpha1.ObjectiveBackendService/List", connect_go.NewUnaryHandler(
+		"/objectives.v1alpha1.ObjectiveBackendService/List",
+		svc.List,
 		opts...,
 	))
 	return "/objectives.v1alpha1.ObjectiveBackendService/", mux
@@ -146,6 +256,6 @@ func NewObjectiveBackendServiceHandler(svc ObjectiveBackendServiceHandler, opts 
 // UnimplementedObjectiveBackendServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedObjectiveBackendServiceHandler struct{}
 
-func (UnimplementedObjectiveBackendServiceHandler) ListObjectives(context.Context, *connect_go.Request[v1alpha1.ListObjectivesRequest]) (*connect_go.Response[v1alpha1.ListObjectivesResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveBackendService.ListObjectives is not implemented"))
+func (UnimplementedObjectiveBackendServiceHandler) List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveBackendService.List is not implemented"))
 }
