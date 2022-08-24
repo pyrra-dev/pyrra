@@ -8,11 +8,6 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-OPENAPI ?= docker run --rm \
-		--user=$(shell id -u $(USER)):$(shell id -g $(USER)) \
-		-v ${PWD}:${PWD} \
-		openapitools/openapi-generator-cli:v5.4.0
-
 gojsontoyaml:
 ifeq (, $(shell which gojsontoyaml))
 	go install github.com/brancz/gojsontoyaml@latest
@@ -91,27 +86,6 @@ CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
-
-.PHONY: openapi
-openapi: openapi/server openapi/client ui/src/client
-
-openapi/server: api.yaml
-	-rm -f $@
-	$(OPENAPI) generate -i ${PWD}/api.yaml -g go-server -o ${PWD}/openapi/server
-	-rm -rf $@/{Dockerfile,go.mod,main.go,README.md}
-	goimports -w $(shell find ./openapi/server/ -name '*.go')
-	touch $@
-
-openapi/client: api.yaml
-	-rm -f $@
-	$(OPENAPI) generate -i ${PWD}/api.yaml -g go -o ${PWD}/openapi/client
-	-rm -rf $@/{docs,.travis.yml,git_push.sh,go.mod,go.sum,README.md}
-	goimports -w $(shell find ./openapi/client/ -name '*.go')
-	touch $@
-
-ui/src/client: api.yaml
-	-rm -f $@
-	$(OPENAPI) generate -i ${PWD}/api.yaml -g typescript-fetch -o ${PWD}/ui/src/client
 
 ui/node_modules:
 	cd ui && npm install

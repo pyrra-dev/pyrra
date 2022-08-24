@@ -38,7 +38,6 @@ import (
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	openapiclient "github.com/pyrra-dev/pyrra/openapi/client"
 	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/slo"
@@ -169,10 +168,6 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 		},
 		cache: cache,
 	}
-
-	apiConfig := openapiclient.NewConfiguration()
-	apiConfig.Scheme = apiURL.Scheme
-	apiConfig.Host = apiURL.Host
 
 	tmpl, err := template.ParseFS(build, "index.html")
 	if err != nil {
