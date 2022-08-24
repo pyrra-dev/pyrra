@@ -11,19 +11,22 @@ import {
   Table,
   Tooltip as OverlayTooltip,
 } from 'react-bootstrap'
-import {
-  Configuration,
-  MultiBurnrateAlert,
-  MultiBurnrateAlertStateEnum,
-  Objective,
-  ObjectivesApi,
-  ObjectiveStatus,
-} from '../client'
 import {API_BASEPATH, formatDuration} from '../App'
 import {Link, useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import {IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning} from '../components/Icons'
 import {Labels, labelsString, MetricName, parseLabels} from '../labels'
+import {createConnectTransport, createPromiseClient} from '@bufbuild/connect-web'
+import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
+import {
+  Alert as ObjectiveAlert,
+  Alert_State,
+  GetAlertsResponse,
+  GetStatusResponse,
+  ListResponse,
+  Objective,
+  ObjectiveStatus,
+} from '../proto/objectives/v1alpha1/objectives_pb'
 
 enum TableObjectiveState {
   Unknown,
@@ -33,7 +36,8 @@ enum TableObjectiveState {
 }
 
 // TableObjective extends Objective to add some more additional (async) properties
-interface TableObjective extends Objective {
+interface TableObjective {
+  objective: Objective
   lset: string
   groupingLabels: Labels
   state: TableObjectiveState
@@ -84,13 +88,9 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
         objectives: {
           ...state.objectives,
           [action.lset]: {
+            objective: action.objective,
             lset: action.lset,
-            labels: action.objective.labels,
             groupingLabels: {},
-            description: action.objective.description,
-            window: action.objective.window,
-            target: action.objective.target,
-            config: action.objective.config,
             state: TableObjectiveState.Unknown,
             severity: null,
             availability: undefined,
@@ -112,9 +112,9 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             ...state.objectives[action.lset],
             state: TableObjectiveState.Success,
             availability: {
-              errors: action.status.availability.errors,
-              total: action.status.availability.total,
-              percentage: action.status.availability.percentage,
+              errors: action.status.availability?.errors ?? 0,
+              total: action.status.availability?.total ?? 0,
+              percentage: action.status.availability?.percentage ?? 0,
             },
             budget: action.status.budget?.remaining,
           },
@@ -132,19 +132,15 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
         objectives: {
           ...state.objectives,
           [action.lset]: {
+            objective: action.objective,
             lset: action.lset,
-            labels: action.objective.labels,
             groupingLabels: action.statusLabels,
-            description: action.objective.description,
-            window: action.objective.window,
-            target: action.objective.target,
-            config: action.objective.config,
             state: TableObjectiveState.Success,
             severity: severity,
             availability: {
-              errors: action.status.availability.errors,
-              total: action.status.availability.total,
-              percentage: action.status.availability.percentage,
+              errors: action.status.availability?.errors ?? 0,
+              total: action.status.availability?.total ?? 0,
+              percentage: action.status.availability?.percentage ?? 0,
             },
             budget: action.status.budget?.remaining,
           },
@@ -178,7 +174,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
     case TableActionType.SetAlert: {
       // Find the objective this alert's labels is the super set for.
       const result = Object.entries(state.objectives).find(([, o]) => {
-        const allLabels: Labels = {...o.labels, ...o.groupingLabels}
+        const allLabels: Labels = {...o.objective.labels, ...o.groupingLabels}
 
         let isSuperset = true
         Object.entries(action.labels).forEach(([k, v]) => {
@@ -237,8 +233,13 @@ interface TableSorting {
 }
 
 const List = () => {
-  const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({basePath: API_BASEPATH}))
+  const client = useMemo(() => {
+    return createPromiseClient(
+      ObjectiveService,
+      createConnectTransport({
+        baseUrl: API_BASEPATH,
+      }),
+    )
   }, [])
 
   const navigate = useNavigate()
@@ -299,11 +300,11 @@ const List = () => {
   useEffect(() => {
     document.title = 'Objectives - Pyrra'
 
-    api
-      .listObjectives({expr: labelsString(filterLabels)})
-      .then((objectives: Objective[]) => setObjectives(objectives))
+    client
+      .list({expr: labelsString(filterLabels)})
+      .then((resp: ListResponse) => setObjectives(resp.objectives))
       .catch((err) => console.log(err))
-  }, [api, filterLabels])
+  }, [client, filterLabels])
 
   useEffect(() => {
     // const controller = new AbortController()
@@ -315,15 +316,19 @@ const List = () => {
     // TODO: This is prone to a concurrency race with updates of status that have additional groupings...
     // One solution would be to store this in a separate array and reconcile against that array after every status update.
     if (objectives.length > 0) {
-      api
-        .getMultiBurnrateAlerts({expr: '', inactive: false, current: false})
-        .then((alerts: MultiBurnrateAlert[]) => {
-          alerts.forEach((alert: MultiBurnrateAlert) => {
-            if (alert.state === MultiBurnrateAlertStateEnum.Firing) {
+      client
+        .getAlerts({
+          expr: '',
+          inactive: false,
+          current: false,
+        })
+        .then((resp: GetAlertsResponse) => {
+          resp.alerts.forEach((a: ObjectiveAlert) => {
+            if (a.state === Alert_State.firing) {
               dispatchTable({
                 type: TableActionType.SetAlert,
-                labels: alert.labels,
-                severity: alert.severity,
+                labels: a.labels,
+                severity: a.severity,
               })
             }
           })
@@ -342,23 +347,22 @@ const List = () => {
           objective: o,
         })
 
-        api
-          .getObjectiveStatus({expr: labelsString(o.labels)})
-          .then((s: ObjectiveStatus[]) => {
-            if (s.length === 0) {
+        client
+          .getStatus({expr: labelsString(o.labels)})
+          .then((resp: GetStatusResponse) => {
+            if (resp.status.length === 0) {
               dispatchTable({type: TableActionType.SetStatusNone, lset: labelsString(o.labels)})
-            } else if (s.length === 1) {
+            } else if (resp.status.length === 1) {
               dispatchTable({
                 type: TableActionType.SetStatus,
                 lset: labelsString(o.labels),
-                status: s[0],
+                status: resp.status[0],
               })
             } else {
               dispatchTable({type: TableActionType.DeleteObjective, lset: labelsString(o.labels)})
 
-              s.forEach((s: ObjectiveStatus) => {
-                // Copy the objective
-                const so = {...o}
+              resp.status.forEach((s: ObjectiveStatus) => {
+                const so = o.clone()
                 // Identify by the combined labels
                 const sLabels: Labels = s.labels !== undefined ? s.labels : {}
                 const soLabels: Labels = {...o.labels, ...sLabels}
@@ -383,7 +387,7 @@ const List = () => {
     //   // cancel pending requests if necessary
     //   controller.abort()
     // }
-  }, [api, objectives])
+  }, [client, objectives])
 
   const handleTableSort = (type: TableSortType): void => {
     if (tableSortState.type === type) {
@@ -400,7 +404,7 @@ const List = () => {
   const tableList = Object.keys(table.objectives)
     .map((k: string) => table.objectives[k])
     .filter((o: TableObjective) => {
-      const labels = {...o.labels, ...o.groupingLabels}
+      const labels = {...o.objective.labels, ...o.groupingLabels}
       for (const k in filterLabels) {
         // if label doesn't exist by key or if values differ filter out.
         if (labels[k] === undefined || labels[k] !== filterLabels[k]) {
@@ -420,15 +424,15 @@ const List = () => {
           }
         case TableSortType.Window:
           if (tableSortState.order === TableSortOrder.Ascending) {
-            return a.window - b.window
+            return Number(a.objective.window) - Number(b.objective.window)
           } else {
-            return b.window - a.window
+            return Number(b.objective.window) - Number(a.objective.window)
           }
         case TableSortType.Objective:
           if (tableSortState.order === TableSortOrder.Ascending) {
-            return a.target - b.target
+            return a.objective.target - b.objective.target
           } else {
-            return b.target - a.target
+            return b.objective.target - a.objective.target
           }
         case TableSortType.Availability:
           if (a.availability == null && b.availability != null) {
@@ -526,9 +530,9 @@ const List = () => {
           return <></>
         }
 
-        const volumeWarning = (1 - o.target) * o.availability.total
+        const volumeWarning = (1 - o.objective.target) * o.availability.total
 
-        const ls = labelsString(Object.assign({}, o.labels, o.groupingLabels))
+        const ls = labelsString(Object.assign({}, o.objective.labels, o.groupingLabels))
         return (
           <>
             <OverlayTrigger
@@ -540,7 +544,7 @@ const List = () => {
                   Total: {Math.floor(o.availability.total).toLocaleString()}
                 </OverlayTooltip>
               }>
-              <span className={o.availability.percentage > o.target ? 'good' : 'bad'}>
+              <span className={o.availability.percentage > o.objective.target ? 'good' : 'bad'}>
                 {(100 * o.availability.percentage).toFixed(2)}%
               </span>
             </OverlayTrigger>
@@ -683,8 +687,8 @@ const List = () => {
               </thead>
               <tbody>
                 {tableList.map((o: TableObjective) => {
-                  const name = o.labels[MetricName]
-                  const labelBadges = Object.entries({...o.labels, ...o.groupingLabels})
+                  const name = o.objective.labels[MetricName]
+                  const labelBadges = Object.entries({...o.objective.labels, ...o.groupingLabels})
                     .filter((l: [string, string]) => l[0] !== MetricName)
                     .map((l: [string, string]) => (
                       <Badge
@@ -710,20 +714,23 @@ const List = () => {
                       : ['table-row-clickable']
 
                   return (
-                    <tr key={o.lset} className={classes.join(' ')} onClick={() => {
-                    navigate(objectivePage(o.labels, o.groupingLabels))
-                  }}>
+                    <tr
+                      key={o.lset}
+                      className={classes.join(' ')}
+                      onClick={() => {
+                        navigate(objectivePage(o.objective.labels, o.groupingLabels))
+                      }}>
                       <td>
                         <Link
-                          to={objectivePage(o.labels, o.groupingLabels)}
+                          to={objectivePage(o.objective.labels, o.groupingLabels)}
                           className="text-reset"
                           style={{marginRight: 5}}>
                           {name}
                         </Link>
                         {labelBadges}
                       </td>
-                      <td>{formatDuration(o.window)}</td>
-                      <td>{(100 * o.target).toFixed(2)}%</td>
+                      <td>{formatDuration(Number(o.objective.window))}</td>
+                      <td>{(100 * o.objective.target).toFixed(2)}%</td>
                       <td>{renderAvailability(o)}</td>
                       <td>{renderErrorBudget(o)}</td>
                       <td>
