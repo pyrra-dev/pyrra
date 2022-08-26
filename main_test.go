@@ -1,16 +1,16 @@
 package main
 
 import (
+	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"math"
 	"testing"
 	"time"
 
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
-	"github.com/stretchr/testify/require"
-
-	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
 	"github.com/pyrra-dev/pyrra/slo"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMatrixToValues(t *testing.T) {
@@ -193,7 +193,7 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 		metrics    []*model.Sample
 		objectives []slo.Objective
 		inactive   bool
-		alerts     []openapiserver.MultiBurnrateAlert
+		alerts     []*objectivesv1alpha1.Alert
 	}{{
 		name: "firing",
 		metrics: []*model.Sample{{
@@ -215,7 +215,7 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			},
 			Window: model.Duration(14 * 24 * time.Hour),
 		}},
-		alerts: []openapiserver.MultiBurnrateAlert{{
+		alerts: []*objectivesv1alpha1.Alert{{
 			// In the UI we identify the SLO by these labels.
 			Labels: map[string]string{
 				labels.MetricName: "prometheus-rule-evaluation-failures",
@@ -223,16 +223,16 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 				"job":             "prometheus",
 			},
 			Severity: "warning",
-			State:    "firing",
-			For:      5400000,
+			State:    objectivesv1alpha1.Alert_firing,
+			For:      durationpb.New(90 * time.Minute),
 			Factor:   1,
-			Short: openapiserver.Burnrate{
-				Window:  10800000,
+			Short: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(3 * time.Hour),
 				Current: -1,
 				Query:   "",
 			},
-			Long: openapiserver.Burnrate{
-				Window:  172800000,
+			Long: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(48 * time.Hour),
 				Current: -1,
 				Query:   "",
 			},
@@ -248,7 +248,7 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			Window: model.Duration(14 * 24 * time.Hour),
 		}},
 		inactive: true,
-		alerts: []openapiserver.MultiBurnrateAlert{{
+		alerts: []*objectivesv1alpha1.Alert{{
 			Labels: map[string]string{
 				labels.MetricName: "prometheus-rule-evaluation-failures",
 				"namespace":       "monitoring",
@@ -256,15 +256,15 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 				//"job":             "prometheus",
 			},
 			Severity: "critical",
-			State:    "inactive",
-			For:      60000,
+			State:    objectivesv1alpha1.Alert_inactive,
+			For:      durationpb.New(time.Minute),
 			Factor:   14,
-			Short: openapiserver.Burnrate{
-				Window:  180000,
+			Short: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(3 * time.Minute),
 				Current: -1,
 			},
-			Long: openapiserver.Burnrate{
-				Window:  1800000,
+			Long: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(30 * time.Minute),
 				Current: -1,
 			},
 		}, {
@@ -275,15 +275,15 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 				//"job":             "prometheus",
 			},
 			Severity: "critical",
-			State:    "inactive",
-			For:      480000,
+			State:    objectivesv1alpha1.Alert_inactive,
+			For:      durationpb.New(8 * time.Minute),
 			Factor:   7,
-			Short: openapiserver.Burnrate{
-				Window:  900000,
+			Short: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(15 * time.Minute),
 				Current: -1,
 			},
-			Long: openapiserver.Burnrate{
-				Window:  10800000,
+			Long: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(3 * time.Hour),
 				Current: -1,
 			},
 		}, {
@@ -294,15 +294,15 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 				//"job":             "prometheus",
 			},
 			Severity: "warning",
-			State:    "inactive",
-			For:      1800000,
+			State:    objectivesv1alpha1.Alert_inactive,
+			For:      durationpb.New(30 * time.Minute),
 			Factor:   2,
-			Short: openapiserver.Burnrate{
-				Window:  3600000,
+			Short: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(time.Hour),
 				Current: -1,
 			},
-			Long: openapiserver.Burnrate{
-				Window:  43200000,
+			Long: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(12 * time.Hour),
 				Current: -1,
 			},
 		}, {
@@ -313,15 +313,15 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 				//"job":             "prometheus",
 			},
 			Severity: "warning",
-			State:    "inactive",
-			For:      5400000,
+			State:    objectivesv1alpha1.Alert_inactive,
+			For:      durationpb.New(90 * time.Minute),
 			Factor:   1,
-			Short: openapiserver.Burnrate{
-				Window:  10800000,
+			Short: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(3 * time.Hour),
 				Current: -1,
 			},
-			Long: openapiserver.Burnrate{
-				Window:  172800000,
+			Long: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(48 * time.Hour),
 				Current: -1,
 			},
 		}},
@@ -347,21 +347,21 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			Window: model.Duration(14 * 24 * time.Hour),
 		}},
 		inactive: true,
-		alerts: []openapiserver.MultiBurnrateAlert{{
+		alerts: []*objectivesv1alpha1.Alert{{
 			Labels: map[string]string{
 				labels.MetricName: "prometheus-rule-evaluation-failures",
 				"namespace":       "monitoring",
 			},
 			Severity: "critical",
-			State:    "inactive",
-			For:      60000,
+			State:    objectivesv1alpha1.Alert_inactive,
+			For:      durationpb.New(time.Minute),
 			Factor:   14,
-			Short: openapiserver.Burnrate{
-				Window:  180000,
+			Short: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(3 * time.Minute),
 				Current: -1,
 			},
-			Long: openapiserver.Burnrate{
-				Window:  1800000,
+			Long: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(30 * time.Minute),
 				Current: -1,
 			},
 		}, {
@@ -370,15 +370,15 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 				"namespace":       "monitoring",
 			},
 			Severity: "critical",
-			State:    "inactive",
-			For:      480000,
+			State:    objectivesv1alpha1.Alert_inactive,
+			For:      durationpb.New(8 * time.Minute),
 			Factor:   7,
-			Short: openapiserver.Burnrate{
-				Window:  900000,
+			Short: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(15 * time.Minute),
 				Current: -1,
 			},
-			Long: openapiserver.Burnrate{
-				Window:  10800000,
+			Long: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(3 * time.Hour),
 				Current: -1,
 			},
 		}, {
@@ -387,15 +387,15 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 				"namespace":       "monitoring",
 			},
 			Severity: "warning",
-			State:    "inactive",
-			For:      1800000,
+			State:    objectivesv1alpha1.Alert_inactive,
+			For:      durationpb.New(30 * time.Minute),
 			Factor:   2,
-			Short: openapiserver.Burnrate{
-				Window:  3600000,
+			Short: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(time.Hour),
 				Current: -1,
 			},
-			Long: openapiserver.Burnrate{
-				Window:  43200000,
+			Long: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(12 * time.Hour),
 				Current: -1,
 			},
 		}, {
@@ -404,15 +404,15 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 				"namespace":       "monitoring",
 			},
 			Severity: "warning",
-			State:    "firing", // THIS IS THE IMPORTANT UPDATE IN THIS TEST
-			For:      5400000,
+			State:    objectivesv1alpha1.Alert_firing,
+			For:      durationpb.New(90 * time.Minute),
 			Factor:   1,
-			Short: openapiserver.Burnrate{
-				Window:  10800000,
+			Short: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(3 * time.Hour),
 				Current: -1,
 			},
-			Long: openapiserver.Burnrate{
-				Window:  172800000,
+			Long: &objectivesv1alpha1.Burnrate{
+				Window:  durationpb.New(48 * time.Hour),
 				Current: -1,
 			},
 		}},
