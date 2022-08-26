@@ -178,6 +178,18 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
 
 	r.Route(routePrefix, func(r chi.Router) {
+		objectiveService := &objectiveServer{
+			logger:  logger,
+			promAPI: promAPI,
+			client:  objectivesv1alpha1connect.NewObjectiveBackendServiceClient(http.DefaultClient, apiURL.String()),
+		}
+		objectivePath, objectiveHandler := objectivesv1alpha1connect.NewObjectiveServiceHandler(objectiveService)
+		if routePrefix != "/" {
+			r.Mount(objectivePath, http.StripPrefix(routePrefix, objectiveHandler))
+		} else {
+			r.Mount(objectivePath, objectiveHandler)
+		}
+
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 		r.Get("/objectives", func(w http.ResponseWriter, r *http.Request) {
 			err := tmpl.Execute(w, struct {
@@ -224,14 +236,6 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 			http.Redirect(w, r, routePrefix+"/", http.StatusPermanentRedirect)
 		})
 	}
-
-	objectiveService := &objectiveServer{
-		logger:  logger,
-		promAPI: promAPI,
-		client:  objectivesv1alpha1connect.NewObjectiveBackendServiceClient(http.DefaultClient, apiURL.String()),
-	}
-	// TODO: move to route with routePrefix?
-	r.Mount(objectivesv1alpha1connect.NewObjectiveServiceHandler(objectiveService))
 
 	if err := http.ListenAndServe(":9099", h2c.NewHandler(r, &http2.Server{})); err != nil {
 		level.Error(logger).Log("msg", "failed to run HTTP server", "err", err)
