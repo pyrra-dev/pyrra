@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -188,7 +187,7 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 			}{
 				PrometheusURL: prometheusExternal.String(),
 				PathPrefix:    uiRoutePrefix,
-				APIBasepath:   path.Join(uiRoutePrefix, "/api/v1"),
+				APIBasepath:   uiRoutePrefix,
 			})
 			if err != nil {
 				level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
@@ -204,7 +203,7 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 				}{
 					PrometheusURL: prometheusExternal.String(),
 					PathPrefix:    uiRoutePrefix,
-					APIBasepath:   path.Join(uiRoutePrefix, "/api/v1"),
+					APIBasepath:   uiRoutePrefix,
 				})
 				if err != nil {
 					level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
