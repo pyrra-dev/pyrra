@@ -5,8 +5,8 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
@@ -259,7 +259,7 @@ func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response,
 	if r.Body == nil {
 		return c.client.Do(ctx, r)
 	}
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading body: %w", err)
 	}
@@ -292,7 +292,7 @@ func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response,
 	}
 
 	encoded := query.Encode()
-	r.Body = ioutil.NopCloser(strings.NewReader(encoded))
+	r.Body = io.NopCloser(strings.NewReader(encoded))
 	return c.client.Do(ctx, r)
 }
 

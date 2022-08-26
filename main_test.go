@@ -1,16 +1,17 @@
 package main
 
 import (
-	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"math"
 	"testing"
 	"time"
 
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
-	"github.com/pyrra-dev/pyrra/slo"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/durationpb"
+
+	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 func TestMatrixToValues(t *testing.T) {

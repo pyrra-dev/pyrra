@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -30,8 +29,6 @@ import (
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/slo"
 )
-
-var errEndpointNotImplemented = errors.New("endpoint not implement")
 
 type Objectives struct {
 	mu         sync.RWMutex
