@@ -39,7 +39,7 @@ import (
 
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/kubernetes/controllers"
-	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
+	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	// +kubebuilder:scaffold:imports
 )
