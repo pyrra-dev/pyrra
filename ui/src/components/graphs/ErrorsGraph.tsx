@@ -16,8 +16,8 @@ interface ErrorsGraphProps {
   client: PromiseClient<typeof ObjectiveService>
   labels: Labels
   grouping: Labels
-  from: Timestamp
-  to: Timestamp
+  from: number
+  to: number
   uPlotCursor: uPlot.Cursor
 }
 
@@ -54,8 +54,8 @@ const ErrorsGraph = ({
       .graphErrors({
         expr: labelsString(labels),
         grouping: labelsString(grouping),
-        from,
-        to,
+        start: Timestamp.fromDate(new Date(from)),
+        end: Timestamp.fromDate(new Date(to)),
       })
       .then((resp: GraphErrorsResponse) => {
         if (resp.timeseries !== undefined) {
@@ -104,7 +104,7 @@ const ErrorsGraph = ({
             rel="noreferrer"
             href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
               errorsQuery,
-            )}&g0.range_input=${formatDuration(Number(to.seconds - from.seconds))}&g0.tab=0`}>
+            )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
             <IconExternal height={20} width={20} />
             Prometheus
           </a>
@@ -131,12 +131,12 @@ const ErrorsGraph = ({
                     min: 0,
                     stroke: `#${reds[i]}`,
                     label: parseLabelValue(label),
-                    gaps: seriesGaps(Number(from.seconds), Number(to.seconds)),
+                    gaps: seriesGaps(from / 1000, to / 1000),
                   }
                 }),
               ],
               scales: {
-                x: {min: Number(from.seconds), max: Number(to.seconds)},
+                x: {min: from / 1000, max: to / 1000},
                 y: {
                   range: {
                     min: {hard: 0},
@@ -161,7 +161,7 @@ const ErrorsGraph = ({
               padding: [15, 0, 0, 0],
               series: [{}, {}],
               scales: {
-                x: {min: Number(from.seconds), max: Number(to.seconds)},
+                x: {min: from / 1000, max: to / 1000},
                 y: {min: 0, max: 1},
               },
             }}

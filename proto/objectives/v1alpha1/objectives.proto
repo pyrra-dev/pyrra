@@ -79,6 +79,7 @@ message LabelMatcher {
 message GetStatusRequest {
   string expr = 1;
   string grouping = 2;
+  google.protobuf.Timestamp time = 3;
 }
 
 message GetStatusResponse {

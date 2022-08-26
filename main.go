@@ -474,8 +474,8 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 	}
 
 	ts := time.Now()
-	if tsUnix > 0 {
-		ts = time.Unix(int64(tsUnix), 0)
+	if req.Msg.Time != nil {
+		ts = req.Msg.Time.AsTime()
 	}
 
 	queryTotal := objective.QueryTotal(objective.Window)

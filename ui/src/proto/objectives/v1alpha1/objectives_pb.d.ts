@@ -317,6 +317,11 @@ export declare class GetStatusRequest extends Message<GetStatusRequest> {
    */
   grouping: string;
 
+  /**
+   * @generated from field: google.protobuf.Timestamp time = 3;
+   */
+  time?: Timestamp;
+
   constructor(data?: PartialMessage<GetStatusRequest>);
 
   static readonly runtime: typeof proto3;

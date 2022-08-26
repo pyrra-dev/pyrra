@@ -644,8 +644,9 @@ type GetStatusRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Expr     string `protobuf:"bytes,1,opt,name=expr,proto3" json:"expr,omitempty"`
-	Grouping string `protobuf:"bytes,2,opt,name=grouping,proto3" json:"grouping,omitempty"`
+	Expr     string                 `protobuf:"bytes,1,opt,name=expr,proto3" json:"expr,omitempty"`
+	Grouping string                 `protobuf:"bytes,2,opt,name=grouping,proto3" json:"grouping,omitempty"`
+	Time     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=time,proto3" json:"time,omitempty"`
 }
 
 func (x *GetStatusRequest) Reset() {
@@ -692,6 +693,13 @@ func (x *GetStatusRequest) GetGrouping() string {
 		return x.Grouping
 	}
 	return ""
+}
+
+func (x *GetStatusRequest) GetTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Time
+	}
+	return nil
 }
 
 type GetStatusResponse struct {
@@ -1752,11 +1760,14 @@ var file_objectives_v1alpha1_objectives_proto_rawDesc = []byte{
 	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x28, 0x0a,
 	0x04, 0x54, 0x79, 0x70, 0x65, 0x12, 0x06, 0x0a, 0x02, 0x45, 0x51, 0x10, 0x00, 0x12, 0x07, 0x0a,
 	0x03, 0x4e, 0x45, 0x51, 0x10, 0x01, 0x12, 0x06, 0x0a, 0x02, 0x52, 0x45, 0x10, 0x02, 0x12, 0x07,
-	0x0a, 0x03, 0x4e, 0x52, 0x45, 0x10, 0x03, 0x22, 0x42, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x53, 0x74,
+	0x0a, 0x03, 0x4e, 0x52, 0x45, 0x10, 0x03, 0x22, 0x72, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x53, 0x74,
 	0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x65,
 	0x78, 0x70, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x65, 0x78, 0x70, 0x72, 0x12,
 	0x1a, 0x0a, 0x08, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x69, 0x6e, 0x67, 0x18, 0x02, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x08, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x69, 0x6e, 0x67, 0x22, 0x51, 0x0a, 0x11, 0x47,
+	0x09, 0x52, 0x08, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x69, 0x6e, 0x67, 0x12, 0x2e, 0x0a, 0x04, 0x74,
+	0x69, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67,
+	0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65,
+	0x73, 0x74, 0x61, 0x6d, 0x70, 0x52, 0x04, 0x74, 0x69, 0x6d, 0x65, 0x22, 0x51, 0x0a, 0x11, 0x47,
 	0x65, 0x74, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
 	0x12, 0x3c, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b,
 	0x32, 0x24, 0x2e, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x69, 0x76, 0x65, 0x73, 0x2e, 0x76, 0x31,
@@ -2007,46 +2018,47 @@ var file_objectives_v1alpha1_objectives_proto_depIdxs = []int32{
 	8,  // 9: objectives.v1alpha1.Latency.success:type_name -> objectives.v1alpha1.Query
 	9,  // 10: objectives.v1alpha1.Query.matchers:type_name -> objectives.v1alpha1.LabelMatcher
 	0,  // 11: objectives.v1alpha1.LabelMatcher.type:type_name -> objectives.v1alpha1.LabelMatcher.Type
-	12, // 12: objectives.v1alpha1.GetStatusResponse.status:type_name -> objectives.v1alpha1.ObjectiveStatus
-	28, // 13: objectives.v1alpha1.ObjectiveStatus.labels:type_name -> objectives.v1alpha1.ObjectiveStatus.LabelsEntry
-	13, // 14: objectives.v1alpha1.ObjectiveStatus.availability:type_name -> objectives.v1alpha1.Availability
-	14, // 15: objectives.v1alpha1.ObjectiveStatus.budget:type_name -> objectives.v1alpha1.Budget
-	17, // 16: objectives.v1alpha1.GetAlertsResponse.alerts:type_name -> objectives.v1alpha1.Alert
-	29, // 17: objectives.v1alpha1.Alert.labels:type_name -> objectives.v1alpha1.Alert.LabelsEntry
-	30, // 18: objectives.v1alpha1.Alert.for:type_name -> google.protobuf.Duration
-	1,  // 19: objectives.v1alpha1.Alert.state:type_name -> objectives.v1alpha1.Alert.State
-	18, // 20: objectives.v1alpha1.Alert.short:type_name -> objectives.v1alpha1.Burnrate
-	18, // 21: objectives.v1alpha1.Alert.long:type_name -> objectives.v1alpha1.Burnrate
-	30, // 22: objectives.v1alpha1.Burnrate.window:type_name -> google.protobuf.Duration
-	31, // 23: objectives.v1alpha1.GraphErrorBudgetRequest.start:type_name -> google.protobuf.Timestamp
-	31, // 24: objectives.v1alpha1.GraphErrorBudgetRequest.end:type_name -> google.protobuf.Timestamp
-	25, // 25: objectives.v1alpha1.GraphErrorBudgetResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	31, // 26: objectives.v1alpha1.GraphRateRequest.start:type_name -> google.protobuf.Timestamp
-	31, // 27: objectives.v1alpha1.GraphRateRequest.end:type_name -> google.protobuf.Timestamp
-	25, // 28: objectives.v1alpha1.GraphRateResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	31, // 29: objectives.v1alpha1.GraphErrorsRequest.start:type_name -> google.protobuf.Timestamp
-	31, // 30: objectives.v1alpha1.GraphErrorsRequest.end:type_name -> google.protobuf.Timestamp
-	25, // 31: objectives.v1alpha1.GraphErrorsResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	26, // 32: objectives.v1alpha1.Timeseries.series:type_name -> objectives.v1alpha1.Series
-	2,  // 33: objectives.v1alpha1.ObjectiveService.List:input_type -> objectives.v1alpha1.ListRequest
-	10, // 34: objectives.v1alpha1.ObjectiveService.GetStatus:input_type -> objectives.v1alpha1.GetStatusRequest
-	15, // 35: objectives.v1alpha1.ObjectiveService.GetAlerts:input_type -> objectives.v1alpha1.GetAlertsRequest
-	19, // 36: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:input_type -> objectives.v1alpha1.GraphErrorBudgetRequest
-	21, // 37: objectives.v1alpha1.ObjectiveService.GraphRate:input_type -> objectives.v1alpha1.GraphRateRequest
-	23, // 38: objectives.v1alpha1.ObjectiveService.GraphErrors:input_type -> objectives.v1alpha1.GraphErrorsRequest
-	2,  // 39: objectives.v1alpha1.ObjectiveBackendService.List:input_type -> objectives.v1alpha1.ListRequest
-	3,  // 40: objectives.v1alpha1.ObjectiveService.List:output_type -> objectives.v1alpha1.ListResponse
-	11, // 41: objectives.v1alpha1.ObjectiveService.GetStatus:output_type -> objectives.v1alpha1.GetStatusResponse
-	16, // 42: objectives.v1alpha1.ObjectiveService.GetAlerts:output_type -> objectives.v1alpha1.GetAlertsResponse
-	20, // 43: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:output_type -> objectives.v1alpha1.GraphErrorBudgetResponse
-	22, // 44: objectives.v1alpha1.ObjectiveService.GraphRate:output_type -> objectives.v1alpha1.GraphRateResponse
-	24, // 45: objectives.v1alpha1.ObjectiveService.GraphErrors:output_type -> objectives.v1alpha1.GraphErrorsResponse
-	3,  // 46: objectives.v1alpha1.ObjectiveBackendService.List:output_type -> objectives.v1alpha1.ListResponse
-	40, // [40:47] is the sub-list for method output_type
-	33, // [33:40] is the sub-list for method input_type
-	33, // [33:33] is the sub-list for extension type_name
-	33, // [33:33] is the sub-list for extension extendee
-	0,  // [0:33] is the sub-list for field type_name
+	31, // 12: objectives.v1alpha1.GetStatusRequest.time:type_name -> google.protobuf.Timestamp
+	12, // 13: objectives.v1alpha1.GetStatusResponse.status:type_name -> objectives.v1alpha1.ObjectiveStatus
+	28, // 14: objectives.v1alpha1.ObjectiveStatus.labels:type_name -> objectives.v1alpha1.ObjectiveStatus.LabelsEntry
+	13, // 15: objectives.v1alpha1.ObjectiveStatus.availability:type_name -> objectives.v1alpha1.Availability
+	14, // 16: objectives.v1alpha1.ObjectiveStatus.budget:type_name -> objectives.v1alpha1.Budget
+	17, // 17: objectives.v1alpha1.GetAlertsResponse.alerts:type_name -> objectives.v1alpha1.Alert
+	29, // 18: objectives.v1alpha1.Alert.labels:type_name -> objectives.v1alpha1.Alert.LabelsEntry
+	30, // 19: objectives.v1alpha1.Alert.for:type_name -> google.protobuf.Duration
+	1,  // 20: objectives.v1alpha1.Alert.state:type_name -> objectives.v1alpha1.Alert.State
+	18, // 21: objectives.v1alpha1.Alert.short:type_name -> objectives.v1alpha1.Burnrate
+	18, // 22: objectives.v1alpha1.Alert.long:type_name -> objectives.v1alpha1.Burnrate
+	30, // 23: objectives.v1alpha1.Burnrate.window:type_name -> google.protobuf.Duration
+	31, // 24: objectives.v1alpha1.GraphErrorBudgetRequest.start:type_name -> google.protobuf.Timestamp
+	31, // 25: objectives.v1alpha1.GraphErrorBudgetRequest.end:type_name -> google.protobuf.Timestamp
+	25, // 26: objectives.v1alpha1.GraphErrorBudgetResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
+	31, // 27: objectives.v1alpha1.GraphRateRequest.start:type_name -> google.protobuf.Timestamp
+	31, // 28: objectives.v1alpha1.GraphRateRequest.end:type_name -> google.protobuf.Timestamp
+	25, // 29: objectives.v1alpha1.GraphRateResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
+	31, // 30: objectives.v1alpha1.GraphErrorsRequest.start:type_name -> google.protobuf.Timestamp
+	31, // 31: objectives.v1alpha1.GraphErrorsRequest.end:type_name -> google.protobuf.Timestamp
+	25, // 32: objectives.v1alpha1.GraphErrorsResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
+	26, // 33: objectives.v1alpha1.Timeseries.series:type_name -> objectives.v1alpha1.Series
+	2,  // 34: objectives.v1alpha1.ObjectiveService.List:input_type -> objectives.v1alpha1.ListRequest
+	10, // 35: objectives.v1alpha1.ObjectiveService.GetStatus:input_type -> objectives.v1alpha1.GetStatusRequest
+	15, // 36: objectives.v1alpha1.ObjectiveService.GetAlerts:input_type -> objectives.v1alpha1.GetAlertsRequest
+	19, // 37: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:input_type -> objectives.v1alpha1.GraphErrorBudgetRequest
+	21, // 38: objectives.v1alpha1.ObjectiveService.GraphRate:input_type -> objectives.v1alpha1.GraphRateRequest
+	23, // 39: objectives.v1alpha1.ObjectiveService.GraphErrors:input_type -> objectives.v1alpha1.GraphErrorsRequest
+	2,  // 40: objectives.v1alpha1.ObjectiveBackendService.List:input_type -> objectives.v1alpha1.ListRequest
+	3,  // 41: objectives.v1alpha1.ObjectiveService.List:output_type -> objectives.v1alpha1.ListResponse
+	11, // 42: objectives.v1alpha1.ObjectiveService.GetStatus:output_type -> objectives.v1alpha1.GetStatusResponse
+	16, // 43: objectives.v1alpha1.ObjectiveService.GetAlerts:output_type -> objectives.v1alpha1.GetAlertsResponse
+	20, // 44: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:output_type -> objectives.v1alpha1.GraphErrorBudgetResponse
+	22, // 45: objectives.v1alpha1.ObjectiveService.GraphRate:output_type -> objectives.v1alpha1.GraphRateResponse
+	24, // 46: objectives.v1alpha1.ObjectiveService.GraphErrors:output_type -> objectives.v1alpha1.GraphErrorsResponse
+	3,  // 47: objectives.v1alpha1.ObjectiveBackendService.List:output_type -> objectives.v1alpha1.ListResponse
+	41, // [41:48] is the sub-list for method output_type
+	34, // [34:41] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_objectives_v1alpha1_objectives_proto_init() }

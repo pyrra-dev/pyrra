@@ -123,6 +123,7 @@ export const GetStatusRequest = proto3.makeMessageType(
   () => [
     { no: 1, name: "expr", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "grouping", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "time", kind: "message", T: Timestamp },
   ],
 );
 
