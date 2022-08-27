@@ -424,9 +424,9 @@ const List = () => {
           }
         case TableSortType.Window:
           if (tableSortState.order === TableSortOrder.Ascending) {
-            return Number(a.objective.window) - Number(b.objective.window)
+            return Number(a.objective.window?.seconds) - Number(b.objective.window?.seconds)
           } else {
-            return Number(b.objective.window) - Number(a.objective.window)
+            return Number(b.objective.window?.seconds) - Number(a.objective.window?.seconds)
           }
         case TableSortType.Objective:
           if (tableSortState.order === TableSortOrder.Ascending) {
@@ -729,7 +729,7 @@ const List = () => {
                         </Link>
                         {labelBadges}
                       </td>
-                      <td>{formatDuration(Number(o.objective.window))}</td>
+                      <td>{formatDuration(Number(o.objective.window?.seconds) * 1000)}</td>
                       <td>{(100 * o.objective.target).toFixed(2)}%</td>
                       <td>{renderAvailability(o)}</td>
                       <td>{renderErrorBudget(o)}</td>

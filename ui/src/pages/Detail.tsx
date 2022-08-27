@@ -354,7 +354,8 @@ const Detail = () => {
             <div className="metrics">
               <div>
                 <h6>
-                  Objective in <strong>{formatDuration(Number(objective.window))}</strong>
+                  Objective in{' '}
+                  <strong>{formatDuration(Number(objective.window?.seconds) * 1000)}</strong>
                 </h6>
                 <h2>{(100 * objective.target).toFixed(3)}%</h2>
               </div>
