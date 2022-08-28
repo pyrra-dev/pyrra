@@ -28,7 +28,7 @@
   - Multi Burn Rate Alerts overview table
 - Caching of Prometheus query results
 - Thanos: Disabling of partial responses and downsampling to 5m and 1h
-- OpenAPI generated API
+- connect-go and connect-web generate protobuf APIs 
 
 ## Feedback & Support
 
@@ -155,7 +155,7 @@ work with. It's designed to work alongside a Prometheus.
 
 **Server:** Go with libraries such as: chi, ristretto, xxhash, client-go.
 
-OpenAPI generated API with server (Go) and clients (Go & TypeScript).
+Generated protobuf APIs with connect-go for Go and connect-web for TypeScript. 
 
 ## Roadmap
 

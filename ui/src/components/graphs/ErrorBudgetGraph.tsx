@@ -4,14 +4,17 @@ import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
 
 import {formatDuration, PROMETHEUS_URL} from '../../App'
-import {ObjectivesApi, QueryRange} from '../../client'
 import {IconExternal} from '../Icons'
 import {greens, reds} from './colors'
 import {Labels, labelsString} from '../../labels'
 import {seriesGaps} from './gaps'
+import {PromiseClient} from '@bufbuild/connect-web'
+import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
+import {GraphErrorBudgetResponse} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {Timestamp} from '@bufbuild/protobuf'
 
 interface ErrorBudgetGraphProps {
-  api: ObjectivesApi
+  client: PromiseClient<typeof ObjectiveService>
   labels: Labels
   grouping: Labels
   from: number
@@ -20,7 +23,7 @@ interface ErrorBudgetGraphProps {
 }
 
 const ErrorBudgetGraph = ({
-  api,
+  client,
   labels,
   grouping,
   from,
@@ -43,22 +46,27 @@ const ErrorBudgetGraph = ({
   const getObjectiveErrorBudget = useCallback(() => {
     setLoading(true)
 
-    api
-      .getObjectiveErrorBudget({
+    client
+      .graphErrorBudget({
         expr: labelsString(labels),
         grouping: labelsString(grouping),
-        start: Math.floor(from / 1000),
-        end: Math.floor(to / 1000),
+        start: Timestamp.fromDate(new Date(from)),
+        end: Timestamp.fromDate(new Date(to)),
       })
-      .then((r: QueryRange) => {
-        setSamples([r.values[0], r.values[1].map((v: number) => 100 * v)])
-        setQuery(r.query)
+      .then((resp: GraphErrorBudgetResponse) => {
+        if (resp.timeseries !== undefined) {
+          setSamples([
+            resp.timeseries.series[0].values,
+            resp.timeseries.series[1].values.map((v: number) => v * 100),
+          ])
+        }
+        setQuery(resp.timeseries?.query ?? '')
       })
       .catch(() => {
         setSamples(undefined)
       })
       .finally(() => setLoading(false))
-  }, [api, labels, grouping, from, to])
+  }, [client, labels, grouping, from, to])
 
   // Set width on first render
   useEffect(() => {

@@ -2,16 +2,18 @@ import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
-
-import {ObjectivesApi, QueryRange} from '../../client'
 import {formatDuration, PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {Labels, labelsString, parseLabelValue} from '../../labels'
 import {blues, greens, reds, yellows} from './colors'
 import {seriesGaps} from './gaps'
+import {PromiseClient} from '@bufbuild/connect-web'
+import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
+import {GraphRateResponse, Series} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {Timestamp} from '@bufbuild/protobuf'
 
 interface RequestsGraphProps {
-  api: ObjectivesApi
+  client: PromiseClient<typeof ObjectiveService>
   labels: Labels
   grouping: Labels
   from: number
@@ -20,7 +22,7 @@ interface RequestsGraphProps {
 }
 
 const RequestsGraph = ({
-  api,
+  client,
   labels,
   grouping,
   from,
@@ -48,26 +50,32 @@ const RequestsGraph = ({
 
   useEffect(() => {
     setRequestsLoading(true)
-    api
-      .getREDRequests({
+    client
+      .graphRate({
         expr: labelsString(labels),
         grouping: labelsString(grouping),
-        start: Math.floor(from / 1000),
-        end: Math.floor(to / 1000),
+        start: Timestamp.fromDate(new Date(from)),
+        end: Timestamp.fromDate(new Date(to)),
       })
-      .then((r: QueryRange) => {
-        const [x, ...ys] = r.values
-        const data: AlignedData = [x, ...ys] // explicitly give it the x then the rest of ys
-
-        setRequestsLabels(r.labels)
-        setRequestsQuery(r.query)
-        setRequests(data)
+      .then((resp: GraphRateResponse) => {
+        if (resp.timeseries !== undefined) {
+          const [x, ...series] = resp.timeseries.series
+          const ys: number[][] = []
+          series.forEach((s: Series) => {
+            ys.push(s.values)
+          })
+          setRequests([x.values, ...ys])
+          setRequestsQuery(resp.timeseries.query)
+          setRequestsLabels(resp.timeseries.labels)
+        }
       })
       .catch(() => {
         setRequests(undefined)
       })
-      .finally(() => setRequestsLoading(false))
-  }, [api, labels, grouping, from, to])
+      .finally(() => {
+        setRequestsLoading(false)
+      })
+  }, [client, labels, grouping, from, to])
 
   // small state used while picking colors to reuse as little as possible
   const pickedColors = {

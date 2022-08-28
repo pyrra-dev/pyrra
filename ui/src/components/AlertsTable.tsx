@@ -1,36 +1,36 @@
 import {OverlayTrigger, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
-import React, {useEffect,  useState} from 'react'
-import { formatDuration, PROMETHEUS_URL} from '../App'
-import { MultiBurnrateAlert, Objective, ObjectivesApi} from '../client'
+import React, {useEffect, useState} from 'react'
+import {formatDuration, PROMETHEUS_URL} from '../App'
 import {IconExternal} from './Icons'
 import {Labels, labelsString} from '../labels'
+import {Alert, GetAlertsResponse, Objective} from '../proto/objectives/v1alpha1/objectives_pb'
+import {PromiseClient} from '@bufbuild/connect-web'
+import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
 
 interface AlertsTableProps {
-  api: ObjectivesApi
+  client: PromiseClient<typeof ObjectiveService>
   objective: Objective
   grouping: Labels
 }
 
-const AlertsTable = ({api,objective, grouping}: AlertsTableProps): JSX.Element => {
+const alertStateString = ['inactive', 'pending', 'firing']
 
-  const [alerts, setAlerts] = useState<MultiBurnrateAlert[]>([])
+const AlertsTable = ({client, objective, grouping}: AlertsTableProps): JSX.Element => {
+  const [alerts, setAlerts] = useState<Alert[]>([])
 
   useEffect(() => {
-    // const controller = new AbortController()
-
-    void api
-      .getMultiBurnrateAlerts({
+    client
+      .getAlerts({
         expr: labelsString(objective.labels),
         grouping: labelsString(grouping),
         inactive: true,
         current: true,
       })
-      .then((alerts: MultiBurnrateAlert[]) => setAlerts(alerts))
-
-    // return () => {
-    //   controller.abort()
-    // }
-  }, [api, objective, grouping])
+      .then((resp: GetAlertsResponse) => {
+        setAlerts(resp.alerts)
+      })
+      .catch((err) => console.log(err))
+  }, [client, objective, grouping])
 
   return (
     <div className="table-responsive">
@@ -50,27 +50,27 @@ const AlertsTable = ({api,objective, grouping}: AlertsTableProps): JSX.Element =
           </tr>
         </thead>
         <tbody>
-          {alerts.map((a: MultiBurnrateAlert, i: number) => {
+          {alerts.map((a: Alert, i: number) => {
             let shortCurrent = ''
-            if (a._short.current === -1.0) {
+            if (a.short?.current === -1.0) {
               shortCurrent = 'NaN'
-            } else if (a._short.current === undefined) {
+            } else if (a.short?.current === undefined) {
               shortCurrent = (0).toFixed(3).toString()
             } else {
-              shortCurrent = a._short.current.toFixed(3)
+              shortCurrent = a.short.current.toFixed(3)
             }
             let longCurrent = ''
-            if (a._long.current === -1.0) {
+            if (a.long?.current === -1.0) {
               longCurrent = 'NaN'
-            } else if (a._long.current === undefined) {
+            } else if (a.long?.current === undefined) {
               longCurrent = (0).toFixed(3).toString()
             } else {
-              longCurrent = a._long.current.toFixed(3)
+              longCurrent = a.long?.current.toFixed(3)
             }
 
             return (
-              <tr key={i} className={a.state}>
-                <td>{a.state}</td>
+              <tr key={i} className={alertStateString[a.state]}>
+                <td>{alertStateString[a.state]}</td>
                 <td>{a.severity}</td>
                 <td style={{textAlign: 'right'}}>
                   <OverlayTrigger
@@ -81,7 +81,9 @@ const AlertsTable = ({api,objective, grouping}: AlertsTableProps): JSX.Element =
                         time frame.
                       </OverlayTooltip>
                     }>
-                    <span>{formatDuration(objective.window / a.factor)}</span>
+                    <span>
+                      {formatDuration((Number(objective.window?.seconds) * 1000) / a.factor)}
+                    </span>
                   </OverlayTrigger>
                 </td>
                 <td style={{textAlign: 'right'}}>
@@ -99,23 +101,23 @@ const AlertsTable = ({api,objective, grouping}: AlertsTableProps): JSX.Element =
                   <small style={{opacity: 0.5}}>&gt;</small>
                 </td>
                 <td style={{textAlign: 'left'}}>
-                  {shortCurrent} ({formatDuration(a._short.window)})
+                  {shortCurrent} ({formatDuration(Number(a.short?.window?.seconds) * 1000)})
                 </td>
                 <td style={{textAlign: 'left'}}>
                   <small style={{opacity: 0.5}}>and</small>
                 </td>
                 <td style={{textAlign: 'left'}}>
-                  {longCurrent} ({formatDuration(a._long.window)})
+                  {longCurrent} ({formatDuration(Number(a.long?.window?.seconds) * 1000)})
                 </td>
-                <td style={{textAlign: 'right'}}>{formatDuration(a._for)}</td>
+                <td style={{textAlign: 'right'}}>{formatDuration(Number(a.for))}</td>
                 <td>
                   <a
                     className="external-prometheus"
                     target="_blank"
                     rel="noreferrer"
                     href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
-                      a._long.query,
-                    )}&g0.tab=0&g1.expr=${encodeURIComponent(a._short.query)}&g1.tab=0`}>
+                      a.long?.query ?? '',
+                    )}&g0.tab=0&g1.expr=${encodeURIComponent(a.short?.query ?? '')}&g1.tab=0`}>
                     <IconExternal height={20} width={20} />
                   </a>
                 </td>

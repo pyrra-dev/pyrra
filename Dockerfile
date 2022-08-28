@@ -18,7 +18,7 @@ FROM golang:1.19.0 as builder
 WORKDIR /workspace
 
 COPY kubernetes/ kubernetes/
-COPY openapi/ openapi/
+COPY proto/ proto/
 COPY slo/ slo/
 COPY *.go ./
 COPY go.mod ./

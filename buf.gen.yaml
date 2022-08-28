@@ -1,0 +1,16 @@
+version: v1
+plugins:
+  - name: go
+    out: proto
+    opt: paths=source_relative
+  - name: connect-go
+    out: proto
+    opt: paths=source_relative
+  - name: es
+    path: ui/node_modules/.bin/protoc-gen-es
+    out: ui/src/proto
+    opt: target=js+dts
+  - name: connect-web
+    path: ui/node_modules/.bin/protoc-gen-connect-web
+    out: ui/src/proto
+    opt: target=js+dts

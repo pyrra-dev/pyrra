@@ -11,26 +11,38 @@ import {
   Spinner,
   Tooltip as OverlayTooltip,
 } from 'react-bootstrap'
-import {
-  Configuration,
-  Objective,
-  ObjectivesApi,
-  ObjectiveStatus,
-  ObjectiveStatusAvailability,
-  ObjectiveStatusBudget,
-} from '../client'
 import {API_BASEPATH, formatDuration} from '../App'
 import Navbar from '../components/Navbar'
 import {MetricName, parseLabels} from '../labels'
 import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
 import RequestsGraph from '../components/graphs/RequestsGraph'
 import ErrorsGraph from '../components/graphs/ErrorsGraph'
+import {
+  Code,
+  ConnectError,
+  createConnectTransport,
+  createPromiseClient,
+} from '@bufbuild/connect-web'
+import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
+import {
+  Availability,
+  Budget,
+  GetStatusResponse,
+  ListResponse,
+  Objective,
+} from '../proto/objectives/v1alpha1/objectives_pb'
 import AlertsTable from '../components/AlertsTable'
 import Toggle from '../components/Toggle'
+import {Timestamp} from '@bufbuild/protobuf'
 
 const Detail = () => {
-  const api = useMemo(() => {
-    return new ObjectivesApi(new Configuration({basePath: API_BASEPATH}))
+  const client = useMemo(() => {
+    return createPromiseClient(
+      ObjectiveService,
+      createConnectTransport({
+        baseUrl: API_BASEPATH,
+      }),
+    )
   }, [])
 
   const navigate = useNavigate()
@@ -72,54 +84,65 @@ const Detail = () => {
   }
 
   const [statusState, setStatusState] = useState<StatusState>(StatusState.Unknown)
-  const [availability, setAvailability] = useState<ObjectiveStatusAvailability | null>(null)
-  const [errorBudget, setErrorBudget] = useState<ObjectiveStatusBudget | null>(null)
+  const [availability, setAvailability] = useState<Availability | undefined>(undefined)
+  const [errorBudget, setErrorBudget] = useState<Budget | undefined>(undefined)
 
   const getObjective = useCallback(() => {
-    api
-      .listObjectives({expr: expr})
-      .then((os: Objective[]) => {
-        if (os.length === 1) {
-          if (os[0].config === objective?.config) {
+    client
+      .list({expr})
+      .then((resp: ListResponse) => {
+        if (resp.objectives.length === 1) {
+          if (resp.objectives[0].config === objective?.config) {
             // Prevent the setState if the objective is the same
             return
           }
-          setObjective(os[0])
+          setObjective(resp.objectives[0])
         } else {
           setObjective(null)
         }
       })
-      .catch((resp) => {
-        if (resp.status !== undefined) {
-          resp.text().then((err: string) => setObjectiveError(err))
-        } else {
-          setObjectiveError(resp.message)
-        }
+      .catch((err: ConnectError) => {
+        console.log(err)
+        setObjectiveError(err.rawMessage)
       })
-  }, [api, expr, objective?.config])
+  }, [client, expr, objective?.config])
 
   const getObjectiveStatus = useCallback(() => {
-    api
-      .getObjectiveStatus({expr: expr, grouping: grouping, time: Math.floor(to / 1000)})
-      .then((s: ObjectiveStatus[]) => {
-        if (s.length === 0) {
-          setStatusState(StatusState.NoData)
-        } else if (s.length === 1) {
-          setAvailability(s[0].availability)
-          setErrorBudget(s[0].budget)
+    client
+      .getStatus({expr, grouping, time: Timestamp.fromDate(new Date(to))})
+      .then((resp: GetStatusResponse) => {
+        if (resp.status.length === 0) {
+          if (statusState !== StatusState.NoData) {
+            setStatusState(StatusState.NoData)
+          }
+        } else if (resp.status.length === 1) {
+          setAvailability(resp.status[0].availability)
+          setErrorBudget(resp.status[0].budget)
           setStatusState(StatusState.Success)
         } else {
-          setStatusState(StatusState.Error)
+          if (statusState !== StatusState.Error) {
+            setStatusState(StatusState.Error)
+          }
         }
       })
-      .catch((resp) => {
-        if (resp.status === 404) {
+      .catch((err: ConnectError) => {
+        if (err.code === Code.NotFound) {
           setStatusState(StatusState.NoData)
         } else {
+          console.log(err)
           setStatusState(StatusState.Error)
         }
       })
-  }, [api, expr, grouping, to, StatusState.NoData, StatusState.Success, StatusState.Error])
+  }, [
+    client,
+    expr,
+    grouping,
+    to,
+    statusState,
+    StatusState.NoData,
+    StatusState.Success,
+    StatusState.Error,
+  ])
 
   useEffect(() => {
     getObjective()
@@ -230,7 +253,7 @@ const Detail = () => {
           </div>
         )
       case StatusState.Success:
-        if (availability === null) {
+        if (availability === undefined) {
           return <></>
         }
         return (
@@ -277,7 +300,7 @@ const Detail = () => {
           </div>
         )
       case StatusState.Success:
-        if (errorBudget === null) {
+        if (errorBudget === undefined) {
           return <></>
         }
         return (
@@ -331,7 +354,8 @@ const Detail = () => {
             <div className="metrics">
               <div>
                 <h6>
-                  Objective in <strong>{formatDuration(objective.window)}</strong>
+                  Objective in{' '}
+                  <strong>{formatDuration(Number(objective.window?.seconds) * 1000)}</strong>
                 </h6>
                 <h2>{(100 * objective.target).toFixed(3)}%</h2>
               </div>
@@ -375,7 +399,7 @@ const Detail = () => {
           <Row style={{marginBottom: 0}}>
             <Col>
               <ErrorBudgetGraph
-                api={api}
+                client={client}
                 labels={labels}
                 grouping={groupingLabels}
                 from={from}
@@ -399,7 +423,7 @@ const Detail = () => {
           <Row>
             <Col xs={12} md={6}>
               <RequestsGraph
-                api={api}
+                client={client}
                 labels={labels}
                 grouping={groupingLabels}
                 from={from}
@@ -409,7 +433,7 @@ const Detail = () => {
             </Col>
             <Col xs={12} md={6}>
               <ErrorsGraph
-                api={api}
+                client={client}
                 labels={labels}
                 grouping={groupingLabels}
                 from={from}
@@ -421,7 +445,7 @@ const Detail = () => {
           <Row>
             <Col>
               <h4>Multi Burn Rate Alerts</h4>
-              <AlertsTable api={api} objective={objective} grouping={groupingLabels} />
+              <AlertsTable client={client} objective={objective} grouping={groupingLabels} />
             </Col>
           </Row>
           <Row>

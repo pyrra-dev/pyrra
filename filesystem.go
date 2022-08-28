@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/bufbuild/connect-go"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -20,15 +20,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"sigs.k8s.io/yaml"
 
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
-	"github.com/pyrra-dev/pyrra/openapi"
-	openapiserver "github.com/pyrra-dev/pyrra/openapi/server/go"
+	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
+	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/slo"
 )
-
-var errEndpointNotImplemented = errors.New("endpoint not implement")
 
 type Objectives struct {
 	mu         sync.RWMutex
@@ -170,7 +170,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "reading", "file", f)
 					reconcilesTotal.Inc()
 
-					bytes, err := ioutil.ReadFile(f)
+					bytes, err := os.ReadFile(f)
 					if err != nil {
 						reconcilesErrors.Inc()
 						return fmt.Errorf("failed to read file %q: %w", f, err)
@@ -212,7 +212,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					_, file := filepath.Split(f)
 					path := filepath.Join(prometheusFolder, file)
 
-					if err := ioutil.WriteFile(path, bytes, 0o644); err != nil {
+					if err := os.WriteFile(path, bytes, 0o644); err != nil {
 						reconcilesErrors.Inc()
 						return fmt.Errorf("failed to write file %q: %w", path, err)
 					}
@@ -268,14 +268,16 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 		})
 	}
 	{
-		router := openapiserver.NewRouter(
-			openapiserver.NewObjectivesApiController(&FilesystemObjectiveServer{
-				objectives: objectives,
-			}),
-		)
+		router := http.NewServeMux()
+		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&FilesystemObjectiveServer{
+			objectives: objectives,
+		}))
 		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
-		server := http.Server{Addr: ":9444", Handler: router}
+		server := http.Server{
+			Addr:    ":9444",
+			Handler: h2c.NewHandler(router, &http2.Server{}),
+		}
 
 		gr.Add(func() error {
 			level.Info(logger).Log("msg", "starting up HTTP API", "address", server.Addr)
@@ -296,60 +298,27 @@ type FilesystemObjectiveServer struct {
 	objectives *Objectives
 }
 
-func (f FilesystemObjectiveServer) ListObjectives(ctx context.Context, query string) (openapiserver.ImplResponse, error) {
+func (s *FilesystemObjectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
 	var matchers []*labels.Matcher
-	if query != "" {
+	if expr := req.Msg.Expr; expr != "" {
 		var err error
-		matchers, err = parser.ParseMetricSelector(query)
+		matchers, err = parser.ParseMetricSelector(expr)
 		if err != nil {
-			return openapiserver.ImplResponse{Code: http.StatusBadRequest}, err
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}
 	}
 
-	objectives := f.objectives.Match(matchers)
-	list := make([]openapiserver.Objective, 0, len(objectives))
-	for _, o := range objectives {
-		list = append(list, openapi.ServerFromInternal(o))
+	matchingObjectives := s.objectives.Match(matchers)
+	objectives := make([]*objectivesv1alpha1.Objective, 0, len(matchingObjectives))
+	for _, o := range matchingObjectives {
+		objectives = append(objectives, objectivesv1alpha1.FromInternal(o))
 	}
 
-	return openapiserver.ImplResponse{
-		Code: http.StatusOK,
-		Body: list,
-	}, nil
-}
-
-func (f FilesystemObjectiveServer) GetObjective(ctx context.Context, expr string) (openapiserver.ImplResponse, error) {
-	// TODO: Parse expr to match properly
-
-	f.objectives.mu.RLock()
-	objective, ok := f.objectives.objectives[expr]
-	f.objectives.mu.RUnlock()
-	if !ok {
-		return openapiserver.ImplResponse{Code: http.StatusNotFound}, nil
+	if len(objectives) == 0 {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no objectives found"))
 	}
 
-	return openapiserver.ImplResponse{
-		Code: http.StatusOK,
-		Body: openapi.ServerFromInternal(objective),
-	}, nil
-}
-
-func (f FilesystemObjectiveServer) GetMultiBurnrateAlerts(ctx context.Context, expr, grouping string, inactive, current bool) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
-}
-
-func (f FilesystemObjectiveServer) GetObjectiveErrorBudget(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
-}
-
-func (f FilesystemObjectiveServer) GetObjectiveStatus(ctx context.Context, expr, grouping string, ts int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
-}
-
-func (f FilesystemObjectiveServer) GetREDRequests(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
-}
-
-func (f FilesystemObjectiveServer) GetREDErrors(ctx context.Context, expr, grouping string, i, i2 int32) (openapiserver.ImplResponse, error) {
-	return openapiserver.ImplResponse{}, errEndpointNotImplemented
+	return connect.NewResponse(&objectivesv1alpha1.ListResponse{
+		Objectives: objectives,
+	}), nil
 }
