@@ -17,7 +17,7 @@
   "devDependencies": {
     "@bufbuild/protoc-gen-connect-web": "^0.1.0",
     "@bufbuild/protoc-gen-es": "^0.0.10",
-    "@fontsource/inter": "^4.5.11",
+    "@fontsource/inter": "^4.5.12",
     "@fontsource/lato": "^4.5.9",
     "@types/node": "^18.7.13",
     "@types/react": "^18.0.9",
