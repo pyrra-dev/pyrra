@@ -203,15 +203,21 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 						Groups: []monitoringv1.RuleGroup{increases, burnrates},
 					}
 
-					grafana := true //make configurable
+					grafana := true // make configurable
 
 					if grafana {
 						rules, err := objective.GrafanaRules()
 						if err != nil {
-							reconcilesErrors.Inc()
-							return fmt.Errorf("failed to get grafana rules: %w", err)
+							if err != slo.ErrGroupingUnsupported {
+								reconcilesErrors.Inc()
+								return fmt.Errorf("failed to get grafana rules: %w", err)
+							}
+							level.Warn(logger).Log(
+								"msg", "objective with grouping for grafana unsupported",
+								"objective", objective.Name(),
+							)
+							continue
 						}
-
 						rule.Groups = append(rule.Groups, rules)
 					}
 
