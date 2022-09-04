@@ -6,7 +6,7 @@ WORKDIR /app
 COPY dist dist
 
 # NOTICE: See goreleaser.yml for the build paths.
-RUN env && if [ "${TARGETARCH}" = 'amd64' ]; then \
+RUN if [ "${TARGETARCH}" = 'amd64' ]; then \
         cp "dist/pyrra_${TARGETOS}_${TARGETARCH}_${TARGETVARIANT:-v1}/pyrra" . ; \
     elif [ "${TARGETARCH}" = 'arm' ]; then \
         cp "dist/pyrra_${TARGETOS}_${TARGETARCH}_${TARGETVARIANT##v}/pyrra" . ; \
