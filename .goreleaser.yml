@@ -1,0 +1,58 @@
+before:
+  hooks:
+    - go mod tidy
+    - make ui/node_modules
+    - make ui/build
+builds:
+  - main: ./
+    id: "pyrra"
+    binary: pyrra
+    # https://goreleaser.com/customization/build/#reproducible-builds
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - 7
+    flags:
+      - -trimpath
+      - -v
+    ldflags:
+      - -w -extldflags '-static'
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ incpatch .Tag }}-{{ .ShortCommit }}"
+source:
+  enabled: true
+release:
+  name_template: '{{.Tag}} - {{ time "2006-01-02" }}'
+  prerelease: auto
+  footer: |
+    ## Docker images
+
+    `docker pull ghcr.io/pyrra-dev/pyrra:{{ .Tag }}`
+    `podman pull ghcr.io/pyrra-dev/pyrra:{{ .Tag }}`
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
