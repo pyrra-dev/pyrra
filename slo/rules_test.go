@@ -1474,7 +1474,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			group, err := tc.slo.GrafanaRules()
+			group, err := tc.slo.GenericRules()
 			if tc.err != nil {
 				require.Error(t, tc.err)
 			} else {

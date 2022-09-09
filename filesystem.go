@@ -86,7 +86,7 @@ Objectives:
 	return objectives
 }
 
-func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string) int {
+func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules bool) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
 		Help: "The total amount of reconciles.",
@@ -203,17 +203,15 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 						Groups: []monitoringv1.RuleGroup{increases, burnrates},
 					}
 
-					grafana := true // make configurable
-
-					if grafana {
-						rules, err := objective.GrafanaRules()
+					if genericRules {
+						rules, err := objective.GenericRules()
 						if err != nil {
 							if err != slo.ErrGroupingUnsupported {
 								reconcilesErrors.Inc()
-								return fmt.Errorf("failed to get grafana rules: %w", err)
+								return fmt.Errorf("failed to get generic rules: %w", err)
 							}
 							level.Warn(logger).Log(
-								"msg", "objective with grouping for grafana unsupported",
+								"msg", "objective with grouping unsupported with generic rules",
 								"objective", objective.Name(),
 							)
 							continue

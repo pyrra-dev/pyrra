@@ -53,7 +53,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode bool) int {
+func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode, genericRules bool) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
@@ -74,6 +74,7 @@ func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode bool) in
 		Logger:        log.With(logger, "controllers", "ServiceLevelObjective"),
 		Scheme:        mgr.GetScheme(),
 		ConfigMapMode: configMapMode,
+		GenericRules:  genericRules,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceLevelObjective")
 		os.Exit(1)

@@ -603,9 +603,9 @@ func burnratesFromWindows(ws []Window) []time.Duration {
 	return burnrates
 }
 
-var ErrGroupingUnsupported = errors.New("objective with grouping not supported in grafana rules")
+var ErrGroupingUnsupported = errors.New("objective with grouping not supported in generic rules")
 
-func (o Objective) GrafanaRules() (monitoringv1.RuleGroup, error) {
+func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 	var rules []monitoringv1.Rule
 
@@ -849,7 +849,7 @@ func (o Objective) GrafanaRules() (monitoringv1.RuleGroup, error) {
 	}
 
 	return monitoringv1.RuleGroup{
-		Name:     sloName + "-grafana",
+		Name:     sloName + "-generic",
 		Interval: "30s",
 		Rules:    rules,
 	}, nil
