@@ -1272,7 +1272,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		name: "http-ratio",
 		slo:  objectiveHTTPRatio(),
 		rules: monitoringv1.RuleGroup{
-			Name:     "monitoring-http-errors-grafana",
+			Name:     "monitoring-http-errors-generic",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
@@ -1308,7 +1308,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		name: "grpc-errors",
 		slo:  objectiveGRPCRatio(),
 		rules: monitoringv1.RuleGroup{
-			Name:     "monitoring-grpc-errors-grafana",
+			Name:     "monitoring-grpc-errors-generic",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
@@ -1340,7 +1340,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		name: "http-latency",
 		slo:  objectiveHTTPLatency(),
 		rules: monitoringv1.RuleGroup{
-			Name:     "monitoring-http-latency-grafana",
+			Name:     "monitoring-http-latency-generic",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
@@ -1376,7 +1376,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		name: "grpc-latency",
 		slo:  objectiveGRPCLatency(),
 		rules: monitoringv1.RuleGroup{
-			Name:     "monitoring-grpc-latency-grafana",
+			Name:     "monitoring-grpc-latency-generic",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
@@ -1408,7 +1408,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		name: "operator-ratio",
 		slo:  objectiveOperator(),
 		rules: monitoringv1.RuleGroup{
-			Name:     "monitoring-prometheus-operator-errors-grafana",
+			Name:     "monitoring-prometheus-operator-errors-generic",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
@@ -1440,7 +1440,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		name: "apiserver-write-response-errors",
 		slo:  objectiveAPIServerRatio(),
 		rules: monitoringv1.RuleGroup{
-			Name:     "apiserver-write-response-errors-grafana",
+			Name:     "apiserver-write-response-errors-generic",
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
