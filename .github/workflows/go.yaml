@@ -17,9 +17,9 @@ jobs:
     name: Go
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
         with:
-          go-version: ${{ env.golang-version }}
+          go-version-file: 'go.mod'
       - run: mkdir -p ui/build && touch ui/build/empty
       - run: make test
       - run: make pyrra

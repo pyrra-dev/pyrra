@@ -1,0 +1,6 @@
+*.scss
+
+build/
+node_modules/
+src/client/
+public/

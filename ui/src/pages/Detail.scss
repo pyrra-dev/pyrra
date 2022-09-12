@@ -3,6 +3,12 @@
     margin-bottom: 100px;
   }
 
+  .header {
+    span.badge {
+      margin-right: 5px;
+    }
+  }
+
   .metrics {
     width: 100%;
     display: grid;
@@ -22,9 +28,6 @@
       column-gap: 75px;
       row-gap: 75px;
     }
-    @media (min-width: 1200px) {
-      padding: 0 75px;
-    }
 
     div {
       padding: 35px;
@@ -32,7 +35,8 @@
       color: $gray-900;
       border-radius: 8px;
 
-      h2, h6 {
+      h2,
+      h6 {
         font-weight: normal;
         font-family: $font-family-sans-serif;
       }
@@ -70,7 +74,13 @@
       background-color: $body-bg;
 
       @media (min-width: 576px) {
-        width: 30%;
+        width: 66%;
+      }
+      @media (min-width: 768px) {
+        width: 50%;
+      }
+      @media (min-width: 1440px) {
+        width: 33%;
       }
     }
   }

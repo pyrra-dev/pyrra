@@ -1,21 +1,21 @@
-$gray-100: #FAFAFA;
-$gray-200: #F5F5F5;
-$gray-300: #F0F0F0;
-$gray-400: #DEDEDE;
-$gray-500: #C2C2C2;
+$gray-100: #fafafa;
+$gray-200: #f5f5f5;
+$gray-300: #f0f0f0;
+$gray-400: #dedede;
+$gray-500: #c2c2c2;
 $gray-600: #979797;
 $gray-700: #818181;
 $gray-800: #606060;
-$gray-900: #3C3C3C;
+$gray-900: #3c3c3c;
 
 $blue: #005397;
 $blue-text: lighten($blue, 65%);
-$red: #F46363;
+$red: #f46363;
 $red-text: lighten($red, 30%);
 $red-text-dark: darken($red, 30%);
-$yellow: #F4A32A;
+$yellow: #f4a32a;
 $yellow-text: lighten($yellow, 40%);
-$green: #32B67A;
+$green: #32b67a;
 $green-text: lighten($green, 50%);
 
 $light: $gray-300;
@@ -34,52 +34,54 @@ $table-th-font-weight: 600;
 // The diff should make it easier to upgrade in the future too.
 
 // Configuration
-@import "~bootstrap/scss/functions";
-@import "~bootstrap/scss/variables";
-@import "~bootstrap/scss/mixins";
-@import "~bootstrap/scss/utilities";
+@import '~bootstrap/scss/functions';
+@import '~bootstrap/scss/variables';
+@import '~bootstrap/scss/mixins';
+@import '~bootstrap/scss/utilities';
 
 // Layout & components
-@import "~bootstrap/scss/root";
-@import "~bootstrap/scss/reboot";
-@import "~bootstrap/scss/type";
+@import '~bootstrap/scss/root';
+@import '~bootstrap/scss/reboot';
+@import '~bootstrap/scss/type';
 //@import "~bootstrap/scss/images";
-@import "~bootstrap/scss/containers";
-@import "~bootstrap/scss/grid";
-@import "~bootstrap/scss/tables";
-//@import "~bootstrap/scss/forms";
-@import "~bootstrap/scss/buttons";
+@import '~bootstrap/scss/containers';
+@import '~bootstrap/scss/grid';
+@import '~bootstrap/scss/tables';
+@import '~bootstrap/scss/forms';
+@import '~bootstrap/scss/buttons';
 //@import "~bootstrap/scss/transitions";
 //@import "~bootstrap/scss/dropdown";
-@import "~bootstrap/scss/button-group";
-@import "~bootstrap/scss/nav";
-@import "~bootstrap/scss/navbar";
+@import '~bootstrap/scss/button-group';
+@import '~bootstrap/scss/nav';
+@import '~bootstrap/scss/navbar';
 //@import "~bootstrap/scss/card";
 //@import "~bootstrap/scss/accordion";
 //@import "~bootstrap/scss/breadcrumb";
 //@import "~bootstrap/scss/pagination";
-@import "~bootstrap/scss/badge";
-@import "~bootstrap/scss/alert";
+@import '~bootstrap/scss/badge';
+@import '~bootstrap/scss/alert';
 //@import "~bootstrap/scss/progress";
 //@import "~bootstrap/scss/list-group";
-@import "~bootstrap/scss/close";
+@import '~bootstrap/scss/close';
 //@import "~bootstrap/scss/toasts";
 //@import "~bootstrap/scss/modal";
-@import "~bootstrap/scss/tooltip";
+@import '~bootstrap/scss/tooltip';
 //@import "~bootstrap/scss/popover";
 //@import "~bootstrap/scss/carousel";
-@import "~bootstrap/scss/spinners";
-@import "~bootstrap/scss/offcanvas";
-@import "~bootstrap/scss/placeholders";
+@import '~bootstrap/scss/spinners';
+@import '~bootstrap/scss/offcanvas';
+@import '~bootstrap/scss/placeholders';
 
 // Helpers
-@import "~bootstrap/scss/helpers";
+@import '~bootstrap/scss/helpers';
 
 // Utilities
-@import "~bootstrap/scss/utilities/api";
+@import '~bootstrap/scss/utilities/api';
 // scss-docs-end import-stack
 
 // Add our application specific overwrites.
+
+@import './components/Toggle';
 
 .navbar {
   background-color: $gray-300;
@@ -114,7 +116,6 @@ pre {
   background-color: $gray-300;
 }
 
-
 // Add some generic global application CSS
 
 .content {
@@ -131,10 +132,10 @@ a.external-prometheus {
   }
 }
 
-@import "~uplot/dist/uPlot.min.css";
+@import '~uplot/dist/uPlot.min.css';
 
 // Import our own components now
-@import "pages/List";
-@import "pages/Detail";
-@import "components/Navbar";
-@import "components/AlertsTable";
+@import 'pages/List';
+@import 'pages/Detail';
+@import 'components/Navbar';
+@import 'components/AlertsTable';

@@ -24,11 +24,10 @@ metadata:
   namespace: monitoring
 spec:
   target: '90' # 90% of requests should be faster than 1s
-  latency: '1' # le="1" needs to be available on _bucket metric
   window: 4w
   indicator:
     latency:
       success:
-        metric: nginx_ingress_controller_request_duration_seconds_bucket{namespace="lastfm",ingress="lastfm",service="lastfm",status=~"5.."}
+        metric: nginx_ingress_controller_request_duration_seconds_bucket{namespace="lastfm",ingress="lastfm",service="lastfm",status=~"5..",le="1"}
       total:
         metric: nginx_ingress_controller_request_duration_seconds_count{namespace="lastfm",ingress="lastfm",service="lastfm"}

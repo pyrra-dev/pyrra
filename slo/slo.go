@@ -8,6 +8,13 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
+const (
+	// PropagationLabelsPrefix provides a way to propagate labels from the
+	// ObjectMeta to the PrometheusRule.
+	PropagationLabelsPrefix = "pyrra.dev/"
+	defaultAlertname        = "ErrorBudgetBurn"
+)
+
 type Objective struct {
 	Labels      labels.Labels
 	Description string
@@ -15,6 +22,7 @@ type Objective struct {
 	Window      model.Duration
 	Config      string
 
+	Alerting  Alerting
 	Indicator Indicator
 }
 
@@ -27,18 +35,36 @@ func (o Objective) Name() string {
 	return ""
 }
 
-func (o Objective) Windows() []window {
-	return windows(time.Duration(o.Window))
+func (o Objective) Windows() []Window {
+	return Windows(time.Duration(o.Window))
 }
 
-func (o Objective) HasWindows(short, long model.Duration) (window, bool) {
-	for _, w := range windows(time.Duration(o.Window)) {
+func (o Objective) HasWindows(short, long model.Duration) (Window, bool) {
+	for _, w := range Windows(time.Duration(o.Window)) {
 		if w.Short == time.Duration(short) && w.Long == time.Duration(long) {
 			return w, true
 		}
 	}
 
-	return window{}, false
+	return Window{}, false
+}
+
+func (o Objective) Grouping() []string {
+	if o.Indicator.Ratio != nil {
+		return o.Indicator.Ratio.Grouping
+	}
+	if o.Indicator.Latency != nil {
+		return o.Indicator.Latency.Grouping
+	}
+	return nil
+}
+
+func (o Objective) AlertName() string {
+	if o.Alerting.Name != "" {
+		return o.Alerting.Name
+	}
+
+	return defaultAlertname
 }
 
 type Indicator struct {
@@ -56,6 +82,11 @@ type LatencyIndicator struct {
 	Success  Metric
 	Total    Metric
 	Grouping []string
+}
+
+type Alerting struct {
+	Disabled bool
+	Name     string
 }
 
 type Metric struct {

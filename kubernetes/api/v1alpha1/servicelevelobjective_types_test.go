@@ -17,7 +17,8 @@ var examples = []struct {
 	config    string
 	objective slo.Objective
 }{
-	{config: `
+	{
+		config: `
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
@@ -26,6 +27,7 @@ metadata:
   labels:
     prometheus: k8s
     role: alert-rules
+    pyrra.dev/team: foo
 spec:
   target: 99
   window: 1w
@@ -35,34 +37,38 @@ spec:
         metric: http_requests_total{job="metrics-service-thanos-receive-default",code=~"5.."}
       total:
         metric: http_requests_total{job="metrics-service-thanos-receive-default"}
-`, objective: slo.Objective{
-		Labels: labels.FromStrings(
-			labels.MetricName, "http-errors",
-			"namespace", "monitoring",
-		),
-		Description: "",
-		Target:      0.99,
-		Window:      model.Duration(7 * 24 * time.Hour),
-		Indicator: slo.Indicator{
-			Ratio: &slo.RatioIndicator{
-				Errors: slo.Metric{
-					Name: "http_requests_total",
-					LabelMatchers: []*labels.Matcher{
-						{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
-						{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
-						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+`,
+		objective: slo.Objective{
+			Labels: labels.FromStrings(
+				labels.MetricName, "http-errors",
+				"namespace", "monitoring",
+				"pyrra.dev/team", "foo",
+			),
+			Description: "",
+			Target:      0.99,
+			Window:      model.Duration(7 * 24 * time.Hour),
+			Indicator: slo.Indicator{
+				Ratio: &slo.RatioIndicator{
+					Errors: slo.Metric{
+						Name: "http_requests_total",
+						LabelMatchers: []*labels.Matcher{
+							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
+							{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
+							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+						},
 					},
-				},
-				Total: slo.Metric{
-					Name: "http_requests_total",
-					LabelMatchers: []*labels.Matcher{
-						{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
-						{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+					Total: slo.Metric{
+						Name: "http_requests_total",
+						LabelMatchers: []*labels.Matcher{
+							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
+							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+						},
 					},
 				},
 			},
 		},
-	}}, {
+	},
+	{
 		config: `
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
@@ -114,7 +120,8 @@ spec:
 				},
 			},
 		},
-	}, {
+	},
+	{
 		config: `
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
@@ -163,7 +170,8 @@ spec:
 				},
 			},
 		},
-	}, {
+	},
+	{
 		config: `
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
@@ -214,7 +222,8 @@ spec:
 				},
 			},
 		},
-	}, {
+	},
+	{
 		config: `
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
@@ -264,7 +273,8 @@ spec:
 				},
 			},
 		},
-	}, {
+	},
+	{
 		config: `
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective

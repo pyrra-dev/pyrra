@@ -1,8 +1,8 @@
 run:
   deadline: 5m
+  go: 1.19
   skip-dirs:
-    - openapi/client
-    - openapi/server
+    - proto/
 
 linters:
   enable:

@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package objectives.v1alpha1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1;objectivesv1alpha1";
+
+service ObjectiveService {
+  rpc List(ListRequest) returns (ListResponse) {}
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
+  rpc GetAlerts(GetAlertsRequest) returns (GetAlertsResponse) {}
+  rpc GraphErrorBudget(GraphErrorBudgetRequest) returns (GraphErrorBudgetResponse) {}
+  rpc GraphRate(GraphRateRequest) returns (GraphRateResponse) {}
+  rpc GraphErrors(GraphErrorsRequest) returns (GraphErrorsResponse) {}
+}
+
+service ObjectiveBackendService {
+  rpc List(ListRequest) returns (ListResponse) {}
+}
+
+message ListRequest {
+  string expr = 1;
+}
+
+message ListResponse {
+  repeated Objective objectives = 1;
+}
+
+message Objective {
+  map<string, string> labels = 1;
+  double target = 2;
+  google.protobuf.Duration window = 3;
+  string description = 4;
+  Indicator indicator = 5;
+  string config = 6;
+}
+
+message Indicator {
+  oneof options {
+    Ratio ratio = 1;
+    Latency latency = 2;
+  }
+}
+
+message Ratio {
+  Query total = 1;
+  Query errors = 2;
+  repeated string grouping = 3;
+}
+
+message Latency {
+  Query total = 1;
+  Query success = 2;
+  repeated string grouping = 3;
+}
+
+message Query {
+  string metric = 1;
+  string name = 2;
+  repeated LabelMatcher matchers = 3;
+}
+
+// Copied from Prometheus.
+// Matcher specifies a rule, which can match or set of labels or not.
+message LabelMatcher {
+  enum Type {
+    EQ = 0;
+    NEQ = 1;
+    RE = 2;
+    NRE = 3;
+  }
+  Type type = 1;
+  string name = 2;
+  string value = 3;
+}
+
+message GetStatusRequest {
+  string expr = 1;
+  string grouping = 2;
+  google.protobuf.Timestamp time = 3;
+}
+
+message GetStatusResponse {
+  repeated ObjectiveStatus status = 1;
+}
+
+message ObjectiveStatus {
+  map<string, string> labels = 1;
+  Availability availability = 2;
+  Budget budget = 3;
+}
+
+message Availability {
+  double percentage = 1;
+  double total = 2;
+  double errors = 3;
+}
+
+message Budget {
+  double total = 1;
+  double remaining = 2;
+  double max = 3;
+}
+
+message GetAlertsRequest {
+  string expr = 1;
+  string grouping = 2;
+  bool inactive = 3;
+  bool current = 4;
+}
+
+message GetAlertsResponse {
+  repeated Alert alerts = 1;
+}
+
+message Alert {
+  map<string, string> labels = 1;
+  string severity = 2;
+  google.protobuf.Duration for = 3;
+  double factor = 4;
+  enum State {
+    inactive = 0;
+    pending = 1;
+    firing = 2;
+  }
+  State state = 5;
+  Burnrate short = 6;
+  Burnrate long = 7;
+}
+
+message Burnrate {
+  google.protobuf.Duration window = 1;
+  double current = 2;
+  string query = 3;
+}
+
+message GraphErrorBudgetRequest {
+  string expr = 1;
+  string grouping = 2;
+  google.protobuf.Timestamp start = 3;
+  google.protobuf.Timestamp end = 4;
+}
+
+message GraphErrorBudgetResponse {
+  Timeseries timeseries = 1;
+}
+
+message GraphRateRequest {
+  string expr = 1;
+  string grouping = 2;
+  google.protobuf.Timestamp start = 3;
+  google.protobuf.Timestamp end = 4;
+}
+
+message GraphRateResponse {
+  Timeseries timeseries = 1;
+}
+
+message GraphErrorsRequest {
+  string expr = 1;
+  string grouping = 2;
+  google.protobuf.Timestamp start = 3;
+  google.protobuf.Timestamp end = 4;
+}
+
+message GraphErrorsResponse {
+  Timeseries timeseries = 1;
+}
+
+message Timeseries {
+  repeated string labels = 1;
+  string query = 2;
+  repeated Series series = 3;
+}
+
+message Series {
+  repeated double values = 1;
+}

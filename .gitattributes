@@ -1,4 +1,4 @@
 cue.mod/** linguist-vendored
-openapi/client/** linguist-generated
-openapi/server/** linguist-generated
+proto/objectives/v1alpha1/*.pb.go linguist-generated
+proto/objectives/v1alpha1/objectivesv1alpha1connect/** linguist-generated
 ui/src/client/** linguist-generated

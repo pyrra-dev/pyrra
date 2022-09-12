@@ -1,11 +1,16 @@
-export type Labels = { [key: string]: string }
+export interface Labels {
+  [key: string]: string
+}
 
-export const labelsString = (lset: { [key: string]: string; } | undefined): string => {
+export const MetricName = '__name__'
+
+export const labelsString = (lset: Labels | undefined): string => {
   if (lset === undefined) {
     return ''
   }
 
-  let s = '';
+  // TODO: Sort these labels before mapping or are they always sorted?
+  let s = ''
   s += '{'
   s += Object.entries(lset)
     .map((l) => `${l[0]}="${l[1]}"`)
@@ -19,9 +24,9 @@ export const parseLabels = (expr: string | null): Labels => {
     return {}
   }
   expr = expr.replace(/^{+|}+$/gm, '')
-  let lset: { [key: string]: string; } = {}
+  const lset: {[key: string]: string} = {}
   expr.split(',').forEach((s: string) => {
-    let pair = s.split('=')
+    const pair = s.split('=')
     if (pair.length !== 2) {
       throw new Error('pair does not have key and value')
     }
