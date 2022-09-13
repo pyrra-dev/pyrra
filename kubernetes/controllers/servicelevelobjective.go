@@ -171,6 +171,17 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 		}
 	}
 
+	if genericRules {
+		rules, err := objective.GenericRules()
+		if err == nil {
+			rule.Groups = append(rule.Groups, rules)
+		} else {
+			if err != slo.ErrGroupingUnsupported {
+				return nil, fmt.Errorf("failed to get generic rules: %w", err)
+			}
+		}
+	}
+
 	bytes, err := yaml.Marshal(rule)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal recording rule: %w", err)

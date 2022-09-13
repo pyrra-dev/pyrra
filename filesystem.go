@@ -205,18 +205,17 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 
 					if genericRules {
 						rules, err := objective.GenericRules()
-						if err != nil {
+						if err == nil {
+							rule.Groups = append(rule.Groups, rules)
+						} else {
 							if err != slo.ErrGroupingUnsupported {
-								reconcilesErrors.Inc()
 								return fmt.Errorf("failed to get generic rules: %w", err)
 							}
 							level.Warn(logger).Log(
 								"msg", "objective with grouping unsupported with generic rules",
 								"objective", objective.Name(),
 							)
-							continue
 						}
-						rule.Groups = append(rule.Groups, rules)
 					}
 
 					bytes, err = yaml.Marshal(rule)
