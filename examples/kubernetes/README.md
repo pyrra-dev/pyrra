@@ -46,7 +46,7 @@ kubectl apply -f ./config/kubernetes.yaml
 
 ## Deploying SLO examples
 
-For a give Kubernetes cluster we have some example SLOs in the `examples/kubernetes/slo` folder.
+For a give Kubernetes cluster we have some example SLOs in the `examples/kubernetes/slos` folder.
 
 Deploy them in the same way:
 ```bash
