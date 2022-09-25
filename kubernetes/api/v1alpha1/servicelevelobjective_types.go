@@ -268,6 +268,7 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 	return slo.Objective{
 		Labels:      ls,
+		Annotations: in.Annotations,
 		Description: in.Spec.Description,
 		Target:      target / 100,
 		Window:      window,
