@@ -734,7 +734,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		})
 		// availability
 		{
-			expr, err := parser.ParseExpr(`1 - sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
+			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
