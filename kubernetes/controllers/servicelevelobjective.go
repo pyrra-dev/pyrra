@@ -67,7 +67,7 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newRule, err := makePrometheusRule(kubeObjective)
+	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -171,17 +171,6 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 		}
 	}
 
-	if genericRules {
-		rules, err := objective.GenericRules()
-		if err == nil {
-			rule.Groups = append(rule.Groups, rules)
-		} else {
-			if err != slo.ErrGroupingUnsupported {
-				return nil, fmt.Errorf("failed to get generic rules: %w", err)
-			}
-		}
-	}
-
 	bytes, err := yaml.Marshal(rule)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal recording rule: %w", err)
@@ -215,7 +204,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}, nil
 }
 
-func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*monitoringv1.PrometheusRule, error) {
+func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*monitoringv1.PrometheusRule, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -228,6 +217,23 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*mon
 	burnrates, err := objective.Burnrates()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
+	}
+
+	rule := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{increases, burnrates},
+	}
+
+	if genericRules {
+		rules, err := objective.GenericRules()
+		if err == nil {
+			rule.Groups = append(rule.Groups, rules)
+		}
+		if err != nil {
+			if err != slo.ErrGroupingUnsupported {
+				return nil, fmt.Errorf("failed to get generic rules: %w", err)
+			}
+			// ignore these rules
+		}
 	}
 
 	isController := true
@@ -250,8 +256,6 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*mon
 				},
 			},
 		},
-		Spec: monitoringv1.PrometheusRuleSpec{
-			Groups: []monitoringv1.RuleGroup{increases, burnrates},
-		},
+		Spec: rule,
 	}, nil
 }

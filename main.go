@@ -147,7 +147,7 @@ func main() {
 			logger,
 			CLI.Kubernetes.MetricsAddr,
 			CLI.Kubernetes.ConfigMapMode,
-			CLI.Filesystem.GenericRules,
+			CLI.Kubernetes.GenericRules,
 		)
 	}
 	os.Exit(code)
