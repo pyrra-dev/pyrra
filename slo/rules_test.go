@@ -1292,7 +1292,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
 			}, {
 				Record: "pyrra_errors_total",
-				Expr:   intstr.FromString(`sum(http_requests_total{code=~"5..",job="thanos-receive-default"})`),
+				Expr:   intstr.FromString(`sum(http_requests_total{code=~"5..",job="thanos-receive-default"} or vector(0))`),
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
 			}},
 		},
@@ -1328,7 +1328,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
 			}, {
 				Record: "pyrra_errors_total",
-				Expr:   intstr.FromString(`sum(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`),
+				Expr:   intstr.FromString(`sum(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"} or vector(0))`),
 				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
 			}},
 		},
@@ -1428,7 +1428,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
 			}, {
 				Record: "pyrra_errors_total",
-				Expr:   intstr.FromString(`sum(prometheus_operator_reconcile_errors_total)`),
+				Expr:   intstr.FromString(`sum(prometheus_operator_reconcile_errors_total or vector(0))`),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
 			}},
 		},
@@ -1460,7 +1460,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "pyrra_errors_total",
-				Expr:   intstr.FromString(`sum(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"})`),
+				Expr:   intstr.FromString(`sum(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"} or vector(0))`),
 				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
 			}},
 		},

@@ -694,7 +694,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		})
 
 		errorsExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-			return parser.ParseExpr(`sum(metric{matchers="total"})`)
+			return parser.ParseExpr(`sum(metric{matchers="total"} or vector(0))`)
 		}
 		errors, err := errorsExpr()
 		if err != nil {
