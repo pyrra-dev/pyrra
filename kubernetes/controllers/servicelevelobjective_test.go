@@ -166,7 +166,7 @@ func Test_makePrometheusRule(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			prometheusRule, err := makePrometheusRule(tt.objective)
+			prometheusRule, err := makePrometheusRule(tt.objective, false)
 			require.NoError(t, err)
 			require.Equal(t, tt.rules, prometheusRule)
 		})
@@ -321,7 +321,7 @@ func Test_makeConfigMap(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			configMap, err := makeConfigMap(tc.configMapName, tc.objective)
+			configMap, err := makeConfigMap(tc.configMapName, tc.objective, false)
 
 			if tc.err != nil {
 				require.Error(t, err)

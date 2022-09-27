@@ -60,10 +60,12 @@ var CLI struct {
 		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
 		PrometheusURL    *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
 		PrometheusFolder string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
+		GenericRules     bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
 		MetricsAddr   string `default:":8080" help:"The address the metric endpoint binds to."`
 		ConfigMapMode bool   `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
+		GenericRules  bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 }
 
@@ -122,11 +124,31 @@ func main() {
 	var code int
 	switch ctx.Command() {
 	case "api":
-		code = cmdAPI(logger, reg, client, CLI.API.PrometheusExternalURL, CLI.API.APIURL, CLI.API.RoutePrefix, CLI.API.UIRoutePrefix)
+		code = cmdAPI(
+			logger,
+			reg,
+			client,
+			CLI.API.PrometheusExternalURL,
+			CLI.API.APIURL,
+			CLI.API.RoutePrefix,
+			CLI.API.UIRoutePrefix,
+		)
 	case "filesystem":
-		code = cmdFilesystem(logger, reg, client, CLI.Filesystem.ConfigFiles, CLI.Filesystem.PrometheusFolder)
+		code = cmdFilesystem(
+			logger,
+			reg,
+			client,
+			CLI.Filesystem.ConfigFiles,
+			CLI.Filesystem.PrometheusFolder,
+			CLI.Filesystem.GenericRules,
+		)
 	case "kubernetes":
-		code = cmdKubernetes(logger, CLI.Kubernetes.MetricsAddr, CLI.Kubernetes.ConfigMapMode)
+		code = cmdKubernetes(
+			logger,
+			CLI.Kubernetes.MetricsAddr,
+			CLI.Kubernetes.ConfigMapMode,
+			CLI.Kubernetes.GenericRules,
+		)
 	}
 	os.Exit(code)
 }

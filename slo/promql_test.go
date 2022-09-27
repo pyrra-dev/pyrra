@@ -199,7 +199,7 @@ var (
 	objectiveAPIServerRatio = func() Objective {
 		return Objective{
 			Labels: labels.FromStrings(labels.MetricName, "apiserver-write-response-errors"),
-			Target: 99,
+			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Indicator: Indicator{
 				Ratio: &RatioIndicator{
@@ -230,7 +230,7 @@ var (
 	objectiveAPIServerLatency = func() Objective {
 		return Objective{
 			Labels: labels.FromStrings(labels.MetricName, "apiserver-read-resource-latency"),
-			Target: 99,
+			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Indicator: Indicator{
 				Latency: &LatencyIndicator{
@@ -465,11 +465,11 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 	}, {
 		name:      "apiserver-write-response-errors",
 		objective: objectiveAPIServerRatio(),
-		expected:  `((1 - 99) - (sum(apiserver_request:increase2w{code=~"5..",job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"}))) / (1 - 99)`,
+		expected:  `((1 - 0.99) - (sum(apiserver_request:increase2w{code=~"5..",job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"}))) / (1 - 0.99)`,
 	}, {
 		name:      "apiserver-read-resource-latency",
 		objective: objectiveAPIServerRatio(),
-		expected:  `((1 - 99) - (sum(apiserver_request:increase2w{code=~"5..",job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"}))) / (1 - 99)`,
+		expected:  `((1 - 0.99) - (sum(apiserver_request:increase2w{code=~"5..",job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"}))) / (1 - 0.99)`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

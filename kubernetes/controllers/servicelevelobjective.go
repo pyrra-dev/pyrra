@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 // ServiceLevelObjectiveReconciler reconciles a ServiceLevelObjective object.
@@ -41,6 +42,7 @@ type ServiceLevelObjectiveReconciler struct {
 	Logger        kitlog.Logger
 	Scheme        *runtime.Scheme
 	ConfigMapMode bool
+	GenericRules  bool
 }
 
 // +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
@@ -65,7 +67,7 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newRule, err := makePrometheusRule(kubeObjective)
+	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -93,10 +95,15 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
+	ctx context.Context,
+	logger kitlog.Logger,
+	req ctrl.Request,
+	kubeObjective pyrrav1alpha1.ServiceLevelObjective,
+) (ctrl.Result, error) {
 	name := fmt.Sprintf("pyrra-recording-rule-%s", kubeObjective.GetName())
 
-	newConfigMap, err := makeConfigMap(name, kubeObjective)
+	newConfigMap, err := makeConfigMap(name, kubeObjective, r.GenericRules)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -132,7 +139,7 @@ func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) err
 		Complete(r)
 }
 
-func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*corev1.ConfigMap, error) {
+func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*corev1.ConfigMap, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -149,6 +156,19 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 
 	rule := monitoringv1.PrometheusRuleSpec{
 		Groups: []monitoringv1.RuleGroup{increases, burnrates},
+	}
+
+	if genericRules {
+		rules, err := objective.GenericRules()
+		if err == nil {
+			rule.Groups = append(rule.Groups, rules)
+		}
+		if err != nil {
+			if err != slo.ErrGroupingUnsupported {
+				return nil, fmt.Errorf("failed to get generic rules: %w", err)
+			}
+			// ignore these rules
+		}
 	}
 
 	bytes, err := yaml.Marshal(rule)
@@ -184,7 +204,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}, nil
 }
 
-func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*monitoringv1.PrometheusRule, error) {
+func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*monitoringv1.PrometheusRule, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -197,6 +217,23 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*mon
 	burnrates, err := objective.Burnrates()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
+	}
+
+	rule := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{increases, burnrates},
+	}
+
+	if genericRules {
+		rules, err := objective.GenericRules()
+		if err == nil {
+			rule.Groups = append(rule.Groups, rules)
+		}
+		if err != nil {
+			if err != slo.ErrGroupingUnsupported {
+				return nil, fmt.Errorf("failed to get generic rules: %w", err)
+			}
+			// ignore these rules
+		}
 	}
 
 	isController := true
@@ -219,8 +256,6 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective) (*mon
 				},
 			},
 		},
-		Spec: monitoringv1.PrometheusRuleSpec{
-			Groups: []monitoringv1.RuleGroup{increases, burnrates},
-		},
+		Spec: rule,
 	}, nil
 }
