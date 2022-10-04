@@ -17,6 +17,7 @@ const (
 
 type Objective struct {
 	Labels      labels.Labels
+	Annotations map[string]string
 	Description string
 	Target      float64
 	Window      model.Duration

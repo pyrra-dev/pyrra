@@ -28,6 +28,8 @@ metadata:
     prometheus: k8s
     role: alert-rules
     pyrra.dev/team: foo
+  annotations:
+    pyrra.dev/description: "foo"
 spec:
   target: 99
   window: 1w
@@ -44,6 +46,7 @@ spec:
 				"namespace", "monitoring",
 				"pyrra.dev/team", "foo",
 			),
+			Annotations: map[string]string{"pyrra.dev/description": "foo"},
 			Description: "",
 			Target:      0.99,
 			Window:      model.Duration(7 * 24 * time.Hour),

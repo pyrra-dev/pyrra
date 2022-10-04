@@ -109,6 +109,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		for _, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
+			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
 				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
@@ -133,8 +134,9 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
-				For:    model.Duration(w.For).String(),
-				Labels: alertLabels,
+				For:         model.Duration(w.For).String(),
+				Labels:      alertLabels,
+				Annotations: alertAnnotations,
 			}
 			rules = append(rules, r)
 		}
@@ -194,6 +196,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		for _, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
+			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
 				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
@@ -218,8 +221,9 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
-				For:    model.Duration(w.For).String(),
-				Labels: alertLabels,
+				For:         model.Duration(w.For).String(),
+				Labels:      alertLabels,
+				Annotations: alertAnnotations,
 			}
 			rules = append(rules, r)
 		}
@@ -340,6 +344,20 @@ func (o Objective) commonRuleLabels(sloName string) map[string]string {
 	}
 
 	return ruleLabels
+}
+
+func (o Objective) commonRuleAnnotations() map[string]string {
+	var annotations map[string]string
+	if len(o.Annotations) > 0 {
+		annotations = make(map[string]string)
+		for key, value := range o.Annotations {
+			if strings.HasPrefix(key, PropagationLabelsPrefix) {
+				annotations[strings.TrimPrefix(key, PropagationLabelsPrefix)] = value
+			}
+		}
+	}
+
+	return annotations
 }
 
 func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
