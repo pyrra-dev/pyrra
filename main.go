@@ -1486,6 +1486,13 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 	}), nil
 }
 
+func (s *objectiveServer) GetAvailability(ctx context.Context, req *connect.Request[objectivesv1alpha1.GetAvailabilityRequest]) (*connect.Response[objectivesv1alpha1.GetAvailabilityResponse], error) {
+	return connect.NewResponse(&objectivesv1alpha1.GetAvailabilityResponse{
+		Total:  1000,
+		Errors: 1,
+	}), nil
+}
+
 const (
 	hours12 = 12 * time.Hour
 	day     = 24 * time.Hour

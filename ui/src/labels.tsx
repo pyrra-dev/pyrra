@@ -21,6 +21,14 @@ export const labelsString = (lset: Labels | undefined): string => {
 
 export const labelValues = (lset: Labels): string[] => Object.values(lset)
 
+export const removeMetricName = (lset: Labels | undefined): Labels => {
+  if (lset === undefined) {
+    return {}
+  }
+  const {__name__: _, ...rest} = lset
+  return {...rest}
+}
+
 export const parseLabels = (expr: string | null): Labels => {
   if (expr == null) {
     return {}

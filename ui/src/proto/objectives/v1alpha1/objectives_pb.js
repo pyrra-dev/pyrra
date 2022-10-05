@@ -378,3 +378,25 @@ export const GraphDurationResponse = proto3.makeMessageType(
   ],
 );
 
+/**
+ * @generated from message objectives.v1alpha1.GetAvailabilityRequest
+ */
+export const GetAvailabilityRequest = proto3.makeMessageType(
+  "objectives.v1alpha1.GetAvailabilityRequest",
+  () => [
+    { no: 1, name: "window", kind: "message", T: Duration },
+    { no: 2, name: "indicator", kind: "message", T: Indicator },
+  ],
+);
+
+/**
+ * @generated from message objectives.v1alpha1.GetAvailabilityResponse
+ */
+export const GetAvailabilityResponse = proto3.makeMessageType(
+  "objectives.v1alpha1.GetAvailabilityResponse",
+  () => [
+    { no: 1, name: "total", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 2, name: "errors", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ],
+);
+

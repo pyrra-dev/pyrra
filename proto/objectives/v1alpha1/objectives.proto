@@ -15,6 +15,7 @@ service ObjectiveService {
   rpc GraphRate(GraphRateRequest) returns (GraphRateResponse) {}
   rpc GraphErrors(GraphErrorsRequest) returns (GraphErrorsResponse) {}
   rpc GraphDuration(GraphDurationRequest) returns (GraphDurationResponse) {}
+  rpc GetAvailability(GetAvailabilityRequest) returns (GetAvailabilityResponse) {}
 }
 
 service ObjectiveBackendService {
@@ -207,4 +208,14 @@ message GraphDurationRequest {
 
 message GraphDurationResponse {
   repeated Timeseries timeseries = 1;
+}
+
+message GetAvailabilityRequest {
+  google.protobuf.Duration window = 1;
+  Indicator indicator = 2;
+}
+
+message GetAvailabilityResponse {
+  int64 total = 1;
+  int64 errors = 2;
 }

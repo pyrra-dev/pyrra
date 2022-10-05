@@ -1033,3 +1033,61 @@ export declare class GraphDurationResponse extends Message<GraphDurationResponse
   static equals(a: GraphDurationResponse | PlainMessage<GraphDurationResponse> | undefined, b: GraphDurationResponse | PlainMessage<GraphDurationResponse> | undefined): boolean;
 }
 
+/**
+ * @generated from message objectives.v1alpha1.GetAvailabilityRequest
+ */
+export declare class GetAvailabilityRequest extends Message<GetAvailabilityRequest> {
+  /**
+   * @generated from field: google.protobuf.Duration window = 1;
+   */
+  window?: Duration;
+
+  /**
+   * @generated from field: objectives.v1alpha1.Indicator indicator = 2;
+   */
+  indicator?: Indicator;
+
+  constructor(data?: PartialMessage<GetAvailabilityRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "objectives.v1alpha1.GetAvailabilityRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetAvailabilityRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetAvailabilityRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetAvailabilityRequest;
+
+  static equals(a: GetAvailabilityRequest | PlainMessage<GetAvailabilityRequest> | undefined, b: GetAvailabilityRequest | PlainMessage<GetAvailabilityRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message objectives.v1alpha1.GetAvailabilityResponse
+ */
+export declare class GetAvailabilityResponse extends Message<GetAvailabilityResponse> {
+  /**
+   * @generated from field: int64 total = 1;
+   */
+  total: bigint;
+
+  /**
+   * @generated from field: int64 errors = 2;
+   */
+  errors: bigint;
+
+  constructor(data?: PartialMessage<GetAvailabilityResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "objectives.v1alpha1.GetAvailabilityResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetAvailabilityResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetAvailabilityResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetAvailabilityResponse;
+
+  static equals(a: GetAvailabilityResponse | PlainMessage<GetAvailabilityResponse> | undefined, b: GetAvailabilityResponse | PlainMessage<GetAvailabilityResponse> | undefined): boolean;
+}
+

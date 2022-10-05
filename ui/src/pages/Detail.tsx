@@ -11,13 +11,7 @@ import {
   Spinner,
   Tooltip as OverlayTooltip,
 } from 'react-bootstrap'
-import {
-  API_BASEPATH,
-  hasObjectiveType,
-  latencyTarget,
-  ObjectiveType,
-  renderLatencyTarget,
-} from '../App'
+import {API_BASEPATH, hasObjectiveType, latencyTarget, ObjectiveType} from '../App'
 import Navbar from '../components/Navbar'
 import {MetricName, parseLabels} from '../labels'
 import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
@@ -34,6 +28,10 @@ import {replaceInterval, usePrometheusQuery} from '../prometheus'
 import {useObjectivesList} from '../objectives'
 import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
+import AvailabilityTile, {responseToCounterProps} from '../components/tiles/AvailabilityTile'
+import ObjectiveTile from '../components/tiles/ObjectiveTile'
+import ErrorBudgetTile from '../components/tiles/ErrorBudgetTile'
+import Tiles from '../components/tiles/Tiles'
 
 const Detail = () => {
   const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
@@ -105,12 +103,16 @@ const Detail = () => {
     {enabled: objectiveStatus === 'success' && objective?.queries?.countTotal !== undefined},
   )
 
+  const totalCounterProps = responseToCounterProps(totalResponse, totalStatus)
+
   const {response: errorResponse, status: errorStatus} = usePrometheusQuery(
     promClient,
     objective?.queries?.countErrors ?? '',
     to / 1000,
     {enabled: objectiveStatus === 'success' && objective?.queries?.countTotal !== undefined},
   )
+
+  const errorCounterProps = responseToCounterProps(errorResponse, errorStatus)
 
   const updateTimeRange = useCallback(
     (from: number, to: number, absolute: boolean) => {
@@ -197,182 +199,6 @@ const Detail = () => {
 
   const objectiveType = hasObjectiveType(objective)
 
-  const renderObjective = () => {
-    switch (objectiveType) {
-      case ObjectiveType.Ratio:
-        return (
-          <div>
-            <h6 className="headline">Objective</h6>
-            <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
-            <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
-          </div>
-        )
-      case ObjectiveType.BoolGauge:
-        return (
-          <div>
-            <h6 className="headline">Objective</h6>
-            <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
-            <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
-          </div>
-        )
-      case ObjectiveType.Latency:
-        return (
-          <div>
-            <h6 className="headline">Objective</h6>
-            <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
-            <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
-            <br />
-            <p className="details">faster than {renderLatencyTarget(objective)}</p>
-          </div>
-        )
-      default:
-        return <div></div>
-    }
-  }
-
-  const renderAvailability = () => {
-    const headline = <h6 className="headline">Availability</h6>
-    if (
-      totalStatus === 'loading' ||
-      totalStatus === 'idle' ||
-      errorStatus === 'loading' ||
-      errorStatus === 'idle'
-    ) {
-      return (
-        <div>
-          {headline}
-          <Spinner
-            animation={'border'}
-            style={{
-              width: 50,
-              height: 50,
-              padding: 0,
-              borderRadius: 50,
-              borderWidth: 2,
-              opacity: 0.25,
-            }}
-          />
-        </div>
-      )
-    }
-
-    if (totalStatus === 'success' && errorStatus === 'success') {
-      if (totalResponse?.options.case === 'vector' && errorResponse?.options.case === 'vector') {
-        let errors = 0
-        if (errorResponse.options.value.samples.length > 0) {
-          errors = errorResponse.options.value.samples[0].value
-        }
-
-        let total = 1
-        if (totalResponse.options.value.samples.length > 0) {
-          total = totalResponse.options.value.samples[0].value
-        }
-
-        const percentage = 1 - errors / total
-
-        return (
-          <div className={percentage > objective.target ? 'good' : 'bad'}>
-            {headline}
-            <h2 className="metric">{(100 * percentage).toFixed(3)}%</h2>
-            <table className="details">
-              <tbody>
-                <tr>
-                  <td>{objectiveType === ObjectiveType.Latency ? 'Slow:' : 'Errors:'}</td>
-                  <td>{Math.floor(errors).toLocaleString()}</td>
-                </tr>
-                <tr>
-                  <td>Total:</td>
-                  <td>{Math.floor(total).toLocaleString()}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )
-      } else {
-        return (
-          <div>
-            {headline}
-            <h2>No data</h2>
-          </div>
-        )
-      }
-    }
-
-    return (
-      <div>
-        <>
-          {headline}
-          <h2 className="error">Error</h2>
-        </>
-      </div>
-    )
-  }
-
-  const renderErrorBudget = () => {
-    const headline = <h6 className="headline">Error Budget</h6>
-
-    if (
-      totalStatus === 'loading' ||
-      totalStatus === 'idle' ||
-      errorStatus === 'loading' ||
-      errorStatus === 'idle'
-    ) {
-      return (
-        <div>
-          {headline}
-          <Spinner
-            animation={'border'}
-            style={{
-              width: 50,
-              height: 50,
-              padding: 0,
-              borderRadius: 50,
-              borderWidth: 2,
-              opacity: 0.25,
-            }}
-          />
-        </div>
-      )
-    }
-    if (totalStatus === 'success' && errorStatus === 'success') {
-      if (totalResponse?.options.case === 'vector' && errorResponse?.options.case === 'vector') {
-        let errors = 0
-        if (errorResponse.options.value.samples.length > 0) {
-          errors = errorResponse.options.value.samples[0].value
-        }
-
-        let total = 1
-        if (totalResponse.options.value.samples.length > 0) {
-          total = totalResponse.options.value.samples[0].value
-        }
-
-        const budget = 1 - objective.target
-        const unavailability = errors / total
-        const availableBudget = (budget - unavailability) / budget
-
-        return (
-          <div className={availableBudget > 0 ? 'good' : 'bad'}>
-            {headline}
-            <h2 className="metric">{(100 * availableBudget).toFixed(3)}%</h2>
-          </div>
-        )
-      } else {
-        return (
-          <div>
-            {headline}
-            <h2>No data</h2>
-          </div>
-        )
-      }
-    }
-    return (
-      <div>
-        {headline}
-        <h2 className="error">Error</h2>
-      </div>
-    )
-  }
-
   const labelBadges = Object.entries({...objective.labels, ...groupingLabels})
     .filter((l: [string, string]) => l[0] !== MetricName)
     .map((l: [string, string]) => (
@@ -418,11 +244,25 @@ const Detail = () => {
           </Row>
           <Row>
             <Col className="col-xxxl-10 offset-xxxl-1">
-              <div className="metrics">
-                {renderObjective()}
-                {renderAvailability()}
-                {renderErrorBudget()}
-              </div>
+              <Tiles>
+                <ObjectiveTile
+                  objectiveType={objectiveType}
+                  target={objective.target}
+                  window={Number(objective.window?.seconds)}
+                  latency={objectiveType === ObjectiveType.Latency ? latencyTarget(objective) : 0}
+                />
+                <AvailabilityTile
+                  target={objective.target}
+                  objectiveType={objectiveType}
+                  errors={errorCounterProps}
+                  total={totalCounterProps}
+                />
+                <ErrorBudgetTile
+                  errors={errorCounterProps}
+                  total={totalCounterProps}
+                  target={objective.target}
+                />
+              </Tiles>
             </Col>
           </Row>
           <Row>

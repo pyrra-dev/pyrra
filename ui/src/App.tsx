@@ -2,6 +2,7 @@ import React from 'react'
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import List from './pages/List'
 import Detail from './pages/Detail'
+import Create from './pages/Create'
 import {LabelMatcher, Latency, Objective} from './proto/objectives/v1alpha1/objectives_pb'
 import {QueryClient, QueryClientProvider} from 'react-query'
 import {formatDuration} from './duration'
@@ -31,6 +32,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<List />} />
           <Route path="/objectives" element={<Detail />} />
+          <Route path="/create" element={<Create />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

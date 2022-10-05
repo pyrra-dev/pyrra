@@ -36,6 +36,7 @@ type ObjectiveServiceClient interface {
 	GraphRate(context.Context, *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error)
 	GraphErrors(context.Context, *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error)
 	GraphDuration(context.Context, *connect_go.Request[v1alpha1.GraphDurationRequest]) (*connect_go.Response[v1alpha1.GraphDurationResponse], error)
+	GetAvailability(context.Context, *connect_go.Request[v1alpha1.GetAvailabilityRequest]) (*connect_go.Response[v1alpha1.GetAvailabilityResponse], error)
 }
 
 // NewObjectiveServiceClient constructs a client for the objectives.v1alpha1.ObjectiveService
@@ -83,6 +84,11 @@ func NewObjectiveServiceClient(httpClient connect_go.HTTPClient, baseURL string,
 			baseURL+"/objectives.v1alpha1.ObjectiveService/GraphDuration",
 			opts...,
 		),
+		getAvailability: connect_go.NewClient[v1alpha1.GetAvailabilityRequest, v1alpha1.GetAvailabilityResponse](
+			httpClient,
+			baseURL+"/objectives.v1alpha1.ObjectiveService/GetAvailability",
+			opts...,
+		),
 	}
 }
 
@@ -95,6 +101,7 @@ type objectiveServiceClient struct {
 	graphRate        *connect_go.Client[v1alpha1.GraphRateRequest, v1alpha1.GraphRateResponse]
 	graphErrors      *connect_go.Client[v1alpha1.GraphErrorsRequest, v1alpha1.GraphErrorsResponse]
 	graphDuration    *connect_go.Client[v1alpha1.GraphDurationRequest, v1alpha1.GraphDurationResponse]
+	getAvailability  *connect_go.Client[v1alpha1.GetAvailabilityRequest, v1alpha1.GetAvailabilityResponse]
 }
 
 // List calls objectives.v1alpha1.ObjectiveService.List.
@@ -132,6 +139,11 @@ func (c *objectiveServiceClient) GraphDuration(ctx context.Context, req *connect
 	return c.graphDuration.CallUnary(ctx, req)
 }
 
+// GetAvailability calls objectives.v1alpha1.ObjectiveService.GetAvailability.
+func (c *objectiveServiceClient) GetAvailability(ctx context.Context, req *connect_go.Request[v1alpha1.GetAvailabilityRequest]) (*connect_go.Response[v1alpha1.GetAvailabilityResponse], error) {
+	return c.getAvailability.CallUnary(ctx, req)
+}
+
 // ObjectiveServiceHandler is an implementation of the objectives.v1alpha1.ObjectiveService service.
 type ObjectiveServiceHandler interface {
 	List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error)
@@ -141,6 +153,7 @@ type ObjectiveServiceHandler interface {
 	GraphRate(context.Context, *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error)
 	GraphErrors(context.Context, *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error)
 	GraphDuration(context.Context, *connect_go.Request[v1alpha1.GraphDurationRequest]) (*connect_go.Response[v1alpha1.GraphDurationResponse], error)
+	GetAvailability(context.Context, *connect_go.Request[v1alpha1.GetAvailabilityRequest]) (*connect_go.Response[v1alpha1.GetAvailabilityResponse], error)
 }
 
 // NewObjectiveServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -185,6 +198,11 @@ func NewObjectiveServiceHandler(svc ObjectiveServiceHandler, opts ...connect_go.
 		svc.GraphDuration,
 		opts...,
 	))
+	mux.Handle("/objectives.v1alpha1.ObjectiveService/GetAvailability", connect_go.NewUnaryHandler(
+		"/objectives.v1alpha1.ObjectiveService/GetAvailability",
+		svc.GetAvailability,
+		opts...,
+	))
 	return "/objectives.v1alpha1.ObjectiveService/", mux
 }
 
@@ -217,6 +235,10 @@ func (UnimplementedObjectiveServiceHandler) GraphErrors(context.Context, *connec
 
 func (UnimplementedObjectiveServiceHandler) GraphDuration(context.Context, *connect_go.Request[v1alpha1.GraphDurationRequest]) (*connect_go.Response[v1alpha1.GraphDurationResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphDuration is not implemented"))
+}
+
+func (UnimplementedObjectiveServiceHandler) GetAvailability(context.Context, *connect_go.Request[v1alpha1.GetAvailabilityRequest]) (*connect_go.Response[v1alpha1.GetAvailabilityResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GetAvailability is not implemented"))
 }
 
 // ObjectiveBackendServiceClient is a client for the objectives.v1alpha1.ObjectiveBackendService
