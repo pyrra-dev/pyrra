@@ -35,9 +35,9 @@ export const hasObjectiveType = (o: Objective): ObjectiveType => {
   return ObjectiveType.Ratio
 }
 
-export const renderLatencyTarget = (o: Objective): string => {
+export const latencyTarget = (o: Objective): number | undefined => {
   if (hasObjectiveType(o) !== ObjectiveType.Latency) {
-    return ''
+    return undefined
   }
 
   const latency: Latency = o.indicator?.options.value as Latency
@@ -48,9 +48,23 @@ export const renderLatencyTarget = (o: Objective): string => {
 
   if (m !== undefined) {
     // multiply with 1000 to get values from seconds to milliseconds
-    return formatDuration(1000 * parseFloat(m.value))
+    return parseFloat(m.value)
   }
-  return ''
+
+  return undefined
+}
+
+export const renderLatencyTarget = (o: Objective): string => {
+  if (hasObjectiveType(o) !== ObjectiveType.Latency) {
+    return ''
+  }
+
+  const latency = latencyTarget(o)
+  if (latency === undefined) {
+    return ''
+  }
+
+  return formatDuration(latency * 1000)
 }
 
 export const dateFormatter =
