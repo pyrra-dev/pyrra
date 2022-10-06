@@ -152,7 +152,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
               percentage: action.status.availability?.percentage ?? 0,
             },
             budget: action.status.budget?.remaining,
-            latency: latencyTarget(o.objective),
+            latency: o.objective !== undefined ? latencyTarget(o.objective) : undefined,
           },
         },
       }
@@ -764,7 +764,9 @@ const List = () => {
                           lset[l[0]] = l[1]
                           updateFilter(lset)
                         }}>
-                        {l[0]}={l[1]}
+                        <a>
+                          {l[0]}={l[1]}
+                        </a>
                       </Badge>
                     ))
 
