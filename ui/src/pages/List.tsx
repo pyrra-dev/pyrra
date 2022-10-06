@@ -152,7 +152,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
               percentage: action.status.availability?.percentage ?? 0,
             },
             budget: action.status.budget?.remaining,
-            latency: o.objective !== undefined ? latencyTarget(o.objective) : undefined,
+            latency: latencyTarget(action.objective),
           },
         },
       }
