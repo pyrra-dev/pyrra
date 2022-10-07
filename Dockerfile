@@ -18,6 +18,6 @@ RUN chmod +x pyrra
 FROM --platform="${TARGETPLATFORM:-linux/amd64}"  docker.io/alpine:3.16.2 AS runner
 WORKDIR /
 COPY --chown=0:0 --from=builder /app/pyrra /usr/bin/pyrra
-USER nobody
+USER 65533
 
 ENTRYPOINT ["/usr/bin/pyrra"]
