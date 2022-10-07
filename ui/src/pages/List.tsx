@@ -11,7 +11,14 @@ import {
   Table,
   Tooltip as OverlayTooltip,
 } from 'react-bootstrap'
-import {API_BASEPATH, formatDuration} from '../App'
+import {
+  API_BASEPATH,
+  formatDuration,
+  hasObjectiveType,
+  latencyTarget,
+  ObjectiveType,
+  renderLatencyTarget,
+} from '../App'
 import {Link, useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import {IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning} from '../components/Icons'
@@ -44,6 +51,7 @@ interface TableObjective {
   availability?: TableAvailability | null
   budget?: number | null
   severity: string | null
+  latency: number | undefined
 }
 
 interface TableAvailability {
@@ -95,6 +103,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             severity: null,
             availability: undefined,
             budget: undefined,
+            latency: latencyTarget(action.objective),
           },
         },
       }
@@ -143,6 +152,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
               percentage: action.status.availability?.percentage ?? 0,
             },
             budget: action.status.budget?.remaining,
+            latency: latencyTarget(action.objective),
           },
         },
       }
@@ -217,6 +227,7 @@ enum TableSortType {
   Name,
   Window,
   Objective,
+  Latency,
   Availability,
   Budget,
   Alerts,
@@ -389,7 +400,9 @@ const List = () => {
     // }
   }, [client, objectives])
 
-  const handleTableSort = (type: TableSortType): void => {
+  const handleTableSort = (e: any, type: TableSortType): void => {
+    e.preventDefault()
+
     if (tableSortState.type === type) {
       const order =
         tableSortState.order === TableSortOrder.Ascending
@@ -400,6 +413,9 @@ const List = () => {
       setTableSortState({type: type, order: TableSortOrder.Ascending})
     }
   }
+
+  // Indicates whether a latency column is needed or not.
+  let tableLatency = false
 
   const tableList = Object.keys(table.objectives)
     .map((k: string) => table.objectives[k])
@@ -414,6 +430,10 @@ const List = () => {
       return true
     })
     .sort((a: TableObjective, b: TableObjective) => {
+      if (a.latency !== undefined || b.latency !== undefined) {
+        tableLatency = true
+      }
+
       // TODO: Make higher order function returning the sort function itself.
       switch (tableSortState.type) {
         case TableSortType.Name:
@@ -434,6 +454,22 @@ const List = () => {
           } else {
             return b.objective.target - a.objective.target
           }
+        case TableSortType.Latency:
+          if (a.latency === undefined && b.latency !== undefined) {
+            return 1
+          }
+          if (a.latency !== undefined && b.latency === undefined) {
+            return -1
+          }
+          if (a.latency !== undefined && b.latency !== undefined) {
+            if (tableSortState.order === TableSortOrder.Ascending) {
+              return a.latency - b.latency
+            } else {
+              return b.latency - a.latency
+            }
+          }
+
+          return 0
         case TableSortType.Availability:
           if (a.availability == null && b.availability != null) {
             return 1
@@ -510,6 +546,15 @@ const List = () => {
     return `/objectives?expr=${encodeURI(labelsString(labels))}&grouping=${encodeURI(
       labelsString(grouping),
     )}`
+  }
+
+  const renderLatency = (o: TableObjective) => {
+    switch (hasObjectiveType(o.objective)) {
+      case ObjectiveType.Ratio:
+        return <></>
+      case ObjectiveType.Latency:
+        return renderLatencyTarget(o.objective)
+    }
   }
 
   const renderAvailability = (o: TableObjective) => {
@@ -609,6 +654,7 @@ const List = () => {
           <Col>
             {Object.keys(filterLabels).map((k: string) => (
               <Button
+                key={k}
                 variant="light"
                 size="sm"
                 className="filter-close"
@@ -629,14 +675,14 @@ const List = () => {
                 <tr>
                   <th
                     className={tableSortState.type === TableSortType.Name ? 'active' : ''}
-                    onClick={() => handleTableSort(TableSortType.Name)}>
-                    Name{' '}
+                    onClick={(e) => handleTableSort(e, TableSortType.Name)}>
+                    <a>Name </a>
                     {tableSortState.type === TableSortType.Name ? upDownIcon : <IconArrowUpDown />}
                   </th>
                   <th
                     className={tableSortState.type === TableSortType.Window ? 'active' : ''}
-                    onClick={() => handleTableSort(TableSortType.Window)}>
-                    Time Window{' '}
+                    onClick={(e) => handleTableSort(e, TableSortType.Window)}>
+                    <a>Time Window </a>
                     {tableSortState.type === TableSortType.Window ? (
                       upDownIcon
                     ) : (
@@ -645,18 +691,32 @@ const List = () => {
                   </th>
                   <th
                     className={tableSortState.type === TableSortType.Objective ? 'active' : ''}
-                    onClick={() => handleTableSort(TableSortType.Objective)}>
-                    Objective{' '}
+                    onClick={(e) => handleTableSort(e, TableSortType.Objective)}>
+                    <a>Objective </a>
                     {tableSortState.type === TableSortType.Objective ? (
                       upDownIcon
                     ) : (
                       <IconArrowUpDown />
                     )}
                   </th>
+                  {tableLatency ? (
+                    <th
+                      className={tableSortState.type === TableSortType.Latency ? 'active' : ''}
+                      onClick={(e) => handleTableSort(e, TableSortType.Latency)}>
+                      <a>Latency </a>
+                      {tableSortState.type === TableSortType.Latency ? (
+                        upDownIcon
+                      ) : (
+                        <IconArrowUpDown />
+                      )}
+                    </th>
+                  ) : (
+                    <></>
+                  )}
                   <th
                     className={tableSortState.type === TableSortType.Availability ? 'active' : ''}
-                    onClick={() => handleTableSort(TableSortType.Availability)}>
-                    Availability{' '}
+                    onClick={(e) => handleTableSort(e, TableSortType.Availability)}>
+                    <a>Availability </a>
                     {tableSortState.type === TableSortType.Availability ? (
                       upDownIcon
                     ) : (
@@ -665,8 +725,8 @@ const List = () => {
                   </th>
                   <th
                     className={tableSortState.type === TableSortType.Budget ? 'active' : ''}
-                    onClick={() => handleTableSort(TableSortType.Budget)}>
-                    Error Budget{' '}
+                    onClick={(e) => handleTableSort(e, TableSortType.Budget)}>
+                    <a>Error Budget </a>
                     {tableSortState.type === TableSortType.Budget ? (
                       upDownIcon
                     ) : (
@@ -675,8 +735,8 @@ const List = () => {
                   </th>
                   <th
                     className={tableSortState.type === TableSortType.Alerts ? 'active' : ''}
-                    onClick={() => handleTableSort(TableSortType.Alerts)}>
-                    Alerts{' '}
+                    onClick={(e) => handleTableSort(e, TableSortType.Alerts)}>
+                    <a>Alerts </a>
                     {tableSortState.type === TableSortType.Alerts ? (
                       upDownIcon
                     ) : (
@@ -704,7 +764,9 @@ const List = () => {
                           lset[l[0]] = l[1]
                           updateFilter(lset)
                         }}>
-                        {l[0]}={l[1]}
+                        <a>
+                          {l[0]}={l[1]}
+                        </a>
                       </Badge>
                     ))
 
@@ -731,6 +793,7 @@ const List = () => {
                       </td>
                       <td>{formatDuration(Number(o.objective.window?.seconds) * 1000)}</td>
                       <td>{(100 * o.objective.target).toFixed(2)}%</td>
+                      {tableLatency ? <td>{renderLatency(o)}</td> : <></>}
                       <td>{renderAvailability(o)}</td>
                       <td>{renderErrorBudget(o)}</td>
                       <td>
