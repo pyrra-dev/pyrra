@@ -183,6 +183,7 @@ const ErrorBudgetGraph = ({
                 {
                   fill: budgetGradient,
                   gaps: seriesGaps(from / 1000, to / 1000),
+                  value: (u: uPlot, v: number) => (v == null ? '-' : v.toFixed(2) + '%'),
                 },
               ],
               scales: {

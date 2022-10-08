@@ -139,6 +139,7 @@ const RequestsGraph = ({
                     label: parseLabelValue(label),
                     stroke: `#${labelColor(pickedColors, label)}`,
                     gaps: seriesGaps(from / 1000, to / 1000),
+                    value: (u, v) => (v == null ? '-' : `${v.toPrecision(2)}req/s`),
                   }
                 }),
               ],
@@ -180,7 +181,7 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
     color = greens[picked.greens % greens.length]
     picked.greens++
   }
-  if (label.match(/"(2\d{2}|2\w{2}|OK)"/) != null) {
+  if (label.match(/"(2\d{2}|2\w{2}|OK|NOERROR)"/) != null) {
     color = greens[picked.greens % greens.length]
     picked.greens++
   }
@@ -190,7 +191,7 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
   }
   if (
     label.match(
-      /"(4\d{2}|4\w{2}|Canceled|InvalidArgument|NotFound|AlreadyExists|PermissionDenied|Unauthenticated|ResourceExhausted|FailedPrecondition|Aborted|OutOfRange)"/,
+      /"(4\d{2}|4\w{2}|Canceled|InvalidArgument|NotFound|AlreadyExists|PermissionDenied|Unauthenticated|ResourceExhausted|FailedPrecondition|Aborted|OutOfRange|NXDOMAIN|REFUSED)"/,
     ) != null
   ) {
     color = blues[picked.blues % blues.length]
@@ -198,7 +199,7 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
   }
   if (
     label.match(
-      /"(5\d{2}|5\w{2}|Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss)"/,
+      /"(5\d{2}|5\w{2}|Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss|SERVFAIL)"/,
     ) != null
   ) {
     color = reds[picked.reds % reds.length]
