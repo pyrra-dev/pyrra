@@ -114,9 +114,8 @@ const ErrorBudgetGraph = ({
       return `#${reds[0]}`
     }
 
-    // TODO: This seems "good enough" but sometimes the gradient still reaches the wrong side.
-    // Maybe it's a floating point thing?
-    const zeroPercentage = 1 - (0 - min) / (max - min)
+    const zeroHeight = u.valToPos(0, 'y', true)
+    const zeroPercentage = zeroHeight / (height - canvasPadding)
 
     const gradient = u.ctx.createLinearGradient(
       width / 2,
@@ -183,6 +182,7 @@ const ErrorBudgetGraph = ({
                 {
                   fill: budgetGradient,
                   gaps: seriesGaps(from / 1000, to / 1000),
+                  value: (u: uPlot, v: number) => (v == null ? '-' : v.toFixed(2) + '%'),
                 },
               ],
               scales: {
