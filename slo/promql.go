@@ -337,6 +337,7 @@ type objectiveReplacer struct {
 	grouping      []string
 	window        time.Duration
 	target        float64
+	percentile    float64
 }
 
 func (r objectiveReplacer) replace(node parser.Node) {
@@ -382,6 +383,9 @@ func (r objectiveReplacer) replace(node parser.Node) {
 	case *parser.NumberLiteral:
 		if n.Val == 0.696969 {
 			n.Val = r.target
+		}
+		if n.Val == 0.420 {
+			n.Val = r.percentile
 		}
 	default:
 		panic(fmt.Sprintf("no support for type %T", n))
@@ -460,6 +464,37 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
 			window:        timerange,
+		}.replace(expr)
+
+		return expr.String()
+	}
+	return ""
+}
+
+func (o Objective) DurationRange(timerange time.Duration, percentile float64) string {
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		return ""
+	}
+
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum by(le) (rate(errorMetric{matchers="errors"}[1s])))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		matchers := make([]*labels.Matcher, 0, len(o.Indicator.Latency.Success.LabelMatchers))
+		for _, m := range o.Indicator.Latency.Success.LabelMatchers {
+			if m.Name != "le" {
+				matchers = append(matchers, m)
+			}
+		}
+
+		objectiveReplacer{
+			errorMetric:   o.Indicator.Latency.Success.Name,
+			errorMatchers: matchers,
+			window:        timerange,
+			grouping:      []string{"le"},
+			percentile:    percentile,
 		}.replace(expr)
 
 		return expr.String()

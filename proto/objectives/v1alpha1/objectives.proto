@@ -14,6 +14,7 @@ service ObjectiveService {
   rpc GraphErrorBudget(GraphErrorBudgetRequest) returns (GraphErrorBudgetResponse) {}
   rpc GraphRate(GraphRateRequest) returns (GraphRateResponse) {}
   rpc GraphErrors(GraphErrorsRequest) returns (GraphErrorsResponse) {}
+  rpc GraphDuration(GraphDurationRequest) returns (GraphDurationResponse) {}
 }
 
 service ObjectiveBackendService {
@@ -177,4 +178,15 @@ message Timeseries {
 
 message Series {
   repeated double values = 1;
+}
+
+message GraphDurationRequest {
+  string expr = 1;
+  string grouping = 2;
+  google.protobuf.Timestamp start = 3;
+  google.protobuf.Timestamp end = 4;
+}
+
+message GraphDurationResponse {
+  repeated Timeseries timeseries = 1;
 }

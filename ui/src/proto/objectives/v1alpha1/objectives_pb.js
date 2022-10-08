@@ -327,3 +327,26 @@ export const Series = proto3.makeMessageType(
   ],
 );
 
+/**
+ * @generated from message objectives.v1alpha1.GraphDurationRequest
+ */
+export const GraphDurationRequest = proto3.makeMessageType(
+  "objectives.v1alpha1.GraphDurationRequest",
+  () => [
+    { no: 1, name: "expr", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "grouping", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "start", kind: "message", T: Timestamp },
+    { no: 4, name: "end", kind: "message", T: Timestamp },
+  ],
+);
+
+/**
+ * @generated from message objectives.v1alpha1.GraphDurationResponse
+ */
+export const GraphDurationResponse = proto3.makeMessageType(
+  "objectives.v1alpha1.GraphDurationResponse",
+  () => [
+    { no: 1, name: "timeseries", kind: "message", T: Timeseries, repeated: true },
+  ],
+);
+

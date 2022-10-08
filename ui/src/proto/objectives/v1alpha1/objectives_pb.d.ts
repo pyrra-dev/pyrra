@@ -881,3 +881,66 @@ export declare class Series extends Message<Series> {
   static equals(a: Series | PlainMessage<Series> | undefined, b: Series | PlainMessage<Series> | undefined): boolean;
 }
 
+/**
+ * @generated from message objectives.v1alpha1.GraphDurationRequest
+ */
+export declare class GraphDurationRequest extends Message<GraphDurationRequest> {
+  /**
+   * @generated from field: string expr = 1;
+   */
+  expr: string;
+
+  /**
+   * @generated from field: string grouping = 2;
+   */
+  grouping: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp start = 3;
+   */
+  start?: Timestamp;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp end = 4;
+   */
+  end?: Timestamp;
+
+  constructor(data?: PartialMessage<GraphDurationRequest>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "objectives.v1alpha1.GraphDurationRequest";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GraphDurationRequest;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GraphDurationRequest;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GraphDurationRequest;
+
+  static equals(a: GraphDurationRequest | PlainMessage<GraphDurationRequest> | undefined, b: GraphDurationRequest | PlainMessage<GraphDurationRequest> | undefined): boolean;
+}
+
+/**
+ * @generated from message objectives.v1alpha1.GraphDurationResponse
+ */
+export declare class GraphDurationResponse extends Message<GraphDurationResponse> {
+  /**
+   * @generated from field: repeated objectives.v1alpha1.Timeseries timeseries = 1;
+   */
+  timeseries: Timeseries[];
+
+  constructor(data?: PartialMessage<GraphDurationResponse>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "objectives.v1alpha1.GraphDurationResponse";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GraphDurationResponse;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GraphDurationResponse;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GraphDurationResponse;
+
+  static equals(a: GraphDurationResponse | PlainMessage<GraphDurationResponse> | undefined, b: GraphDurationResponse | PlainMessage<GraphDurationResponse> | undefined): boolean;
+}
+
