@@ -35,19 +35,28 @@
       color: $gray-900;
       border-radius: 8px;
 
-      h2,
-      h6 {
-        font-weight: normal;
+      h2, h6 {
         font-family: $font-family-sans-serif;
       }
 
       h2 {
+        font-weight: 400;
         font-size: 40px;
         margin-bottom: 0;
       }
 
       h6 {
+        font-weight: 600;
         font-size: 20px;
+      }
+
+      .headline {
+        opacity: 0.5;
+      }
+
+      .metric {
+        display: inline-block;
+        margin-right: 0.5rem;
       }
 
       &.good {

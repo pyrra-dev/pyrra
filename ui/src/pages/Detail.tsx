@@ -233,23 +233,19 @@ const Detail = () => {
       case ObjectiveType.Ratio:
         return (
           <div>
-            <h6>
-              Objective in{' '}
-              <strong>{formatDuration(Number(objective.window?.seconds) * 1000)}</strong>
-            </h6>
-            <h2>{(100 * objective.target).toFixed(3)}%</h2>
+            <h6 className="headline">Objective</h6>
+            <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
+            <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
           </div>
         )
       case ObjectiveType.Latency:
         return (
           <div>
-            <h6>
-              Objective in{' '}
-              <strong>{formatDuration(Number(objective.window?.seconds) * 1000)}</strong>
-            </h6>
-            <h2>
-              {(100 * objective.target).toFixed(3)}% &lt; {renderLatencyTarget(objective)}
-            </h2>
+            <h6 className="headline">Objective</h6>
+            <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
+            <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
+            <br />
+            <p>faster than {renderLatencyTarget(objective)}</p>
           </div>
         )
       default:
@@ -258,7 +254,7 @@ const Detail = () => {
   }
 
   const renderAvailability = () => {
-    const headline = <h6>Availability</h6>
+    const headline = <h6 className="headline">Availability</h6>
     switch (statusState) {
       case StatusState.Unknown:
         return (
@@ -298,14 +294,24 @@ const Detail = () => {
         return (
           <div className={availability.percentage > objective.target ? 'good' : 'bad'}>
             {headline}
-            <h2>{(100 * availability.percentage).toFixed(3)}%</h2>
+            <h2 className="metric">{(100 * availability.percentage).toFixed(3)}%</h2>
+            <table>
+              <tr>
+                <td>{objectiveType === ObjectiveType.Latency ? 'Slow:' : 'Errors:'}</td>
+                <td>{Math.floor(availability.errors).toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td>Total:</td>
+                <td>{Math.floor(availability.total).toLocaleString()}</td>
+              </tr>
+            </table>
           </div>
         )
     }
   }
 
   const renderErrorBudget = () => {
-    const headline = <h6>Error Budget</h6>
+    const headline = <h6 className="headline">Error Budget</h6>
     switch (statusState) {
       case StatusState.Unknown:
         return (
@@ -345,7 +351,7 @@ const Detail = () => {
         return (
           <div className={errorBudget.remaining > 0 ? 'good' : 'bad'}>
             {headline}
-            <h2>{(100 * errorBudget.remaining).toFixed(3)}%</h2>
+            <h2 className="metric">{(100 * errorBudget.remaining).toFixed(3)}%</h2>
           </div>
         )
     }
@@ -427,7 +433,7 @@ const Detail = () => {
               </div>
             </Col>
           </Row>
-          <Row style={{marginBottom: 0}}>
+          <Row>
             <Col>
               <ErrorBudgetGraph
                 client={client}
@@ -440,19 +446,10 @@ const Detail = () => {
             </Col>
           </Row>
           <Row>
-            <Col style={{textAlign: 'right'}}>
-              {availability != null ? (
-                <>
-                  <small>Errors: {Math.floor(availability.errors).toLocaleString()}</small>&nbsp;
-                  <small>Total: {Math.floor(availability.total).toLocaleString()}</small>&nbsp;
-                </>
-              ) : (
-                <></>
-              )}
-            </Col>
-          </Row>
-          <Row>
-            <Col xs={12} md={objectiveType === ObjectiveType.Ratio ? 6 : 12}>
+            <Col
+              xs={12}
+              md={objectiveType === ObjectiveType.Latency ? 12 : 6}
+              className={objectiveType === ObjectiveType.Latency ? 'col-xxxl-4' : ''}>
               <RequestsGraph
                 client={client}
                 labels={labels}
@@ -462,7 +459,10 @@ const Detail = () => {
                 uPlotCursor={uPlotCursor}
               />
             </Col>
-            <Col xs={12} md={objectiveType === ObjectiveType.Ratio ? 6 : 12}>
+            <Col
+              xs={12}
+              md={objectiveType === ObjectiveType.Latency ? 12 : 6}
+              className={objectiveType === ObjectiveType.Latency ? 'col-xxxl-4' : ''}>
               <ErrorsGraph
                 client={client}
                 type={objectiveType}
@@ -474,16 +474,18 @@ const Detail = () => {
               />
             </Col>
             {objectiveType === ObjectiveType.Latency ? (
-              <DurationGraph
-                client={client}
-                labels={labels}
-                grouping={groupingLabels}
-                from={from}
-                to={to}
-                uPlotCursor={uPlotCursor}
-                target={objective.target}
-                latency={latencyTarget(objective)}
-              />
+              <Col xs={12} className="col-xxxl-4">
+                <DurationGraph
+                  client={client}
+                  labels={labels}
+                  grouping={groupingLabels}
+                  from={from}
+                  to={to}
+                  uPlotCursor={uPlotCursor}
+                  target={objective.target}
+                  latency={latencyTarget(objective)}
+                />
+              </Col>
             ) : (
               <></>
             )}
