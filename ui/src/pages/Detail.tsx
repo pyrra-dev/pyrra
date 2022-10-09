@@ -481,7 +481,8 @@ const Detail = () => {
                 from={from}
                 to={to}
                 uPlotCursor={uPlotCursor}
-                target={latencyTarget(objective)}
+                target={objective.target}
+                latency={latencyTarget(objective)}
               />
             ) : (
               <></>

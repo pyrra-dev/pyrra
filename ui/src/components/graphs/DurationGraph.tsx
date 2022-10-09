@@ -23,7 +23,8 @@ interface DurationGraphProps {
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
-  target: number | undefined
+  target: number
+  latency: number | undefined
 }
 
 const DurationGraph = ({
@@ -34,6 +35,7 @@ const DurationGraph = ({
   to,
   uPlotCursor,
   target,
+  latency,
 }: DurationGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -130,7 +132,16 @@ const DurationGraph = ({
         )}
       </div>
       <div>
-        <p>How long do the requests take?</p>
+        <p>
+          How long do the requests take?
+          {latency !== undefined ? (
+            <>
+              <br />p{target * 100} must be faster than {formatDuration(latency * 1000)}.
+            </>
+          ) : (
+            ''
+          )}
+        </p>
       </div>
 
       <div ref={targetRef}>
@@ -173,7 +184,7 @@ const DurationGraph = ({
               hooks: {
                 drawSeries: [
                   (u: uPlot, _: number) => {
-                    if (target === undefined) {
+                    if (latency === undefined) {
                       return
                     }
 
@@ -183,7 +194,7 @@ const DurationGraph = ({
                     const xd = u.data[0]
                     const x0 = u.valToPos(xd[0], 'x', true)
                     const x1 = u.valToPos(xd[xd.length - 1], 'x', true)
-                    const y = u.valToPos(target, 'y', true)
+                    const y = u.valToPos(latency, 'y', true)
 
                     ctx.beginPath()
                     ctx.strokeStyle = `#${reds[0]}`
