@@ -1206,7 +1206,23 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 
 	timeseries := make([]*objectivesv1alpha1.Timeseries, 0, len(percentiles))
 
-	for _, percentile := range percentiles {
+	objectivePercentiles := percentiles
+	contains := false
+	for _, p := range percentiles {
+		if p == objective.Target {
+			contains = true
+		}
+	}
+	if !contains {
+		objectivePercentiles = append(objectivePercentiles, objective.Target)
+	}
+
+	// sort in descending order
+	sort.Slice(objectivePercentiles, func(i, j int) bool {
+		return objectivePercentiles[i] > objectivePercentiles[j]
+	})
+
+	for _, percentile := range objectivePercentiles {
 		if objective.Target >= percentile {
 			query := objective.DurationRange(timeRange, percentile)
 			value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusv1.Range{
