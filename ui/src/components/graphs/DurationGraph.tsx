@@ -96,6 +96,15 @@ const DurationGraph = ({
       })
   }, [client, labels, grouping, from, to])
 
+  const prometheusURLQuery = durationQueries.map(
+    (query: string, index: number) =>
+      `g${index}.expr=${encodeURIComponent(query)}&g${index}.range_input=${formatDuration(
+        to - from,
+      )}&g${index}.tab=0`,
+  )
+
+  const prometheusURL = `${PROMETHEUS_URL}/graph?${prometheusURLQuery.join('&')}`
+
   return (
     <>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
@@ -117,13 +126,7 @@ const DurationGraph = ({
           )}
         </h4>
         {durationQueries.length > 0 ? (
-          <a
-            className="external-prometheus"
-            target="_blank"
-            rel="noreferrer"
-            href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
-              durationQueries[0],
-            )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
+          <a className="external-prometheus" target="_blank" rel="noreferrer" href={prometheusURL}>
             <IconExternal height={20} width={20} />
             Prometheus
           </a>
