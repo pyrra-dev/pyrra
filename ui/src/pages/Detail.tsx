@@ -15,6 +15,7 @@ import {
   API_BASEPATH,
   formatDuration,
   hasObjectiveType,
+  latencyTarget,
   ObjectiveType,
   renderLatencyTarget,
 } from '../App'
@@ -40,6 +41,7 @@ import {
 import AlertsTable from '../components/AlertsTable'
 import Toggle from '../components/Toggle'
 import {Timestamp} from '@bufbuild/protobuf'
+import DurationGraph from '../components/graphs/DurationGraph'
 
 const Detail = () => {
   const client = useMemo(() => {
@@ -450,7 +452,7 @@ const Detail = () => {
             </Col>
           </Row>
           <Row>
-            <Col xs={12} md={6}>
+            <Col xs={12} md={objectiveType === ObjectiveType.Ratio ? 6 : 12}>
               <RequestsGraph
                 client={client}
                 labels={labels}
@@ -460,7 +462,7 @@ const Detail = () => {
                 uPlotCursor={uPlotCursor}
               />
             </Col>
-            <Col xs={12} md={6}>
+            <Col xs={12} md={objectiveType === ObjectiveType.Ratio ? 6 : 12}>
               <ErrorsGraph
                 client={client}
                 type={objectiveType}
@@ -471,6 +473,20 @@ const Detail = () => {
                 uPlotCursor={uPlotCursor}
               />
             </Col>
+            {objectiveType === ObjectiveType.Latency ? (
+              <DurationGraph
+                client={client}
+                labels={labels}
+                grouping={groupingLabels}
+                from={from}
+                to={to}
+                uPlotCursor={uPlotCursor}
+                target={objective.target}
+                latency={latencyTarget(objective)}
+              />
+            ) : (
+              <></>
+            )}
           </Row>
           <Row>
             <Col>

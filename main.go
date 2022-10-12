@@ -1164,6 +1164,124 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 	}), nil
 }
 
+var percentiles = []float64{0.999, 0.99, 0.95, 0.9, 0.5}
+
+func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Request[objectivesv1alpha1.GraphDurationRequest]) (*connect.Response[objectivesv1alpha1.GraphDurationResponse], error) {
+	objective, err := s.getObjective(ctx, req.Msg.Expr)
+	if err != nil {
+		return nil, err
+	}
+
+	// Merge grouping into objective's query
+	if req.Msg.Grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(req.Msg.Grouping)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
+		}
+		if objective.Indicator.Ratio != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
+				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
+			}
+		}
+		if objective.Indicator.Latency != nil {
+			for _, m := range groupingMatchers {
+				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
+				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
+			}
+		}
+	}
+
+	end := time.Now()
+	start := end.Add(-1 * time.Hour)
+
+	if !req.Msg.Start.AsTime().IsZero() && !req.Msg.End.AsTime().IsZero() {
+		start = req.Msg.Start.AsTime()
+		end = req.Msg.End.AsTime()
+	}
+	step := end.Sub(start) / 1000
+
+	timeRange := rangeInterval(start, end)
+	cacheDuration := rangeCache(start, end)
+
+	timeseries := make([]*objectivesv1alpha1.Timeseries, 0, len(percentiles))
+
+	objectivePercentiles := percentiles
+	contains := false
+	for _, p := range percentiles {
+		if p == objective.Target {
+			contains = true
+		}
+	}
+	if !contains {
+		objectivePercentiles = append(objectivePercentiles, objective.Target)
+	}
+
+	// sort in descending order
+	sort.Slice(objectivePercentiles, func(i, j int) bool {
+		return objectivePercentiles[i] > objectivePercentiles[j]
+	})
+
+	for _, percentile := range objectivePercentiles {
+		if objective.Target >= percentile {
+			query := objective.DurationRange(timeRange, percentile)
+			value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusv1.Range{
+				Start: start,
+				End:   end,
+				Step:  step,
+			})
+			if err != nil {
+				level.Warn(s.logger).Log("msg", "failed to run range error request", "query", query, "err", err)
+				return nil, connect.NewError(connect.CodeInternal, err)
+			}
+
+			if value.Type() != model.ValMatrix {
+				err := fmt.Errorf("returned data is not a matrix")
+				level.Warn(s.logger).Log("query", query, "err", err)
+				return nil, connect.NewError(connect.CodeInternal, err)
+			}
+
+			matrix, ok := value.(model.Matrix)
+			if !ok {
+				err := fmt.Errorf("no matrix returned")
+				level.Warn(s.logger).Log("query", query, "err", err)
+				return nil, connect.NewError(connect.CodeInternal, err)
+			}
+
+			if len(matrix) == 0 {
+				level.Debug(s.logger).Log("msg", "no data returned", "query", query)
+				return nil, connect.NewError(connect.CodeNotFound, err)
+			}
+
+			valueLength := 0
+			for _, m := range matrix {
+				if len(m.Values) > valueLength {
+					valueLength = len(m.Values)
+				}
+			}
+
+			values := matrixToValues(matrix)
+
+			series := make([]*objectivesv1alpha1.Series, 0, len(values))
+			for _, float64s := range values {
+				series = append(series, &objectivesv1alpha1.Series{Values: float64s})
+			}
+
+			timeseries = append(timeseries,
+				&objectivesv1alpha1.Timeseries{
+					Labels: []string{fmt.Sprintf(`{quantile="p%.f"}`, 100*percentile)}, // TODO: Nicer format float
+					Query:  query,
+					Series: series,
+				},
+			)
+		}
+	}
+
+	return connect.NewResponse(&objectivesv1alpha1.GraphDurationResponse{
+		Timeseries: timeseries,
+	}), nil
+}
+
 const (
 	hours12 = 12 * time.Hour
 	day     = 24 * time.Hour

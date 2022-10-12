@@ -50,3 +50,5 @@ export const yellows = [
   'FFF59D',
   'FFF9C4',
 ]
+
+export const colorful = ['651FFF', '009688', '00BCD4', '3D5AFE', '1DE9B6']

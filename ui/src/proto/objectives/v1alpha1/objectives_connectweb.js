@@ -3,7 +3,7 @@
 /* eslint-disable */
 /* @ts-nocheck */
 
-import {GetAlertsRequest, GetAlertsResponse, GetStatusRequest, GetStatusResponse, GraphErrorBudgetRequest, GraphErrorBudgetResponse, GraphErrorsRequest, GraphErrorsResponse, GraphRateRequest, GraphRateResponse, ListRequest, ListResponse} from "./objectives_pb.js";
+import {GetAlertsRequest, GetAlertsResponse, GetStatusRequest, GetStatusResponse, GraphDurationRequest, GraphDurationResponse, GraphErrorBudgetRequest, GraphErrorBudgetResponse, GraphErrorsRequest, GraphErrorsResponse, GraphRateRequest, GraphRateResponse, ListRequest, ListResponse} from "./objectives_pb.js";
 import {MethodKind} from "@bufbuild/protobuf";
 
 /**
@@ -64,6 +64,15 @@ export const ObjectiveService = {
       name: "GraphErrors",
       I: GraphErrorsRequest,
       O: GraphErrorsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc objectives.v1alpha1.ObjectiveService.GraphDuration
+     */
+    graphDuration: {
+      name: "GraphDuration",
+      I: GraphDurationRequest,
+      O: GraphDurationResponse,
       kind: MethodKind.Unary,
     },
   }

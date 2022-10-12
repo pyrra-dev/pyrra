@@ -739,3 +739,88 @@ func TestObjective_ErrorsRange(t *testing.T) {
 		})
 	}
 }
+
+func TestObjective_DurationRange(t *testing.T) {
+	testcases := []struct {
+		name      string
+		objective Objective
+		timerange time.Duration
+		expected  string
+	}{{
+		name:      "http-ratio",
+		objective: objectiveHTTPRatio(),
+		timerange: 6 * time.Hour,
+		expected:  ``,
+	}, {
+		name:      "http-ratio-grouping",
+		objective: objectiveHTTPRatioGrouping(),
+		timerange: 6 * time.Hour,
+		expected:  ``,
+	}, {
+		name:      "http-ratio-grouping-regex",
+		objective: objectiveHTTPRatioGroupingRegex(),
+		timerange: 6 * time.Hour,
+		expected:  ``,
+	}, {
+		name:      "grpc-ratio",
+		objective: objectiveGRPCRatio(),
+		timerange: 6 * time.Hour,
+		expected:  ``,
+	}, {
+		name:      "grpc-ratio-grouping",
+		objective: objectiveGRPCRatioGrouping(),
+		timerange: 6 * time.Hour,
+		expected:  ``,
+	}, {
+		name:      "http-latency",
+		objective: objectiveHTTPLatency(),
+		timerange: time.Hour,
+		expected:  `histogram_quantile(0.95, sum by(le) (rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default"}[1h])))`,
+	}, {
+		name:      "http-latency-grouping",
+		objective: objectiveHTTPLatencyGrouping(),
+		timerange: time.Hour,
+		expected:  `histogram_quantile(0.95, sum by(le) (rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default"}[1h])))`,
+	}, {
+		name:      "http-latency-grouping-regex",
+		objective: objectiveHTTPLatencyGroupingRegex(),
+		timerange: time.Hour,
+		expected:  `histogram_quantile(0.95, sum by(le) (rate(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[1h])))`,
+	}, {
+		name:      "grpc-latency",
+		objective: objectiveGRPCLatency(),
+		timerange: time.Hour,
+		expected:  `histogram_quantile(0.95, sum by(le) (rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1h])))`,
+	}, {
+		name:      "grpc-latency-grouping",
+		objective: objectiveGRPCLatencyGrouping(),
+		timerange: time.Hour,
+		expected:  `histogram_quantile(0.95, sum by(le) (rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1h])))`,
+	}, {
+		name:      "operator-ratio",
+		objective: objectiveOperator(),
+		timerange: 5 * time.Minute,
+		expected:  ``,
+	}, {
+		name:      "operator-ratio-grouping",
+		objective: objectiveOperatorGrouping(),
+		timerange: 5 * time.Minute,
+		expected:  ``,
+	}, {
+		name:      "apiserver-write-response-errors",
+		objective: objectiveAPIServerRatio(),
+		timerange: 2 * time.Hour,
+		expected:  ``,
+	}, {
+		name:      "apiserver-read-resource-latency",
+		objective: objectiveAPIServerLatency(),
+		timerange: 2 * time.Hour,
+		expected:  `histogram_quantile(0.95, sum by(le) (rate(apiserver_request_duration_seconds_bucket{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2h])))`,
+	}}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, tc.objective.DurationRange(tc.timerange, 0.95))
+		})
+	}
+}
