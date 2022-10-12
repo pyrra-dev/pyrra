@@ -12,7 +12,6 @@
   .metrics {
     width: 100%;
     display: grid;
-    padding: 0 15px;
     grid-template-columns: repeat(1, 1fr);
     column-gap: 25px;
     row-gap: 25px;
@@ -57,6 +56,10 @@
       .metric {
         display: inline-block;
         margin-right: 0.5rem;
+      }
+
+      .details {
+        font-weight: 500;
       }
 
       &.good {

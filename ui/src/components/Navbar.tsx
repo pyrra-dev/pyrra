@@ -1,5 +1,5 @@
 import {ReactNode} from 'react'
-import {Container, Navbar as BootstrapNavbar} from 'react-bootstrap'
+import {Col, Container, Navbar as BootstrapNavbar} from 'react-bootstrap'
 import {Link} from 'react-router-dom'
 import logo from '../logo.svg'
 
@@ -12,7 +12,9 @@ const Navbar = ({children}: NavbarProps): JSX.Element => {
     <BootstrapNavbar className={children !== undefined ? 'navbar-tall' : ''}>
       {children !== undefined ? (
         <Container>
-          <div className="breadcrumb">{children}</div>
+          <Col className="col-xxxl-10 offset-xxxl-1">
+            <div className="breadcrumb">{children}</div>
+          </Col>
         </Container>
       ) : (
         <></>

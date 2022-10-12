@@ -383,12 +383,12 @@ const Detail = () => {
       <div className="content detail">
         <Container>
           <Row>
-            <Col xs={12} className="header">
+            <Col xs={12} className="col-xxxl-10 offset-xxxl-1 header">
               <h3>{name}</h3>
               {labelBadges}
             </Col>
             {objective.description !== undefined && objective.description !== '' ? (
-              <Col xs={12} md={6} style={{marginTop: 12}}>
+              <Col xs={12} md={6} style={{marginTop: 12}} className="col-xxxl-10 offset-xxxl-1">
                 <p>{objective.description}</p>
               </Col>
             ) : (
@@ -396,11 +396,13 @@ const Detail = () => {
             )}
           </Row>
           <Row>
-            <div className="metrics">
-              {renderObjective()}
-              {renderAvailability()}
-              {renderErrorBudget()}
-            </div>
+            <Col className="col-xxxl-10 offset-xxxl-1">
+              <div className="metrics">
+                {renderObjective()}
+                {renderAvailability()}
+                {renderErrorBudget()}
+              </div>
+            </Col>
           </Row>
           <Row>
             <Col className="text-center timerange">
@@ -491,13 +493,13 @@ const Detail = () => {
             )}
           </Row>
           <Row>
-            <Col>
+            <Col className="col-xxxl-10 offset-xxxl-1">
               <h4>Multi Burn Rate Alerts</h4>
               <AlertsTable client={client} objective={objective} grouping={groupingLabels} />
             </Col>
           </Row>
           <Row>
-            <Col>
+            <Col className="col-xxxl-10 offset-xxxl-1">
               <h4>Config</h4>
               <pre style={{padding: 20, borderRadius: 4}}>
                 <code>{objective.config}</code>

@@ -31,6 +31,7 @@ $headings-margin-bottom: 1rem * 0.75;
 $table-th-font-weight: 600;
 
 @import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
 @import "@fontsource/inter/600.css";
 @import "@fontsource/inter/700.css";
 @import "@fontsource/lato/400.css";
@@ -47,12 +48,10 @@ $table-th-font-weight: 600;
 
 $grid-breakpoints: map-merge($grid-breakpoints, (
   xxxl: 1700px,
-  xxxxl: 2000px,
 ));
 
 $container-max-widths:map-merge($container-max-widths, (
   xxxl: 1600px,
-  xxxxl: 1880px,
 ));
 
 // Layout & components
