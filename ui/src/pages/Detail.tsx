@@ -245,7 +245,7 @@ const Detail = () => {
             <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
             <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
             <br />
-            <p>faster than {renderLatencyTarget(objective)}</p>
+            <p className="details">faster than {renderLatencyTarget(objective)}</p>
           </div>
         )
       default:
@@ -295,7 +295,7 @@ const Detail = () => {
           <div className={availability.percentage > objective.target ? 'good' : 'bad'}>
             {headline}
             <h2 className="metric">{(100 * availability.percentage).toFixed(3)}%</h2>
-            <table>
+            <table className="details">
               <tr>
                 <td>{objectiveType === ObjectiveType.Latency ? 'Slow:' : 'Errors:'}</td>
                 <td>{Math.floor(availability.errors).toLocaleString()}</td>
