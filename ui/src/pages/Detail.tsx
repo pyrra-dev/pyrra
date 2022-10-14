@@ -42,6 +42,7 @@ import AlertsTable from '../components/AlertsTable'
 import Toggle from '../components/Toggle'
 import {Timestamp} from '@bufbuild/protobuf'
 import DurationGraph from '../components/graphs/DurationGraph'
+import uPlot from 'uplot'
 
 const Detail = () => {
   const client = useMemo(() => {
@@ -365,7 +366,8 @@ const Detail = () => {
       </Badge>
     ))
 
-  const uPlotCursor = {
+  const uPlotCursor: uPlot.Cursor = {
+    y: false,
     lock: true,
     sync: {
       key: 'detail',
