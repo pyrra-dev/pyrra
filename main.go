@@ -323,9 +323,9 @@ func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response,
 
 type prometheusAPI interface {
 	// Query performs a query for the given time.
-	Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error)
+	Query(ctx context.Context, query string, ts time.Time, opts ...prometheusv1.Option) (model.Value, prometheusv1.Warnings, error)
 	// QueryRange performs a query for the given range.
-	QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error)
+	QueryRange(ctx context.Context, query string, r prometheusv1.Range, opts ...prometheusv1.Option) (model.Value, prometheusv1.Warnings, error)
 }
 
 type promLogger struct {
@@ -333,23 +333,23 @@ type promLogger struct {
 	logger log.Logger
 }
 
-func (l *promLogger) Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error) {
+func (l *promLogger) Query(ctx context.Context, query string, ts time.Time, opts ...prometheusv1.Option) (model.Value, prometheusv1.Warnings, error) {
 	level.Debug(l.logger).Log(
 		"msg", "running instant query",
 		"query", query,
 		"ts", ts,
 	)
-	return l.api.Query(ctx, query, ts)
+	return l.api.Query(ctx, query, ts, opts...)
 }
 
-func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error) {
+func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusv1.Range, opts ...prometheusv1.Option) (model.Value, prometheusv1.Warnings, error) {
 	level.Debug(l.logger).Log(
 		"msg", "running range query",
 		"query", query,
 		"start", r.Start,
 		"end", r.End,
 	)
-	return l.api.QueryRange(ctx, query, r)
+	return l.api.QueryRange(ctx, query, r, opts...)
 }
 
 type promCache struct {
