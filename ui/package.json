@@ -8,7 +8,7 @@
     "react": "^18.1.0",
     "react-bootstrap": "^2.5.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.2.2",
+    "react-router-dom": "^6.4.2",
     "uplot": "1.6.22",
     "uplot-react": "^1.1.1"
   },
