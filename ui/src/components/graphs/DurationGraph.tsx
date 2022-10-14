@@ -71,6 +71,11 @@ const DurationGraph = ({
         const durationLabels: string[] = []
         const durationQueries: string[] = []
 
+        // The first series is a straight line (same latency target value for all timestamps)
+        // showing the objective.
+        durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency))
+        durationLabels.push('{quantile="target"}')
+
         resp.timeseries.forEach((timeseries: Timeseries, i: number) => {
           const [x, ...series] = timeseries.series
           if (i === 0) {
@@ -94,7 +99,7 @@ const DurationGraph = ({
       .finally(() => {
         setDurationsLoading(false)
       })
-  }, [client, labels, grouping, from, to])
+  }, [client, labels, grouping, from, to, latency])
 
   const prometheusURLQuery = durationQueries.map(
     (query: string, index: number) =>
@@ -155,13 +160,13 @@ const DurationGraph = ({
               height: 150,
               padding: [15, 0, 0, 25],
               cursor: uPlotCursor,
-              // focus: {alpha: 1}, // TODO: Dynamic focus
               series: [
                 {},
                 ...durationLabels.map((label: string, i: number): uPlot.Series => {
                   return {
                     min: 0,
-                    stroke: `#${colorful[i]}`,
+                    stroke: i === 0 ? `#${reds[0]}` : `#${colorful[i]}`,
+                    dash: i === 0 ? [25, 10] : undefined,
                     label: parseLabelValue(label),
                     gaps: seriesGaps(from / 1000, to / 1000),
                     value: (u, v) => (v == null ? '-' : formatDuration(v * 1000)),
@@ -184,32 +189,6 @@ const DurationGraph = ({
                     v.map((v: number) => formatDuration(v * 1000)),
                 },
               ],
-              hooks: {
-                drawSeries: [
-                  (u: uPlot, _: number) => {
-                    if (latency === undefined) {
-                      return
-                    }
-
-                    const ctx = u.ctx
-                    ctx.save()
-
-                    const xd = u.data[0]
-                    const x0 = u.valToPos(xd[0], 'x', true)
-                    const x1 = u.valToPos(xd[xd.length - 1], 'x', true)
-                    const y = u.valToPos(latency, 'y', true)
-
-                    ctx.beginPath()
-                    ctx.strokeStyle = `#${reds[0]}`
-                    ctx.setLineDash([25, 10])
-                    ctx.moveTo(x0, y)
-                    ctx.lineTo(x1, y)
-                    ctx.stroke()
-
-                    ctx.restore()
-                  },
-                ],
-              },
             }}
             data={durations}
           />
