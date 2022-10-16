@@ -109,21 +109,24 @@ export default App
 
 // From prometheus/prometheus
 
-export const formatDuration = (d: number): string => {
+export const formatDuration = (d: number, precision: number = 2): string => {
   let ms = d
   let r = ''
   if (ms === 0) {
     return '0s'
   }
 
+  let precisionCount = 0
+
   const f = (unit: string, mult: number, exact: boolean) => {
-    if (exact && ms % mult !== 0) {
+    if ((exact && ms % mult !== 0) || precisionCount === precision) {
       return
     }
     const v = Math.floor(ms / mult)
     if (v > 0) {
       r += `${v}${unit}`
       ms -= v * mult
+      precisionCount++
     }
   }
 
@@ -137,6 +140,8 @@ export const formatDuration = (d: number): string => {
   f('m', 1000 * 60, false)
   f('s', 1000, false)
   f('ms', 1, false)
+  f('μs', 0.001, false)
+  f('ns', 0.001 * 0.001, false)
 
   return r
 }

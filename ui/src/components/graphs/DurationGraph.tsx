@@ -169,7 +169,7 @@ const DurationGraph = ({
                     dash: i === 0 ? [25, 10] : undefined,
                     label: parseLabelValue(label),
                     gaps: seriesGaps(from / 1000, to / 1000),
-                    value: (u, v) => (v == null ? '-' : formatDuration(v * 1000)),
+                    value: (u, v) => (v == null ? '-' : formatDuration(v * 1000, 1)),
                   }
                 }),
               ],
