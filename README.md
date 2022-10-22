@@ -113,7 +113,7 @@ The recording rules contain the necessary labels to uniquely identify the record
 
 > An example for this mode of operation can be found in [examples/kubernetes](examples/kubernetes).
 
-<img src="docs/architecture-kubernetes.png" alt="Kubernetes Architecture" height="200">
+<img src="docs/architecture-kubernetes.png" alt="Kubernetes Architecture" height="300">
 
 Here two deployments are needed: one for the API / UI and one for the
 operator. For the first deployment, start the binary with the `api` argument.
@@ -135,7 +135,7 @@ Thanks to [@rlex](https://github.com/rlex) there is a [Helm chart](https://artif
 
 > An example for this mode of operation can be found in [examples/docker-compose](examples/docker-compose).
 
-<img src="docs/architecture-filesystem.png" alt="Filesystem Architecture" height="200">
+<img src="docs/architecture-filesystem.png" alt="Filesystem Architecture" height="300">
 
 You can easily start Pyrra on its own via the provided Docker image:
 
