@@ -82,7 +82,7 @@ const ErrorsGraph = ({
   return (
     <>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
-        <h4>
+        <h4 className="graphs-headline">
           Errors
           {errorsLoading ? (
             <Spinner

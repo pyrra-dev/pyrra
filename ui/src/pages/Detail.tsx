@@ -390,7 +390,11 @@ const Detail = () => {
               {labelBadges}
             </Col>
             {objective.description !== undefined && objective.description !== '' ? (
-              <Col xs={12} md={6} style={{marginTop: 12}} className="col-xxxl-10 offset-xxxl-1">
+              <Col
+                xs={12}
+                md={6}
+                style={{marginTop: labelBadges.length > 0 ? 12 : 0}}
+                className="col-xxxl-5 offset-xxxl-1">
                 <p>{objective.description}</p>
               </Col>
             ) : (
@@ -495,13 +499,13 @@ const Detail = () => {
             )}
           </Row>
           <Row>
-            <Col className="col-xxxl-10 offset-xxxl-1">
+            <Col>
               <h4>Multi Burn Rate Alerts</h4>
               <AlertsTable client={client} objective={objective} grouping={groupingLabels} />
             </Col>
           </Row>
           <Row>
-            <Col className="col-xxxl-10 offset-xxxl-1">
+            <Col>
               <h4>Config</h4>
               <pre style={{padding: 20, borderRadius: 4}}>
                 <code>{objective.config}</code>
