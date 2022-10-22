@@ -88,7 +88,7 @@ const RequestsGraph = ({
   return (
     <>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
-        <h4>
+        <h4 className="graphs-headline">
           Requests
           {requestsLoading ? (
             <Spinner

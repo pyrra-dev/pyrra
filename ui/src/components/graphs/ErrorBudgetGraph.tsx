@@ -86,7 +86,7 @@ const ErrorBudgetGraph = ({
   if (!loading && samples === undefined) {
     return (
       <>
-        <h4>Error Budget</h4>
+        <h4 className="graphs-headline">Error Budget</h4>
         <div>
           <p>What percentage of the error budget is left over time?</p>
         </div>
@@ -133,7 +133,7 @@ const ErrorBudgetGraph = ({
   return (
     <>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
-        <h4>
+        <h4 className="graphs-headline">
           Error Budget
           {loading ? (
             <Spinner
