@@ -5,6 +5,8 @@
 <p align="center">Making SLOs with Prometheus manageable, accessible, and easy to use for everyone!
 </p>
 <p align="center"><img src="docs/screenshot-readme.png" width=700 alt="Screenshot of Pyrra"></p>
+<p align="center"><img src="examples/grafana/detail.png" width=700 alt="Pyrra Grafana dashboard"></p>
+
 <p align="center">Watch the 5min lightning talk at Prometheus Day 2022:</p>
 <p align="center">
   <a href="https://www.youtube.com/watch?v=8Ox0M6HIE3w">
@@ -18,7 +20,8 @@
 - Alerting: Generates 4 Multi Burn Rate Alerts with different severity
 - Page listing all Service Level Objectives
   - All columns sortable
-  - Sorted by remaining error budget to see worst ones quickly
+  - Sorted by remaining error budget to see the worst ones quickly
+  - Clicking on labels to filter SLOs that contain the label  
   - Tool-tips when hovering for extra context
 - Page with details for a Service Level Objective
   - Objective, Availability, Error Budget highlighted as 3 most important numbers
@@ -28,24 +31,18 @@
   - Multi Burn Rate Alerts overview table
 - Caching of Prometheus query results
 - Thanos: Disabling of partial responses and downsampling to 5m and 1h
-- connect-go and connect-web generate protobuf APIs 
+- connect-go and connect-web generate protobuf APIs
+- Grafana dashboard via `--generic-rules` generation
 
 ## Feedback & Support
 
 If you have any feedback, please open a discussion in the GitHub Discussions of this project.  
 We would love to learn what you think!
 
-## Acknowledgements
-
-[@aditya-konarde](https://github.com/aditya-konarde), [@brancz](https://github.com/brancz), [@cbrgm](https://github.com/cbrgm), [@codesome](https://github.com/codesome), [@ekeih](https://github.com/ekeih), [@guusvw](https://github.com/guusvw), [@jzelinskie](https://github.com/jzelinskie), [@kakkoyun](https://github.com/kakkoyun), [@lilic](https://github.com/lilic), [@markusressel](https://github.com/markusressel), [@morremeyer](https://github.com/morremeyer), [@mxinden](https://github.com/mxinden), [@numbleroot](https://github.com/numbleroot), [@paulfantom](https://github.com/paulfantom), [@RiRa12621](https://github.com/RiRa12621), [@tboerger](https://github.com/tboerger), and Maria Franke.
-
-While we were working on Pyrra in private these amazing people helped us with a look of feedback and some even took an extra hour for a in-depth testing! Thank you all so much!
-
-Additionally, [@metalmatze](https://github.com/metalmatze) would like to thank [Polar Signals](https://www.polarsignals.com/) for allowing us to work on this project in his 20% time.
-
 ## Demo
 
-Check out our live demo on [demo.pyrra.dev](https://demo.pyrra.dev)!
+Check out our live demo on [demo.pyrra.dev](https://demo.pyrra.dev)!  
+Grafana dashboards are available as demo on [demo.pyrra.dev/grafana](https://demo.pyrra.dev/grafana)!
 
 Feel free to give it a try there!
 
@@ -75,7 +72,7 @@ metadata:
 spec:
   target: "99"
   window: 2w
-  description: Pyrra's API requests and response errors over time. For now, this SLO is a comined SLO for all endpoints.
+  description: Pyrra's API requests and response errors over time grouped by route.
   indicator:
     ratio:
       errors:
@@ -181,6 +178,30 @@ Please adhere to this project's `code of conduct`.
 | Matthias Loibl | Engineering | [@metalmatze](https://github.com/metalmatze)       | [@metalmatze](https://twitter.com/MetalMatze)       | Polar Signals |
 
 We are mostly maintaining Pyrra in our free time.
+
+## Acknowledgements
+
+[@aditya-konarde](https://github.com/aditya-konarde),
+[@brancz](https://github.com/brancz),
+[@cbrgm](https://github.com/cbrgm),
+[@codesome](https://github.com/codesome),
+[@ekeih](https://github.com/ekeih),
+[@guusvw](https://github.com/guusvw),
+[@jzelinskie](https://github.com/jzelinskie),
+[@kakkoyun](https://github.com/kakkoyun),
+[@lilic](https://github.com/lilic),
+[@markusressel](https://github.com/markusressel),
+[@morremeyer](https://github.com/morremeyer),
+[@mxinden](https://github.com/mxinden),
+[@numbleroot](https://github.com/numbleroot),
+[@paulfantom](https://github.com/paulfantom),
+[@RiRa12621](https://github.com/RiRa12621),
+[@tboerger](https://github.com/tboerger),
+and Maria Franke.
+
+While we were working on Pyrra in private these amazing people helped us with a look of feedback and some even took an extra hour for a in-depth testing! Thank you all so much!
+
+Additionally, [@metalmatze](https://github.com/metalmatze) would like to thank [Polar Signals](https://www.polarsignals.com/) for allowing us to work on this project in his 20% time.
 
 ## FAQ
 
