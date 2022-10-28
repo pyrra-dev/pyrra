@@ -5,6 +5,9 @@
 <p align="center">Making SLOs with Prometheus manageable, accessible, and easy to use for everyone!
 </p>
 <p align="center"><img src="docs/screenshot-readme.png" width=700 alt="Screenshot of Pyrra"></p>
+
+<p align="center"><a href="https://github.com/pyrra-dev/pyrra/tree/main/examples/grafana">Dashboards</a> to visualize SLOs in Grafana:</p>
+
 <p align="center"><img src="examples/grafana/detail.png" width=700 alt="Pyrra Grafana dashboard"></p>
 
 <p align="center">Watch the 5min lightning talk at Prometheus Day 2022:</p>
