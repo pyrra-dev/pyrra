@@ -21,7 +21,7 @@
     "@fontsource/lato": "^4.5.10",
     "@types/node": "^18.11.8",
     "@types/react": "^18.0.21",
-    "@types/react-dom": "^18.0.6",
+    "@types/react-dom": "^18.0.8",
     "cra-template-typescript": "^1.2.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.5.0",
