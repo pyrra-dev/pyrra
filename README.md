@@ -45,7 +45,7 @@ We would love to learn what you think!
 ## Demo
 
 Check out our live demo on [demo.pyrra.dev](https://demo.pyrra.dev)!  
-Grafana dashboards are available as demo on [demo.pyrra.dev/grafana](https://demo.pyrra.dev/grafana)!
+Grafana dashboards are available as demo on [demo.pyrra.dev/grafana](https://demo.pyrra.dev/grafana/d/ccssRIenz/pyrra-detail?orgId=1&refresh=10s&from=now-7d&to=now)!
 
 Feel free to give it a try there!
 
