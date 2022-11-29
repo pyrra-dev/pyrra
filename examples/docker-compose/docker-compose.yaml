@@ -37,6 +37,7 @@ services:
 
   pyrra-filesystem:
     image: ghcr.io/pyrra-dev/pyrra:v0.5.0
+    user: root
     restart: always
     command:
       - filesystem
