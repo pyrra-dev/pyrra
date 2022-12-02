@@ -24,6 +24,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	connectprometheus "github.com/polarsignals/connect-go-prometheus"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
@@ -199,13 +200,22 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 	r := chi.NewRouter()
 	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
 
+	prometheusInterceptor := connectprometheus.NewInterceptor(reg)
+
 	r.Route(routePrefix, func(r chi.Router) {
 		objectiveService := &objectiveServer{
 			logger:  logger,
 			promAPI: promAPI,
-			client:  objectivesv1alpha1connect.NewObjectiveBackendServiceClient(http.DefaultClient, apiURL.String()),
+			client: objectivesv1alpha1connect.NewObjectiveBackendServiceClient(
+				http.DefaultClient,
+				apiURL.String(),
+				connect.WithInterceptors(prometheusInterceptor),
+			),
 		}
-		objectivePath, objectiveHandler := objectivesv1alpha1connect.NewObjectiveServiceHandler(objectiveService)
+		objectivePath, objectiveHandler := objectivesv1alpha1connect.NewObjectiveServiceHandler(
+			objectiveService,
+			connect.WithInterceptors(prometheusInterceptor),
+		)
 		if routePrefix != "/" {
 			r.Mount(objectivePath, http.StripPrefix(routePrefix, objectiveHandler))
 		} else {
