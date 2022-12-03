@@ -37,7 +37,6 @@ services:
 
   pyrra-filesystem:
     image: ghcr.io/pyrra-dev/pyrra:v0.5.0
-    user: root
     restart: always
     command:
       - filesystem
@@ -45,4 +44,4 @@ services:
       - pyrra
     volumes:
       - ./pyrra:/etc/pyrra
-      - prometheus_pyrra:/etc/prometheus/pyrra
+      - ./prometheus_pyrra:/etc/prometheus/pyrra
