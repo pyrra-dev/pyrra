@@ -55,6 +55,12 @@ kubectl apply -f ./examples/kubernetes/slos/
 
 ## Using Pyrra
 
-Checkout Pyrra's UI by port-forwarding to the Pod on port 9099 and then opening [localhost:9099](http://localhost:9099).
+Checkout Pyrra's UI by port-forwarding to the Pod on port 9099:
+
+```bash
+kubectl -n monitoring port-forward service/pyrra-api 9099:9099
+```
+
+Then opening [localhost:9099](http://localhost:9099).
 
 Make sure to also check Prometheus rules and alerts.
