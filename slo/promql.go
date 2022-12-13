@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
+	"golang.org/x/exp/slices"
 )
 
 // QueryTotal returns a PromQL query to get the total amount of requests served during the window.
@@ -22,13 +23,13 @@ func (o Objective) QueryTotal(window model.Duration) string {
 
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
 		metric = increaseName(o.Indicator.Ratio.Total.Name, window)
-		matchers = o.Indicator.Ratio.Total.LabelMatchers
-		grouping = o.Indicator.Ratio.Grouping
+		matchers = slices.Clone(o.Indicator.Ratio.Total.LabelMatchers)
+		grouping = slices.Clone(o.Indicator.Ratio.Grouping)
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		metric = increaseName(o.Indicator.Latency.Total.Name, window)
-		matchers = o.Indicator.Latency.Total.LabelMatchers
-		grouping = o.Indicator.Latency.Grouping
+		matchers = slices.Clone(o.Indicator.Latency.Total.LabelMatchers)
+		grouping = slices.Clone(o.Indicator.Latency.Grouping)
 	}
 
 	matchers = append(matchers, &labels.Matcher{
@@ -61,7 +62,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		}
 
 		metric := increaseName(o.Indicator.Ratio.Errors.Name, window)
-		matchers := o.Indicator.Ratio.Errors.LabelMatchers
+		matchers := slices.Clone(o.Indicator.Ratio.Errors.LabelMatchers)
 
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -91,7 +92,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		}
 
 		metric := increaseName(o.Indicator.Latency.Total.Name, window)
-		matchers := o.Indicator.Latency.Total.LabelMatchers
+		matchers := slices.Clone(o.Indicator.Latency.Total.LabelMatchers)
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
 				m.Value = metric
@@ -107,7 +108,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		})
 
 		errorMetric := increaseName(o.Indicator.Latency.Success.Name, window)
-		errorMatchers := o.Indicator.Latency.Success.LabelMatchers
+		errorMatchers := slices.Clone(o.Indicator.Latency.Success.LabelMatchers)
 		for _, m := range errorMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = errorMetric
@@ -154,7 +155,7 @@ func (o Objective) QueryErrorBudget() string {
 		}
 
 		metric := increaseName(o.Indicator.Ratio.Total.Name, o.Window)
-		matchers := o.Indicator.Ratio.Total.LabelMatchers
+		matchers := slices.Clone(o.Indicator.Ratio.Total.LabelMatchers)
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
 				m.Value = metric
@@ -168,7 +169,7 @@ func (o Objective) QueryErrorBudget() string {
 		})
 
 		errorMetric := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
-		errorMatchers := o.Indicator.Ratio.Errors.LabelMatchers
+		errorMatchers := slices.Clone(o.Indicator.Ratio.Errors.LabelMatchers)
 		for _, m := range errorMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = errorMetric
@@ -213,7 +214,7 @@ func (o Objective) QueryErrorBudget() string {
 		}
 
 		metric := increaseName(o.Indicator.Latency.Total.Name, o.Window)
-		matchers := o.Indicator.Latency.Total.LabelMatchers
+		matchers := slices.Clone(o.Indicator.Latency.Total.LabelMatchers)
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
 				m.Value = metric
@@ -229,7 +230,7 @@ func (o Objective) QueryErrorBudget() string {
 		})
 
 		errorMetric := increaseName(o.Indicator.Latency.Success.Name, o.Window)
-		errorMatchers := o.Indicator.Latency.Success.LabelMatchers
+		errorMatchers := slices.Clone(o.Indicator.Latency.Success.LabelMatchers)
 		for _, m := range errorMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = errorMetric
@@ -399,12 +400,19 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 			return err.Error()
 		}
 
+		matchers := slices.Clone(o.Indicator.Ratio.Total.LabelMatchers)
+		for i, m := range matchers {
+			if m.Name == labels.MetricName {
+				matchers[i].Value = o.Indicator.Ratio.Total.Name
+			}
+		}
+
 		objectiveReplacer{
 			metric:   o.Indicator.Ratio.Total.Name,
-			matchers: o.Indicator.Ratio.Total.LabelMatchers,
+			matchers: matchers,
 			grouping: groupingLabels(
 				o.Indicator.Ratio.Errors.LabelMatchers,
-				o.Indicator.Ratio.Total.LabelMatchers,
+				matchers,
 			),
 			window: timerange,
 			target: o.Target,
@@ -438,14 +446,21 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 			return err.Error()
 		}
 
+		matchers := slices.Clone(o.Indicator.Ratio.Total.LabelMatchers)
+		for i, m := range matchers {
+			if m.Name == labels.MetricName {
+				matchers[i].Value = o.Indicator.Ratio.Total.Name
+			}
+		}
+
 		objectiveReplacer{
 			metric:        o.Indicator.Ratio.Total.Name,
-			matchers:      o.Indicator.Ratio.Total.LabelMatchers,
+			matchers:      matchers,
 			errorMetric:   o.Indicator.Ratio.Errors.Name,
 			errorMatchers: o.Indicator.Ratio.Errors.LabelMatchers,
 			grouping: groupingLabels(
 				o.Indicator.Ratio.Errors.LabelMatchers,
-				o.Indicator.Ratio.Total.LabelMatchers,
+				matchers,
 			),
 			window: timerange,
 		}.replace(expr)

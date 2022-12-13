@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react'
+import React, {useEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
@@ -6,17 +6,15 @@ import uPlot, {AlignedData} from 'uplot'
 import {formatDuration, PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {greens, reds} from './colors'
-import {Labels, labelsString} from '../../labels'
 import {seriesGaps} from './gaps'
 import {PromiseClient} from '@bufbuild/connect-web'
-import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
-import {GraphErrorBudgetResponse} from '../../proto/objectives/v1alpha1/objectives_pb'
-import {Timestamp} from '@bufbuild/protobuf'
+import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb'
+import {usePrometheusQueryRange} from '../../prometheus'
+import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 
 interface ErrorBudgetGraphProps {
-  client: PromiseClient<typeof ObjectiveService>
-  labels: Labels
-  grouping: Labels
+  client: PromiseClient<typeof PrometheusService>
+  query: string
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
@@ -24,17 +22,13 @@ interface ErrorBudgetGraphProps {
 
 const ErrorBudgetGraph = ({
   client,
-  labels,
-  grouping,
+  query,
   from,
   to,
   uPlotCursor,
 }: ErrorBudgetGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
-  const [samples, setSamples] = useState<AlignedData>()
-  const [query, setQuery] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(true)
   const [width, setWidth] = useState<number>(1000)
 
   const setWidthFromContainer = () => {
@@ -42,31 +36,6 @@ const ErrorBudgetGraph = ({
       setWidth(targetRef.current.offsetWidth)
     }
   }
-
-  const getObjectiveErrorBudget = useCallback(() => {
-    setLoading(true)
-
-    client
-      .graphErrorBudget({
-        expr: labelsString(labels),
-        grouping: labelsString(grouping),
-        start: Timestamp.fromDate(new Date(from)),
-        end: Timestamp.fromDate(new Date(to)),
-      })
-      .then((resp: GraphErrorBudgetResponse) => {
-        if (resp.timeseries !== undefined) {
-          setSamples([
-            resp.timeseries.series[0].values,
-            resp.timeseries.series[1].values.map((v: number) => v * 100),
-          ])
-        }
-        setQuery(resp.timeseries?.query ?? '')
-      })
-      .catch(() => {
-        setSamples(undefined)
-      })
-      .finally(() => setLoading(false))
-  }, [client, labels, grouping, from, to])
 
   // Set width on first render
   useEffect(() => {
@@ -79,11 +48,31 @@ const ErrorBudgetGraph = ({
     }
   }, [])
 
-  useEffect(() => {
-    getObjectiveErrorBudget()
-  }, [getObjectiveErrorBudget])
+  const {response, status} = usePrometheusQueryRange(
+    client,
+    query,
+    from / 1000,
+    to / 1000,
+    // convert to seconds and then we want 1000 samples
+    (to - from) / 1000 / 1000,
+  )
 
-  if (!loading && samples === undefined) {
+  let samples: AlignedData = []
+  if (status === 'success') {
+    if (response?.options.case === 'matrix') {
+      const times: number[] = []
+      const values: number[] = []
+      response.options.value.samples.forEach((s: SampleStream) => {
+        s.values.forEach((sp: SamplePair) => {
+          times.push(Number(sp.time))
+          values.push(sp.value * 100)
+        })
+      })
+      samples = [times, values]
+    }
+  }
+
+  if (status !== 'loading' && samples.length === 0) {
     return (
       <>
         <h4 className="graphs-headline">Error Budget</h4>
@@ -135,7 +124,7 @@ const ErrorBudgetGraph = ({
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           Error Budget
-          {loading ? (
+          {status === 'loading' || status === 'idle' ? (
             <Spinner
               animation="border"
               style={{
@@ -170,7 +159,7 @@ const ErrorBudgetGraph = ({
       </div>
 
       <div ref={targetRef}>
-        {samples !== undefined ? (
+        {samples.length > 0 ? (
           <UplotReact
             options={{
               width: width,

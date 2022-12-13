@@ -26,7 +26,7 @@ import (
 	"github.com/go-kit/log/level"
 	connectprometheus "github.com/polarsignals/connect-go-prometheus"
 	"github.com/prometheus/client_golang/api"
-	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -40,6 +40,7 @@ import (
 
 	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
+	"github.com/pyrra-dev/pyrra/proto/prometheus/v1/prometheusv1connect"
 	"github.com/pyrra-dev/pyrra/slo"
 )
 
@@ -185,7 +186,7 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 	defer cache.Close()
 	promAPI := &promCache{
 		api: &promLogger{
-			api:    prometheusv1.NewAPI(promClient),
+			api:    prometheusapiv1.NewAPI(promClient),
 			logger: logger,
 		},
 		cache: cache,
@@ -204,7 +205,7 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 
 	r.Route(routePrefix, func(r chi.Router) {
 		objectiveService := &objectiveServer{
-			logger:  logger,
+			logger:  log.WithPrefix(logger, "service", "objective"),
 			promAPI: promAPI,
 			client: objectivesv1alpha1connect.NewObjectiveBackendServiceClient(
 				http.DefaultClient,
@@ -212,14 +213,24 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 				connect.WithInterceptors(prometheusInterceptor),
 			),
 		}
+
 		objectivePath, objectiveHandler := objectivesv1alpha1connect.NewObjectiveServiceHandler(
 			objectiveService,
 			connect.WithInterceptors(prometheusInterceptor),
 		)
+
+		prometheusService := &prometheusServer{
+			logger:  log.WithPrefix(logger, "service", "prometheus"),
+			promAPI: promAPI,
+		}
+		prometheusPath, prometheusHandler := prometheusv1connect.NewPrometheusServiceHandler(prometheusService)
+
 		if routePrefix != "/" {
 			r.Mount(objectivePath, http.StripPrefix(routePrefix, objectiveHandler))
+			r.Mount(prometheusPath, http.StripPrefix(routePrefix, prometheusHandler))
 		} else {
 			r.Mount(objectivePath, objectiveHandler)
+			r.Mount(prometheusPath, prometheusHandler)
 		}
 
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
@@ -333,9 +344,9 @@ func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response,
 
 type prometheusAPI interface {
 	// Query performs a query for the given time.
-	Query(ctx context.Context, query string, ts time.Time, opts ...prometheusv1.Option) (model.Value, prometheusv1.Warnings, error)
+	Query(ctx context.Context, query string, ts time.Time, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error)
 	// QueryRange performs a query for the given range.
-	QueryRange(ctx context.Context, query string, r prometheusv1.Range, opts ...prometheusv1.Option) (model.Value, prometheusv1.Warnings, error)
+	QueryRange(ctx context.Context, query string, r prometheusapiv1.Range, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error)
 }
 
 type promLogger struct {
@@ -343,7 +354,7 @@ type promLogger struct {
 	logger log.Logger
 }
 
-func (l *promLogger) Query(ctx context.Context, query string, ts time.Time, opts ...prometheusv1.Option) (model.Value, prometheusv1.Warnings, error) {
+func (l *promLogger) Query(ctx context.Context, query string, ts time.Time, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error) {
 	level.Debug(l.logger).Log(
 		"msg", "running instant query",
 		"query", query,
@@ -352,7 +363,7 @@ func (l *promLogger) Query(ctx context.Context, query string, ts time.Time, opts
 	return l.api.Query(ctx, query, ts, opts...)
 }
 
-func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusv1.Range, opts ...prometheusv1.Option) (model.Value, prometheusv1.Warnings, error) {
+func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusapiv1.Range, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error) {
 	level.Debug(l.logger).Log(
 		"msg", "running range query",
 		"query", query,
@@ -383,7 +394,7 @@ func contextGetPromCache(ctx context.Context) time.Duration {
 	return 0
 }
 
-func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusv1.Warnings, error) {
+func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (model.Value, prometheusapiv1.Warnings, error) {
 	if value, exists := p.cache.Get(query); exists {
 		return value.(model.Value), nil, nil
 	}
@@ -410,7 +421,7 @@ func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (mode
 	return value, warnings, nil
 }
 
-func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusv1.Range) (model.Value, prometheusv1.Warnings, error) {
+func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusapiv1.Range) (model.Value, prometheusapiv1.Warnings, error) {
 	// Get the full time range of this query from start to end.
 	// We round by 10s to adjust for small imperfections to increase cache hits.
 	timeRange := r.End.Sub(r.Start).Round(10 * time.Second)
@@ -475,6 +486,61 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 	}))
 	if err != nil {
 		return nil, err
+	}
+
+	groupingMatchers := map[string]*labels.Matcher{}
+	if req.Msg.Grouping != "" {
+		ms, err := parser.ParseMetricSelector(req.Msg.Grouping)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+		for _, m := range ms {
+			groupingMatchers[m.Name] = m
+		}
+	}
+
+	for _, o := range resp.Msg.Objectives {
+		oi := objectivesv1alpha1.ToInternal(o)
+
+		// If specific grouping was selected we need to merge the label matchers for the queries.
+		if len(groupingMatchers) > 0 {
+			if oi.Indicator.Ratio != nil {
+				for _, m := range oi.Indicator.Ratio.Errors.LabelMatchers {
+					if rm, replace := groupingMatchers[m.Name]; replace {
+						m.Type = rm.Type
+						m.Value = rm.Value
+					}
+				}
+				for _, m := range oi.Indicator.Ratio.Total.LabelMatchers {
+					if rm, replace := groupingMatchers[m.Name]; replace {
+						m.Type = rm.Type
+						m.Value = rm.Value
+					}
+				}
+			}
+			if oi.Indicator.Latency != nil {
+				for _, m := range oi.Indicator.Latency.Success.LabelMatchers {
+					if rm, replace := groupingMatchers[m.Name]; replace {
+						m.Type = rm.Type
+						m.Value = rm.Value
+					}
+				}
+				for _, m := range oi.Indicator.Latency.Total.LabelMatchers {
+					if rm, replace := groupingMatchers[m.Name]; replace {
+						m.Type = rm.Type
+						m.Value = rm.Value
+					}
+				}
+			}
+		}
+
+		o.Queries = &objectivesv1alpha1.Queries{
+			CountTotal:       oi.QueryTotal(oi.Window),
+			CountErrors:      oi.QueryErrors(oi.Window),
+			GraphErrorBudget: oi.QueryErrorBudget(),
+			GraphRequests:    oi.RequestRange(5 * time.Minute),
+			GraphErrors:      oi.ErrorsRange(5 * time.Minute),
+		}
 	}
 
 	return connect.NewResponse(&objectivesv1alpha1.ListResponse{
@@ -647,7 +713,7 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 	step := end.Sub(start) / 1000
 
 	query := objective.QueryErrorBudget()
-	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, 15*time.Second), query, prometheusv1.Range{
+	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, 15*time.Second), query, prometheusapiv1.Range{
 		Start: start,
 		End:   end,
 		Step:  step,
@@ -1022,7 +1088,7 @@ func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[ob
 
 	query := objective.RequestRange(timeRange)
 
-	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusv1.Range{
+	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusapiv1.Range{
 		Start: start,
 		End:   end,
 		Step:  step,
@@ -1117,7 +1183,7 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 	cacheDuration := rangeCache(start, end)
 
 	query := objective.ErrorsRange(timeRange)
-	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusv1.Range{
+	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusapiv1.Range{
 		Start: start,
 		End:   end,
 		Step:  step,
@@ -1235,7 +1301,7 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 	for _, percentile := range objectivePercentiles {
 		if objective.Target >= percentile {
 			query := objective.DurationRange(timeRange, percentile)
-			value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusv1.Range{
+			value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusapiv1.Range{
 				Start: start,
 				End:   end,
 				Step:  step,

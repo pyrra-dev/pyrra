@@ -1,44 +1,31 @@
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
+import React, {useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
 import {formatDuration, PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
-import {Labels, labelsString, parseLabelValue} from '../../labels'
 import {blues, greens, reds, yellows} from './colors'
 import {seriesGaps} from './gaps'
 import {PromiseClient} from '@bufbuild/connect-web'
-import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
-import {GraphRateResponse, Series} from '../../proto/objectives/v1alpha1/objectives_pb'
-import {Timestamp} from '@bufbuild/protobuf'
+import {usePrometheusQueryRange} from '../../prometheus'
+import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb'
+import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 
 interface RequestsGraphProps {
-  client: PromiseClient<typeof ObjectiveService>
-  labels: Labels
-  grouping: Labels
+  client: PromiseClient<typeof PrometheusService>
+  query: string
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
 }
 
-const RequestsGraph = ({
-  client,
-  labels,
-  grouping,
-  from,
-  to,
-  uPlotCursor,
-}: RequestsGraphProps): JSX.Element => {
+const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
-  const [requests, setRequests] = useState<AlignedData>()
-  const [requestsQuery, setRequestsQuery] = useState<string>('')
-  const [requestsLabels, setRequestsLabels] = useState<string[]>([])
-  const [requestsLoading, setRequestsLoading] = useState<boolean>(true)
   const [width, setWidth] = useState<number>(500)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined) {
+    if (targetRef?.current !== undefined && targetRef?.current !== null) {
       setWidth(targetRef.current.offsetWidth)
     }
   }
@@ -48,34 +35,72 @@ const RequestsGraph = ({
   // Set width on every window resize
   window.addEventListener('resize', setWidthFromContainer)
 
-  useEffect(() => {
-    setRequestsLoading(true)
-    client
-      .graphRate({
-        expr: labelsString(labels),
-        grouping: labelsString(grouping),
-        start: Timestamp.fromDate(new Date(from)),
-        end: Timestamp.fromDate(new Date(to)),
-      })
-      .then((resp: GraphRateResponse) => {
-        if (resp.timeseries !== undefined) {
-          const [x, ...series] = resp.timeseries.series
-          const ys: number[][] = []
-          series.forEach((s: Series) => {
-            ys.push(s.values)
-          })
-          setRequests([x.values, ...ys])
-          setRequestsQuery(resp.timeseries.query)
-          setRequestsLabels(resp.timeseries.labels)
+  const {response, status} = usePrometheusQueryRange(
+    client,
+    query,
+    from / 1000,
+    to / 1000,
+    (to - from) / 1000 / 1000,
+  )
+
+  if (status === 'loading' || status === 'idle') {
+    return (
+      <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
+        <h4 className="graphs-headline">
+          Requests
+          <Spinner
+            animation="border"
+            style={{
+              marginLeft: '1rem',
+              marginBottom: '0.5rem',
+              width: '1rem',
+              height: '1rem',
+              borderWidth: '1px',
+            }}
+          />
+        </h4>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    // TODO
+    return (
+      <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
+        error
+      </div>
+    )
+  }
+
+  // TODO: Move matrix to AlignedData to helper function
+
+  const labels: string[] = []
+  let samples: AlignedData = []
+  if (response?.options.case === 'matrix') {
+    const times: number[] = []
+    const values: number[][] = []
+
+    response.options.value.samples.forEach((ss: SampleStream, i: number) => {
+      // Add this series' labels to the array of label values
+      Object.values(ss.metric).forEach((l: string) => labels.push(l))
+
+      // Create an empty nested array for this time series
+      values.push([])
+
+      // Write all samples into the nested array.
+      // If this is the first series, write the timestamps too.
+      ss.values.forEach((sp: SamplePair) => {
+        if (i === 0) {
+          times.push(Number(sp.time))
         }
+        values[i].push(sp.value)
       })
-      .catch(() => {
-        setRequests(undefined)
-      })
-      .finally(() => {
-        setRequestsLoading(false)
-      })
-  }, [client, labels, grouping, from, to])
+    })
+
+    samples = [times, ...values]
+  }
+
+  console.log(labels, samples)
 
   // small state used while picking colors to reuse as little as possible
   const pickedColors = {
@@ -88,44 +113,24 @@ const RequestsGraph = ({
   return (
     <>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
-        <h4 className="graphs-headline">
-          Requests
-          {requestsLoading ? (
-            <Spinner
-              animation="border"
-              style={{
-                marginLeft: '1rem',
-                marginBottom: '0.5rem',
-                width: '1rem',
-                height: '1rem',
-                borderWidth: '1px',
-              }}
-            />
-          ) : (
-            <></>
-          )}
-        </h4>
-        {requestsQuery !== '' ? (
-          <a
-            className="external-prometheus"
-            target="_blank"
-            rel="noreferrer"
-            href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
-              requestsQuery,
-            )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
-            <IconExternal height={20} width={20} />
-            <span>Prometheus</span>
-          </a>
-        ) : (
-          <></>
-        )}
+        <h4 className="graphs-headline">Requests</h4>
+        <a
+          className="external-prometheus"
+          target="_blank"
+          rel="noreferrer"
+          href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
+            query,
+          )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
+          <IconExternal height={20} width={20} />
+          <span>Prometheus</span>
+        </a>
       </div>
       <div>
         <p>How many requests per second have there been?</p>
       </div>
 
       <div ref={targetRef}>
-        {requests !== undefined ? (
+        {samples.length > 0 ? (
           <UplotReact
             options={{
               width: width,
@@ -134,9 +139,9 @@ const RequestsGraph = ({
               cursor: uPlotCursor,
               series: [
                 {},
-                ...requestsLabels.map((label: string): uPlot.Series => {
+                ...labels.map((label: string): uPlot.Series => {
                   return {
-                    label: parseLabelValue(label),
+                    label: label,
                     stroke: `#${labelColor(pickedColors, label)}`,
                     gaps: seriesGaps(from / 1000, to / 1000),
                     value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
@@ -153,7 +158,7 @@ const RequestsGraph = ({
                 },
               },
             }}
-            data={requests}
+            data={samples}
           />
         ) : (
           <UplotReact
@@ -182,17 +187,17 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
     color = greens[picked.greens % greens.length]
     picked.greens++
   }
-  if (label.match(/"(2\d{2}|2\w{2}|ok|noerror|hit)"/) != null) {
+  if (label.match(/(2\d{2}|2\w{2}|ok|noerror|hit)/) != null) {
     color = greens[picked.greens % greens.length]
     picked.greens++
   }
-  if (label.match(/"(3\d{2}|3\w{2})"/) != null) {
+  if (label.match(/(3\d{2}|3\w{2})/) != null) {
     color = yellows[picked.yellows % yellows.length]
     picked.yellows++
   }
   if (
     label.match(
-      /"(4\d{2}|4\w{2}|canceled|invalidargument|notfound|alreadyexists|permissiondenied|unauthenticated|resourceexhausted|failedprecondition|aborted|outofrange|nxdomain|refused)"/,
+      /(4\d{2}|4\w{2}|canceled|invalidargument|notfound|alreadyexists|permissiondenied|unauthenticated|resourceexhausted|failedprecondition|aborted|outofrange|nxdomain|refused)/,
     ) != null
   ) {
     color = blues[picked.blues % blues.length]
@@ -200,7 +205,7 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
   }
   if (
     label.match(
-      /"(5\d{2}|5\w{2}|unknown|deadlineexceeded|unimplemented|internal|unavailable|dataloss|servfail|miss)"/,
+      /(5\d{2}|5\w{2}|unknown|deadlineexceeded|unimplemented|internal|unavailable|dataloss|servfail|miss)/,
     ) != null
   ) {
     color = reds[picked.reds % reds.length]

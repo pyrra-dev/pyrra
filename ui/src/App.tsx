@@ -3,6 +3,7 @@ import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import List from './pages/List'
 import Detail from './pages/Detail'
 import {LabelMatcher, Latency, Objective} from './proto/objectives/v1alpha1/objectives_pb'
+import {QueryClient, QueryClientProvider} from 'react-query'
 
 // @ts-expect-error - this is passed from the HTML template.
 export const PATH_PREFIX: string = window.PATH_PREFIX
@@ -11,15 +12,26 @@ export const API_BASEPATH: string = window.API_BASEPATH
 // @ts-expect-error - this is passed from the HTML template.
 export const PROMETHEUS_URL: string = window.PROMETHEUS_URL
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+})
+
 const App = () => {
   const basename = `/${PATH_PREFIX.replace(/^\//, '').replace(/\/$/, '')}`
+
   return (
-    <BrowserRouter basename={basename}>
-      <Routes>
-        <Route path="/" element={<List />} />
-        <Route path="/objectives" element={<Detail />} />
-      </Routes>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter basename={basename}>
+        <Routes>
+          <Route path="/" element={<List />} />
+          <Route path="/objectives" element={<Detail />} />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   )
 }
 
