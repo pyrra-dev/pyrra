@@ -44,4 +44,4 @@ services:
       - pyrra
     volumes:
       - ./pyrra:/etc/pyrra
-      - prometheus_pyrra:/etc/prometheus/pyrra
+      - ./prometheus_pyrra:/etc/prometheus/pyrra
