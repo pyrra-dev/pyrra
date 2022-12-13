@@ -139,7 +139,7 @@ const RequestsGraph = ({
                     label: parseLabelValue(label),
                     stroke: `#${labelColor(pickedColors, label)}`,
                     gaps: seriesGaps(from / 1000, to / 1000),
-                    value: (u, v) => (v == null ? '-' : `${v.toPrecision(2)}req/s`),
+                    value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
                   }
                 }),
               ],
