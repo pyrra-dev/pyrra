@@ -139,7 +139,7 @@ const RequestsGraph = ({
                     label: parseLabelValue(label),
                     stroke: `#${labelColor(pickedColors, label)}`,
                     gaps: seriesGaps(from / 1000, to / 1000),
-                    value: (u, v) => (v == null ? '-' : `${v.toPrecision(2)}req/s`),
+                    value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
                   }
                 }),
               ],
@@ -176,12 +176,13 @@ const RequestsGraph = ({
 }
 
 const labelColor = (picked: {[color: string]: number}, label: string): string => {
+  label = label.toLowerCase()
   let color = ''
   if (label === '{}') {
     color = greens[picked.greens % greens.length]
     picked.greens++
   }
-  if (label.match(/"(2\d{2}|2\w{2}|OK|NOERROR)"/) != null) {
+  if (label.match(/"(2\d{2}|2\w{2}|ok|noerror|hit)"/) != null) {
     color = greens[picked.greens % greens.length]
     picked.greens++
   }
@@ -191,7 +192,7 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
   }
   if (
     label.match(
-      /"(4\d{2}|4\w{2}|Canceled|InvalidArgument|NotFound|AlreadyExists|PermissionDenied|Unauthenticated|ResourceExhausted|FailedPrecondition|Aborted|OutOfRange|NXDOMAIN|REFUSED)"/,
+      /"(4\d{2}|4\w{2}|canceled|invalidargument|notfound|alreadyexists|permissiondenied|unauthenticated|resourceexhausted|failedprecondition|aborted|outofrange|nxdomain|refused)"/,
     ) != null
   ) {
     color = blues[picked.blues % blues.length]
@@ -199,7 +200,7 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
   }
   if (
     label.match(
-      /"(5\d{2}|5\w{2}|Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss|SERVFAIL)"/,
+      /"(5\d{2}|5\w{2}|unknown|deadlineexceeded|unimplemented|internal|unavailable|dataloss|servfail|miss)"/,
     ) != null
   ) {
     color = reds[picked.reds % reds.length]
