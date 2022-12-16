@@ -1,7 +1,7 @@
 import React, {useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
-import uPlot, {AlignedData} from 'uplot'
+import uPlot from 'uplot'
 import {formatDuration, PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {blues, greens, reds, yellows} from './colors'
@@ -9,7 +9,8 @@ import {seriesGaps} from './gaps'
 import {PromiseClient} from '@bufbuild/connect-web'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb'
-import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
+import {step} from './step'
+import {convertAlignedData} from './aligneddata'
 
 interface RequestsGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -40,7 +41,7 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProp
     query,
     from / 1000,
     to / 1000,
-    (to - from) / 1000 / 1000,
+    step(from, to),
   )
 
   if (status === 'loading' || status === 'idle') {
@@ -72,35 +73,7 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProp
     )
   }
 
-  // TODO: Move matrix to AlignedData to helper function
-
-  const labels: string[] = []
-  let samples: AlignedData = []
-  if (response?.options.case === 'matrix') {
-    const times: number[] = []
-    const values: number[][] = []
-
-    response.options.value.samples.forEach((ss: SampleStream, i: number) => {
-      // Add this series' labels to the array of label values
-      Object.values(ss.metric).forEach((l: string) => labels.push(l))
-
-      // Create an empty nested array for this time series
-      values.push([])
-
-      // Write all samples into the nested array.
-      // If this is the first series, write the timestamps too.
-      ss.values.forEach((sp: SamplePair) => {
-        if (i === 0) {
-          times.push(Number(sp.time))
-        }
-        values[i].push(sp.value)
-      })
-    })
-
-    samples = [times, ...values]
-  }
-
-  console.log(labels, samples)
+  const {labels, data} = convertAlignedData(response)
 
   // small state used while picking colors to reuse as little as possible
   const pickedColors = {
@@ -111,7 +84,7 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProp
   }
 
   return (
-    <>
+    <div>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">Requests</h4>
         <a
@@ -130,7 +103,7 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProp
       </div>
 
       <div ref={targetRef}>
-        {samples.length > 0 ? (
+        {data.length > 0 ? (
           <UplotReact
             options={{
               width: width,
@@ -158,7 +131,7 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProp
                 },
               },
             }}
-            data={samples}
+            data={data}
           />
         ) : (
           <UplotReact
@@ -176,7 +149,7 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProp
           />
         )}
       </div>
-    </>
+    </div>
   )
 }
 

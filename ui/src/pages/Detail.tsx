@@ -464,15 +464,18 @@ const Detail = () => {
               xs={12}
               md={objectiveType === ObjectiveType.Latency ? 12 : 6}
               className={objectiveType === ObjectiveType.Latency ? 'col-xxxl-4' : ''}>
-              <ErrorsGraph
-                client={client}
-                type={objectiveType}
-                labels={labels}
-                grouping={groupingLabels}
-                from={from}
-                to={to}
-                uPlotCursor={uPlotCursor}
-              />
+              {objective.queries?.graphErrors !== undefined ? (
+                <ErrorsGraph
+                  client={promClient}
+                  type={objectiveType}
+                  query={objective.queries.graphErrors}
+                  from={from}
+                  to={to}
+                  uPlotCursor={uPlotCursor}
+                />
+              ) : (
+                <></>
+              )}
             </Col>
             {objectiveType === ObjectiveType.Latency ? (
               <Col xs={12} className="col-xxxl-4">
