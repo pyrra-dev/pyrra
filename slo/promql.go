@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -453,13 +454,20 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 			}
 		}
 
+		errorMatchers := slices.Clone(o.Indicator.Ratio.Errors.LabelMatchers)
+		for i, m := range errorMatchers {
+			if m.Name == labels.MetricName {
+				errorMatchers[i].Value = o.Indicator.Ratio.Errors.Name
+			}
+		}
+
 		objectiveReplacer{
 			metric:        o.Indicator.Ratio.Total.Name,
 			matchers:      matchers,
 			errorMetric:   o.Indicator.Ratio.Errors.Name,
-			errorMatchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			errorMatchers: errorMatchers,
 			grouping: groupingLabels(
-				o.Indicator.Ratio.Errors.LabelMatchers,
+				errorMatchers,
 				matchers,
 			),
 			window: timerange,
@@ -530,9 +538,5 @@ func groupingLabels(errorMatchers, totalMatchers []*labels.Matcher) []string {
 	// and we have to remove it for the latency SLOs.
 	delete(groupingLabels, "le")
 
-	grouping := make([]string, 0, len(groupingLabels))
-	for l := range groupingLabels {
-		grouping = append(grouping, l)
-	}
-	return grouping
+	return maps.Keys(groupingLabels)
 }
