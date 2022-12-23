@@ -1,0 +1,21 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: pyrra-connect-errors
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: '99'
+  window: 2w
+  description: Pyrra serves API requests with connect-go either via gRPC or HTTP.
+  indicator:
+    ratio:
+      errors:
+        metric: connect_server_requests_total{job="pyrra",code=~"aborted|unavailable|internal|unknown|unimplemented|dataloss"}
+      total:
+        metric: connect_server_requests_total{job="pyrra"}
+      grouping:
+        - service
+        - method
