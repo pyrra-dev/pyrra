@@ -89,7 +89,7 @@ func Test_makePrometheusRule(t *testing.T) {
 							Rules: []monitoringv1.Rule{
 								{
 									Record: "http_requests:increase4w",
-									Expr:   intstr.FromString(`sum by(status) (increase(http_requests_total{job="app"}[4w]))`),
+									Expr:   intstr.FromString(`sum by (status) (increase(http_requests_total{job="app"}[4w]))`),
 									Labels: map[string]string{
 										"job":  "app",
 										"slo":  "http",
@@ -200,7 +200,7 @@ func Test_makeConfigMap(t *testing.T) {
 - interval: 2m30s
   name: http-increase
   rules:
-  - expr: sum by(status) (increase(http_requests_total{job="app"}[4w]))
+  - expr: sum by (status) (increase(http_requests_total{job="app"}[4w]))
     labels:
       job: app
       slo: http
