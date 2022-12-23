@@ -15,12 +15,14 @@ export const useObjectivesList = (
   client: PromiseClient<typeof ObjectiveService>,
   expr: string,
   grouping: string,
+  options?: QueryOptions,
 ): ObjectivesListResponse => {
   const {data, error, status} = useConnectQuery({
     key: [expr, grouping],
     func: async () => {
       return await client.list({expr, grouping})
     },
+    options,
   })
 
   return {response: data ?? null, error: error as ConnectError, status}

@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useReducer, useState} from 'react'
+import React, {useMemo, useReducer, useState} from 'react'
 import {
   Alert,
   Badge,
@@ -25,15 +25,8 @@ import {IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning} from '../compo
 import {Labels, labelsString, MetricName, parseLabels} from '../labels'
 import {createConnectTransport, createPromiseClient} from '@bufbuild/connect-web'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
-import {
-  Alert as ObjectiveAlert,
-  Alert_State,
-  GetAlertsResponse,
-  GetStatusResponse,
-  ListResponse,
-  Objective,
-  ObjectiveStatus,
-} from '../proto/objectives/v1alpha1/objectives_pb'
+import {Objective, ObjectiveStatus} from '../proto/objectives/v1alpha1/objectives_pb'
+import {useObjectivesList} from '../objectives'
 
 enum TableObjectiveState {
   Unknown,
@@ -253,12 +246,22 @@ const List = () => {
     )
   }, [])
 
+  // const promClient = useMemo(() => {
+  //   return createPromiseClient(
+  //     PrometheusService,
+  //     // createGrpcWebTransport({ TODO: Use grpcWeb in production for efficiency?
+  //     createConnectTransport({
+  //       baseUrl: API_BASEPATH,
+  //     }),
+  //   )
+  // }, [])
+
   const navigate = useNavigate()
   const {search} = useLocation()
 
   const [objectives, setObjectives] = useState<Objective[]>([])
   const initialTableState: TableState = {objectives: {}}
-  const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
+  const [table] = useReducer(tableReducer, initialTableState)
   const [tableSortState, setTableSortState] = useState<TableSorting>({
     type: TableSortType.Budget,
     order: TableSortOrder.Ascending,
@@ -308,97 +311,113 @@ const List = () => {
     navigate(`?filter=${encodeURI(labelsString(updatedFilter))}`)
   }
 
-  useEffect(() => {
-    document.title = 'Objectives - Pyrra'
+  // useEffect(() => {
+  //   document.title = 'Objectives - Pyrra'
+  // })
+¡
+  // const {response, status} = useObjectivesList(client, labelsString(filterLabels), '')
+  // if (status === 'success' && response !== null) {
+  //   console.log(response.objectives)
+  //   setObjectives(response.objectives)
+  // }
 
-    client
-      .list({expr: labelsString(filterLabels)})
-      .then((resp: ListResponse) => setObjectives(resp.objectives))
-      .catch((err) => console.log(err))
-  }, [client, filterLabels])
+  // const objectiveQueries = useQueries(
+  //   objectives.map((objective: Objective) => {
+  //     return {
+  //       queryKey: ['objective', labelsString(objective.labels)],
+  //       queryFn: async () => {
+  //         return await client.getStatus({expr: labelsString(objective.labels)})
+  //       },
+  //     }
+  //   }),
+  // )
+  //
+  // objectiveQueries.forEach((q) => {
+  //   console.log(q)
+  // })
 
-  useEffect(() => {
-    // const controller = new AbortController()
-    // const signal = controller.signal // TODO: Pass this to the generated fetch client?
-
-    // First we need to make sure to have objectives before we try fetching alerts for them.
-    // If we were to do this concurrently it may end up in a situation
-    // where we try to add an alert for a not yet existing objective.
-    // TODO: This is prone to a concurrency race with updates of status that have additional groupings...
-    // One solution would be to store this in a separate array and reconcile against that array after every status update.
-    if (objectives.length > 0) {
-      client
-        .getAlerts({
-          expr: '',
-          inactive: false,
-          current: false,
-        })
-        .then((resp: GetAlertsResponse) => {
-          resp.alerts.forEach((a: ObjectiveAlert) => {
-            if (a.state === Alert_State.firing) {
-              dispatchTable({
-                type: TableActionType.SetAlert,
-                labels: a.labels,
-                severity: a.severity,
-              })
-            }
-          })
-        })
-        .catch((err) => console.log(err))
-    }
-
-    objectives
-      .sort((a: Objective, b: Objective) =>
-        labelsString(a.labels).localeCompare(labelsString(b.labels)),
-      )
-      .forEach((o: Objective) => {
-        dispatchTable({
-          type: TableActionType.SetObjective,
-          lset: labelsString(o.labels),
-          objective: o,
-        })
-
-        client
-          .getStatus({expr: labelsString(o.labels)})
-          .then((resp: GetStatusResponse) => {
-            if (resp.status.length === 0) {
-              dispatchTable({type: TableActionType.SetStatusNone, lset: labelsString(o.labels)})
-            } else if (resp.status.length === 1) {
-              dispatchTable({
-                type: TableActionType.SetStatus,
-                lset: labelsString(o.labels),
-                status: resp.status[0],
-              })
-            } else {
-              dispatchTable({type: TableActionType.DeleteObjective, lset: labelsString(o.labels)})
-
-              resp.status.forEach((s: ObjectiveStatus) => {
-                const so = o.clone()
-                // Identify by the combined labels
-                const sLabels: Labels = s.labels !== undefined ? s.labels : {}
-                const soLabels: Labels = {...o.labels, ...sLabels}
-
-                dispatchTable({
-                  type: TableActionType.SetObjectiveWithStatus,
-                  lset: labelsString(soLabels),
-                  statusLabels: sLabels,
-                  objective: so,
-                  status: s,
-                })
-              })
-            }
-          })
-          .catch((err) => {
-            console.log(err)
-            dispatchTable({type: TableActionType.SetStatusError, lset: labelsString(o.labels)})
-          })
-      })
-
-    // return () => {
-    //   // cancel pending requests if necessary
-    //   controller.abort()
-    // }
-  }, [client, objectives])
+  // useEffect(() => {
+  //   // const controller = new AbortController()
+  //   // const signal = controller.signal // TODO: Pass this to the generated fetch client?
+  //
+  //   // First we need to make sure to have objectives before we try fetching alerts for them.
+  //   // If we were to do this concurrently it may end up in a situation
+  //   // where we try to add an alert for a not yet existing objective.
+  //   // TODO: This is prone to a concurrency race with updates of status that have additional groupings...
+  //   // One solution would be to store this in a separate array and reconcile against that array after every status update.
+  //   if (objectives.length > 0) {
+  //     client
+  //       .getAlerts({
+  //         expr: '',
+  //         inactive: false,
+  //         current: false,
+  //       })
+  //       .then((resp: GetAlertsResponse) => {
+  //         resp.alerts.forEach((a: ObjectiveAlert) => {
+  //           if (a.state === Alert_State.firing) {
+  //             dispatchTable({
+  //               type: TableActionType.SetAlert,
+  //               labels: a.labels,
+  //               severity: a.severity,
+  //             })
+  //           }
+  //         })
+  //       })
+  //       .catch((err) => console.log(err))
+  //   }
+  //
+  //   objectives
+  //     .sort((a: Objective, b: Objective) =>
+  //       labelsString(a.labels).localeCompare(labelsString(b.labels)),
+  //     )
+  //     .forEach((o: Objective) => {
+  //       dispatchTable({
+  //         type: TableActionType.SetObjective,
+  //         lset: labelsString(o.labels),
+  //         objective: o,
+  //       })
+  //
+  //       client
+  //         .getStatus({expr: labelsString(o.labels)})
+  //         .then((resp: GetStatusResponse) => {
+  //           if (resp.status.length === 0) {
+  //             dispatchTable({type: TableActionType.SetStatusNone, lset: labelsString(o.labels)})
+  //           } else if (resp.status.length === 1) {
+  //             dispatchTable({
+  //               type: TableActionType.SetStatus,
+  //               lset: labelsString(o.labels),
+  //               status: resp.status[0],
+  //             })
+  //           } else {
+  //             dispatchTable({type: TableActionType.DeleteObjective, lset: labelsString(o.labels)})
+  //
+  //             resp.status.forEach((s: ObjectiveStatus) => {
+  //               const so = o.clone()
+  //               // Identify by the combined labels
+  //               const sLabels: Labels = s.labels !== undefined ? s.labels : {}
+  //               const soLabels: Labels = {...o.labels, ...sLabels}
+  //
+  //               dispatchTable({
+  //                 type: TableActionType.SetObjectiveWithStatus,
+  //                 lset: labelsString(soLabels),
+  //                 statusLabels: sLabels,
+  //                 objective: so,
+  //                 status: s,
+  //               })
+  //             })
+  //           }
+  //         })
+  //         .catch((err) => {
+  //           console.log(err)
+  //           dispatchTable({type: TableActionType.SetStatusError, lset: labelsString(o.labels)})
+  //         })
+  //     })
+  //
+  //   // return () => {
+  //   //   // cancel pending requests if necessary
+  //   //   controller.abort()
+  //   // }
+  // }, [client, objectives])
 
   const handleTableSort = (e: any, type: TableSortType): void => {
     e.preventDefault()
