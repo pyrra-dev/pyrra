@@ -85,7 +85,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum by(grouping) (metric{matchers="total"}) - sum by(grouping) (errorMetric{matchers="errors"})`)
+		expr, err := parser.ParseExpr(`sum by (grouping) (metric{matchers="total"}) - sum by (grouping) (errorMetric{matchers="errors"})`)
 		if err != nil {
 			return ""
 		}
@@ -394,7 +394,7 @@ func (r objectiveReplacer) replace(node parser.Node) {
 
 func (o Objective) RequestRange(timerange time.Duration) string {
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum by(group) (rate(metric{}[1s])) > 0`)
+		expr, err := parser.ParseExpr(`sum by (group) (rate(metric{}[1s])) > 0`)
 		if err != nil {
 			return err.Error()
 		}
@@ -433,7 +433,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 
 func (o Objective) ErrorsRange(timerange time.Duration) string {
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum by(group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
+		expr, err := parser.ParseExpr(`sum by (group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
 		if err != nil {
 			return err.Error()
 		}
@@ -477,7 +477,7 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 	}
 
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
-		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum by(le) (rate(errorMetric{matchers="errors"}[1s])))`)
+		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum by (le) (rate(errorMetric{matchers="errors"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}

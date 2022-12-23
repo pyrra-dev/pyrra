@@ -253,7 +253,7 @@ func (o Objective) BurnrateName(rate time.Duration) string {
 
 func (o Objective) Burnrate(timerange time.Duration) string {
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		expr, err := parser.ParseExpr(`sum by(grouping) (rate(errorMetric{matchers="errors"}[1s])) / sum by(grouping) (rate(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`sum by (grouping) (rate(errorMetric{matchers="errors"}[1s])) / sum by (grouping) (rate(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -288,12 +288,12 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		query := `
 			(
-				sum by(grouping) (rate(metric{matchers="total"}[1s]))
+				sum by (grouping) (rate(metric{matchers="total"}[1s]))
 				-
-				sum by(grouping) (rate(errorMetric{matchers="errors"}[1s]))
+				sum by (grouping) (rate(errorMetric{matchers="errors"}[1s]))
 			)
 			/
-			sum by(grouping) (rate(metric{matchers="total"}[1s]))
+			sum by (grouping) (rate(metric{matchers="total"}[1s]))
 `
 		expr, err := parser.ParseExpr(query)
 		if err != nil {
