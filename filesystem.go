@@ -14,6 +14,7 @@ import (
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/oklog/run"
+	connectprometheus "github.com/polarsignals/connect-go-prometheus"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/client_golang/prometheus"
@@ -283,10 +284,15 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 		})
 	}
 	{
+		prometheusInterceptor := connectprometheus.NewInterceptor(reg)
+
 		router := http.NewServeMux()
-		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&FilesystemObjectiveServer{
-			objectives: objectives,
-		}))
+		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(
+			&FilesystemObjectiveServer{
+				objectives: objectives,
+			},
+			connect.WithInterceptors(prometheusInterceptor),
+		))
 		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 		server := http.Server{
