@@ -7,7 +7,7 @@ require (
 	github.com/bufbuild/connect-go v1.3.1
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/go-chi/chi/v5 v5.0.7
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
 	github.com/go-kit/log v0.2.1
 	github.com/oklog/run v1.1.0
