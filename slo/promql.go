@@ -35,6 +35,10 @@ func (o Objective) QueryTotal(window model.Duration) string {
 			&labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""},
 		)
 		grouping = slices.Clone(o.Indicator.Latency.Grouping)
+	case LatencyNative:
+		metric = increaseName(o.Indicator.LatencyNative.Total.Name, window)
+		matchers = cloneMatchers(o.Indicator.LatencyNative.Total.LabelMatchers)
+		grouping = slices.Clone(o.Indicator.LatencyNative.Grouping)
 	case BoolGauge:
 		metric = countName(o.Indicator.BoolGauge.Name, window)
 		matchers = cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
@@ -556,6 +560,19 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
+	case LatencyNative:
+		expr, err := parser.ParseExpr(`sum(rate(metric{}[1s]))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.LatencyNative.Total.Name,
+			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			window:   timerange,
+		}.replace(expr)
+
+		return expr.String()
 	case BoolGauge:
 		expr, err := parser.ParseExpr(`sum by(group) (count_over_time(metric{matchers="total"}[1s])) / 86400`)
 		if err != nil {
@@ -665,6 +682,21 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 			window:        timerange,
 			grouping:      []string{labels.BucketLabel},
 			percentile:    percentile,
+		}.replace(expr)
+
+		return expr.String()
+	case LatencyNative:
+		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum(rate(metric{matchers="total"}[1s])))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		objectiveReplacer{
+			metric:     o.Indicator.LatencyNative.Total.Name,
+			matchers:   o.Indicator.LatencyNative.Total.LabelMatchers,
+			grouping:   o.Indicator.LatencyNative.Grouping,
+			window:     timerange,
+			percentile: percentile,
 		}.replace(expr)
 
 		return expr.String()

@@ -226,6 +226,24 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}
 			rules = append(rules, r)
 		}
+	case LatencyNative:
+		matchers := o.Indicator.LatencyNative.Total.LabelMatchers
+
+		ruleLabels := o.commonRuleLabels(sloName)
+		for _, m := range matchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
+
+		for _, br := range burnrates {
+			rules = append(rules, monitoringv1.Rule{
+				Record: o.BurnrateName(br),
+				Expr:   intstr.FromString(o.Burnrate(br)),
+				Labels: ruleLabels,
+			})
+		}
+
 	case BoolGauge:
 		matchers := o.Indicator.BoolGauge.LabelMatchers
 
@@ -331,6 +349,9 @@ func (o Objective) BurnrateName(rate time.Duration) string {
 		metric = o.Indicator.Latency.Total.Name
 	case BoolGauge:
 		metric = o.Indicator.BoolGauge.Name
+	}
+	if o.Indicator.LatencyNative != nil && o.Indicator.LatencyNative.Total.Name != "" {
+		metric = o.Indicator.LatencyNative.Total.Name
 	}
 
 	metric = strings.TrimSuffix(metric, "_total")
@@ -766,6 +787,32 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			Labels:      alertLabelsLe,
 			Annotations: o.commonRuleAnnotations(),
 		})
+	case LatencyNative:
+		ruleLabels := o.commonRuleLabels(sloName)
+		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
+
+		expr, err := parser.ParseExpr(`histogram_count(increase(metric{matchers="total"}[1s]))`)
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.LatencyNative.Total.Name,
+			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			grouping: o.Indicator.LatencyNative.Grouping,
+			window:   time.Duration(o.Window),
+		}.replace(expr)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.LatencyNative.Total.Name, o.Window),
+			Expr:   intstr.FromString(expr.String()),
+			Labels: ruleLabels,
+		})
+
 	case BoolGauge:
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.BoolGauge.LabelMatchers {

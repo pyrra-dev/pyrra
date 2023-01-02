@@ -3,7 +3,7 @@
   "kind": "CustomResourceDefinition",
   "metadata": {
     "annotations": {
-      "controller-gen.kubebuilder.io/version": "v0.8.0"
+      "controller-gen.kubebuilder.io/version": "v0.11.1"
     },
     "creationTimestamp": null,
     "name": "servicelevelobjectives.pyrra.dev"
@@ -83,7 +83,7 @@
                         "type": "object"
                       },
                       "latency": {
-                        "description": "Latency is the indicator that measures a certain percentage to be fast than.",
+                        "description": "Latency is the indicator that measures a certain percentage to be faster than.",
                         "properties": {
                           "grouping": {
                             "description": "Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.",
@@ -119,6 +119,40 @@
                         },
                         "required": [
                           "success",
+                          "total"
+                        ],
+                        "type": "object"
+                      },
+                      "latencyNative": {
+                        "description": "LatencyNative is the indicator that measures a certain percentage to be faster than the expected latency. This uses the new native histograms in Prometheus.",
+                        "properties": {
+                          "grouping": {
+                            "description": "Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.",
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "latency": {
+                            "description": "Latency the requests should be faster than.",
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "total": {
+                            "description": "Total is the metric that returns how many requests there are in total.",
+                            "properties": {
+                              "metric": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "metric"
+                            ],
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "latency",
                           "total"
                         ],
                         "type": "object"
@@ -195,13 +229,5 @@
         "storage": true
       }
     ]
-  },
-  "status": {
-    "acceptedNames": {
-      "kind": "",
-      "plural": ""
-    },
-    "conditions": [],
-    "storedVersions": []
   }
 }

@@ -821,6 +821,9 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 			}
 		}
 	}
+	if objective.Indicator.LatencyNative != nil && objective.Indicator.Ratio.Total.Name != "" {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unimplemented"))
+	}
 
 	end := time.Now()
 	start := end.Add(-1 * time.Hour)
