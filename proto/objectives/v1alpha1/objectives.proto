@@ -23,6 +23,7 @@ service ObjectiveBackendService {
 
 message ListRequest {
   string expr = 1;
+  string grouping = 2;
 }
 
 message ListResponse {
@@ -36,6 +37,8 @@ message Objective {
   string description = 4;
   Indicator indicator = 5;
   string config = 6;
+
+  Queries queries = 7;
 }
 
 message Indicator {
@@ -61,6 +64,15 @@ message Query {
   string metric = 1;
   string name = 2;
   repeated LabelMatcher matchers = 3;
+}
+
+message Queries {
+  string countTotal = 1;
+  string countErrors = 2;
+
+  string graphErrorBudget = 3;
+  string graphRequests = 4;
+  string graphErrors = 5;
 }
 
 // Copied from Prometheus.

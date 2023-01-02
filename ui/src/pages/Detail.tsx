@@ -24,30 +24,31 @@ import {MetricName, parseLabels} from '../labels'
 import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
 import RequestsGraph from '../components/graphs/RequestsGraph'
 import ErrorsGraph from '../components/graphs/ErrorsGraph'
-import {
-  Code,
-  ConnectError,
-  createConnectTransport,
-  createPromiseClient,
-} from '@bufbuild/connect-web'
+import {createConnectTransport, createPromiseClient} from '@bufbuild/connect-web'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
-import {
-  Availability,
-  Budget,
-  GetStatusResponse,
-  ListResponse,
-  Objective,
-} from '../proto/objectives/v1alpha1/objectives_pb'
 import AlertsTable from '../components/AlertsTable'
 import Toggle from '../components/Toggle'
-import {Timestamp} from '@bufbuild/protobuf'
 import DurationGraph from '../components/graphs/DurationGraph'
 import uPlot from 'uplot'
+import {PrometheusService} from '../proto/prometheus/v1/prometheus_connectweb'
+import {usePrometheusQuery} from '../prometheus'
+import {useObjectivesList} from '../objectives'
+import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 
 const Detail = () => {
   const client = useMemo(() => {
     return createPromiseClient(
       ObjectiveService,
+      createConnectTransport({
+        baseUrl: API_BASEPATH,
+      }),
+    )
+  }, [])
+
+  const promClient = useMemo(() => {
+    return createPromiseClient(
+      PrometheusService,
+      // createGrpcWebTransport({ TODO: Use grpcWeb in production for efficiency?
       createConnectTransport({
         baseUrl: API_BASEPATH,
       }),
@@ -81,82 +82,29 @@ const Detail = () => {
     return {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels}
   }, [search])
 
-  const [objective, setObjective] = useState<Objective | null>(null)
-  const [objectiveError, setObjectiveError] = useState<string>('')
   const [autoReload, setAutoReload] = useState<boolean>(true)
 
-  enum StatusState {
-    Unknown,
-    Error,
-    NoData,
-    Success,
-  }
+  const {
+    response: objectiveResponse,
+    error: objectiveError,
+    status: objectiveStatus,
+  } = useObjectivesList(client, expr, grouping)
 
-  const [statusState, setStatusState] = useState<StatusState>(StatusState.Unknown)
-  const [availability, setAvailability] = useState<Availability | undefined>(undefined)
-  const [errorBudget, setErrorBudget] = useState<Budget | undefined>(undefined)
+  const objective: Objective | null = objectiveResponse?.objectives[0] ?? null
 
-  const getObjective = useCallback(() => {
-    client
-      .list({expr})
-      .then((resp: ListResponse) => {
-        if (resp.objectives.length === 1) {
-          if (resp.objectives[0].config === objective?.config) {
-            // Prevent the setState if the objective is the same
-            return
-          }
-          setObjective(resp.objectives[0])
-        } else {
-          setObjective(null)
-        }
-      })
-      .catch((err: ConnectError) => {
-        console.log(err)
-        setObjectiveError(err.rawMessage)
-      })
-  }, [client, expr, objective?.config])
+  const {response: totalResponse, status: totalStatus} = usePrometheusQuery(
+    promClient,
+    objective?.queries?.countTotal ?? '',
+    to / 1000,
+    {enabled: objectiveStatus === 'success' && objective?.queries?.countTotal !== undefined},
+  )
 
-  const getObjectiveStatus = useCallback(() => {
-    client
-      .getStatus({expr, grouping, time: Timestamp.fromDate(new Date(to))})
-      .then((resp: GetStatusResponse) => {
-        if (resp.status.length === 0) {
-          if (statusState !== StatusState.NoData) {
-            setStatusState(StatusState.NoData)
-          }
-        } else if (resp.status.length === 1) {
-          setAvailability(resp.status[0].availability)
-          setErrorBudget(resp.status[0].budget)
-          setStatusState(StatusState.Success)
-        } else {
-          if (statusState !== StatusState.Error) {
-            setStatusState(StatusState.Error)
-          }
-        }
-      })
-      .catch((err: ConnectError) => {
-        if (err.code === Code.NotFound) {
-          setStatusState(StatusState.NoData)
-        } else {
-          console.log(err)
-          setStatusState(StatusState.Error)
-        }
-      })
-  }, [
-    client,
-    expr,
-    grouping,
-    to,
-    statusState,
-    StatusState.NoData,
-    StatusState.Success,
-    StatusState.Error,
-  ])
-
-  useEffect(() => {
-    getObjective()
-    getObjectiveStatus()
-  }, [getObjective, getObjectiveStatus])
+  const {response: errorResponse, status: errorStatus} = usePrometheusQuery(
+    promClient,
+    objective?.queries?.countErrors ?? '',
+    to / 1000,
+    {enabled: objectiveStatus === 'success' && objective?.queries?.countTotal !== undefined},
+  )
 
   const updateTimeRange = useCallback(
     (from: number, to: number) => {
@@ -188,13 +136,13 @@ const Detail = () => {
     updateTimeRange(from, to)
   }
 
-  if (objectiveError !== '') {
+  if (objectiveError !== null) {
     return (
       <>
         <Navbar />
         <Container>
           <div className="header">
-            <h3>{objectiveError}</h3>
+            <h3></h3>
             <br />
             <Link to="/" className="btn btn-light">
               Go Back
@@ -256,106 +204,145 @@ const Detail = () => {
 
   const renderAvailability = () => {
     const headline = <h6 className="headline">Availability</h6>
-    switch (statusState) {
-      case StatusState.Unknown:
+    if (
+      totalStatus === 'loading' ||
+      totalStatus === 'idle' ||
+      errorStatus === 'loading' ||
+      errorStatus === 'idle'
+    ) {
+      return (
+        <div>
+          {headline}
+          <Spinner
+            animation={'border'}
+            style={{
+              width: 50,
+              height: 50,
+              padding: 0,
+              borderRadius: 50,
+              borderWidth: 2,
+              opacity: 0.25,
+            }}
+          />
+        </div>
+      )
+    }
+
+    if (totalStatus === 'success' && errorStatus === 'success') {
+      if (totalResponse?.options.case === 'vector' && errorResponse?.options.case === 'vector') {
+        let errors = 0
+        if (errorResponse.options.value.samples.length > 0) {
+          errors = errorResponse.options.value.samples[0].value
+        }
+
+        let total = 1
+        if (totalResponse.options.value.samples.length > 0) {
+          total = totalResponse.options.value.samples[0].value
+        }
+
+        const percentage = 1 - errors / total
+
         return (
-          <div>
+          <div className={percentage > objective.target ? 'good' : 'bad'}>
             {headline}
-            <Spinner
-              animation={'border'}
-              style={{
-                width: 50,
-                height: 50,
-                padding: 0,
-                borderRadius: 50,
-                borderWidth: 2,
-                opacity: 0.25,
-              }}
-            />
+            <h2 className="metric">{(100 * percentage).toFixed(3)}%</h2>
+            <table className="details">
+              <tbody>
+                <tr>
+                  <td>{objectiveType === ObjectiveType.Latency ? 'Slow:' : 'Errors:'}</td>
+                  <td>{Math.floor(errors).toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td>Total:</td>
+                  <td>{Math.floor(total).toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         )
-      case StatusState.Error:
-        return (
-          <div>
-            {headline}
-            <h2 className="error">Error</h2>
-          </div>
-        )
-      case StatusState.NoData:
+      } else {
         return (
           <div>
             {headline}
             <h2>No data</h2>
           </div>
         )
-      case StatusState.Success:
-        if (availability === undefined) {
-          return <></>
-        }
-        return (
-          <div className={availability.percentage > objective.target ? 'good' : 'bad'}>
-            {headline}
-            <h2 className="metric">{(100 * availability.percentage).toFixed(3)}%</h2>
-            <table className="details">
-              <tr>
-                <td>{objectiveType === ObjectiveType.Latency ? 'Slow:' : 'Errors:'}</td>
-                <td>{Math.floor(availability.errors).toLocaleString()}</td>
-              </tr>
-              <tr>
-                <td>Total:</td>
-                <td>{Math.floor(availability.total).toLocaleString()}</td>
-              </tr>
-            </table>
-          </div>
-        )
+      }
     }
+
+    return (
+      <div>
+        <>
+          {headline}
+          <h2 className="error">Error</h2>
+        </>
+      </div>
+    )
   }
 
   const renderErrorBudget = () => {
     const headline = <h6 className="headline">Error Budget</h6>
-    switch (statusState) {
-      case StatusState.Unknown:
+
+    if (
+      totalStatus === 'loading' ||
+      totalStatus === 'idle' ||
+      errorStatus === 'loading' ||
+      errorStatus === 'idle'
+    ) {
+      return (
+        <div>
+          {headline}
+          <Spinner
+            animation={'border'}
+            style={{
+              width: 50,
+              height: 50,
+              padding: 0,
+              borderRadius: 50,
+              borderWidth: 2,
+              opacity: 0.25,
+            }}
+          />
+        </div>
+      )
+    }
+    if (totalStatus === 'success' && errorStatus === 'success') {
+      if (totalResponse?.options.case === 'vector' && errorResponse?.options.case === 'vector') {
+        let errors = 0
+        if (errorResponse.options.value.samples.length > 0) {
+          errors = errorResponse.options.value.samples[0].value
+        }
+
+        let total = 1
+        if (totalResponse.options.value.samples.length > 0) {
+          total = totalResponse.options.value.samples[0].value
+        }
+
+        const budget = 1 - objective.target
+        const unavailability = errors / total
+        const availableBudget = (budget - unavailability) / budget
+
         return (
-          <div>
+          <div className={availableBudget > 0 ? 'good' : 'bad'}>
             {headline}
-            <Spinner
-              animation={'border'}
-              style={{
-                width: 50,
-                height: 50,
-                padding: 0,
-                borderRadius: 50,
-                borderWidth: 2,
-                opacity: 0.25,
-              }}
-            />
+            <h2 className="metric">{(100 * availableBudget).toFixed(3)}%</h2>
           </div>
         )
-      case StatusState.Error:
-        return (
-          <div>
-            {headline}
-            <h2 className="error">Error</h2>
-          </div>
-        )
-      case StatusState.NoData:
+      } else {
         return (
           <div>
             {headline}
             <h2>No data</h2>
           </div>
         )
-      case StatusState.Success:
-        if (errorBudget === undefined) {
-          return <></>
-        }
-        return (
-          <div className={errorBudget.remaining > 0 ? 'good' : 'bad'}>
-            {headline}
-            <h2 className="metric">{(100 * errorBudget.remaining).toFixed(3)}%</h2>
-          </div>
-        )
+      }
     }
+    return (
+      <div>
+        {headline}
+        <h2 className="error">Error</h2>
+      </div>
+    )
   }
 
   const labelBadges = Object.entries({...objective.labels, ...groupingLabels})
@@ -443,14 +430,17 @@ const Detail = () => {
           </Row>
           <Row>
             <Col>
-              <ErrorBudgetGraph
-                client={client}
-                labels={labels}
-                grouping={groupingLabels}
-                from={from}
-                to={to}
-                uPlotCursor={uPlotCursor}
-              />
+              {objective.queries?.graphErrorBudget !== undefined ? (
+                <ErrorBudgetGraph
+                  client={promClient}
+                  query={objective.queries.graphErrorBudget}
+                  from={from}
+                  to={to}
+                  uPlotCursor={uPlotCursor}
+                />
+              ) : (
+                <></>
+              )}
             </Col>
           </Row>
           <Row>
@@ -458,28 +448,34 @@ const Detail = () => {
               xs={12}
               md={objectiveType === ObjectiveType.Latency ? 12 : 6}
               className={objectiveType === ObjectiveType.Latency ? 'col-xxxl-4' : ''}>
-              <RequestsGraph
-                client={client}
-                labels={labels}
-                grouping={groupingLabels}
-                from={from}
-                to={to}
-                uPlotCursor={uPlotCursor}
-              />
+              {objective.queries?.graphRequests !== undefined ? (
+                <RequestsGraph
+                  client={promClient}
+                  query={objective.queries.graphRequests}
+                  from={from}
+                  to={to}
+                  uPlotCursor={uPlotCursor}
+                />
+              ) : (
+                <></>
+              )}
             </Col>
             <Col
               xs={12}
               md={objectiveType === ObjectiveType.Latency ? 12 : 6}
               className={objectiveType === ObjectiveType.Latency ? 'col-xxxl-4' : ''}>
-              <ErrorsGraph
-                client={client}
-                type={objectiveType}
-                labels={labels}
-                grouping={groupingLabels}
-                from={from}
-                to={to}
-                uPlotCursor={uPlotCursor}
-              />
+              {objective.queries?.graphErrors !== undefined ? (
+                <ErrorsGraph
+                  client={promClient}
+                  type={objectiveType}
+                  query={objective.queries.graphErrors}
+                  from={from}
+                  to={to}
+                  uPlotCursor={uPlotCursor}
+                />
+              ) : (
+                <></>
+              )}
             </Col>
             {objectiveType === ObjectiveType.Latency ? (
               <Col xs={12} className="col-xxxl-4">

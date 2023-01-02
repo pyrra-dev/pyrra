@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package prometheus.v1;
+
+option go_package = "github.com/pyrra-dev/pyrra/proto/prometheus/v1;prometheusv1";
+
+service PrometheusService {
+  rpc Query(QueryRequest) returns (QueryResponse) {}
+  rpc QueryRange(QueryRangeRequest) returns (QueryRangeResponse) {}
+}
+
+message QueryRequest {
+  string query = 1;
+  int64 time = 2;
+}
+
+message QueryResponse {
+  repeated string warnings = 1;
+
+  oneof options {
+    SamplePair scalar = 2;
+    Vector vector = 3;
+    Matrix matrix = 4;
+    String string = 5;
+  }
+}
+
+message QueryRangeRequest {
+  string query = 1;
+  int64 start = 2;
+  int64 end = 3;
+  int64 step = 4;
+}
+
+message QueryRangeResponse {
+  repeated string warnings = 1;
+
+  oneof options {
+    SamplePair scalar = 2;
+    Vector vector = 3;
+    Matrix matrix = 4;
+    String string = 5;
+  }
+}
+
+// Vector is basically only an alias for Samples, but the
+// contract is that in a Vector, all Samples have the same timestamp.
+message Vector {
+  repeated Sample samples = 1;
+}
+
+// Sample is a sample pair associated with a metric.
+message Sample {
+  int64 time = 1;
+  double value = 2;
+  map<string, string> metric = 3;
+}
+
+// Matrix is a list of time series.
+message Matrix {
+  repeated SampleStream samples = 1;
+}
+
+// SampleStream is a stream of Values belonging to an attached COWMetric.
+message SampleStream {
+  repeated SamplePair values = 1;
+  map<string, string> metric = 2;
+}
+
+// SamplePair pairs a SampleValue with a Timestamp.
+message SamplePair {
+  int64 time = 1;
+  double value = 2;
+}
+
+// String is a string value evaluated at the set timestamp.
+message String {
+  int64 time = 1;
+  string value = 2;
+}
