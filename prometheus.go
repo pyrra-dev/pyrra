@@ -23,31 +23,29 @@ func (ps *prometheusServer) Query(ctx context.Context, req *connect.Request[v1.Q
 		return nil, err
 	}
 
-	switch value.(type) {
+	switch v := value.(type) {
 	case *model.String:
-		s := value.(*model.String)
 		return connect.NewResponse(&v1.QueryResponse{
 			Warnings: warnings,
 			Options: &v1.QueryResponse_String_{
 				String_: &v1.String{
-					Time:  s.Timestamp.Unix(),
-					Value: s.Value,
+					Time:  v.Timestamp.Unix(),
+					Value: v.Value,
 				},
 			},
 		}), err
 	case *model.Scalar:
-		s := value.(*model.Scalar)
 		return connect.NewResponse(&v1.QueryResponse{
 			Warnings: warnings,
 			Options: &v1.QueryResponse_Scalar{
 				Scalar: &v1.SamplePair{
-					Time:  s.Timestamp.Unix(),
-					Value: float64(s.Value),
+					Time:  v.Timestamp.Unix(),
+					Value: float64(v.Value),
 				},
 			},
 		}), nil
 	case model.Vector:
-		vector := convertVector(value.(model.Vector))
+		vector := convertVector(v)
 		return connect.NewResponse(&v1.QueryResponse{
 			Warnings: warnings,
 			Options: &v1.QueryResponse_Vector{
@@ -72,12 +70,12 @@ func (ps *prometheusServer) QueryRange(ctx context.Context, req *connect.Request
 		return nil, err
 	}
 
-	switch value.(type) {
+	switch v := value.(type) {
 	case model.Matrix:
 		return connect.NewResponse(&v1.QueryRangeResponse{
 			Warnings: warnings,
 			Options: &v1.QueryRangeResponse_Matrix{
-				Matrix: convertMatrix(value.(model.Matrix)),
+				Matrix: convertMatrix(v),
 			},
 		}), nil
 	}
