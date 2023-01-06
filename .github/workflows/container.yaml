@@ -71,7 +71,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8c0edbc76e98fa90f69d9a2c020dcb50019dc325
 
-      - uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7
+      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
         with:
           name: pyrra-dist-binaries
           path: dist
