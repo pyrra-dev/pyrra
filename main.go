@@ -69,6 +69,11 @@ var CLI struct {
 		ConfigMapMode bool   `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
 		GenericRules  bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
+	Generate struct {
+		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		PrometheusFolder string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
+		GenericRules     bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
 }
 
 func main() {
@@ -150,6 +155,13 @@ func main() {
 			CLI.Kubernetes.MetricsAddr,
 			CLI.Kubernetes.ConfigMapMode,
 			CLI.Kubernetes.GenericRules,
+		)
+	case "generate":
+		code = cmdGenerate(
+			logger,
+			CLI.Generate.ConfigFiles,
+			CLI.Generate.PrometheusFolder,
+			CLI.Generate.GenericRules,
 		)
 	}
 	os.Exit(code)
