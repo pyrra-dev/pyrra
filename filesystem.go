@@ -171,68 +171,17 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "reading", "file", f)
 					reconcilesTotal.Inc()
 
-					bytes, err := os.ReadFile(f)
+					err := writeRuleFile(logger, f, prometheusFolder, genericRules)
 					if err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to read file %q: %w", f, err)
+						level.Error(logger).Log("msg", "error creating rule file", "file", f)
 					}
 
-					var config v1alpha1.ServiceLevelObjective
-					if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to unmarshal objective %q: %w", f, err)
-					}
-
-					objective, err := config.Internal()
+					objective, err := objectiveFromFile(f)
 					if err != nil {
 						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to get objective: %w", err)
+						level.Error(logger).Log("msg", "failed to get objective from file", "file", f)
 					}
-
-					increases, err := objective.IncreaseRules()
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to get increase rules: %w", err)
-					}
-					burnrates, err := objective.Burnrates()
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to get burn rate rules: %w", err)
-					}
-
-					rule := monitoringv1.PrometheusRuleSpec{
-						Groups: []monitoringv1.RuleGroup{increases, burnrates},
-					}
-
-					if genericRules {
-						rules, err := objective.GenericRules()
-						if err == nil {
-							rule.Groups = append(rule.Groups, rules)
-						} else {
-							if err != slo.ErrGroupingUnsupported {
-								return fmt.Errorf("failed to get generic rules: %w", err)
-							}
-							level.Warn(logger).Log(
-								"msg", "objective with grouping unsupported with generic rules",
-								"objective", objective.Name(),
-							)
-						}
-					}
-
-					bytes, err = yaml.Marshal(rule)
-					if err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to marshal recording rules: %w", err)
-					}
-
-					_, file := filepath.Split(f)
-					path := filepath.Join(prometheusFolder, file)
-
-					if err := os.WriteFile(path, bytes, 0o644); err != nil {
-						reconcilesErrors.Inc()
-						return fmt.Errorf("failed to write file %q: %w", path, err)
-					}
-
 					objectives.Set(objective)
 
 					reload <- struct{}{} // Trigger a Prometheus reload
@@ -342,4 +291,66 @@ func (s *FilesystemObjectiveServer) List(ctx context.Context, req *connect.Reque
 	return connect.NewResponse(&objectivesv1alpha1.ListResponse{
 		Objectives: objectives,
 	}), nil
+}
+
+func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules bool) error {
+	objective, err := objectiveFromFile(file)
+	if err != nil {
+		return fmt.Errorf("failed to get objective: %w", err)
+	}
+
+	increases, err := objective.IncreaseRules()
+	if err != nil {
+		return fmt.Errorf("failed to get increase rules: %w", err)
+	}
+	burnrates, err := objective.Burnrates()
+	if err != nil {
+		return fmt.Errorf("failed to get burn rate rules: %w", err)
+	}
+
+	rule := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{increases, burnrates},
+	}
+
+	if genericRules {
+		rules, err := objective.GenericRules()
+		if err == nil {
+			rule.Groups = append(rule.Groups, rules)
+		} else {
+			if err != slo.ErrGroupingUnsupported {
+				return fmt.Errorf("failed to get generic rules: %w", err)
+			}
+			level.Warn(logger).Log(
+				"msg", "objective with grouping unsupported with generic rules",
+				"objective", objective.Name(),
+			)
+		}
+	}
+
+	bytes, err := yaml.Marshal(rule)
+	if err != nil {
+		return fmt.Errorf("failed to marshal recording rules: %w", err)
+	}
+
+	_, f := filepath.Split(file)
+	path := filepath.Join(prometheusFolder, f)
+
+	if err := os.WriteFile(path, bytes, 0o644); err != nil {
+		return fmt.Errorf("failed to write file %q: %w", path, err)
+	}
+	return nil
+}
+
+func objectiveFromFile(file string) (slo.Objective, error) {
+	bytes, err := os.ReadFile(file)
+	if err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to read file %q: %w", file, err)
+	}
+
+	var config v1alpha1.ServiceLevelObjective
+	if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
+		return slo.Objective{}, fmt.Errorf("failed to unmarshal objective %q: %w", file, err)
+	}
+
+	return config.Internal()
 }
