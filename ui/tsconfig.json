@@ -15,7 +15,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "downlevelIteration": true
   },
   "exclude": ["node_modules"]
 }

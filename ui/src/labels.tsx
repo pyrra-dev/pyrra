@@ -20,18 +20,15 @@ export const labelsString = (lset: Labels | undefined): string => {
 }
 
 export const parseLabels = (expr: string | null): Labels => {
-  if (expr == null || expr === '{}') {
+  if (expr == null) {
     return {}
   }
-  expr = expr.replace(/^{+|}+$/gm, '')
   const lset: {[key: string]: string} = {}
-  expr.split(',').forEach((s: string) => {
-    const pair = s.split('=')
-    if (pair.length !== 2) {
-      throw new Error('pair does not have key and value')
+  for (const match of expr.matchAll(/(?<label>[a-zA-Z0-9_]+)="(?<value>[^"]+)/g)) {
+    if (match.groups?.label !== undefined) {
+      lset[match.groups.label] = match.groups.value
     }
-    lset[pair[0].trim()] = pair[1].replace(/^"+|"+$/gm, '').trim()
-  })
+  }
   return lset
 }
 
