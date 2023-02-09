@@ -1,7 +1,8 @@
 import {QueryRangeResponse, SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {AlignedData} from 'uplot'
+import {Labels} from '../../labels'
 
-interface AlignedDataResponse {
+export interface AlignedDataResponse {
   labels: string[]
   data: AlignedData
 }
@@ -15,11 +16,16 @@ export const convertAlignedData = (response: QueryRangeResponse | null): Aligned
   let data: AlignedData = []
 
   if (response?.options.case === 'matrix') {
-    const samples = new Map()
+    const samples = new Map<number, Array<number | null | undefined>>()
 
     const series = response.options.value.samples
     series.forEach((ss: SampleStream, i: number) => {
       // Add this series' labels to the array of label values
+
+      // TODO: Support multiple labels here and return Labels object
+      const ml = ss.metric as Labels
+      console.log(ml)
+
       const kvs: string[] = []
       Object.values(ss.metric).forEach((l: string) => kvs.push(l))
       if (kvs.length === 1) {
@@ -33,19 +39,22 @@ export const convertAlignedData = (response: QueryRangeResponse | null): Aligned
       ss.values.forEach((sp: SamplePair) => {
         const time: number = Number(sp.time)
 
-        let values: number[]
+        let values = Array<number | null | undefined>(series.length).fill(null)
         if (samples.has(time)) {
-          values = samples.get(time)
-        } else {
-          values = Array(series.length).fill(null)
+          const timeValues = samples.get(time)
+          if (timeValues !== undefined) {
+            values = timeValues
+          }
         }
+
         values[i] = sp.value
         samples.set(time, values)
       })
     })
 
     const times: number[] = []
-    const values: number[][] = Array(series.length)
+
+    const values: Array<Array<number | null | undefined>> = Array(series.length)
       .fill(0)
       .map(() => [])
 
@@ -54,16 +63,74 @@ export const convertAlignedData = (response: QueryRangeResponse | null): Aligned
       times.push(keys.next().value)
     }
 
-    const sortedTimes = times.sort((a, b) => a - b)
+    const sortedTimes = Array.from(samples.keys()).sort((a: number, b: number) => a - b)
+
     sortedTimes.forEach((t: number) => {
       const timeValues = samples.get(t)
-      timeValues.forEach((s: number, j: number) => {
-        values[j].push(s)
-      })
+      if (timeValues !== undefined) {
+        timeValues.forEach((s, j: number) => {
+          values[j].push(s)
+        })
+      }
     })
 
-    data = [times, ...values]
+    data = [sortedTimes, ...values]
   }
 
   return {labels, data}
+}
+
+export const mergeAlignedData = (responses: AlignedDataResponse[]): AlignedDataResponse => {
+  if (responses.length === 0) {
+    return {labels: [], data: []}
+  }
+  if (responses.length === 1) {
+    return responses[0]
+  }
+
+  const seriesCount: number = responses
+    .map((adr: AlignedDataResponse): number => adr.data.length - 1)
+    .reduce((total: number, n: number) => total + n)
+
+  const labels: string[] = []
+  const series = new Map<number, Array<number | null | undefined>>()
+
+  responses.forEach((adr: AlignedDataResponse, i: number) => {
+    labels.push(...adr.labels)
+
+    for (let j = 0; j < adr.data[0].length; j++) {
+      const time = adr.data[0][j]
+
+      let values = Array<number | null | undefined>(seriesCount).fill(null)
+      if (series.has(time)) {
+        const timeValues = series.get(time)
+        if (timeValues !== undefined) {
+          values = timeValues
+        }
+      }
+
+      for (let k = 1; k < adr.data.length; k++) {
+        // ignore first index which is the time
+        values[i] = adr.data[k][j]
+      }
+      series.set(time, values)
+    }
+  })
+
+  const sortedTimes = Array.from(series.keys()).sort((a: number, b: number) => a - b)
+
+  const values: Array<Array<number | null | undefined>> = Array(seriesCount)
+    .fill(0)
+    .map(() => [])
+
+  sortedTimes.forEach((t: number) => {
+    const timeValues = series.get(t)
+    if (timeValues !== undefined) {
+      timeValues.forEach((s: number | null | undefined, j: number) => {
+        values[j].push(s)
+      })
+    }
+  })
+
+  return {labels, data: [sortedTimes, ...values]}
 }

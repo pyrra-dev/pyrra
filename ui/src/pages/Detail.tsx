@@ -539,7 +539,15 @@ const Detail = () => {
           <Row>
             <Col>
               <h4>Multi Burn Rate Alerts</h4>
-              <AlertsTable client={client} objective={objective} grouping={groupingLabels} />
+              <AlertsTable
+                client={client}
+                promClient={promClient}
+                objective={objective}
+                grouping={groupingLabels}
+                from={from}
+                to={to}
+                uPlotCursor={uPlotCursor}
+              />
             </Col>
           </Row>
           <Row>

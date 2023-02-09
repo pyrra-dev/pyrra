@@ -1,4 +1,4 @@
-import {convertAlignedData} from './aligneddata'
+import {convertAlignedData, mergeAlignedData} from './aligneddata'
 import {QueryRangeResponse} from '../../proto/prometheus/v1/prometheus_pb'
 
 describe('convertAlignedData', () => {
@@ -84,6 +84,85 @@ describe('convertAlignedData', () => {
         [1, 2, 3],
         [100, 200, 300],
         [null, 200, 400],
+      ],
+    })
+  })
+})
+
+describe('mergeAlignedData', () => {
+  it('should convert null into empty alignedData', () => {
+    expect(mergeAlignedData([])).toEqual({labels: [], data: []})
+  })
+  it('should merge by returning the single input', () => {
+    expect(
+      mergeAlignedData([
+        {
+          labels: ['pyrra'],
+          data: [
+            [1, 2, 3],
+            [100, 200, 300],
+          ],
+        },
+      ]),
+    ).toEqual({
+      labels: ['pyrra'],
+      data: [
+        [1, 2, 3],
+        [100, 200, 300],
+      ],
+    })
+  })
+  it('should merge two aligned inputs', () => {
+    expect(
+      mergeAlignedData([
+        {
+          labels: ['pyrra'],
+          data: [
+            [1, 2, 3],
+            [100, 200, 300],
+          ],
+        },
+        {
+          labels: ['parca'],
+          data: [
+            [1, 2, 3],
+            [1000, 2000, 3000],
+          ],
+        },
+      ]),
+    ).toEqual({
+      labels: ['pyrra', 'parca'],
+      data: [
+        [1, 2, 3],
+        [100, 200, 300],
+        [1000, 2000, 3000],
+      ],
+    })
+  })
+  it('should merge misaligned inputs', () => {
+    expect(
+      mergeAlignedData([
+        {
+          labels: ['pyrra'],
+          data: [
+            [2, 3, 4],
+            [200, 300, 400],
+          ],
+        },
+        {
+          labels: ['parca'],
+          data: [
+            [1, 2, 3, 4, 5],
+            [1000, 2000, null, 4000, null],
+          ],
+        },
+      ]),
+    ).toEqual({
+      labels: ['pyrra', 'parca'],
+      data: [
+        [1, 2, 3, 4, 5],
+        [null, 200, 300, 400, null],
+        [1000, 2000, null, 4000, null],
       ],
     })
   })
