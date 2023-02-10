@@ -24,12 +24,12 @@ func (o Objective) QueryTotal(window model.Duration) string {
 
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
 		metric = increaseName(o.Indicator.Ratio.Total.Name, window)
-		matchers = slices.Clone(o.Indicator.Ratio.Total.LabelMatchers)
+		matchers = cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		grouping = slices.Clone(o.Indicator.Ratio.Grouping)
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		metric = increaseName(o.Indicator.Latency.Total.Name, window)
-		matchers = slices.Clone(o.Indicator.Latency.Total.LabelMatchers)
+		matchers = cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
 		grouping = slices.Clone(o.Indicator.Latency.Grouping)
 	}
 
@@ -63,7 +63,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		}
 
 		metric := increaseName(o.Indicator.Ratio.Errors.Name, window)
-		matchers := slices.Clone(o.Indicator.Ratio.Errors.LabelMatchers)
+		matchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
 
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -93,7 +93,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		}
 
 		metric := increaseName(o.Indicator.Latency.Total.Name, window)
-		matchers := slices.Clone(o.Indicator.Latency.Total.LabelMatchers)
+		matchers := cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
 				m.Value = metric
@@ -109,7 +109,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		})
 
 		errorMetric := increaseName(o.Indicator.Latency.Success.Name, window)
-		errorMatchers := slices.Clone(o.Indicator.Latency.Success.LabelMatchers)
+		errorMatchers := cloneMatchers(o.Indicator.Latency.Success.LabelMatchers)
 		for _, m := range errorMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = errorMetric
@@ -156,7 +156,7 @@ func (o Objective) QueryErrorBudget() string {
 		}
 
 		metric := increaseName(o.Indicator.Ratio.Total.Name, o.Window)
-		matchers := slices.Clone(o.Indicator.Ratio.Total.LabelMatchers)
+		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
 				m.Value = metric
@@ -170,7 +170,7 @@ func (o Objective) QueryErrorBudget() string {
 		})
 
 		errorMetric := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
-		errorMatchers := slices.Clone(o.Indicator.Ratio.Errors.LabelMatchers)
+		errorMatchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
 		for _, m := range errorMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = errorMetric
@@ -215,7 +215,7 @@ func (o Objective) QueryErrorBudget() string {
 		}
 
 		metric := increaseName(o.Indicator.Latency.Total.Name, o.Window)
-		matchers := slices.Clone(o.Indicator.Latency.Total.LabelMatchers)
+		matchers := cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
 				m.Value = metric
@@ -231,7 +231,7 @@ func (o Objective) QueryErrorBudget() string {
 		})
 
 		errorMetric := increaseName(o.Indicator.Latency.Success.Name, o.Window)
-		errorMatchers := slices.Clone(o.Indicator.Latency.Success.LabelMatchers)
+		errorMatchers := cloneMatchers(o.Indicator.Latency.Success.LabelMatchers)
 		for _, m := range errorMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = errorMetric
@@ -401,7 +401,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 			return err.Error()
 		}
 
-		matchers := slices.Clone(o.Indicator.Ratio.Total.LabelMatchers)
+		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		for i, m := range matchers {
 			if m.Name == labels.MetricName {
 				matchers[i].Value = o.Indicator.Ratio.Total.Name
@@ -447,14 +447,14 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 			return err.Error()
 		}
 
-		matchers := slices.Clone(o.Indicator.Ratio.Total.LabelMatchers)
+		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		for i, m := range matchers {
 			if m.Name == labels.MetricName {
 				matchers[i].Value = o.Indicator.Ratio.Total.Name
 			}
 		}
 
-		errorMatchers := slices.Clone(o.Indicator.Ratio.Errors.LabelMatchers)
+		errorMatchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
 		for i, m := range errorMatchers {
 			if m.Name == labels.MetricName {
 				errorMatchers[i].Value = o.Indicator.Ratio.Errors.Name
@@ -539,4 +539,13 @@ func groupingLabels(errorMatchers, totalMatchers []*labels.Matcher) []string {
 	delete(groupingLabels, "le")
 
 	return maps.Keys(groupingLabels)
+}
+
+func cloneMatchers(matchers []*labels.Matcher) []*labels.Matcher {
+	r := make([]*labels.Matcher, len(matchers))
+	for i, matcher := range matchers {
+		m := *matcher
+		r[i] = &m
+	}
+	return r
 }

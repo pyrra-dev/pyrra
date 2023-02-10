@@ -1,6 +1,7 @@
 package slo
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -821,6 +822,35 @@ func TestObjective_DurationRange(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.expected, tc.objective.DurationRange(tc.timerange, 0.95))
+		})
+	}
+}
+
+func TestObjective_Immutable(t *testing.T) {
+	testcases := []func() Objective{
+		objectiveAPIServerLatency,
+		objectiveAPIServerRatio,
+		objectiveGRPCLatency,
+		objectiveGRPCLatencyGrouping,
+		objectiveGRPCRatio,
+		objectiveGRPCRatioGrouping,
+		objectiveHTTPLatency,
+		objectiveHTTPLatencyGrouping,
+		objectiveHTTPLatencyGroupingRegex,
+		objectiveHTTPRatio,
+		objectiveHTTPRatioGrouping,
+		objectiveHTTPRatioGroupingRegex,
+		objectiveOperator,
+		objectiveOperatorGrouping,
+	}
+	for i, tc := range testcases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			objective := tc()
+			objective.QueryErrorBudget()
+			objective.QueryTotal(model.Duration(2 * time.Hour))
+			objective.QueryErrors(model.Duration(2 * time.Hour))
+			objective.QueryBurnrate(2*time.Hour, nil)
+			require.Equal(t, tc(), objective)
 		})
 	}
 }
