@@ -20,7 +20,7 @@ services:
       - --storage.tsdb.retention.time=33d
     volumes:
       - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_pyrra:/etc/prometheus/pyrra
+      - ./prometheus_pyrra:/etc/prometheus/pyrra
 
   pyrra-api:
     image: ghcr.io/pyrra-dev/pyrra:v0.5.0
@@ -40,6 +40,7 @@ services:
     restart: always
     command:
       - filesystem
+      - --prometheus-url=http://prometheus:9090
     networks:
       - pyrra
     volumes:
