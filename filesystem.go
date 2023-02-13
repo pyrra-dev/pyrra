@@ -174,13 +174,13 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					err := writeRuleFile(logger, f, prometheusFolder, genericRules)
 					if err != nil {
 						reconcilesErrors.Inc()
-						level.Error(logger).Log("msg", "error creating rule file", "file", f)
+						level.Error(logger).Log("msg", "error creating rule file", "file", f, "err", err)
 					}
 
 					objective, err := objectiveFromFile(f)
 					if err != nil {
 						reconcilesErrors.Inc()
-						level.Error(logger).Log("msg", "failed to get objective from file", "file", f)
+						level.Error(logger).Log("msg", "failed to get objective from file", "file", f, "err", err)
 					}
 					objectives.Set(objective)
 
