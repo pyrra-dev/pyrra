@@ -843,24 +843,24 @@ func (s *objectiveServer) GetAlerts(ctx context.Context, req *connect.Request[ob
 
 					query, err := objective.QueryBurnrate(w, groupingMatchers)
 					if err != nil {
-						level.Warn(s.logger).Log("msg", "failed to query current burn rate", "err", err)
+						level.Warn(s.logger).Log("msg", "failed to prepare current burn rate query", "err", err)
 						return
 					}
 					value, _, err := s.promAPI.Query(contextSetPromCache(ctx, instantCache(w)), query, time.Now())
 					if err != nil {
-						level.Warn(s.logger).Log("msg", "failed to query current burn rate", "err", err)
+						level.Warn(s.logger).Log("msg", "failed to query current burn rate", "query", query, "err", err)
 						return
 					}
 					vec, ok := value.(model.Vector)
 					if !ok {
-						level.Warn(s.logger).Log("msg", "failed to query current burn rate", "err", "expected vector value from Prometheus")
+						level.Warn(s.logger).Log("msg", "failed to query current burn rate", "query", query, "err", "expected vector value from Prometheus")
 						return
 					}
 					if vec.Len() == 0 {
 						return
 					}
 					if vec.Len() != 1 {
-						level.Warn(s.logger).Log("msg", "failed to query current burn rate", "err", "expected vector with one value from Prometheus")
+						level.Warn(s.logger).Log("msg", "failed to query current burn rate", "query", query, "err", "expected vector with one value from Prometheus")
 						return
 					}
 
