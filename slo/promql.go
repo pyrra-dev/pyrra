@@ -389,6 +389,9 @@ func (r objectiveReplacer) replace(node parser.Node) {
 		if n.Val == 0.420 {
 			n.Val = r.percentile
 		}
+		if n.Val == 86400 {
+			n.Val = r.window.Seconds()
+		}
 	default:
 		panic(fmt.Sprintf("no support for type %T", n))
 	}
