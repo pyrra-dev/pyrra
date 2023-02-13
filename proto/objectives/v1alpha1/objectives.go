@@ -15,6 +15,7 @@ import (
 func ToInternal(o *Objective) slo.Objective {
 	var ratio *slo.RatioIndicator
 	var latency *slo.LatencyIndicator
+	var boolGauge *slo.BoolGaugeIndicator
 
 	if o.Indicator != nil {
 		if r := o.Indicator.GetRatio(); r != nil {
@@ -60,6 +61,20 @@ func ToInternal(o *Objective) slo.Objective {
 				})
 			}
 		}
+
+		if b := o.Indicator.GetBoolGauge(); b != nil {
+			boolGauge = &slo.BoolGaugeIndicator{
+				Metric:   slo.Metric{Name: b.BoolGauge.GetName()},
+				Grouping: b.GetGrouping(),
+			}
+			for _, m := range b.BoolGauge.GetMatchers() {
+				boolGauge.LabelMatchers = append(boolGauge.LabelMatchers, &labels.Matcher{
+					Type:  labels.MatchType(m.GetType()),
+					Name:  m.GetName(),
+					Value: m.GetValue(),
+				})
+			}
+		}
 	}
 
 	ls := make([]labels.Label, 0, len(o.Labels))
@@ -75,8 +90,9 @@ func ToInternal(o *Objective) slo.Objective {
 		Config:      o.Config,
 		Alerting:    slo.Alerting{}, // TODO
 		Indicator: slo.Indicator{
-			Ratio:   ratio,
-			Latency: latency,
+			Ratio:     ratio,
+			Latency:   latency,
+			BoolGauge: boolGauge,
 		},
 	}
 }
@@ -140,6 +156,24 @@ func FromInternal(o slo.Objective) *Objective {
 		}
 	}
 
+	var boolGauge *BoolGauge
+	if b := o.Indicator.BoolGauge; b != nil {
+		boolGauge = &BoolGauge{
+			Grouping: o.Grouping(),
+			BoolGauge: &Query{
+				Name:   b.Metric.Name,
+				Metric: b.Metric.Metric(),
+			},
+		}
+		for _, m := range b.Metric.LabelMatchers {
+			boolGauge.BoolGauge.Matchers = append(boolGauge.BoolGauge.Matchers, &LabelMatcher{
+				Type:  LabelMatcher_Type(m.Type),
+				Name:  m.Name,
+				Value: m.Value,
+			})
+		}
+	}
+
 	lset := make(map[string]string, o.Labels.Len())
 	for n, v := range o.Labels.Map() {
 		name := strings.TrimPrefix(n, slo.PropagationLabelsPrefix)
@@ -162,6 +196,11 @@ func FromInternal(o slo.Objective) *Objective {
 	if latency != nil {
 		objective.Indicator = &Indicator{
 			Options: &Indicator_Latency{latency},
+		}
+	}
+	if boolGauge != nil {
+		objective.Indicator = &Indicator{
+			Options: &Indicator_BoolGauge{boolGauge},
 		}
 	}
 	return objective

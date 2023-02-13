@@ -926,9 +926,121 @@ func TestObjective_Burnrates(t *testing.T) {
 				Labels: map[string]string{"severity": "warning", "long": "2d", "short": "3h", "job": "apiserver", "slo": "apiserver-read-resource-latency"},
 			}},
 		},
+	}, {
+		name: "prometheus-up-targets",
+		slo:  objectiveUpTargets(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "up-targets",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "up:burnrate5m",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[5m])) - sum(sum_over_time(up[5m]))) / sum(count_over_time(up[5m]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate30m",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[30m])) - sum(sum_over_time(up[30m]))) / sum(count_over_time(up[30m]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate1h",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[1h])) - sum(sum_over_time(up[1h]))) / sum(count_over_time(up[1h]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate2h",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[2h])) - sum(sum_over_time(up[2h]))) / sum(count_over_time(up[2h]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate6h",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[6h])) - sum(sum_over_time(up[6h]))) / sum(count_over_time(up[6h]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate1d",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[1d])) - sum(sum_over_time(up[1d]))) / sum(count_over_time(up[1d]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate4d",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[4d])) - sum(sum_over_time(up[4d]))) / sum(count_over_time(up[4d]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    "2m",
+				Expr:   intstr.FromString(`up:burnrate5m{slo="up-targets"} > (14 * (1-0.99)) and up:burnrate1h{slo="up-targets"} > (14 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "long": "1h", "short": "5m", "slo": "up-targets"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    "15m",
+				Expr:   intstr.FromString(`up:burnrate30m{slo="up-targets"} > (7 * (1-0.99)) and up:burnrate6h{slo="up-targets"} > (7 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "long": "6h", "slo": "up-targets", "short": "30m"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    "1h",
+				Expr:   intstr.FromString(`up:burnrate2h{slo="up-targets"} > (2 * (1-0.99)) and up:burnrate1d{slo="up-targets"} > (2 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "long": "1d", "slo": "up-targets", "short": "2h"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    "3h",
+				Expr:   intstr.FromString(`up:burnrate6h{slo="up-targets"} > (1 * (1-0.99)) and up:burnrate4d{slo="up-targets"} > (1 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "long": "4d", "slo": "up-targets", "short": "6h"},
+			}},
+		},
+	}, {
+		name: "prometheus-up-targets-grouping-regex",
+		slo:  objectiveUpTargetsGroupingRegex(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "up-targets",
+			Interval: "30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "up:burnrate5m",
+				Expr:   intstr.FromString(`(sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[5m])) - sum by (instance, job) (sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[5m]))) / sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[5m]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate30m",
+				Expr:   intstr.FromString(`(sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[30m])) - sum by (instance, job) (sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[30m]))) / sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[30m]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate1h",
+				Expr:   intstr.FromString(`(sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[1h])) - sum by (instance, job) (sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[1h]))) / sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[1h]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate2h",
+				Expr:   intstr.FromString(`(sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h])) - sum by (instance, job) (sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]))) / sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate6h",
+				Expr:   intstr.FromString(`(sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[6h])) - sum by (instance, job) (sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[6h]))) / sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[6h]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate1d",
+				Expr:   intstr.FromString(`(sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[1d])) - sum by (instance, job) (sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[1d]))) / sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[1d]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate4d",
+				Expr:   intstr.FromString(`(sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[4d])) - sum by (instance, job) (sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[4d]))) / sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[4d]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    "2m",
+				Expr:   intstr.FromString(`up:burnrate5m{instance!~"(127.0.0.1|localhost).*",slo="up-targets"} > (14 * (1-0.99)) and up:burnrate1h{instance!~"(127.0.0.1|localhost).*",slo="up-targets"} > (14 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "long": "1h", "short": "5m", "slo": "up-targets"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    "15m",
+				Expr:   intstr.FromString(`up:burnrate30m{instance!~"(127.0.0.1|localhost).*",slo="up-targets"} > (7 * (1-0.99)) and up:burnrate6h{instance!~"(127.0.0.1|localhost).*",slo="up-targets"} > (7 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "long": "6h", "slo": "up-targets", "short": "30m"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    "1h",
+				Expr:   intstr.FromString(`up:burnrate2h{instance!~"(127.0.0.1|localhost).*",slo="up-targets"} > (2 * (1-0.99)) and up:burnrate1d{instance!~"(127.0.0.1|localhost).*",slo="up-targets"} > (2 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "long": "1d", "slo": "up-targets", "short": "2h"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    "3h",
+				Expr:   intstr.FromString(`up:burnrate6h{instance!~"(127.0.0.1|localhost).*",slo="up-targets"} > (1 * (1-0.99)) and up:burnrate4d{instance!~"(127.0.0.1|localhost).*",slo="up-targets"} > (1 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "long": "4d", "slo": "up-targets", "short": "6h"},
+			}},
+		},
 	}}
 
-	require.Len(t, testcases, 17)
+	require.Len(t, testcases, 19)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1000,6 +1112,14 @@ func TestObjective_BurnrateNames(t *testing.T) {
 		name:     "apiserver-read-resource-latency",
 		slo:      objectiveAPIServerLatency(),
 		burnrate: "apiserver_request_duration_seconds:burnrate5m",
+	}, {
+		name:     "apiserver-read-resource-latency",
+		slo:      objectiveUpTargets(),
+		burnrate: "up:burnrate5m",
+	}, {
+		name:     "apiserver-read-resource-latency",
+		slo:      objectiveUpTargetsGroupingRegex(),
+		burnrate: "up:burnrate5m",
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1323,9 +1443,51 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1", "severity": "critical"},
 			}},
 		},
+	}, {
+		name: "prometheus-up-targets",
+		slo:  objectiveUpTargets(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "up-targets-increase",
+			Interval: "2m30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "up:count4w",
+				Expr:   intstr.FromString(`sum(count_over_time(up[4w]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:sum4w",
+				Expr:   intstr.FromString(`sum(sum_over_time(up[4w]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(up) == 1`),
+				For:    "2m",
+				Labels: map[string]string{"severity": "critical", "slo": "up-targets"},
+			}},
+		},
+	}, {
+		name: "prometheus-up-targets-grouping-regex",
+		slo:  objectiveUpTargetsGroupingRegex(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "up-targets-increase",
+			Interval: "2m30s",
+			Rules: []monitoringv1.Rule{{
+				Record: "up:count4w",
+				Expr:   intstr.FromString(`sum by (instance, job) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[4w]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:sum4w",
+				Expr:   intstr.FromString(`sum by (instance, job) (sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[4w]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(up{instance!~"(127.0.0.1|localhost).*"}) == 1`),
+				For:    "2m",
+				Labels: map[string]string{"severity": "critical", "slo": "up-targets"},
+			}},
+		},
 	}}
 
-	require.Len(t, testcases, 14)
+	require.Len(t, testcases, 16)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

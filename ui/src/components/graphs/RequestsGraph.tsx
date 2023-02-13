@@ -2,7 +2,7 @@ import React, {useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot from 'uplot'
-import {formatDuration, PROMETHEUS_URL} from '../../App'
+import {formatDuration, ObjectiveType, PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {blues, greens, reds, yellows} from './colors'
 import {seriesGaps} from './gaps'
@@ -18,9 +18,10 @@ interface RequestsGraphProps {
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
+  type: ObjectiveType
 }
 
-const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProps): JSX.Element => {
+const RequestsGraph = ({client, query, from, to, uPlotCursor, type}: RequestsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
   const [width, setWidth] = useState<number>(500)
@@ -48,7 +49,11 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProp
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
-          Requests
+          {type === ObjectiveType.Ratio ? (
+            "Requests"
+          ) : (
+            "Probes"
+          )}
           <Spinner
             animation="border"
             style={{
@@ -86,7 +91,13 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProp
   return (
     <div>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
-        <h4 className="graphs-headline">Requests</h4>
+        <h4 className="graphs-headline">
+          {type === ObjectiveType.Ratio ? (
+            "Requests"
+          ) : (
+            "Probes"
+          )}
+        </h4>
         <a
           className="external-prometheus"
           target="_blank"
@@ -99,7 +110,11 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor}: RequestsGraphProp
         </a>
       </div>
       <div>
-        <p>How many requests per second have there been?</p>
+        {type === ObjectiveType.Ratio ? (
+          <p>How many requests per second have there been?</p>
+        ) : (
+          <p>How many probes per second have there been?</p>
+        )}
       </div>
 
       <div ref={targetRef}>

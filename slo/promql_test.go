@@ -270,6 +270,29 @@ var (
 		o.Alerting.Name = "APIServerLatencyErrorBudgetBurn"
 		return o
 	}
+	objectiveUpTargets = func() Objective {
+		return Objective{
+			Labels: labels.FromStrings(labels.MetricName, "up-targets"),
+			Target: 0.99,
+			Window: model.Duration(28 * 24 * time.Hour),
+			Indicator: Indicator{
+				BoolGauge: &BoolGaugeIndicator{
+					Metric: Metric{Name: "up"},
+				},
+			},
+		}
+	}
+	objectiveUpTargetsGroupingRegex = func() Objective {
+		matcher := &labels.Matcher{
+			Type:  labels.MatchNotRegexp,
+			Name:  "instance",
+			Value: "(127.0.0.1|localhost).*",
+		}
+		o := objectiveUpTargets()
+		o.Indicator.BoolGauge.Grouping = []string{"job", "instance"}
+		o.Indicator.BoolGauge.Metric.LabelMatchers = append(o.Indicator.BoolGauge.LabelMatchers, matcher)
+		return o
+	}
 )
 
 func TestObjective_QueryTotal(t *testing.T) {
@@ -333,6 +356,14 @@ func TestObjective_QueryTotal(t *testing.T) {
 		name:      "apiserver-read-resource-latency",
 		objective: objectiveAPIServerLatency(),
 		expected:  `sum by (resource, verb) (apiserver_request_duration_seconds:increase2w{job="apiserver",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"})`,
+	}, {
+		name:      "up-targets",
+		objective: objectiveUpTargets(),
+		expected:  `sum(up:count4w{slo="up-targets"})`,
+	}, {
+		name:      "up-targets-grouping-regex",
+		objective: objectiveUpTargetsGroupingRegex(),
+		expected:  `sum by (job, instance) (up:count4w{instance!~"(127.0.0.1|localhost).*",slo="up-targets"})`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -402,6 +433,14 @@ func TestObjective_QueryErrors(t *testing.T) {
 		name:      "apiserver-read-resource-latency",
 		objective: objectiveAPIServerLatency(),
 		expected:  `sum by (resource, verb) (apiserver_request_duration_seconds:increase2w{job="apiserver",le="",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"}) - sum by (resource, verb) (apiserver_request_duration_seconds:increase2w{job="apiserver",le="0.1",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"})`,
+	}, {
+		name:      "up-targets",
+		objective: objectiveUpTargets(),
+		expected:  `sum(up:count4w{slo="up-targets"}) - sum(up:sum4w{slo="up-targets"})`,
+	}, {
+		name:      "up-targets-grouping-regex",
+		objective: objectiveUpTargetsGroupingRegex(),
+		expected:  `sum by (job, instance) (up:count4w{instance!~"(127.0.0.1|localhost).*",slo="up-targets"}) - sum by (job, instance) (up:sum4w{instance!~"(127.0.0.1|localhost).*",slo="up-targets"})`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -471,6 +510,14 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 		name:      "apiserver-read-resource-latency",
 		objective: objectiveAPIServerRatio(),
 		expected:  `((1 - 0.99) - (sum(apiserver_request:increase2w{code=~"5..",job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"}))) / (1 - 0.99)`,
+	}, {
+		name:      "up-targets",
+		objective: objectiveUpTargets(),
+		expected:  `((1 - 0.99) - ((sum(up:count4w{slo="up-targets"}) - sum(up:sum4w{slo="up-targets"})) / sum(up:count4w{slo="up-targets"}))) / (1 - 0.99)`,
+	}, {
+		name:      "up-targets-grouping-regex",
+		objective: objectiveUpTargetsGroupingRegex(),
+		expected:  `((1 - 0.99) - ((sum by (job, instance) (up:count4w{instance!~"(127.0.0.1|localhost).*",slo="up-targets"}) - sum by (job, instance) (up:sum4w{instance!~"(127.0.0.1|localhost).*",slo="up-targets"})) / sum by (job, instance) (up:count4w{instance!~"(127.0.0.1|localhost).*",slo="up-targets"}))) / (1 - 0.99)`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -562,6 +609,14 @@ func TestObjective_QueryBurnrate(t *testing.T) {
 		name:      "apiserver-read-resource-latency",
 		objective: objectiveAPIServerRatio(),
 		expected:  `apiserver_request:burnrate5m{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"}`,
+	}, {
+		name:      "up-targets",
+		objective: objectiveUpTargets(),
+		expected:  `up:burnrate5m{slo="up-targets"}`,
+	}, {
+		name:      "up-targets",
+		objective: objectiveUpTargetsGroupingRegex(),
+		expected:  `up:burnrate5m{instance!~"(127.0.0.1|localhost).*",slo="up-targets"}`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -648,6 +703,16 @@ func TestObjective_RequestRange(t *testing.T) {
 		objective: objectiveAPIServerLatency(),
 		timerange: 2 * time.Hour,
 		expected:  `sum(rate(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2h]))`,
+	}, {
+		name:      "up-targets",
+		objective: objectiveUpTargets(),
+		expected:  `sum(count_over_time(up[2h])) / 7200`,
+		timerange: 2 * time.Hour,
+	}, {
+		name:      "up-targets-grouping-index",
+		objective: objectiveUpTargetsGroupingRegex(),
+		expected:  `sum by (job, instance) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h])) / 7200`,
+		timerange: 2 * time.Hour,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -732,6 +797,16 @@ func TestObjective_ErrorsRange(t *testing.T) {
 		objective: objectiveAPIServerLatency(),
 		timerange: 2 * time.Hour,
 		expected:  `(sum(rate(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2h])) - sum(rate(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[2h]))) / sum(rate(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2h]))`,
+	}, {
+		name:      "up-targets",
+		objective: objectiveUpTargets(),
+		expected:  `100 * sum((count_over_time(up[2h]) - sum_over_time(up[2h]))) / sum(count_over_time(up[2h]))`,
+		timerange: 2 * time.Hour,
+	}, {
+		name:      "up-targets-grouping-index",
+		objective: objectiveUpTargetsGroupingRegex(),
+		expected:  `100 * sum((count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]) - sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]))) / sum(count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]))`,
+		timerange: 2 * time.Hour,
 	}}
 
 	for _, tc := range testcases {
@@ -817,6 +892,14 @@ func TestObjective_DurationRange(t *testing.T) {
 		objective: objectiveAPIServerLatency(),
 		timerange: 2 * time.Hour,
 		expected:  `histogram_quantile(0.95, sum by (le) (rate(apiserver_request_duration_seconds_bucket{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2h])))`,
+	}, {
+		name:      "up-targets",
+		objective: objectiveUpTargets(),
+		expected:  ``,
+	}, {
+		name:      "up-targets-grouping-index",
+		objective: objectiveUpTargetsGroupingRegex(),
+		expected:  ``,
 	}}
 
 	for _, tc := range testcases {
@@ -842,6 +925,8 @@ func TestObjective_Immutable(t *testing.T) {
 		objectiveHTTPRatioGroupingRegex,
 		objectiveOperator,
 		objectiveOperatorGrouping,
+		objectiveUpTargets,
+		objectiveUpTargetsGroupingRegex,
 	}
 	for i, tc := range testcases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

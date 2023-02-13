@@ -107,10 +107,10 @@ const ErrorsGraph = ({
         </a>
       </div>
       <div>
-        {type === ObjectiveType.Ratio ? (
-          <p>What percentage of requests were errors?</p>
-        ) : (
+        {type === ObjectiveType.Latency ? (
           <p>What percentage of requests were too slow?</p>
+        ) : (
+          <p>What percentage of {type === ObjectiveType.Ratio ? "requests" : "probes"} were errors?</p>
         )}
       </div>
 

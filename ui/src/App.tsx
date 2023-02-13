@@ -38,11 +38,15 @@ const App = () => {
 export enum ObjectiveType {
   Ratio,
   Latency,
+  BoolGauge,
 }
 
 export const hasObjectiveType = (o: Objective): ObjectiveType => {
   if (o.indicator?.options.case === 'latency') {
     return ObjectiveType.Latency
+  }
+  if (o.indicator?.options.case === 'boolGauge') {
+    return ObjectiveType.BoolGauge
   }
   return ObjectiveType.Ratio
 }

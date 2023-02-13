@@ -62,6 +62,26 @@
                   "indicator": {
                     "description": "ServiceLevelIndicator is the underlying data source that indicates how the service is doing. This will be a Prometheus metric with specific selectors for your service.",
                     "properties": {
+                      "bool_gauge": {
+                        "description": "BoolGauge is the indicator that measures wheter a boolean gauge is successul.",
+                        "properties": {
+                          "grouping": {
+                            "description": "Total is the metric that returns how many requests there are in total.",
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "metric": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "grouping",
+                          "metric"
+                        ],
+                        "type": "object"
+                      },
                       "latency": {
                         "description": "Latency is the indicator that measures a certain percentage to be fast than.",
                         "properties": {

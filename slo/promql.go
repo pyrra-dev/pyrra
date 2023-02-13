@@ -32,6 +32,11 @@ func (o Objective) QueryTotal(window model.Duration) string {
 		matchers = cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
 		grouping = slices.Clone(o.Indicator.Latency.Grouping)
 	}
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		metric = countName(o.Indicator.BoolGauge.Name, window)
+		matchers = cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
+		grouping = slices.Clone(o.Indicator.BoolGauge.Grouping)
+	}
 
 	matchers = append(matchers, &labels.Matcher{
 		Type:  labels.MatchEqual,
@@ -128,6 +133,52 @@ func (o Objective) QueryErrors(window model.Duration) string {
 			errorMetric:   errorMetric,
 			errorMatchers: errorMatchers,
 			grouping:      o.Indicator.Latency.Grouping,
+		}.replace(expr)
+
+		return expr.String()
+	}
+
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		expr, err := parser.ParseExpr(`sum by (grouping) (errorMetric{matchers="errors"}) - sum by (grouping) (metric{matchers="total"})`)
+		if err != nil {
+			return ""
+		}
+
+		metric := sumName(o.Indicator.BoolGauge.Name, window)
+		matchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
+		errorMetric := countName(o.Indicator.BoolGauge.Name, window)
+		errorMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
+
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				m.Value = metric
+				break
+			}
+		}
+		matchers = append(matchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
+		for _, m := range errorMatchers {
+			if m.Name == labels.MetricName {
+				m.Value = errorMetric
+				break
+			}
+		}
+		errorMatchers = append(errorMatchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
+		objectiveReplacer{
+			metric:        metric,
+			matchers:      matchers,
+			errorMetric:   errorMetric,
+			errorMatchers: errorMatchers,
+			grouping:      o.Indicator.BoolGauge.Grouping,
 		}.replace(expr)
 
 		return expr.String()
@@ -256,6 +307,65 @@ func (o Objective) QueryErrorBudget() string {
 		return expr.String()
 	}
 
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		expr, err := parser.ParseExpr(`
+(
+  (1 - 0.696969)
+  -
+  (
+    (sum by (grouping) (metric{matchers="total"}) -
+    sum by (grouping) (errorMetric{matchers="errors"}))
+    /
+    sum by (grouping) (metric{matchers="total"})
+  )
+)
+/
+(1 - 0.696969)
+`)
+		if err != nil {
+			return ""
+		}
+
+		metric := countName(o.Indicator.BoolGauge.Name, o.Window)
+		matchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				m.Value = metric
+				break
+			}
+		}
+		matchers = append(matchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
+		errorMetric := sumName(o.Indicator.BoolGauge.Name, o.Window)
+		errorMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
+		for _, m := range errorMatchers {
+			if m.Name == labels.MetricName {
+				m.Value = errorMetric
+				break
+			}
+		}
+		errorMatchers = append(errorMatchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
+		objectiveReplacer{
+			metric:        metric,
+			matchers:      matchers,
+			errorMetric:   errorMetric,
+			errorMatchers: errorMatchers,
+			grouping:      o.Indicator.BoolGauge.Grouping,
+			target:        o.Target,
+		}.replace(expr)
+
+		return expr.String()
+	}
+
 	return ""
 }
 
@@ -277,6 +387,17 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
+			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+				Type:  m.Type,
+				Name:  m.Name,
+				Value: m.Value,
+			}
+		}
+	}
+
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		metric = o.BurnrateName(timerange)
+		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
 			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
 				Type:  m.Type,
 				Name:  m.Name,
@@ -440,6 +561,22 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 
 		return expr.String()
 	}
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		expr, err := parser.ParseExpr(`sum by(group) (count_over_time(metric{matchers="total"}[1s])) / 86400`)
+		if err != nil {
+			return err.Error()
+		}
+
+		matchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: matchers,
+			grouping: o.Grouping(),
+			window:   timerange,
+		}.replace(expr)
+
+		return expr.String()
+	}
 	return ""
 }
 
@@ -494,11 +631,28 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 
 		return expr.String()
 	}
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		expr, err := parser.ParseExpr(`100 * sum by (group) ((count_over_time(metric{matchers="total"}[1s]) - sum_over_time(metric{matchers="total"}[1s]))) / sum by(group) (count_over_time(metric{matchers="total"}[1s]))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			window:   timerange,
+		}.replace(expr)
+
+		return expr.String()
+	}
 	return ""
 }
 
 func (o Objective) DurationRange(timerange time.Duration, percentile float64) string {
 	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		return ""
+	}
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
 		return ""
 	}
 

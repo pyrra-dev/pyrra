@@ -50,6 +50,7 @@ export const Indicator = proto3.makeMessageType(
   () => [
     { no: 1, name: "ratio", kind: "message", T: Ratio, oneof: "options" },
     { no: 2, name: "latency", kind: "message", T: Latency, oneof: "options" },
+    { no: 3, name: "boolGauge", kind: "message", T: BoolGauge, oneof: "options" },
   ],
 );
 
@@ -73,6 +74,17 @@ export const Latency = proto3.makeMessageType(
   () => [
     { no: 1, name: "total", kind: "message", T: Query },
     { no: 2, name: "success", kind: "message", T: Query },
+    { no: 3, name: "grouping", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ],
+);
+
+/**
+ * @generated from message objectives.v1alpha1.BoolGauge
+ */
+export const BoolGauge = proto3.makeMessageType(
+  "objectives.v1alpha1.BoolGauge",
+  () => [
+    { no: 1, name: "boolGauge", kind: "message", T: Query },
     { no: 3, name: "grouping", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ],
 );
