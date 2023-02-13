@@ -22,7 +22,15 @@ export const convertAlignedData = (response: QueryRangeResponse | null): Aligned
 
     response.options.value.samples.forEach((ss: SampleStream, i: number) => {
       // Add this series' labels to the array of label values
-      Object.values(ss.metric).forEach((l: string) => labels.push(l))
+      const kvs: string[] = []
+      Object.values(ss.metric).forEach((l: string) => kvs.push(l))
+      if (kvs.length === 1) {
+        labels.push(kvs[0])
+      } else if (kvs.length === 0) {
+        labels.push("value")
+      } else {
+        labels.push("["+kvs.join(" ")+"]")
+      }
 
       // Create an empty nested array for this time series
       values.push([])
