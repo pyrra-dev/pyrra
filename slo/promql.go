@@ -383,14 +383,14 @@ func (r objectiveReplacer) replace(node parser.Node) {
 	case *parser.ParenExpr:
 		r.replace(n.Expr)
 	case *parser.NumberLiteral:
-		if n.Val == 0.696969 {
+		switch n.Val {
+		case 0.696969:
 			n.Val = r.target
-		}
-		if n.Val == 0.420 {
+		case 0.420:
 			n.Val = r.percentile
-		}
-		if n.Val == 86400 {
+		case 86400:
 			n.Val = r.window.Seconds()
+		default:
 		}
 	default:
 		panic(fmt.Sprintf("no support for type %T", n))
