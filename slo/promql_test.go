@@ -7,6 +7,7 @@ import (
 
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/stretchr/testify/require"
 )
 
@@ -851,6 +852,62 @@ func TestObjective_Immutable(t *testing.T) {
 			objective.QueryErrors(model.Duration(2 * time.Hour))
 			objective.QueryBurnrate(2*time.Hour, nil)
 			require.Equal(t, tc(), objective)
+		})
+	}
+}
+
+func TestReplacer(t *testing.T) {
+	testcases := []struct {
+		replacer objectiveReplacer
+		input    string
+		output   string
+	}{
+		{
+			replacer: objectiveReplacer{
+				metric:      "foo",
+				errorMetric: "bar",
+			},
+			input:  "metric / errorMetric",
+			output: "foo / bar",
+		},
+		{
+			replacer: objectiveReplacer{
+				metric: "foo",
+				matchers: []*labels.Matcher{
+					labels.MustNewMatcher(labels.MatchEqual, "instance", "foobar"),
+				},
+				errorMetric: "bar",
+				errorMatchers: []*labels.Matcher{
+					labels.MustNewMatcher(labels.MatchNotEqual, "job", "barfoo"),
+				},
+				window:     1 * time.Hour,
+				target:     0.5,
+				grouping:   []string{"job", "instance"},
+				percentile: 0.91,
+			},
+			input:  `sum by (group) (metric{matchers="total"} / errorMetric{matchers="errors"})`,
+			output: `sum by (job, instance) (foo{instance="foobar"} / bar{job!="barfoo"})`,
+		},
+		{
+			replacer: objectiveReplacer{
+				metric:     "foo",
+				window:     1 * time.Hour,
+				target:     86400,
+				percentile: 86400,
+			},
+			input:  "metric * 0.696969 / 86400",
+			output: "foo * 86400 / 3600",
+		},
+	}
+
+	for i, tc := range testcases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			inputExpr, err := parser.ParseExpr(tc.input)
+			require.NoError(t, err)
+			outputExpr, err := parser.ParseExpr(tc.output)
+			require.NoError(t, err)
+			tc.replacer.replace(inputExpr)
+			require.Equal(t, outputExpr.String(), inputExpr.String())
 		})
 	}
 }
