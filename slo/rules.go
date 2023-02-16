@@ -749,15 +749,14 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			return monitoringv1.RuleGroup{}, err
 		}
 
-		name := o.Indicator.Ratio.Total.Name
-		increaseName := increaseName(name, o.Window)
+		totalIncreaseName := increaseName(o.Indicator.Ratio.Total.Name, o.Window)
 
 		// Copy the list of matchers to modify them
 		totalMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Total.LabelMatchers))
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
 			value := m.Value
 			if m.Name == labels.MetricName {
-				value = increaseName
+				value = totalIncreaseName
 			}
 			totalMatchers = append(totalMatchers, &labels.Matcher{
 				Type:  m.Type,
@@ -766,11 +765,13 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
+		errorsIncreaseName := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
+
 		errorMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Errors.LabelMatchers))
 		for _, m := range o.Indicator.Ratio.Errors.LabelMatchers {
 			value := m.Value
 			if m.Name == labels.MetricName {
-				value = increaseName
+				value = errorsIncreaseName
 			}
 			errorMatchers = append(errorMatchers, &labels.Matcher{
 				Type:  m.Type,
@@ -780,9 +781,9 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 
 		objectiveReplacer{
-			metric:        increaseName,
+			metric:        totalIncreaseName,
 			matchers:      totalMatchers,
-			errorMetric:   increaseName,
+			errorMetric:   errorsIncreaseName,
 			errorMatchers: errorMatchers,
 		}.replace(availability)
 
@@ -811,7 +812,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		errorsExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
 			return parser.ParseExpr(`sum(metric{matchers="total"} or vector(0))`)
 		}
-		errors, err := errorsExpr()
+		errorsParsedExpr, err := errorsExpr()
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -819,11 +820,11 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:   o.Indicator.Ratio.Errors.Name,
 			matchers: o.Indicator.Ratio.Errors.LabelMatchers,
-		}.replace(errors)
+		}.replace(errorsParsedExpr)
 
 		rules = append(rules, monitoringv1.Rule{
 			Record: "pyrra_errors_total",
-			Expr:   intstr.FromString(errors.String()),
+			Expr:   intstr.FromString(errorsParsedExpr.String()),
 			Labels: ruleLabels,
 		})
 	}
@@ -925,7 +926,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 		// errors
 		{
-			errors, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
+			errorsExpr, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -953,11 +954,11 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 				matchers:      matchers,
 				errorMetric:   errorMetric,
 				errorMatchers: errorMatchers,
-			}.replace(errors)
+			}.replace(errorsExpr)
 
 			rules = append(rules, monitoringv1.Rule{
 				Record: "pyrra_errors_total",
-				Expr:   intstr.FromString(errors.String()),
+				Expr:   intstr.FromString(errorsExpr.String()),
 				Labels: ruleLabels,
 			})
 		}
