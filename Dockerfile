@@ -1,4 +1,4 @@
-FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/busybox:1.35.0 as builder
+FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/busybox:1.36.0 as builder
 
 ARG TARGETOS TARGETARCH TARGETVARIANT
 
