@@ -749,15 +749,15 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			return monitoringv1.RuleGroup{}, err
 		}
 
-		name := o.Indicator.Ratio.Total.Name
-		increaseName := increaseName(name, o.Window)
+		totalIncreaseName := increaseName(o.Indicator.Ratio.Total.Name, o.Window)
 
 		// Copy the list of matchers to modify them
 		totalMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Total.LabelMatchers))
+
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
 			value := m.Value
 			if m.Name == labels.MetricName {
-				value = increaseName
+				value = totalIncreaseName
 			}
 			totalMatchers = append(totalMatchers, &labels.Matcher{
 				Type:  m.Type,
@@ -766,11 +766,13 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
+		errorsIncreaseName := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
+
 		errorMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Errors.LabelMatchers))
 		for _, m := range o.Indicator.Ratio.Errors.LabelMatchers {
 			value := m.Value
 			if m.Name == labels.MetricName {
-				value = increaseName
+				value = errorsIncreaseName
 			}
 			errorMatchers = append(errorMatchers, &labels.Matcher{
 				Type:  m.Type,
@@ -780,9 +782,9 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 
 		objectiveReplacer{
-			metric:        increaseName,
+			metric:        totalIncreaseName,
 			matchers:      totalMatchers,
-			errorMetric:   increaseName,
+			errorMetric:   errorsIncreaseName,
 			errorMatchers: errorMatchers,
 		}.replace(availability)
 
