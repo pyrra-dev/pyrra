@@ -132,6 +132,12 @@ export declare class Indicator extends Message<Indicator> {
      */
     value: Latency;
     case: "latency";
+  } | {
+    /**
+     * @generated from field: objectives.v1alpha1.BoolGauge boolGauge = 3;
+     */
+    value: BoolGauge;
+    case: "boolGauge";
   } | { case: undefined; value?: undefined };
 
   constructor(data?: PartialMessage<Indicator>);
@@ -215,6 +221,35 @@ export declare class Latency extends Message<Latency> {
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Latency;
 
   static equals(a: Latency | PlainMessage<Latency> | undefined, b: Latency | PlainMessage<Latency> | undefined): boolean;
+}
+
+/**
+ * @generated from message objectives.v1alpha1.BoolGauge
+ */
+export declare class BoolGauge extends Message<BoolGauge> {
+  /**
+   * @generated from field: objectives.v1alpha1.Query boolGauge = 1;
+   */
+  boolGauge?: Query;
+
+  /**
+   * @generated from field: repeated string grouping = 3;
+   */
+  grouping: string[];
+
+  constructor(data?: PartialMessage<BoolGauge>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "objectives.v1alpha1.BoolGauge";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BoolGauge;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): BoolGauge;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): BoolGauge;
+
+  static equals(a: BoolGauge | PlainMessage<BoolGauge> | undefined, b: BoolGauge | PlainMessage<BoolGauge> | undefined): boolean;
 }
 
 /**

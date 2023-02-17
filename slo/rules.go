@@ -229,6 +229,93 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		}
 	}
 
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		matchers := o.Indicator.BoolGauge.LabelMatchers
+
+		groupingMap := map[string]struct{}{}
+		for _, g := range o.Indicator.BoolGauge.Grouping {
+			groupingMap[g] = struct{}{}
+		}
+
+		ruleLabels := o.commonRuleLabels(sloName)
+		for _, m := range matchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
+		// Delete labels that are grouped as their value is part of the labels anyway
+		for g := range groupingMap {
+			delete(ruleLabels, g)
+		}
+
+		for _, br := range burnrates {
+			rules = append(rules, monitoringv1.Rule{
+				Record: o.BurnrateName(br),
+				Expr:   intstr.FromString(o.Burnrate(br)),
+				Labels: ruleLabels,
+			})
+		}
+
+		if o.Alerting.Disabled {
+			return monitoringv1.RuleGroup{
+				Name:     sloName,
+				Interval: "30s", // TODO: Increase or decrease based on availability target
+				Rules:    rules,
+			}, nil
+		}
+
+		var alertMatchers []string
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				continue
+			}
+			if _, ok := groupingMap[m.Name]; !ok {
+				if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+					continue
+				}
+			}
+
+			alertMatchers = append(alertMatchers, m.String())
+		}
+		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
+		sort.Strings(alertMatchers)
+		alertMatchersString := strings.Join(alertMatchers, ",")
+
+		for _, w := range ws {
+			alertLabels := o.commonRuleLabels(sloName)
+			alertAnnotations := o.commonRuleAnnotations()
+			for _, m := range matchers {
+				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
+						alertLabels[m.Name] = m.Value
+					}
+				}
+			}
+			alertLabels["short"] = model.Duration(w.Short).String()
+			alertLabels["long"] = model.Duration(w.Long).String()
+			alertLabels["severity"] = string(w.Severity)
+
+			r := monitoringv1.Rule{
+				Alert: o.AlertName(),
+				// TODO: Use expr replacer
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
+					o.BurnrateName(w.Short),
+					alertMatchersString,
+					w.Factor,
+					strconv.FormatFloat(o.Target, 'f', -1, 64),
+					o.BurnrateName(w.Long),
+					alertMatchersString,
+					w.Factor,
+					strconv.FormatFloat(o.Target, 'f', -1, 64),
+				)),
+				For:         model.Duration(w.For).String(),
+				Labels:      alertLabels,
+				Annotations: alertAnnotations,
+			}
+			rules = append(rules, r)
+		}
+	}
+
 	// We only get here if alerting was not disabled
 	return monitoringv1.RuleGroup{
 		Name:     sloName,
@@ -248,6 +335,10 @@ func (o Objective) BurnrateName(rate time.Duration) string {
 
 	metric = strings.TrimSuffix(metric, "_total")
 	metric = strings.TrimSuffix(metric, "_count")
+
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		metric = o.Indicator.BoolGauge.Name
+	}
 	return fmt.Sprintf("%s:burnrate%s", metric, model.Duration(rate))
 }
 
@@ -322,7 +413,50 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 
 		return expr.String()
 	}
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		query := `
+			(
+				sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))
+				-
+				sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))
+			)
+			/
+			sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))
+`
+		expr, err := parser.ParseExpr(query)
+		if err != nil {
+			return err.Error()
+		}
+
+		groupingMap := map[string]struct{}{}
+		for _, s := range o.Indicator.BoolGauge.Grouping {
+			groupingMap[s] = struct{}{}
+		}
+
+		grouping := make([]string, 0, len(groupingMap))
+		for s := range groupingMap {
+			grouping = append(grouping, s)
+		}
+		sort.Strings(grouping)
+
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   timerange,
+		}.replace(expr)
+
+		return expr.String()
+	}
 	return ""
+}
+
+func sumName(metric string, window model.Duration) string {
+	return fmt.Sprintf("%s:sum%s", metric, window)
+}
+
+func countName(metric string, window model.Duration) string {
+	return fmt.Sprintf("%s:count%s", metric, window)
 }
 
 func increaseName(metric string, window model.Duration) string {
@@ -362,6 +496,14 @@ func (o Objective) commonRuleAnnotations() map[string]string {
 
 func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
+
+	countExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+		return parser.ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))`)
+	}
+
+	sumExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+		return parser.ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))`)
+	}
 
 	increaseExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
 		return parser.ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s]))`)
@@ -617,6 +759,111 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			Expr:        intstr.FromString(expr.String()),
 			For:         model.Duration((time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute)).String(),
 			Labels:      alertLabelsLe,
+			Annotations: o.commonRuleAnnotations(),
+		})
+	}
+
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		ruleLabels := o.commonRuleLabels(sloName)
+		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
+
+		groupingMap := map[string]struct{}{}
+		for _, s := range o.Indicator.BoolGauge.Grouping {
+			groupingMap[s] = struct{}{}
+		}
+		for _, s := range o.Indicator.BoolGauge.LabelMatchers {
+			groupingMap[s.Name] = struct{}{}
+		}
+		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
+			if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+				groupingMap[m.Name] = struct{}{}
+			}
+		}
+		// Delete labels that are grouped, as their value is part of the recording rule anyway
+		for g := range groupingMap {
+			delete(ruleLabels, g)
+		}
+
+		grouping := make([]string, 0, len(groupingMap))
+		for s := range groupingMap {
+			grouping = append(grouping, s)
+		}
+		sort.Strings(grouping)
+
+		expr, err := countExpr()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		sum, err := sumExpr()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(expr)
+
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(sum)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: countName(o.Indicator.BoolGauge.Name, o.Window),
+			Expr:   intstr.FromString(expr.String()),
+			Labels: ruleLabels,
+		})
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: sumName(o.Indicator.BoolGauge.Name, o.Window),
+			Expr:   intstr.FromString(sum.String()),
+			Labels: ruleLabels,
+		})
+
+		expr, err = countExpr()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(expr)
+
+		expr, err = absentExpr()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+		}.replace(expr)
+
+		alertLabels := make(map[string]string, len(ruleLabels)+1)
+		for k, v := range ruleLabels {
+			alertLabels[k] = v
+		}
+		// Add severity label for alerts
+		alertLabels["severity"] = string(critical)
+
+		rules = append(rules, monitoringv1.Rule{
+			Alert:       "SLOMetricAbsent",
+			Expr:        intstr.FromString(expr.String()),
+			For:         model.Duration((time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute)).String(),
+			Labels:      alertLabels,
 			Annotations: o.commonRuleAnnotations(),
 		})
 	}

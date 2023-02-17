@@ -552,6 +552,8 @@ const List = () => {
     switch (hasObjectiveType(o.objective)) {
       case ObjectiveType.Ratio:
         return <></>
+      case ObjectiveType.BoolGauge:
+        return <></>
       case ObjectiveType.Latency:
         return renderLatencyTarget(o.objective)
     }

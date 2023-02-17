@@ -544,6 +544,20 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 					}
 				}
 			}
+			if oi.Indicator.BoolGauge != nil {
+				for _, m := range oi.Indicator.BoolGauge.LabelMatchers {
+					if rm, replace := groupingMatchers[m.Name]; replace {
+						m.Type = rm.Type
+						m.Value = rm.Value
+						delete(groupingMatchers, m.Name)
+					}
+				}
+				if len(groupingMatchers) > 0 {
+					for _, m := range groupingMatchers {
+						oi.Indicator.BoolGauge.LabelMatchers = append(oi.Indicator.BoolGauge.LabelMatchers, m)
+					}
+				}
+			}
 		}
 
 		o.Queries = &objectivesv1alpha1.Queries{
@@ -583,6 +597,9 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
 				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
 			}
+		}
+		if objective.Indicator.BoolGauge != nil {
+			objective.Indicator.BoolGauge.LabelMatchers = append(objective.Indicator.BoolGauge.LabelMatchers, groupingMatchers...)
 		}
 	}
 
@@ -711,6 +728,22 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 			objective.Indicator.Latency.Grouping = []string{}
 			for g := range groupings {
 				objective.Indicator.Latency.Grouping = append(objective.Indicator.Latency.Grouping, g)
+			}
+		}
+		if objective.Indicator.BoolGauge != nil {
+			groupings := map[string]struct{}{}
+			for _, g := range objective.Indicator.BoolGauge.Grouping {
+				groupings[g] = struct{}{}
+			}
+
+			for _, m := range groupingMatchers {
+				objective.Indicator.BoolGauge.LabelMatchers = append(objective.Indicator.BoolGauge.LabelMatchers, m)
+				delete(groupings, m.Name)
+			}
+
+			objective.Indicator.BoolGauge.Grouping = []string{}
+			for g := range groupings {
+				objective.Indicator.BoolGauge.Grouping = append(objective.Indicator.BoolGauge.Grouping, g)
 			}
 		}
 	}
@@ -1084,6 +1117,9 @@ func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[ob
 				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
 			}
 		}
+		if objective.Indicator.BoolGauge != nil {
+			objective.Indicator.BoolGauge.LabelMatchers = append(objective.Indicator.BoolGauge.LabelMatchers, groupingMatchers...)
+		}
 	}
 
 	end := time.Now()
@@ -1179,6 +1215,9 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
 				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
 			}
+		}
+		if objective.Indicator.BoolGauge != nil {
+			objective.Indicator.BoolGauge.LabelMatchers = append(objective.Indicator.BoolGauge.LabelMatchers, groupingMatchers...)
 		}
 	}
 
@@ -1277,6 +1316,9 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
 				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
 			}
+		}
+		if objective.Indicator.BoolGauge != nil {
+			objective.Indicator.BoolGauge.LabelMatchers = append(objective.Indicator.BoolGauge.LabelMatchers, groupingMatchers...)
 		}
 	}
 

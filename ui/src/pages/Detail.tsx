@@ -187,6 +187,14 @@ const Detail = () => {
             <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
           </div>
         )
+      case ObjectiveType.BoolGauge:
+        return (
+          <div>
+            <h6 className="headline">Objective</h6>
+            <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
+            <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
+          </div>
+        )
       case ObjectiveType.Latency:
         return (
           <div>
@@ -455,6 +463,7 @@ const Detail = () => {
                   from={from}
                   to={to}
                   uPlotCursor={uPlotCursor}
+                  type={objectiveType}
                 />
               ) : (
                 <></>

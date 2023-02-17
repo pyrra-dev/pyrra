@@ -57,6 +57,9 @@ func (o Objective) Grouping() []string {
 	if o.Indicator.Latency != nil {
 		return o.Indicator.Latency.Grouping
 	}
+	if o.Indicator.BoolGauge != nil {
+		return o.Indicator.BoolGauge.Grouping
+	}
 	return nil
 }
 
@@ -69,8 +72,9 @@ func (o Objective) AlertName() string {
 }
 
 type Indicator struct {
-	Ratio   *RatioIndicator
-	Latency *LatencyIndicator
+	Ratio     *RatioIndicator
+	Latency   *LatencyIndicator
+	BoolGauge *BoolGaugeIndicator
 }
 
 type RatioIndicator struct {
@@ -82,6 +86,11 @@ type RatioIndicator struct {
 type LatencyIndicator struct {
 	Success  Metric
 	Total    Metric
+	Grouping []string
+}
+
+type BoolGaugeIndicator struct {
+	Metric
 	Grouping []string
 }
 

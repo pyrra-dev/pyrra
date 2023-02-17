@@ -45,6 +45,7 @@ message Indicator {
   oneof options {
     Ratio ratio = 1;
     Latency latency = 2;
+    BoolGauge boolGauge = 3;
   }
 }
 
@@ -57,6 +58,11 @@ message Ratio {
 message Latency {
   Query total = 1;
   Query success = 2;
+  repeated string grouping = 3;
+}
+
+message BoolGauge {
+  Query boolGauge = 1;
   repeated string grouping = 3;
 }
 
