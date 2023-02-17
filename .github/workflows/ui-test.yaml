@@ -19,9 +19,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: cd ui
       - run: npm ci
+        working-directory: ./ui
       - run: npm run lint
+        working-directory: ./ui
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -34,6 +35,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - run: cd ui
       - run: npm ci
+        working-directory: ./ui
       - run: npm run test
+        working-directory: ./ui
+
