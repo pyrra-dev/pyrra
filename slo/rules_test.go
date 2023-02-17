@@ -1530,7 +1530,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
 			}, {
 				Record: "pyrra_availability",
-				Expr:   intstr.FromString(`1 - sum(prometheus_operator_reconcile_operations:increase2w or vector(0)) / sum(prometheus_operator_reconcile_operations:increase2w)`),
+				Expr:   intstr.FromString(`1 - sum(prometheus_operator_reconcile_errors:increase2w or vector(0)) / sum(prometheus_operator_reconcile_operations:increase2w)`),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
 			}, {
 				Record: "pyrra_requests_total",
