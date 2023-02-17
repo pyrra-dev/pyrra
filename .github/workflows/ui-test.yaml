@@ -1,0 +1,42 @@
+name: ui-test
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ui/**'
+  pull_request:
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+        working-directory: ./ui
+      - run: npm run lint
+        working-directory: ./ui
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+        working-directory: ./ui
+      - run: npm run test
+        working-directory: ./ui
+
