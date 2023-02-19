@@ -109,7 +109,9 @@ const AlertsTable = ({client, objective, grouping}: AlertsTableProps): JSX.Eleme
                 <td style={{textAlign: 'left'}}>
                   {longCurrent} ({formatDuration(Number(a.long?.window?.seconds) * 1000)})
                 </td>
-                <td style={{textAlign: 'right'}}>{formatDuration(Number(a.for))}</td>
+                <td style={{textAlign: 'right'}}>
+                  {formatDuration(Number(a.for?.seconds) * 1000)}
+                </td>
                 <td>
                   <a
                     className="external-prometheus"
