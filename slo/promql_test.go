@@ -38,6 +38,14 @@ var (
 			},
 		}
 	}
+	objectiveHTTPRatioWithCustomSeverity = func() Objective {
+		o := objectiveHTTPRatio()
+		o.Alerting = Alerting{
+			HighSev: "high",
+			LowSev:  "low",
+		}
+		return o
+	}
 	objectiveHTTPRatioGrouping = func() Objective {
 		o := objectiveHTTPRatio()
 		o.Indicator.Ratio.Grouping = []string{"job", "handler"}

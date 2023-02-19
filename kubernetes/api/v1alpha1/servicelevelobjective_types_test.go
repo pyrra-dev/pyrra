@@ -322,6 +322,58 @@ spec:
 			},
 		},
 	},
+	{
+		config: `
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+ name: custom-severity
+ namespace: monitoring
+ labels:
+   prometheus: k8s
+   role: alert-rules
+spec:
+ target: 99
+ window: 2w
+ indicator:
+   ratio:
+     errors:
+       metric: prometheus_operator_reconcile_errors_total
+     total:
+       metric: prometheus_operator_reconcile_operations_total
+ alerting:
+   highSeverity: high
+   lowSeverity: low
+`,
+		objective: slo.Objective{
+			Labels: labels.FromStrings(
+				labels.MetricName, "custom-severity",
+				"namespace", "monitoring",
+			),
+			Target: 0.99,
+			Window: model.Duration(14 * 24 * time.Hour),
+			Indicator: slo.Indicator{
+				Ratio: &slo.RatioIndicator{
+					Errors: slo.Metric{
+						Name: "prometheus_operator_reconcile_errors_total",
+						LabelMatchers: []*labels.Matcher{
+							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_errors_total"},
+						},
+					},
+					Total: slo.Metric{
+						Name: "prometheus_operator_reconcile_operations_total",
+						LabelMatchers: []*labels.Matcher{
+							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_operations_total"},
+						},
+					},
+				},
+			},
+			Alerting: slo.Alerting{
+				HighSev: "high",
+				LowSev:  "low",
+			},
+		},
+	},
 }
 
 func TestServiceLevelObjective_Internal(t *testing.T) {
