@@ -11,6 +11,7 @@ import {PromiseClient} from '@bufbuild/connect-web'
 import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
 import {Timestamp} from '@bufbuild/protobuf'
 import {GraphErrorsResponse, Series} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {selectTimeRange} from './selectTimeRange'
 
 interface ErrorsGraphProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -20,6 +21,7 @@ interface ErrorsGraphProps {
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
+  updateTimeRange: (min: number, max: number, absolute: boolean) => void
 }
 
 const ErrorsGraph = ({
@@ -30,6 +32,7 @@ const ErrorsGraph = ({
   from,
   to,
   uPlotCursor,
+  updateTimeRange,
 }: ErrorsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -157,6 +160,9 @@ const ErrorsGraph = ({
                   values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v}%`),
                 },
               ],
+              hooks: {
+                setSelect: [selectTimeRange(updateTimeRange)],
+              },
             }}
             data={errors}
           />

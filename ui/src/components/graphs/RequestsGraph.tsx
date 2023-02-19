@@ -11,6 +11,7 @@ import {PromiseClient} from '@bufbuild/connect-web'
 import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
 import {GraphRateResponse, Series} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {Timestamp} from '@bufbuild/protobuf'
+import {selectTimeRange} from './selectTimeRange'
 
 interface RequestsGraphProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -19,6 +20,7 @@ interface RequestsGraphProps {
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
+  updateTimeRange: (min: number, max: number, absolute: boolean) => void
 }
 
 const RequestsGraph = ({
@@ -28,6 +30,7 @@ const RequestsGraph = ({
   from,
   to,
   uPlotCursor,
+  updateTimeRange,
 }: RequestsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -151,6 +154,9 @@ const RequestsGraph = ({
                     max: {},
                   },
                 },
+              },
+              hooks: {
+                setSelect: [selectTimeRange(updateTimeRange)],
               },
             }}
             data={requests}
