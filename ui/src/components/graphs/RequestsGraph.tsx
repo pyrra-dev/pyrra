@@ -11,6 +11,7 @@ import {usePrometheusQueryRange} from '../../prometheus'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb'
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
+import {selectTimeRange} from './selectTimeRange'
 
 interface RequestsGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -19,9 +20,18 @@ interface RequestsGraphProps {
   to: number
   uPlotCursor: uPlot.Cursor
   type: ObjectiveType
+  updateTimeRange: (min: number, max: number, absolute: boolean) => void
 }
 
-const RequestsGraph = ({client, query, from, to, uPlotCursor, type}: RequestsGraphProps): JSX.Element => {
+const RequestsGraph = ({
+  client,
+  query,
+  from,
+  to,
+  uPlotCursor,
+  type,
+  updateTimeRange,
+}: RequestsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
   const [width, setWidth] = useState<number>(500)
@@ -49,11 +59,7 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor, type}: RequestsGra
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
-          {type === ObjectiveType.Ratio ? (
-            "Requests"
-          ) : (
-            "Probes"
-          )}
+          {type === ObjectiveType.Ratio ? 'Requests' : 'Probes'}
           <Spinner
             animation="border"
             style={{
@@ -91,13 +97,7 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor, type}: RequestsGra
   return (
     <div>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
-        <h4 className="graphs-headline">
-          {type === ObjectiveType.Ratio ? (
-            "Requests"
-          ) : (
-            "Probes"
-          )}
-        </h4>
+        <h4 className="graphs-headline">{type === ObjectiveType.Ratio ? 'Requests' : 'Probes'}</h4>
         <a
           className="external-prometheus"
           target="_blank"
@@ -144,6 +144,9 @@ const RequestsGraph = ({client, query, from, to, uPlotCursor, type}: RequestsGra
                     max: {},
                   },
                 },
+              },
+              hooks: {
+                setSelect: [selectTimeRange(updateTimeRange)],
               },
             }}
             data={data}

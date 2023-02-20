@@ -17,6 +17,7 @@ import {
   hasObjectiveType,
   latencyTarget,
   ObjectiveType,
+  parseDuration,
   renderLatencyTarget,
 } from '../App'
 import Navbar from '../components/Navbar'
@@ -71,11 +72,26 @@ const Detail = () => {
 
     const name: string = labels[MetricName]
 
+    let to: number = Date.now()
     const toQuery = query.get('to')
-    const to = toQuery != null ? parseInt(toQuery) : Date.now()
+    if (toQuery !== null) {
+      if (!toQuery.includes('now')) {
+        to = parseInt(toQuery)
+      }
+    }
 
+    let from: number = to - 60 * 60 * 1000
     const fromQuery = query.get('from')
-    const from = fromQuery != null ? parseInt(fromQuery) : to - 3600 * 1000
+    if (fromQuery !== null) {
+      if (fromQuery.includes('now')) {
+        const duration = parseDuration(fromQuery.substring(4)) // omit first 4 chars: `now-`
+        if (duration !== null) {
+          from = to - duration
+        }
+      } else {
+        from = parseInt(fromQuery)
+      }
+    }
 
     document.title = `${name} - Pyrra`
 
@@ -107,11 +123,25 @@ const Detail = () => {
   )
 
   const updateTimeRange = useCallback(
-    (from: number, to: number) => {
-      navigate(`/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&from=${from}&to=${to}`)
+    (from: number, to: number, absolute: boolean) => {
+      let fromStr = from.toString()
+      let toStr = to.toString()
+      if (!absolute) {
+        fromStr = `now-${formatDuration(to - from)}`
+        toStr = 'now'
+      }
+      navigate(
+        `/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&from=${fromStr}&to=${toStr}`,
+      )
     },
     [navigate, expr, groupingExpr],
   )
+
+  const updateTimeRangeSelect = (min: number, max: number, absolute: boolean) => {
+    // when selecting time ranges with the mouse we want to disable the auto refresh
+    setAutoReload(false)
+    updateTimeRange(min, max, absolute)
+  }
 
   const duration = to - from
   const interval = intervalFromDuration(duration)
@@ -121,7 +151,7 @@ const Detail = () => {
       const id = setInterval(() => {
         const newTo = Date.now()
         const newFrom = newTo - duration
-        updateTimeRange(newFrom, newTo)
+        updateTimeRange(newFrom, newTo, false)
       }, interval)
 
       return () => {
@@ -133,7 +163,7 @@ const Detail = () => {
   const handleTimeRangeClick = (t: number) => () => {
     const to = Date.now()
     const from = to - t
-    updateTimeRange(from, to)
+    updateTimeRange(from, to, false)
   }
 
   if (objectiveError !== null) {
@@ -445,6 +475,7 @@ const Detail = () => {
                   from={from}
                   to={to}
                   uPlotCursor={uPlotCursor}
+                  updateTimeRange={updateTimeRangeSelect}
                 />
               ) : (
                 <></>
@@ -464,6 +495,7 @@ const Detail = () => {
                   to={to}
                   uPlotCursor={uPlotCursor}
                   type={objectiveType}
+                  updateTimeRange={updateTimeRangeSelect}
                 />
               ) : (
                 <></>
@@ -481,6 +513,7 @@ const Detail = () => {
                   from={from}
                   to={to}
                   uPlotCursor={uPlotCursor}
+                  updateTimeRange={updateTimeRangeSelect}
                 />
               ) : (
                 <></>
@@ -495,6 +528,7 @@ const Detail = () => {
                   from={from}
                   to={to}
                   uPlotCursor={uPlotCursor}
+                  updateTimeRange={updateTimeRangeSelect}
                   target={objective.target}
                   latency={latencyTarget(objective)}
                 />

@@ -11,6 +11,7 @@ import {usePrometheusQueryRange} from '../../prometheus'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb'
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
+import {selectTimeRange} from './selectTimeRange'
 
 interface ErrorsGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -19,6 +20,7 @@ interface ErrorsGraphProps {
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
+  updateTimeRange: (min: number, max: number, absolute: boolean) => void
 }
 
 const ErrorsGraph = ({
@@ -28,6 +30,7 @@ const ErrorsGraph = ({
   from,
   to,
   uPlotCursor,
+  updateTimeRange,
 }: ErrorsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -148,7 +151,9 @@ const ErrorsGraph = ({
                 values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v}%`),
               },
             ],
-          }}
+          hooks: {
+                setSelect: [selectTimeRange(updateTimeRange)],
+              },}}
           data={data}
         />
       </div>

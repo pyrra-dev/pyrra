@@ -11,6 +11,7 @@ import {PromiseClient} from '@bufbuild/connect-web'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
+import {selectTimeRange} from './selectTimeRange'
 
 interface ErrorBudgetGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -18,6 +19,7 @@ interface ErrorBudgetGraphProps {
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
+  updateTimeRange: (min: number, max: number, absolute: boolean) => void
 }
 
 const ErrorBudgetGraph = ({
@@ -26,6 +28,7 @@ const ErrorBudgetGraph = ({
   from,
   to,
   uPlotCursor,
+  updateTimeRange,
 }: ErrorBudgetGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -189,6 +192,9 @@ const ErrorBudgetGraph = ({
                   values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(2)}%`),
                 },
               ],
+              hooks: {
+                setSelect: [selectTimeRange(updateTimeRange)],
+              },
             }}
             data={samples}
           />
