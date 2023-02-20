@@ -73,6 +73,7 @@ var CLI struct {
 		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
 		PrometheusFolder string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
 		GenericRules     bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		OperatorRule     bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
 	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
 }
 
@@ -162,6 +163,7 @@ func main() {
 			CLI.Generate.ConfigFiles,
 			CLI.Generate.PrometheusFolder,
 			CLI.Generate.GenericRules,
+			CLI.Generate.OperatorRule,
 		)
 	}
 	os.Exit(code)
