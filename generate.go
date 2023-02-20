@@ -20,7 +20,7 @@ import (
 	"github.com/go-kit/log/level"
 )
 
-func cmdGenerate(logger log.Logger, configFiles, prometheusFolder string, genericRules bool, operatorRule bool) int {
+func cmdGenerate(logger log.Logger, configFiles, prometheusFolder string, genericRules, operatorRule bool) int {
 	filenames, err := filepath.Glob(configFiles)
 	if err != nil {
 		level.Error(logger).Log("msg", "getting file names", "err", err)

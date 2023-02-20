@@ -295,7 +295,7 @@ func (s *FilesystemObjectiveServer) List(ctx context.Context, req *connect.Reque
 	}), nil
 }
 
-func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules bool, operatorRule bool) error {
+func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule bool) error {
 	kubeObjective, objective, err := objectiveFromFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to get objective: %w", err)
