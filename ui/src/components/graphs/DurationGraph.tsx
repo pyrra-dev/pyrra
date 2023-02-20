@@ -15,6 +15,7 @@ import {
   Series,
   Timeseries,
 } from '../../proto/objectives/v1alpha1/objectives_pb'
+import {selectTimeRange} from './selectTimeRange'
 
 interface DurationGraphProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -23,6 +24,7 @@ interface DurationGraphProps {
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
+  updateTimeRange: (min: number, max: number, absolute: boolean) => void
   target: number
   latency: number | undefined
 }
@@ -34,6 +36,7 @@ const DurationGraph = ({
   from,
   to,
   uPlotCursor,
+  updateTimeRange,
   target,
   latency,
 }: DurationGraphProps): JSX.Element => {
@@ -189,6 +192,9 @@ const DurationGraph = ({
                     v.map((v: number) => formatDuration(v * 1000)),
                 },
               ],
+              hooks: {
+                setSelect: [selectTimeRange(updateTimeRange)],
+              },
             }}
             data={durations}
           />

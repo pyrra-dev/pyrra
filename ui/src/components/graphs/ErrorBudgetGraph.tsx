@@ -12,6 +12,7 @@ import {PromiseClient} from '@bufbuild/connect-web'
 import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
 import {GraphErrorBudgetResponse} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {Timestamp} from '@bufbuild/protobuf'
+import {selectTimeRange} from './selectTimeRange'
 
 interface ErrorBudgetGraphProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -20,6 +21,7 @@ interface ErrorBudgetGraphProps {
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
+  updateTimeRange: (min: number, max: number, absolute: boolean) => void
 }
 
 const ErrorBudgetGraph = ({
@@ -29,6 +31,7 @@ const ErrorBudgetGraph = ({
   from,
   to,
   uPlotCursor,
+  updateTimeRange,
 }: ErrorBudgetGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -200,6 +203,9 @@ const ErrorBudgetGraph = ({
                   values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(2)}%`),
                 },
               ],
+              hooks: {
+                setSelect: [selectTimeRange(updateTimeRange)],
+              },
             }}
             data={samples}
           />
