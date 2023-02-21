@@ -12,6 +12,7 @@ import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
+import {Labels, labelValues} from '../../labels'
 import {formatDuration} from '../../duration'
 
 interface ErrorsGraphProps {
@@ -138,11 +139,11 @@ const ErrorsGraph = ({
             cursor: uPlotCursor,
             series: [
               {},
-              ...labels.map((label: string, i: number): uPlot.Series => {
+              ...labels.map((label: Labels, i: number): uPlot.Series => {
                 return {
                   min: 0,
                   stroke: `#${reds[i]}`,
-                  label: label,
+                  label: labelValues(label)[0],
                   gaps: seriesGaps(from / 1000, to / 1000),
                   value: (u, v) => (v == null ? '-' : v.toFixed(2) + '%'),
                 }

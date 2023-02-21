@@ -19,6 +19,8 @@ export const labelsString = (lset: Labels | undefined): string => {
   return s
 }
 
+export const labelValues = (lset: Labels): string[] => Object.values(lset)
+
 export const parseLabels = (expr: string | null): Labels => {
   if (expr == null) {
     return {}

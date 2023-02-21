@@ -3,7 +3,7 @@ import {AlignedData} from 'uplot'
 import {Labels} from '../../labels'
 
 export interface AlignedDataResponse {
-  labels: string[]
+  labels: Labels[]
   data: AlignedData
 }
 
@@ -12,7 +12,7 @@ export const convertAlignedData = (response: QueryRangeResponse | null): Aligned
     return {labels: [], data: []}
   }
 
-  const labels: string[] = []
+  const labels: Labels[] = []
   let data: AlignedData = []
 
   if (response?.options.case === 'matrix') {
@@ -20,21 +20,7 @@ export const convertAlignedData = (response: QueryRangeResponse | null): Aligned
 
     const series = response.options.value.samples
     series.forEach((ss: SampleStream, i: number) => {
-      // Add this series' labels to the array of label values
-
-      // TODO: Support multiple labels here and return Labels object
-      const ml = ss.metric as Labels
-      console.log(ml)
-
-      const kvs: string[] = []
-      Object.values(ss.metric).forEach((l: string) => kvs.push(l))
-      if (kvs.length === 1) {
-        labels.push(kvs[0])
-      } else if (kvs.length === 0) {
-        labels.push('value')
-      } else {
-        labels.push('[' + kvs.join(' ') + ']')
-      }
+      labels.push(ss.metric as Labels)
 
       ss.values.forEach((sp: SamplePair) => {
         const time: number = Number(sp.time)
@@ -92,7 +78,7 @@ export const mergeAlignedData = (responses: AlignedDataResponse[]): AlignedDataR
     .map((adr: AlignedDataResponse): number => adr.data.length - 1)
     .reduce((total: number, n: number) => total + n)
 
-  const labels: string[] = []
+  const labels: Labels[] = []
   const series = new Map<number, Array<number | null | undefined>>()
 
   responses.forEach((adr: AlignedDataResponse, i: number) => {

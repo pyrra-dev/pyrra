@@ -28,7 +28,7 @@ describe('convertAlignedData', () => {
         ),
       ),
     ).toEqual({
-      labels: ['pyrra'],
+      labels: [{job: 'pyrra'}],
       data: [[], []],
     })
     expect(
@@ -38,7 +38,7 @@ describe('convertAlignedData', () => {
         ),
       ),
     ).toEqual({
-      labels: ['pyrra'],
+      labels: [{job: 'pyrra'}],
       data: [
         [1, 2],
         [100, 200],
@@ -53,7 +53,7 @@ describe('convertAlignedData', () => {
         ),
       ),
     ).toEqual({
-      labels: ['pyrra', 'parca'],
+      labels: [{job: 'pyrra'}, {job: 'parca'}],
       data: [[], [], []],
     })
   })
@@ -64,7 +64,7 @@ describe('convertAlignedData', () => {
       ),
     ),
   ).toEqual({
-    labels: ['pyrra', 'parca'],
+    labels: [{job: 'pyrra'}, {job: 'parca'}],
     data: [
       [1, 2],
       [100, 200],
@@ -79,7 +79,7 @@ describe('convertAlignedData', () => {
         ),
       ),
     ).toEqual({
-      labels: ['pyrra', 'parca'],
+      labels: [{job: 'pyrra'}, {job: 'parca'}],
       data: [
         [1, 2, 3],
         [100, 200, 300],
@@ -97,7 +97,7 @@ describe('mergeAlignedData', () => {
     expect(
       mergeAlignedData([
         {
-          labels: ['pyrra'],
+          labels: [{job: 'pyrra'}],
           data: [
             [1, 2, 3],
             [100, 200, 300],
@@ -105,7 +105,7 @@ describe('mergeAlignedData', () => {
         },
       ]),
     ).toEqual({
-      labels: ['pyrra'],
+      labels: [{job: 'pyrra'}],
       data: [
         [1, 2, 3],
         [100, 200, 300],
@@ -116,14 +116,14 @@ describe('mergeAlignedData', () => {
     expect(
       mergeAlignedData([
         {
-          labels: ['pyrra'],
+          labels: [{job: 'pyrra'}],
           data: [
             [1, 2, 3],
             [100, 200, 300],
           ],
         },
         {
-          labels: ['parca'],
+          labels: [{job: 'parca'}],
           data: [
             [1, 2, 3],
             [1000, 2000, 3000],
@@ -131,7 +131,7 @@ describe('mergeAlignedData', () => {
         },
       ]),
     ).toEqual({
-      labels: ['pyrra', 'parca'],
+      labels: [{job: 'pyrra'}, {job: 'parca'}],
       data: [
         [1, 2, 3],
         [100, 200, 300],
@@ -143,14 +143,14 @@ describe('mergeAlignedData', () => {
     expect(
       mergeAlignedData([
         {
-          labels: ['pyrra'],
+          labels: [{job: 'pyrra'}],
           data: [
             [2, 3, 4],
             [200, 300, 400],
           ],
         },
         {
-          labels: ['parca'],
+          labels: [{job: 'parca'}],
           data: [
             [1, 2, 3, 4, 5],
             [1000, 2000, null, 4000, null],
@@ -158,7 +158,7 @@ describe('mergeAlignedData', () => {
         },
       ]),
     ).toEqual({
-      labels: ['pyrra', 'parca'],
+      labels: [{job: 'pyrra'}, {job: 'parca'}],
       data: [
         [1, 2, 3, 4, 5],
         [null, 200, 300, 400, null],

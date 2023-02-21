@@ -1,6 +1,6 @@
 import {PromiseClient} from '@bufbuild/connect-web'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb'
-import uPlot from 'uplot'
+import uPlot, {AlignedData} from 'uplot'
 import React, {useLayoutEffect, useRef, useState} from 'react'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {step} from './step'
@@ -98,7 +98,7 @@ const BurnrateGraph = ({
   }
 
   const {data: mergedData} = mergeAlignedData(responses)
-  const data = [...mergedData, Array(mergedData[0].length).fill(threshold)]
+  const data: AlignedData = [...mergedData, Array(mergedData[0].length).fill(threshold)]
 
   // no data
   if (data[0].length === 0) {
