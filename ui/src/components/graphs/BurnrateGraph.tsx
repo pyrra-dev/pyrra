@@ -212,8 +212,8 @@ const BurnrateGraph = ({
 
                 const {ctx} = u
                 const {top, height} = u.bbox
-                const pendingColor = 'rgba(244,163,42,0.2)'
-                const firingColor = 'rgba(244,99,99,0.2)'
+                const pendingColor = 'rgba(244,163,42,0.1)'
+                const firingColor = 'rgba(244,99,99,0.1)'
                 ctx.save()
 
                 let startPending: number = 0
