@@ -17,16 +17,20 @@ interface BurnrateGraphProps {
   threshold: number
   from: number
   to: number
+  pendingData: AlignedData
+  firingData: AlignedData
   uPlotCursor: uPlot.Cursor
 }
 
 const BurnrateGraph = ({
   client,
   short,
-  threshold,
   long,
+  threshold,
   from,
   to,
+  pendingData,
+  firingData,
   uPlotCursor,
 }: BurnrateGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
@@ -96,12 +100,40 @@ const BurnrateGraph = ({
   if (longData !== null) {
     responses.push(longData)
   }
+  if (pendingData.length > 0) {
+    responses.push({labels: [], data: pendingData})
+  }
+  if (firingData.length > 0) {
+    responses.push({labels: [], data: firingData})
+  }
 
-  const {data: mergedData} = mergeAlignedData(responses)
-  const data: AlignedData = [...mergedData, Array(mergedData[0].length).fill(threshold)]
+  const {
+    data: [timestamps, shortSeries, longSeries, ...series],
+  } = mergeAlignedData(responses)
+
+  const data: AlignedData = [
+    timestamps,
+    shortSeries,
+    longSeries,
+    // Add a sample for every timestamp with the threshold as value.
+    Array(timestamps.length).fill(threshold),
+  ]
+
+  let pendingSeries: number[] | undefined
+  if (pendingData.length > 0) {
+    pendingSeries = series[0] as number[]
+  }
+
+  let firingSeries: number[] | undefined
+  if (pendingData.length > 0 && firingData.length > 0) {
+    firingSeries = series[1] as number[]
+  }
+  if (pendingData.length === 0 && firingData.length > 0) {
+    firingSeries = series[0] as number[]
+  }
 
   // no data
-  if (data[0].length === 0) {
+  if (timestamps.length === 0) {
     return (
       <div ref={targetRef} className="burnrate">
         <h5 className="graphs-headline">Burnrate</h5>
@@ -170,6 +202,72 @@ const BurnrateGraph = ({
           ],
           scales: {
             x: {min: from / 1000, max: to / 1000},
+          },
+          hooks: {
+            drawAxes: [
+              (u: uPlot) => {
+                if (pendingSeries === undefined && firingSeries === undefined) {
+                  return
+                }
+
+                const {ctx} = u
+                const {top, height} = u.bbox
+                const pendingColor = 'rgba(244,163,42,0.2)'
+                const firingColor = 'rgba(244,99,99,0.2)'
+                ctx.save()
+
+                let startPending: number = 0
+                let startFiring: number = 0
+                let drawingPending: boolean = false
+                let drawingFiring: boolean = false
+
+                for (let i = 0; i < timestamps.length; i++) {
+                  const t = timestamps[i]
+                  const cx = Math.round(u.valToPos(t, 'x', true))
+
+                  if (firingSeries !== undefined) {
+                    if (!drawingFiring && firingSeries[i] !== null) {
+                      startFiring = cx
+                      drawingFiring = true
+                    }
+                    if (drawingFiring && firingSeries[i] === null) {
+                      ctx.fillStyle = firingColor
+                      ctx.fillRect(startFiring, top, cx - startFiring, height)
+                      drawingFiring = false
+                    }
+                  }
+
+                  if (pendingSeries !== undefined) {
+                    if (!drawingPending && pendingSeries[i] !== null) {
+                      startPending = cx
+                      drawingPending = true
+                    }
+                    if (drawingPending && pendingSeries[i] === null) {
+                      ctx.fillStyle = pendingColor
+                      ctx.fillRect(startPending, top, cx - startPending, height)
+                      drawingPending = false
+                    }
+                  }
+                }
+
+                // position of last timestamp
+                const cx = Math.round(u.valToPos(timestamps[timestamps.length - 1], 'x', true))
+
+                // Firing until the very last timestamp, we need to draw the final rect
+                if (drawingFiring) {
+                  ctx.fillStyle = firingColor
+                  ctx.fillRect(startFiring, top, cx - startFiring, height)
+                }
+
+                // Pending until the very last timestamp, we need to draw the final rect
+                if (drawingPending) {
+                  ctx.fillStyle = pendingColor
+                  ctx.fillRect(startPending, top, cx - startFiring, height)
+                }
+
+                ctx.restore()
+              },
+            ],
           },
         }}
         data={data}

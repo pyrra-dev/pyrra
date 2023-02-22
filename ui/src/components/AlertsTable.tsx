@@ -12,7 +12,7 @@ import {
 import {PromiseClient} from '@bufbuild/connect-web'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
 import BurnrateGraph from './graphs/BurnrateGraph'
-import uPlot from 'uplot'
+import uPlot, {AlignedData} from 'uplot'
 import {PrometheusService} from '../proto/prometheus/v1/prometheus_connectweb'
 import {usePrometheusQueryRange} from '../prometheus'
 import {step} from './graphs/step'
@@ -71,6 +71,10 @@ const AlertsTable = ({
     step(from, to),
     {enabled: objective.labels.__name__ !== ''},
   )
+  const {
+    labels: alertsLabels,
+    data: [alertsTimestamps, ...alertsSeries],
+  } = convertAlignedData(alertsRangeResponse)
 
   return (
     <div className="table-responsive">
@@ -92,6 +96,7 @@ const AlertsTable = ({
         </thead>
         <tbody>
           {alerts.map((a: Alert, i: number) => {
+            // TODO: Refactor all of this to read the current value from alertsSeries
             let shortCurrent = ''
             if (a.short?.current === -1.0) {
               shortCurrent = 'NaN'
@@ -109,9 +114,29 @@ const AlertsTable = ({
               longCurrent = a.long?.current.toFixed(3)
             }
 
-            const {labels} = convertAlignedData(alertsRangeResponse)
+            const seriesFiringIndex = alertsLabels.findIndex((al: Labels): boolean => {
+              return (
+                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000) &&
+                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000) &&
+                al.alertstate === 'firing'
+              )
+            })
+            const seriesPendingIndex = alertsLabels.findIndex((al: Labels): boolean => {
+              return (
+                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000) &&
+                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000) &&
+                al.alertstate === 'pending'
+              )
+            })
 
-            console.log(labels)
+            let firingAlignedData: AlignedData = []
+            if (seriesFiringIndex > -1) {
+              firingAlignedData = [alertsTimestamps, alertsSeries[seriesFiringIndex]]
+            }
+            let pendingAlignedData: AlignedData = []
+            if (seriesPendingIndex > -1) {
+              pendingAlignedData = [alertsTimestamps, alertsSeries[seriesPendingIndex]]
+            }
 
             return (
               <>
@@ -167,8 +192,8 @@ const AlertsTable = ({
                     {longCurrent} ({formatDuration(Number(a.long?.window?.seconds) * 1000)})
                   </td>
                   <td style={{textAlign: 'right'}}>
-                  {formatDuration(Number(a.for?.seconds) * 1000)}
-                </td>
+                    {formatDuration(Number(a.for?.seconds) * 1000)}
+                  </td>
                   <td>
                     <a
                       className="external-prometheus"
@@ -192,6 +217,8 @@ const AlertsTable = ({
                         threshold={a.factor * (1 - objective.target)}
                         from={from}
                         to={to}
+                        pendingData={pendingAlignedData}
+                        firingData={firingAlignedData}
                         uPlotCursor={uPlotCursor}
                       />
                     </td>
