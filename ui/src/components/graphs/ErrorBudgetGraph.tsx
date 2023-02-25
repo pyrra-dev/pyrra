@@ -90,8 +90,6 @@ const ErrorBudgetGraph = ({
   const canvasPadding = 20
 
   const budgetGradient = (u: uPlot) => {
-    const width = u.ctx.canvas.width
-    const height = u.ctx.canvas.height
     const min = u.scales.y.min
     const max = u.scales.y.max
 
@@ -107,19 +105,16 @@ const ErrorBudgetGraph = ({
       return `#${reds[0]}`
     }
 
+    const y0 = u.valToPos(u.scales.y.min ?? 0, 'y', true)
+    const y1 = u.valToPos(u.scales.y.max ?? 0, 'y', true)
     const zeroHeight = u.valToPos(0, 'y', true)
-    const zeroPercentage = zeroHeight / (height - canvasPadding)
+    const zeroPercentage = (y0 - zeroHeight) / (y0 - y1)
 
-    const gradient = u.ctx.createLinearGradient(
-      width / 2,
-      canvasPadding - 2,
-      width / 2,
-      height - canvasPadding,
-    )
-    gradient.addColorStop(0, `#${greens[0]}`)
-    gradient.addColorStop(zeroPercentage, `#${greens[0]}`)
+    const gradient = u.ctx.createLinearGradient(0, y0, 0, y1)
+    gradient.addColorStop(0, `#${reds[0]}`)
     gradient.addColorStop(zeroPercentage, `#${reds[0]}`)
-    gradient.addColorStop(1, `#${reds[0]}`)
+    gradient.addColorStop(zeroPercentage, `#${greens[0]}`)
+    gradient.addColorStop(1, `#${greens[0]}`)
     return gradient
   }
 
