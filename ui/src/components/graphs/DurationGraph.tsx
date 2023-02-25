@@ -2,7 +2,7 @@ import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
-import {formatDuration, PROMETHEUS_URL} from '../../App'
+import {PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {Labels, labelsString, parseLabelValue} from '../../labels'
 import {colorful, reds} from './colors'
@@ -16,6 +16,7 @@ import {
   Timeseries,
 } from '../../proto/objectives/v1alpha1/objectives_pb'
 import {selectTimeRange} from './selectTimeRange'
+import {formatDuration} from '../../duration'
 
 interface DurationGraphProps {
   client: PromiseClient<typeof ObjectiveService>

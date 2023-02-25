@@ -2,7 +2,7 @@ import React, {useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot from 'uplot'
-import {formatDuration, ObjectiveType, PROMETHEUS_URL} from '../../App'
+import {ObjectiveType, PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {blues, greens, reds, yellows} from './colors'
 import {seriesGaps} from './gaps'
@@ -12,6 +12,7 @@ import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
+import {formatDuration} from '../../duration'
 
 interface RequestsGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -94,10 +95,17 @@ const RequestsGraph = ({
     reds: 0,
   }
 
+  let headline = 'Requests'
+  let description = 'How many requests per second have there been?'
+  if (type === ObjectiveType.BoolGauge) {
+    headline = 'Probes'
+    description = 'How many probes per second have there been?'
+  }
+
   return (
     <div>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
-        <h4 className="graphs-headline">{type === ObjectiveType.Ratio ? 'Requests' : 'Probes'}</h4>
+        <h4 className="graphs-headline">{headline}</h4>
         <a
           className="external-prometheus"
           target="_blank"
@@ -110,11 +118,7 @@ const RequestsGraph = ({
         </a>
       </div>
       <div>
-        {type === ObjectiveType.Ratio ? (
-          <p>How many requests per second have there been?</p>
-        ) : (
-          <p>How many probes per second have there been?</p>
-        )}
+        <p>{description}</p>
       </div>
 
       <div ref={targetRef}>
@@ -174,7 +178,7 @@ const RequestsGraph = ({
 const labelColor = (picked: {[color: string]: number}, label: string): string => {
   label = label.toLowerCase()
   let color = ''
-  if (label === '{}') {
+  if (label === '{}' || label === '' || label === 'value') {
     color = greens[picked.greens % greens.length]
     picked.greens++
   }

@@ -3,7 +3,7 @@ import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
 
-import {formatDuration, PROMETHEUS_URL} from '../../App'
+import {PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {greens, reds} from './colors'
 import {seriesGaps} from './gaps'
@@ -12,6 +12,7 @@ import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb
 import {usePrometheusQueryRange} from '../../prometheus'
 import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {selectTimeRange} from './selectTimeRange'
+import {formatDuration} from '../../duration'
 
 interface ErrorBudgetGraphProps {
   client: PromiseClient<typeof PrometheusService>

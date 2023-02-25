@@ -13,11 +13,9 @@ import {
 } from 'react-bootstrap'
 import {
   API_BASEPATH,
-  formatDuration,
   hasObjectiveType,
   latencyTarget,
   ObjectiveType,
-  parseDuration,
   renderLatencyTarget,
 } from '../App'
 import Navbar from '../components/Navbar'
@@ -32,9 +30,10 @@ import Toggle from '../components/Toggle'
 import DurationGraph from '../components/graphs/DurationGraph'
 import uPlot from 'uplot'
 import {PrometheusService} from '../proto/prometheus/v1/prometheus_connectweb'
-import {usePrometheusQuery} from '../prometheus'
+import {replaceInterval, usePrometheusQuery} from '../prometheus'
 import {useObjectivesList} from '../objectives'
 import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
+import {formatDuration, parseDuration} from '../duration'
 
 const Detail = () => {
   const client = useMemo(() => {
@@ -490,7 +489,7 @@ const Detail = () => {
               {objective.queries?.graphRequests !== undefined ? (
                 <RequestsGraph
                   client={promClient}
-                  query={objective.queries.graphRequests}
+                  query={replaceInterval(objective.queries.graphRequests, from, to)}
                   from={from}
                   to={to}
                   uPlotCursor={uPlotCursor}
@@ -509,7 +508,7 @@ const Detail = () => {
                 <ErrorsGraph
                   client={promClient}
                   type={objectiveType}
-                  query={objective.queries.graphErrors}
+                  query={replaceInterval(objective.queries.graphErrors, from, to)}
                   from={from}
                   to={to}
                   uPlotCursor={uPlotCursor}
