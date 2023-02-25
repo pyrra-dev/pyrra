@@ -15,6 +15,7 @@ import (
 	"github.com/go-kit/log/level"
 	"github.com/oklog/run"
 	connectprometheus "github.com/polarsignals/connect-go-prometheus"
+	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/client_golang/prometheus"
@@ -23,6 +24,7 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
@@ -171,13 +173,13 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "reading", "file", f)
 					reconcilesTotal.Inc()
 
-					err := writeRuleFile(logger, f, prometheusFolder, genericRules)
+					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false)
 					if err != nil {
 						reconcilesErrors.Inc()
 						level.Error(logger).Log("msg", "error creating rule file", "file", f, "err", err)
 					}
 
-					objective, err := objectiveFromFile(f)
+					_, objective, err := objectiveFromFile(f)
 					if err != nil {
 						reconcilesErrors.Inc()
 						level.Error(logger).Log("msg", "failed to get objective from file", "file", f, "err", err)
@@ -293,8 +295,8 @@ func (s *FilesystemObjectiveServer) List(ctx context.Context, req *connect.Reque
 	}), nil
 }
 
-func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules bool) error {
-	objective, err := objectiveFromFile(file)
+func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule bool) error {
+	kubeObjective, objective, err := objectiveFromFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to get objective: %w", err)
 	}
@@ -303,6 +305,7 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 	if err != nil {
 		return fmt.Errorf("failed to get increase rules: %w", err)
 	}
+
 	burnrates, err := objective.Burnrates()
 	if err != nil {
 		return fmt.Errorf("failed to get burn rate rules: %w", err)
@@ -329,7 +332,27 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 
 	bytes, err := yaml.Marshal(rule)
 	if err != nil {
-		return fmt.Errorf("failed to marshal recording rules: %w", err)
+		return fmt.Errorf("failed to marshal rules: %w", err)
+	}
+
+	if operatorRule {
+		monv1rule := &monitoringv1.PrometheusRule{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       monitoringv1.PrometheusRuleKind,
+				APIVersion: monitoring.GroupName + "/" + monitoringv1.Version,
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      kubeObjective.GetName(),
+				Namespace: kubeObjective.GetNamespace(),
+				Labels:    kubeObjective.GetLabels(),
+			},
+			Spec: rule,
+		}
+
+		bytes, err = yaml.Marshal(monv1rule)
+		if err != nil {
+			return fmt.Errorf("failed to marshal rules: %w", err)
+		}
 	}
 
 	_, f := filepath.Split(file)
@@ -341,16 +364,21 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 	return nil
 }
 
-func objectiveFromFile(file string) (slo.Objective, error) {
+func objectiveFromFile(file string) (v1alpha1.ServiceLevelObjective, slo.Objective, error) {
 	bytes, err := os.ReadFile(file)
 	if err != nil {
-		return slo.Objective{}, fmt.Errorf("failed to read file %q: %w", file, err)
+		return v1alpha1.ServiceLevelObjective{}, slo.Objective{}, fmt.Errorf("failed to read file %q: %w", file, err)
 	}
 
 	var config v1alpha1.ServiceLevelObjective
 	if err := yaml.UnmarshalStrict(bytes, &config); err != nil {
-		return slo.Objective{}, fmt.Errorf("failed to unmarshal objective %q: %w", file, err)
+		return v1alpha1.ServiceLevelObjective{}, slo.Objective{}, fmt.Errorf("failed to unmarshal objective %q: %w", file, err)
 	}
 
-	return config.Internal()
+	objective, err := config.Internal()
+	if err != nil {
+		return v1alpha1.ServiceLevelObjective{}, slo.Objective{}, fmt.Errorf("failed to get objective %q: %w", file, err)
+	}
+
+	return config, objective, nil
 }
