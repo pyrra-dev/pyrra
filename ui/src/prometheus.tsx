@@ -45,7 +45,7 @@ export const usePrometheusQueryRange = (
 ): PrometheusQueryRangeResponse => {
   start = Math.floor(start)
   end = Math.floor(end)
-  step = Math.floor(step)
+  step = Math.floor(step) !== 0 ? Math.floor(step) : 1
   const {data, error, status} = useConnectQuery<QueryRangeResponse>({
     key: ['queryRange', query, start / 10, end / 10, step],
     func: async () => {
