@@ -39,7 +39,7 @@ jobs:
           node-version-file: .node-version
 
       - name: Build and release binaries
-        uses: goreleaser/goreleaser-action@8f67e590f2d095516493f017008adc464e63adb1
+        uses: goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b
         with:
           distribution: goreleaser
           version: ${{ env.GORELEASER_VERSION }}
