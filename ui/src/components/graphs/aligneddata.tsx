@@ -13,35 +13,52 @@ export const convertAlignedData = (response: QueryRangeResponse | null): Aligned
 
   const labels: string[] = []
   let data: AlignedData = []
+
   if (response?.options.case === 'matrix') {
-    const times: number[] = []
-    const values: number[][] = []
+    const samples = new Map()
 
-    // TODO: This doesn't account for series that have no data in some time ranges.
-    // These need to be adjusted.
-
-    response.options.value.samples.forEach((ss: SampleStream, i: number) => {
+    const series = response.options.value.samples
+    series.forEach((ss: SampleStream, i: number) => {
       // Add this series' labels to the array of label values
       const kvs: string[] = []
       Object.values(ss.metric).forEach((l: string) => kvs.push(l))
       if (kvs.length === 1) {
         labels.push(kvs[0])
       } else if (kvs.length === 0) {
-        labels.push("value")
+        labels.push('value')
       } else {
-        labels.push("["+kvs.join(" ")+"]")
+        labels.push('[' + kvs.join(' ') + ']')
       }
 
-      // Create an empty nested array for this time series
-      values.push([])
-
-      // Write all samples into the nested array.
-      // If this is the first series, write the timestamps too.
       ss.values.forEach((sp: SamplePair) => {
-        if (i === 0) {
-          times.push(Number(sp.time))
+        const time: number = Number(sp.time)
+
+        let values: number[]
+        if (samples.has(time)) {
+          values = samples.get(time)
+        } else {
+          values = Array(series.length).fill(null)
         }
-        values[i].push(sp.value)
+        values[i] = sp.value
+        samples.set(time, values)
+      })
+    })
+
+    const times: number[] = []
+    const values: number[][] = Array(series.length)
+      .fill(0)
+      .map(() => [])
+
+    const keys = samples.keys()
+    for (let i = 0; i < samples.size; i++) {
+      times.push(keys.next().value)
+    }
+
+    const sortedTimes = times.sort((a, b) => a - b)
+    sortedTimes.forEach((t: number) => {
+      const timeValues = samples.get(t)
+      timeValues.forEach((s: number, j: number) => {
+        values[j].push(s)
       })
     })
 
