@@ -13,7 +13,6 @@ import {
 } from 'react-bootstrap'
 import {
   API_BASEPATH,
-  formatDuration,
   hasObjectiveType,
   latencyTarget,
   ObjectiveType,
@@ -34,6 +33,7 @@ import {
   Objective,
   ObjectiveStatus,
 } from '../proto/objectives/v1alpha1/objectives_pb'
+import {formatDuration} from '../duration'
 
 enum TableObjectiveState {
   Unknown,

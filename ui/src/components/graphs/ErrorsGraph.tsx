@@ -2,7 +2,7 @@ import React, {useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot from 'uplot'
-import {formatDuration, ObjectiveType, PROMETHEUS_URL} from '../../App'
+import {ObjectiveType, PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {reds} from './colors'
 import {seriesGaps} from './gaps'
@@ -12,6 +12,7 @@ import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
+import {formatDuration} from '../../duration'
 
 interface ErrorsGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -95,9 +96,24 @@ const ErrorsGraph = ({
 
   const {labels, data} = convertAlignedData(response)
 
+  let headline = 'Errors'
+  let description: string
+  switch (type) {
+    case ObjectiveType.Ratio:
+      description = 'What percentage of requests were errors?'
+      break
+    case ObjectiveType.Latency:
+      headline = 'Too Slow'
+      description = 'What percentage of requests were too slow?'
+      break
+    case ObjectiveType.BoolGauge:
+      description = 'What percentage of probes were errors?'
+  }
+
   return (
     <>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
+        <h4 className="graphs-headline">{headline}</h4>
         <a
           className="external-prometheus"
           target="_blank"
@@ -110,11 +126,7 @@ const ErrorsGraph = ({
         </a>
       </div>
       <div>
-        {type === ObjectiveType.Latency ? (
-          <p>What percentage of requests were too slow?</p>
-        ) : (
-          <p>What percentage of {type === ObjectiveType.Ratio ? "requests" : "probes"} were errors?</p>
-        )}
+        <p>{description}</p>
       </div>
 
       <div ref={targetRef}>
@@ -151,9 +163,10 @@ const ErrorsGraph = ({
                 values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v}%`),
               },
             ],
-          hooks: {
-                setSelect: [selectTimeRange(updateTimeRange)],
-              },}}
+            hooks: {
+              setSelect: [selectTimeRange(updateTimeRange)],
+            },
+          }}
           data={data}
         />
       </div>

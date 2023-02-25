@@ -564,8 +564,8 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 			CountTotal:       oi.QueryTotal(oi.Window),
 			CountErrors:      oi.QueryErrors(oi.Window),
 			GraphErrorBudget: oi.QueryErrorBudget(),
-			GraphRequests:    oi.RequestRange(5 * time.Minute),
-			GraphErrors:      oi.ErrorsRange(5 * time.Minute),
+			GraphRequests:    oi.RequestRange(time.Second),
+			GraphErrors:      oi.ErrorsRange(time.Second),
 		}
 	}
 

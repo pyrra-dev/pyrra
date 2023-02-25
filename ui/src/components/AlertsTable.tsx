@@ -1,11 +1,12 @@
 import {OverlayTrigger, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
 import React, {useEffect, useState} from 'react'
-import {formatDuration, PROMETHEUS_URL} from '../App'
+import {PROMETHEUS_URL} from '../App'
 import {IconExternal} from './Icons'
 import {Labels, labelsString} from '../labels'
 import {Alert, GetAlertsResponse, Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {PromiseClient} from '@bufbuild/connect-web'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
+import {formatDuration} from '../duration'
 
 interface AlertsTableProps {
   client: PromiseClient<typeof ObjectiveService>
