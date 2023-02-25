@@ -213,7 +213,12 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 	}
 
 	r := chi.NewRouter()
-	r.Use(cors.Handler(cors.Options{})) // TODO: Disable by default
+	r.Use(cors.Handler(cors.Options{
+		AllowedHeaders: []string{
+			"Content-Type",
+			"Connect-Protocol-Version",
+		},
+	})) // TODO: Disable by default
 
 	prometheusInterceptor := connectprometheus.NewInterceptor(reg)
 
