@@ -212,8 +212,7 @@ const AlertsTable = ({
                     <td colSpan={11}>
                       <BurnrateGraph
                         client={promClient}
-                        short={a.short.query}
-                        long={a.long?.query}
+                        alert={a}
                         threshold={a.factor * (1 - objective.target)}
                         from={from}
                         to={to}

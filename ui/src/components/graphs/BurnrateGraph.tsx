@@ -8,12 +8,13 @@ import UplotReact from 'uplot-react'
 import {AlignedDataResponse, convertAlignedData, mergeAlignedData} from './aligneddata'
 import {Spinner} from 'react-bootstrap'
 import {seriesGaps} from './gaps'
-import {blues, reds} from './colors'
+import {blues, greys, reds} from './colors'
+import {Alert} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {formatDuration} from '../../duration'
 
 interface BurnrateGraphProps {
   client: PromiseClient<typeof PrometheusService>
-  short: string
-  long: string
+  alert: Alert
   threshold: number
   from: number
   to: number
@@ -24,8 +25,7 @@ interface BurnrateGraphProps {
 
 const BurnrateGraph = ({
   client,
-  short,
-  long,
+  alert,
   threshold,
   from,
   to,
@@ -50,18 +50,22 @@ const BurnrateGraph = ({
 
   const {response: shortResponse, status: shortStatus} = usePrometheusQueryRange(
     client,
-    short,
+    // @ts-expect-error
+    alert.short.query,
     from / 1000,
     to / 1000,
     step(from, to),
+    {enabled: alert.short?.query !== undefined},
   )
 
   const {response: longResponse, status: longStatus} = usePrometheusQueryRange(
     client,
-    long,
+    // @ts-expect-error
+    alert.long.query,
     from / 1000,
     to / 1000,
     step(from, to),
+    {enabled: alert.long?.query !== undefined},
   )
 
   // TODO: Improve to show graph if one is succeeded already
@@ -172,9 +176,20 @@ const BurnrateGraph = ({
     )
   }
 
+  const shortFormatted = formatDuration(Number(alert.short?.window?.seconds) * 1000 ?? 0)
+  const longFormatted = formatDuration(Number(alert.long?.window?.seconds) * 1000 ?? 0)
+
   return (
     <div ref={targetRef} className="burnrate">
       <h5 className="graphs-headline">Burnrate</h5>
+      <div className="graphs-description">
+        <p>
+          The short ({shortFormatted}) and long ({longFormatted}) burn rates <strong>both</strong>{' '}
+          have to be over the threshold ({threshold.toFixed(2)}). <br />
+          First, the alert is <i>pending</i> for {formatDuration(Number(alert.for?.seconds) * 1000)}{' '}
+          and then the alert will be <i>firing</i>.
+        </p>
+      </div>
       <UplotReact
         options={{
           width: width - (2 * 10 + 2 * 15), // margin and padding
@@ -185,19 +200,20 @@ const BurnrateGraph = ({
             {},
             {
               min: 0,
-              label: 'short',
+              label: `short (${shortFormatted})`,
               gaps: seriesGaps(from / 1000, to / 1000),
-              stroke: `#${reds[1]}`,
+              stroke: '#42a5f5',
             },
             {
               min: 0,
-              label: 'long',
+              label: `long (${longFormatted})`,
               gaps: seriesGaps(from / 1000, to / 1000),
-              stroke: `#${reds[2]}`,
+              stroke: '#651fff',
             },
             {
               label: 'threshold',
-              stroke: `#${blues[0]}`,
+              stroke: `#${greys[0]}`,
+              dash: [25, 10],
             },
           ],
           scales: {

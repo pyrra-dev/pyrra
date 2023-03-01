@@ -5,7 +5,7 @@ import uPlot, {AlignedData} from 'uplot'
 import {PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {Labels, labelsString, parseLabelValue} from '../../labels'
-import {colorful, reds} from './colors'
+import {colorful, greys} from './colors'
 import {seriesGaps} from './gaps'
 import {PromiseClient} from '@bufbuild/connect-web'
 import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
@@ -169,7 +169,7 @@ const DurationGraph = ({
                 ...durationLabels.map((label: string, i: number): uPlot.Series => {
                   return {
                     min: 0,
-                    stroke: i === 0 ? `#${reds[0]}` : `#${colorful[i]}`,
+                    stroke: i === 0 ? `#${greys[0]}` : `#${colorful[i]}`,
                     dash: i === 0 ? [25, 10] : undefined,
                     label: parseLabelValue(label),
                     gaps: seriesGaps(from / 1000, to / 1000),
