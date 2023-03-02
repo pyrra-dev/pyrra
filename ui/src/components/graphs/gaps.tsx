@@ -11,15 +11,24 @@ export const seriesGaps =
 
     const gaps: uPlot.Series.Gaps = []
 
-    const xData = u.data[0]
+    const times = u.data[0]
+    const series = u.data[seriesID]
+
+    let previous: number = start
     for (let i = startIdx + 1; i <= endIdx; i++) {
-      if (xData[i] - xData[i - 1] > delta) {
+      if (series[i] === null) {
+        continue
+      }
+
+      if (times[i] - previous > delta) {
         uPlot.addGap(
           gaps,
-          Math.round(u.valToPos(xData[i - 1], 'x', true)),
-          Math.round(u.valToPos(xData[i], 'x', true)),
+          Math.round(u.valToPos(previous, 'x', true)),
+          Math.round(u.valToPos(times[i], 'x', true)),
         )
       }
+      previous = times[i]
     }
+
     return gaps
   }
