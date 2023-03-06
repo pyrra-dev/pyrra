@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"github.com/bufbuild/connect-go"
 	"html/template"
 	"io"
 	"io/fs"
@@ -18,7 +19,6 @@ import (
 	"time"
 
 	"github.com/alecthomas/kong"
-	"github.com/bufbuild/connect-go"
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -102,10 +102,13 @@ func main() {
 	}
 
 	roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
-		BasicAuth: &promconfig.BasicAuth{
-			Username: CLI.API.PrometheusBasicAuthUsername,
-			Password: CLI.API.PrometheusBasicAuthPassword,
-		},
+
+		/*
+			BasicAuth: &promconfig.BasicAuth{
+				Username: CLI.API.PrometheusBasicAuthUsername,
+				Password: CLI.API.PrometheusBasicAuthPassword,
+			},
+		*/
 		BearerTokenFile: CLI.API.PrometheusBearerTokenPath,
 	}, "pyrra")
 	if err != nil {
