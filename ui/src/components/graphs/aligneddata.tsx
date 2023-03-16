@@ -33,7 +33,12 @@ export const convertAlignedData = (response: QueryRangeResponse | null): Aligned
           }
         }
 
-        values[i] = sp.value
+        if (isNaN(sp.value)) {
+          values[i] = null
+        } else {
+          values[i] = sp.value
+        }
+
         samples.set(time, values)
       })
     })

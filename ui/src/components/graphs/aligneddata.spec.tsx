@@ -45,6 +45,21 @@ describe('convertAlignedData', () => {
       ],
     })
   })
+  it('should convert responses with single series and NaNs into alignedData', () => {
+    expect(
+      convertAlignedData(
+        QueryRangeResponse.fromJsonString(
+          '{"matrix":{"samples":[{"values":[{"time":"1","value":100},{"time":"2","value":"NaN"}],"metric":{"job":"pyrra"}}]}}',
+        ),
+      ),
+    ).toEqual({
+      labels: [{job: 'pyrra'}],
+      data: [
+        [1, 2],
+        [100, null],
+      ],
+    })
+  })
   it('should convert responses with two series into alignedData', () => {
     expect(
       convertAlignedData(
