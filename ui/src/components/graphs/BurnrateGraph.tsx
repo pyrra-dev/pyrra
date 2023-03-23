@@ -154,12 +154,14 @@ const BurnrateGraph = ({
                 label: 'short',
                 gaps: seriesGaps(from / 1000, to / 1000),
                 stroke: `#${reds[1]}`,
+                value: (u, v) => (v == null ? '-' : v.toFixed(2) + '%'),
               },
               {
                 min: 0,
                 label: 'long',
                 gaps: seriesGaps(from / 1000, to / 1000),
                 stroke: `#${reds[2]}`,
+                value: (u, v) => (v == null ? '-' : v.toFixed(2) + '%'),
               },
               {
                 label: 'threshold',

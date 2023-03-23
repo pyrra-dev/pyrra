@@ -145,7 +145,7 @@ const ErrorsGraph = ({
                   stroke: `#${reds[i]}`,
                   label: labelValues(label)[0],
                   gaps: seriesGaps(from / 1000, to / 1000),
-                  value: (u, v) => (v == null ? '-' : v.toFixed(2) + '%'),
+                  value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
                 }
               }),
             ],
