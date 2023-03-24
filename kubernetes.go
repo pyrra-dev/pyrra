@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"syscall"
+	"time"
 
 	"github.com/bufbuild/connect-go"
 	"github.com/go-kit/log"
@@ -81,7 +83,12 @@ func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode, generic
 	}
 	// +kubebuilder:scaffold:builder
 
-	var gr run.Group
+	var (
+		gr  run.Group
+		ctx = context.Background()
+	)
+	gr.Add(run.SignalHandler(ctx, os.Interrupt, syscall.SIGTERM))
+
 	{
 		router := http.NewServeMux()
 		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&KubernetesObjectiveServer{
@@ -96,18 +103,19 @@ func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode, generic
 		gr.Add(func() error {
 			return server.ListenAndServe()
 		}, func(err error) {
-			_ = server.Shutdown(context.Background())
+			shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			_ = server.Shutdown(shutdownCtx)
 		})
-	}
-	{
-		gr.Add(func() error {
-			setupLog.Info("starting manager")
-			return mgr.Start(ctrl.SetupSignalHandler())
-		}, func(err error) {})
 	}
 
 	if err := gr.Run(); err != nil {
+		if _, ok := err.(run.SignalError); ok {
+			setupLog.Info("terminated", "reason", err)
+			return 0
+		}
 		setupLog.Error(err, "failed to run groups")
+		return 2
 	}
 	return 0
 }
