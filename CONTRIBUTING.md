@@ -36,7 +36,7 @@ and build the project.
 Build the UI and compile the Go binaries
 
 ```bash
-make
+make all
 ```
 
 ### Run the API and UI
@@ -44,7 +44,7 @@ make
 Run the API binary in one terminal
 
 ```bash
-./bin/api
+./pyrra api
 ```
 
 *Note: the API assumes a Prometheus is running on [localhost:9090](http://localhost:9090) and a backend on [localhost:9444](http://localhost:9444)) by default. Check  `./bin/api --help` flag for the parameters to change those.*
@@ -54,13 +54,13 @@ Run the API binary in one terminal
 Run the filesystem binary in another terminal
 
 ```bash
-./bin/filesystem
+./pyrra filesystem
 ```
 
 Or run the Kubernetes binary in the other terminal
 
 ```bash
-./bin/kubernetes
+./pyrra kubernetes
 ```
 
 *Note: This binary tries to run against your default Kubernetes context. Use the `-kubeconfig` flag to change for another kubeconfig*
