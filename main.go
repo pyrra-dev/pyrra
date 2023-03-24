@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -24,6 +25,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
@@ -259,7 +261,33 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 		})
 	}
 
-	if err := http.ListenAndServe(":9099", h2c.NewHandler(r, &http2.Server{})); err != nil {
+	var (
+		gr  run.Group
+		ctx = context.Background()
+	)
+	gr.Add(run.SignalHandler(ctx, os.Interrupt, syscall.SIGTERM))
+
+	{
+		httpServer := &http.Server{
+			Addr:    ":9099",
+			Handler: h2c.NewHandler(r, &http2.Server{}),
+		}
+		gr.Add(
+			func() error {
+				return httpServer.ListenAndServe()
+			},
+			func(error) {
+				shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+				defer cancel()
+				_ = httpServer.Shutdown(shutdownCtx)
+			},
+		)
+	}
+	if err := gr.Run(); err != nil {
+		if _, ok := err.(run.SignalError); ok {
+			level.Info(logger).Log("msg", "terminated HTTP server", "reason", err)
+			return 0
+		}
 		level.Error(logger).Log("msg", "failed to run HTTP server", "err", err)
 		return 2
 	}
