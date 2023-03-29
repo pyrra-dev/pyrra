@@ -161,7 +161,8 @@ const ErrorsGraph = ({
             axes: [
               {},
               {
-                values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v}%`),
+                values: (uplot: uPlot, v: number[]) =>
+                  v.map((v: number) => `${(100 * v).toFixed(0)}%`),
               },
             ],
             hooks: {

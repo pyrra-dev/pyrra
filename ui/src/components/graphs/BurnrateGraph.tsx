@@ -154,14 +154,14 @@ const BurnrateGraph = ({
                 label: 'short',
                 gaps: seriesGaps(from / 1000, to / 1000),
                 stroke: `#${reds[1]}`,
-                value: (u, v) => (v == null ? '-' : v.toFixed(2) + '%'),
+                value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
               },
               {
                 min: 0,
                 label: 'long',
                 gaps: seriesGaps(from / 1000, to / 1000),
                 stroke: `#${reds[2]}`,
-                value: (u, v) => (v == null ? '-' : v.toFixed(2) + '%'),
+                value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
               },
               {
                 label: 'threshold',
@@ -171,6 +171,13 @@ const BurnrateGraph = ({
             scales: {
               x: {min: from / 1000, max: to / 1000},
             },
+            axes: [
+              {},
+              {
+                values: (uplot: uPlot, v: number[]) =>
+                  v.map((v: number) => `${(100 * v).toFixed(2)}%`),
+              },
+            ],
           }}
           data={[[], [], [], []]}
         />
@@ -205,22 +212,32 @@ const BurnrateGraph = ({
               label: `short (${shortFormatted})`,
               gaps: seriesGaps(from / 1000, to / 1000),
               stroke: '#42a5f5',
+              value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
             },
             {
               min: 0,
               label: `long (${longFormatted})`,
               gaps: seriesGaps(from / 1000, to / 1000),
               stroke: '#651fff',
+              value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
             },
             {
               label: 'threshold',
               stroke: `#${greys[0]}`,
               dash: [25, 10],
+              value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
             },
           ],
           scales: {
             x: {min: from / 1000, max: to / 1000},
           },
+          axes: [
+            {},
+            {
+              values: (uplot: uPlot, v: number[]) =>
+                v.map((v: number) => `${(100 * v).toFixed(0)}%`),
+            },
+          ],
           hooks: {
             drawAxes: [
               (u: uPlot) => {
