@@ -248,7 +248,7 @@ const List = () => {
     return createPromiseClient(
       ObjectiveService,
       createConnectTransport({
-        baseUrl: API_BASEPATH,
+        baseUrl: API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH,
       }),
     )
   }, [])

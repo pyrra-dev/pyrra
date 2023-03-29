@@ -22,7 +22,13 @@ const queryClient = new QueryClient({
 })
 
 const App = () => {
-  const basename = `/${PATH_PREFIX.replace(/^\//, '').replace(/\/$/, '')}`
+  let basename = ''
+  if (PATH_PREFIX === undefined || PATH_PREFIX.startsWith('{{')) {
+    // During development without Go templates.
+    basename = '/'
+  } else {
+    basename = `/${PATH_PREFIX.replace(/^\//, '').replace(/\/$/, '')}`
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
