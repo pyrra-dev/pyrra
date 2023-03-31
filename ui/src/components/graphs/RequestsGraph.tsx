@@ -12,6 +12,7 @@ import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
+import {Labels, labelValues} from '../../labels'
 import {formatDuration} from '../../duration'
 
 interface RequestsGraphProps {
@@ -131,10 +132,11 @@ const RequestsGraph = ({
               cursor: uPlotCursor,
               series: [
                 {},
-                ...labels.map((label: string): uPlot.Series => {
+                ...labels.map((label: Labels): uPlot.Series => {
+                  const value = labelValues(label)[0]
                   return {
-                    label: label,
-                    stroke: `#${labelColor(pickedColors, label)}`,
+                    label: value,
+                    stroke: `#${labelColor(pickedColors, value)}`,
                     gaps: seriesGaps(from / 1000, to / 1000),
                     value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
                   }
@@ -176,7 +178,7 @@ const RequestsGraph = ({
 }
 
 const labelColor = (picked: {[color: string]: number}, label: string): string => {
-  label = label.toLowerCase()
+  label = label !== undefined ? label.toLowerCase() : ''
   let color = ''
   if (label === '{}' || label === '' || label === 'value') {
     color = greens[picked.greens % greens.length]

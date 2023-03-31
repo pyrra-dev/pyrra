@@ -1,4 +1,4 @@
-import {convertAlignedData} from './aligneddata'
+import {convertAlignedData, mergeAlignedData} from './aligneddata'
 import {QueryRangeResponse} from '../../proto/prometheus/v1/prometheus_pb'
 
 describe('convertAlignedData', () => {
@@ -28,7 +28,7 @@ describe('convertAlignedData', () => {
         ),
       ),
     ).toEqual({
-      labels: ['pyrra'],
+      labels: [{job: 'pyrra'}],
       data: [[], []],
     })
     expect(
@@ -38,10 +38,25 @@ describe('convertAlignedData', () => {
         ),
       ),
     ).toEqual({
-      labels: ['pyrra'],
+      labels: [{job: 'pyrra'}],
       data: [
         [1, 2],
         [100, 200],
+      ],
+    })
+  })
+  it('should convert responses with single series and NaNs into alignedData', () => {
+    expect(
+      convertAlignedData(
+        QueryRangeResponse.fromJsonString(
+          '{"matrix":{"samples":[{"values":[{"time":"1","value":100},{"time":"2","value":"NaN"}],"metric":{"job":"pyrra"}}]}}',
+        ),
+      ),
+    ).toEqual({
+      labels: [{job: 'pyrra'}],
+      data: [
+        [1, 2],
+        [100, null],
       ],
     })
   })
@@ -53,7 +68,7 @@ describe('convertAlignedData', () => {
         ),
       ),
     ).toEqual({
-      labels: ['pyrra', 'parca'],
+      labels: [{job: 'pyrra'}, {job: 'parca'}],
       data: [[], [], []],
     })
   })
@@ -64,7 +79,7 @@ describe('convertAlignedData', () => {
       ),
     ),
   ).toEqual({
-    labels: ['pyrra', 'parca'],
+    labels: [{job: 'pyrra'}, {job: 'parca'}],
     data: [
       [1, 2],
       [100, 200],
@@ -79,11 +94,90 @@ describe('convertAlignedData', () => {
         ),
       ),
     ).toEqual({
-      labels: ['pyrra', 'parca'],
+      labels: [{job: 'pyrra'}, {job: 'parca'}],
       data: [
         [1, 2, 3],
         [100, 200, 300],
         [null, 200, 400],
+      ],
+    })
+  })
+})
+
+describe('mergeAlignedData', () => {
+  it('should convert null into empty alignedData', () => {
+    expect(mergeAlignedData([])).toEqual({labels: [], data: []})
+  })
+  it('should merge by returning the single input', () => {
+    expect(
+      mergeAlignedData([
+        {
+          labels: [{job: 'pyrra'}],
+          data: [
+            [1, 2, 3],
+            [100, 200, 300],
+          ],
+        },
+      ]),
+    ).toEqual({
+      labels: [{job: 'pyrra'}],
+      data: [
+        [1, 2, 3],
+        [100, 200, 300],
+      ],
+    })
+  })
+  it('should merge two aligned inputs', () => {
+    expect(
+      mergeAlignedData([
+        {
+          labels: [{job: 'pyrra'}],
+          data: [
+            [1, 2, 3],
+            [100, 200, 300],
+          ],
+        },
+        {
+          labels: [{job: 'parca'}],
+          data: [
+            [1, 2, 3],
+            [1000, 2000, 3000],
+          ],
+        },
+      ]),
+    ).toEqual({
+      labels: [{job: 'pyrra'}, {job: 'parca'}],
+      data: [
+        [1, 2, 3],
+        [100, 200, 300],
+        [1000, 2000, 3000],
+      ],
+    })
+  })
+  it('should merge misaligned inputs', () => {
+    expect(
+      mergeAlignedData([
+        {
+          labels: [{job: 'pyrra'}],
+          data: [
+            [2, 3, 4],
+            [200, 300, 400],
+          ],
+        },
+        {
+          labels: [{job: 'parca'}],
+          data: [
+            [1, 2, 3, 4, 5],
+            [1000, 2000, null, 4000, null],
+          ],
+        },
+      ]),
+    ).toEqual({
+      labels: [{job: 'pyrra'}, {job: 'parca'}],
+      data: [
+        [1, 2, 3, 4, 5],
+        [null, 200, 300, 400, null],
+        [1000, 2000, null, 4000, null],
       ],
     })
   })
