@@ -175,7 +175,7 @@ const BurnrateGraph = ({
               {},
               {
                 values: (uplot: uPlot, v: number[]) =>
-                  v.map((v: number) => `${(100 * v).toFixed(2)}%`),
+                  v.map((v: number) => `${(100 * v).toFixed(1)}%`),
               },
             ],
           }}
@@ -187,6 +187,10 @@ const BurnrateGraph = ({
 
   const shortFormatted = formatDuration(Number(alert.short?.window?.seconds) * 1000 ?? 0)
   const longFormatted = formatDuration(Number(alert.long?.window?.seconds) * 1000 ?? 0)
+  const pendingColor = 'rgb(244,163,42)'
+  const pendingBackgroundColor = 'rgba(244,163,42,0.1)'
+  const firingColor = 'rgb(244,99,99)'
+  const firingBackgroundColor = 'rgba(244,99,99,0.1)'
 
   return (
     <div ref={targetRef} className="burnrate">
@@ -194,9 +198,10 @@ const BurnrateGraph = ({
       <div className="graphs-description">
         <p>
           The short ({shortFormatted}) and long ({longFormatted}) burn rates <strong>both</strong>{' '}
-          have to be over the threshold ({threshold.toFixed(2)}). <br />
-          First, the alert is <i>pending</i> for {formatDuration(Number(alert.for?.seconds) * 1000)}{' '}
-          and then the alert will be <i>firing</i>.
+          have to be over the {(100 * threshold).toFixed(2)}% threshold. <br />
+          First, the alert is <i style={{color: pendingColor}}>pending</i> for{' '}
+          {formatDuration(Number(alert.for?.seconds) * 1000)} and then the alert will be{' '}
+          <i style={{color: firingColor}}>firing</i>.
         </p>
       </div>
       <UplotReact
@@ -235,7 +240,7 @@ const BurnrateGraph = ({
             {},
             {
               values: (uplot: uPlot, v: number[]) =>
-                v.map((v: number) => `${(100 * v).toFixed(0)}%`),
+                v.map((v: number) => `${(100 * v).toFixed(1)}%`),
             },
           ],
           hooks: {
@@ -247,8 +252,6 @@ const BurnrateGraph = ({
 
                 const {ctx} = u
                 const {top, height} = u.bbox
-                const pendingColor = 'rgba(244,163,42,0.1)'
-                const firingColor = 'rgba(244,99,99,0.1)'
                 ctx.save()
 
                 let startPending: number = 0
@@ -266,7 +269,7 @@ const BurnrateGraph = ({
                       drawingFiring = true
                     }
                     if (drawingFiring && firingSeries[i] === null) {
-                      ctx.fillStyle = firingColor
+                      ctx.fillStyle = firingBackgroundColor
                       ctx.fillRect(startFiring, top, cx - startFiring, height)
                       drawingFiring = false
                     }
@@ -278,7 +281,7 @@ const BurnrateGraph = ({
                       drawingPending = true
                     }
                     if (drawingPending && pendingSeries[i] === null) {
-                      ctx.fillStyle = pendingColor
+                      ctx.fillStyle = pendingBackgroundColor
                       ctx.fillRect(startPending, top, cx - startPending, height)
                       drawingPending = false
                     }
@@ -290,13 +293,13 @@ const BurnrateGraph = ({
 
                 // Firing until the very last timestamp, we need to draw the final rect
                 if (drawingFiring) {
-                  ctx.fillStyle = firingColor
+                  ctx.fillStyle = firingBackgroundColor
                   ctx.fillRect(startFiring, top, cx - startFiring, height)
                 }
 
                 // Pending until the very last timestamp, we need to draw the final rect
                 if (drawingPending) {
-                  ctx.fillStyle = pendingColor
+                  ctx.fillStyle = pendingBackgroundColor
                   ctx.fillRect(startPending, top, cx - startFiring, height)
                 }
 
