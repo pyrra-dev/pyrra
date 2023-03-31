@@ -638,7 +638,7 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 		}
 		if objective.Indicator.Latency != nil {
 			groupings := map[string]struct{}{}
-			for _, g := range objective.Indicator.Ratio.Grouping {
+			for _, g := range objective.Indicator.Latency.Grouping {
 				groupings[g] = struct{}{}
 			}
 
