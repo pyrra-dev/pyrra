@@ -18,24 +18,26 @@ func (o Objective) QueryTotal(window model.Duration) string {
 		return ""
 	}
 
-	var metric string
-	var matchers []*labels.Matcher
-	var grouping []string
-
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+	var (
+		metric   string
+		matchers []*labels.Matcher
+		grouping []string
+	)
+	switch o.IndicatorType() {
+	case Ratio:
 		metric = increaseName(o.Indicator.Ratio.Total.Name, window)
 		matchers = cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		grouping = slices.Clone(o.Indicator.Ratio.Grouping)
-	}
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		metric = increaseName(o.Indicator.Latency.Total.Name, window)
 		matchers = cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
 		grouping = slices.Clone(o.Indicator.Latency.Grouping)
-	}
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+	case BoolGauge:
 		metric = countName(o.Indicator.BoolGauge.Name, window)
 		matchers = cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		grouping = slices.Clone(o.Indicator.BoolGauge.Grouping)
+	default:
+		return ""
 	}
 
 	matchers = append(matchers, &labels.Matcher{
@@ -61,7 +63,8 @@ func (o Objective) QueryTotal(window model.Duration) string {
 
 // QueryErrors returns a PromQL query to get the amount of request errors during the window.
 func (o Objective) QueryErrors(window model.Duration) string {
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+	switch o.IndicatorType() {
+	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
 		if err != nil {
 			return ""
@@ -89,9 +92,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		expr, err := parser.ParseExpr(`sum by (grouping) (metric{matchers="total"}) - sum by (grouping) (errorMetric{matchers="errors"})`)
 		if err != nil {
 			return ""
@@ -136,9 +137,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+	case BoolGauge:
 		expr, err := parser.ParseExpr(`sum by (grouping) (errorMetric{matchers="errors"}) - sum by (grouping) (metric{matchers="total"})`)
 		if err != nil {
 			return ""
@@ -182,13 +181,14 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
+	default:
+		return ""
 	}
-
-	return ""
 }
 
 func (o Objective) QueryErrorBudget() string {
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+	switch o.IndicatorType() {
+	case Ratio:
 		expr, err := parser.ParseExpr(`
 (
   (1 - 0.696969)
@@ -244,9 +244,7 @@ func (o Objective) QueryErrorBudget() string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		expr, err := parser.ParseExpr(`
 (
   (1 - 0.696969)
@@ -305,9 +303,7 @@ func (o Objective) QueryErrorBudget() string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+	case BoolGauge:
 		expr, err := parser.ParseExpr(`
 (
   (1 - 0.696969)
@@ -364,16 +360,17 @@ func (o Objective) QueryErrorBudget() string {
 		}.replace(expr)
 
 		return expr.String()
+	default:
+		return ""
 	}
-
-	return ""
 }
 
 func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*labels.Matcher) (string, error) {
 	metric := ""
 	matchers := map[string]*labels.Matcher{}
 
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+	switch o.IndicatorType() {
+	case Ratio:
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
 			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
@@ -382,9 +379,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 				Value: m.Value,
 			}
 		}
-	}
-
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
 			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
@@ -393,9 +388,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 				Value: m.Value,
 			}
 		}
-	}
-
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+	case BoolGauge:
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
 			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
@@ -519,7 +512,8 @@ func (r objectiveReplacer) replace(node parser.Node) {
 }
 
 func (o Objective) RequestRange(timerange time.Duration) string {
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+	switch o.IndicatorType() {
+	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (group) (rate(metric{}[1s])) > 0`)
 		if err != nil {
 			return err.Error()
@@ -544,8 +538,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		expr, err := parser.ParseExpr(`sum(rate(metric{}[1s]))`)
 		if err != nil {
 			return err.Error()
@@ -560,8 +553,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+	case BoolGauge:
 		expr, err := parser.ParseExpr(`sum by(group) (count_over_time(metric{matchers="total"}[1s])) / 86400`)
 		if err != nil {
 			return err.Error()
@@ -576,12 +568,14 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
+	default:
+		return ""
 	}
-	return ""
 }
 
 func (o Objective) ErrorsRange(timerange time.Duration) string {
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+	switch o.IndicatorType() {
+	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
 		if err != nil {
 			return err.Error()
@@ -614,8 +608,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		expr, err := parser.ParseExpr(`(sum(rate(metric{matchers="total"}[1s])) -  sum(rate(errorMetric{matchers="errors"}[1s]))) / sum(rate(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return err.Error()
@@ -630,8 +623,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+	case BoolGauge:
 		expr, err := parser.ParseExpr(`100 * sum by (group) ((count_over_time(metric{matchers="total"}[1s]) - sum_over_time(metric{matchers="total"}[1s]))) / sum by(group) (count_over_time(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return err.Error()
@@ -644,19 +636,14 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
+	default:
+		return ""
 	}
-	return ""
 }
 
 func (o Objective) DurationRange(timerange time.Duration, percentile float64) string {
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		return ""
-	}
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
-		return ""
-	}
-
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	switch o.IndicatorType() {
+	case Latency:
 		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum by (le) (rate(errorMetric{matchers="errors"}[1s])))`)
 		if err != nil {
 			return err.Error()
@@ -678,8 +665,9 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 		}.replace(expr)
 
 		return expr.String()
+	default:
+		return ""
 	}
-	return ""
 }
 
 func groupingLabels(errorMatchers, totalMatchers []*labels.Matcher) []string {
