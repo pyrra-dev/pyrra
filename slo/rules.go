@@ -1018,6 +1018,12 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
+		totalMatchers = append(totalMatchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
+
 		errorsIncreaseName := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
 
 		errorMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Errors.LabelMatchers))
@@ -1032,6 +1038,12 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 				Value: value,
 			})
 		}
+
+		errorMatchers = append(errorMatchers, &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  "slo",
+			Value: o.Name(),
+		})
 
 		objectiveReplacer{
 			metric:        totalIncreaseName,

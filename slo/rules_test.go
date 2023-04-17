@@ -1556,7 +1556,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
 			}, {
 				Record: "pyrra_availability",
-				Expr:   intstr.FromString(`1 - sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default"})`),
+				Expr:   intstr.FromString(`1 - sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"})`),
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
 			}, {
 				Record: "pyrra_requests_total",
@@ -1592,7 +1592,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
 			}, {
 				Record: "pyrra_availability",
-				Expr:   intstr.FromString(`1 - sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"} or vector(0)) / sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`),
+				Expr:   intstr.FromString(`1 - sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} or vector(0)) / sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"})`),
 				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
 			}, {
 				Record: "pyrra_requests_total",
@@ -1692,7 +1692,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
 			}, {
 				Record: "pyrra_availability",
-				Expr:   intstr.FromString(`1 - sum(prometheus_operator_reconcile_errors:increase2w or vector(0)) / sum(prometheus_operator_reconcile_operations:increase2w)`),
+				Expr:   intstr.FromString(`1 - sum(prometheus_operator_reconcile_errors:increase2w{slo="monitoring-prometheus-operator-errors"} or vector(0)) / sum(prometheus_operator_reconcile_operations:increase2w{slo="monitoring-prometheus-operator-errors"})`),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
 			}, {
 				Record: "pyrra_requests_total",
@@ -1724,7 +1724,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "pyrra_availability",
-				Expr:   intstr.FromString(`1 - sum(apiserver_request:increase2w{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"})`),
+				Expr:   intstr.FromString(`1 - sum(apiserver_request:increase2w{code=~"5..",job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"})`),
 				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "pyrra_requests_total",
