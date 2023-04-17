@@ -61,7 +61,8 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	burnrates := burnratesFromWindows(ws)
 	rules := make([]monitoringv1.Rule, 0, len(burnrates))
 
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+	switch o.IndicatorType() {
+	case Ratio:
 		matchers := o.Indicator.Ratio.Total.LabelMatchers
 
 		groupingMap := map[string]struct{}{}
@@ -140,9 +141,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}
 			rules = append(rules, r)
 		}
-	}
-
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		matchers := o.Indicator.Latency.Total.LabelMatchers
 
 		groupingMap := map[string]struct{}{}
@@ -227,9 +226,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}
 			rules = append(rules, r)
 		}
-	}
-
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+	case BoolGauge:
 		matchers := o.Indicator.BoolGauge.LabelMatchers
 
 		groupingMap := map[string]struct{}{}
@@ -326,24 +323,25 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 func (o Objective) BurnrateName(rate time.Duration) string {
 	var metric string
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+
+	switch o.IndicatorType() {
+	case Ratio:
 		metric = o.Indicator.Ratio.Total.Name
-	}
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		metric = o.Indicator.Latency.Total.Name
+	case BoolGauge:
+		metric = o.Indicator.BoolGauge.Name
 	}
 
 	metric = strings.TrimSuffix(metric, "_total")
 	metric = strings.TrimSuffix(metric, "_count")
 
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
-		metric = o.Indicator.BoolGauge.Name
-	}
 	return fmt.Sprintf("%s:burnrate%s", metric, model.Duration(rate))
 }
 
 func (o Objective) Burnrate(timerange time.Duration) string {
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+	switch o.IndicatorType() {
+	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (grouping) (rate(errorMetric{matchers="errors"}[1s])) / sum by (grouping) (rate(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return err.Error()
@@ -375,8 +373,7 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		query := `
 			(
 				sum by (grouping) (rate(metric{matchers="total"}[1s]))
@@ -412,8 +409,7 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
-	}
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+	case BoolGauge:
 		query := `
 			(
 				sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))
@@ -447,8 +443,9 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
+	default:
+		return ""
 	}
-	return ""
 }
 
 func sumName(metric string, window model.Duration) string {
@@ -514,7 +511,9 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	}
 
 	var rules []monitoringv1.Rule
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+
+	switch o.IndicatorType() {
+	case Ratio:
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
 			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
@@ -632,9 +631,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				Annotations: o.commonRuleAnnotations(),
 			})
 		}
-	}
-
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
 			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
@@ -769,9 +766,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			Labels:      alertLabelsLe,
 			Annotations: o.commonRuleAnnotations(),
 		})
-	}
-
-	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+	case BoolGauge:
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
 			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
@@ -981,7 +976,8 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 	var rules []monitoringv1.Rule
 
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+	switch o.IndicatorType() {
+	case Ratio:
 		if len(o.Indicator.Ratio.Grouping) > 0 {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
@@ -1084,9 +1080,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			Expr:   intstr.FromString(errorsParsedExpr.String()),
 			Labels: ruleLabels,
 		})
-	}
-
-	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+	case Latency:
 		if len(o.Indicator.Latency.Grouping) > 0 {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}

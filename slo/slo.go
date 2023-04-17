@@ -50,17 +50,39 @@ func (o Objective) HasWindows(short, long model.Duration) (Window, bool) {
 	return Window{}, false
 }
 
+type IndicatorType int
+
+const (
+	Unknown   IndicatorType = iota
+	Ratio     IndicatorType = iota
+	Latency   IndicatorType = iota
+	BoolGauge IndicatorType = iota
+)
+
+func (o Objective) IndicatorType() IndicatorType {
+	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
+		return Ratio
+	}
+	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
+		return Latency
+	}
+	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
+		return BoolGauge
+	}
+	return Unknown
+}
+
 func (o Objective) Grouping() []string {
-	if o.Indicator.Ratio != nil {
+	switch o.IndicatorType() {
+	case Ratio:
 		return o.Indicator.Ratio.Grouping
-	}
-	if o.Indicator.Latency != nil {
+	case Latency:
 		return o.Indicator.Latency.Grouping
-	}
-	if o.Indicator.BoolGauge != nil {
+	case BoolGauge:
 		return o.Indicator.BoolGauge.Grouping
+	default:
+		return nil
 	}
-	return nil
 }
 
 func (o Objective) AlertName() string {
