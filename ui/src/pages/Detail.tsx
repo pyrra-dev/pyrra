@@ -36,20 +36,15 @@ import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
 
 const Detail = () => {
+  const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
+
   const client = useMemo(() => {
-    const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
     return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
-  }, [])
+  }, [baseUrl])
 
   const promClient = useMemo(() => {
-    return createPromiseClient(
-      PrometheusService,
-      // createGrpcWebTransport({ TODO: Use grpcWeb in production for efficiency?
-      createConnectTransport({
-        baseUrl: API_BASEPATH,
-      }),
-    )
-  }, [])
+    return createPromiseClient(PrometheusService, createConnectTransport({baseUrl}))
+  }, [baseUrl])
 
   const navigate = useNavigate()
   const {search} = useLocation()
