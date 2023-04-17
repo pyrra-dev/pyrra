@@ -37,12 +37,8 @@ import {formatDuration, parseDuration} from '../duration'
 
 const Detail = () => {
   const client = useMemo(() => {
-    return createPromiseClient(
-      ObjectiveService,
-      createConnectTransport({
-        baseUrl: API_BASEPATH,
-      }),
-    )
+    const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
+    return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [])
 
   const promClient = useMemo(() => {

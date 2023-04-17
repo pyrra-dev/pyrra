@@ -22,7 +22,8 @@ const queryClient = new QueryClient({
 })
 
 const App = () => {
-  const basename = `/${PATH_PREFIX.replace(/^\//, '').replace(/\/$/, '')}`
+  const basename =
+    PATH_PREFIX === undefined ? '' : `/${PATH_PREFIX.replace(/^\//, '').replace(/\/$/, '')}`
 
   return (
     <QueryClientProvider client={queryClient}>
