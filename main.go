@@ -228,10 +228,12 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 		objectiveService := &objectiveServer{
 			logger:  log.WithPrefix(logger, "service", "objective"),
 			promAPI: promAPI,
-			client: objectivesv1alpha1connect.NewObjectiveBackendServiceClient(
-				http.DefaultClient,
-				apiURL.String(),
-				connect.WithInterceptors(prometheusInterceptor),
+			client: newBackendClientCache(
+				objectivesv1alpha1connect.NewObjectiveBackendServiceClient(
+					http.DefaultClient,
+					apiURL.String(),
+					connect.WithInterceptors(prometheusInterceptor),
+				),
 			),
 		}
 
@@ -332,6 +334,43 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 		return 2
 	}
 	return 0
+}
+
+func newBackendClientCache(client objectivesv1alpha1connect.ObjectiveBackendServiceClient) objectivesv1alpha1connect.ObjectiveBackendServiceClient {
+	cache, err := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 100,
+		MaxCost:     10 * 1000, // 10 seconds
+		BufferItems: 64,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return &backendClientCache{client: client, cache: cache}
+}
+
+type backendClientCache struct {
+	client objectivesv1alpha1connect.ObjectiveBackendServiceClient
+	cache  *ristretto.Cache
+}
+
+// List calls the backend service and caches the result for 10 seconds if the request is successful.
+func (b *backendClientCache) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
+	key := req.Msg.Expr + req.Msg.Grouping
+
+	list, found := b.cache.Get(key)
+	if found {
+		return connect.NewResponse(list.(*objectivesv1alpha1.ListResponse)), nil
+	}
+
+	start := time.Now()
+	resp, err := b.client.List(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = b.cache.SetWithTTL(key, resp.Msg, time.Since(start).Milliseconds(), 10*time.Second)
+
+	return resp, nil
 }
 
 func newThanosClient(client api.Client) api.Client {
