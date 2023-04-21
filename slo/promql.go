@@ -30,7 +30,10 @@ func (o Objective) QueryTotal(window model.Duration) string {
 		grouping = slices.Clone(o.Indicator.Ratio.Grouping)
 	case Latency:
 		metric = increaseName(o.Indicator.Latency.Total.Name, window)
-		matchers = cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
+		matchers = append(
+			cloneMatchers(o.Indicator.Latency.Total.LabelMatchers),
+			&labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""},
+		)
 		grouping = slices.Clone(o.Indicator.Latency.Grouping)
 	case BoolGauge:
 		metric = countName(o.Indicator.BoolGauge.Name, window)
@@ -107,7 +110,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 			}
 		}
 		// Add the matcher {le=""} to select the recording rule that summed up all requests
-		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
+		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""})
 		matchers = append(matchers, &labels.Matcher{
 			Type:  labels.MatchEqual,
 			Name:  "slo",
@@ -272,7 +275,7 @@ func (o Objective) QueryErrorBudget() string {
 			}
 		}
 		// Add the matcher {le=""} to select the recording rule that summed up all requests
-		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
+		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""})
 		matchers = append(matchers, &labels.Matcher{
 			Type:  labels.MatchEqual,
 			Name:  "slo",
@@ -660,7 +663,7 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: matchers,
 			window:        timerange,
-			grouping:      []string{"le"},
+			grouping:      []string{labels.BucketLabel},
 			percentile:    percentile,
 		}.replace(expr)
 
@@ -681,7 +684,7 @@ func groupingLabels(errorMatchers, totalMatchers []*labels.Matcher) []string {
 
 	// This deletes the le label as grouping by it should usually not be wanted,
 	// and we have to remove it for the latency SLOs.
-	delete(groupingLabels, "le")
+	delete(groupingLabels, labels.BucketLabel)
 
 	return maps.Keys(groupingLabels)
 }
