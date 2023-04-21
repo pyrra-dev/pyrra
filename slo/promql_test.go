@@ -324,23 +324,23 @@ func TestObjective_QueryTotal(t *testing.T) {
 	}, {
 		name:      "http-latency",
 		objective: objectiveHTTPLatency(),
-		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"})`,
+		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"})`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
-		expected:  `sum by (job, handler) (http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"})`,
+		expected:  `sum by (job, handler) (http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"})`,
 	}, {
 		name:      "http-latency-grouping-regex",
 		objective: objectiveHTTPLatencyGroupingRegex(),
-		expected:  `sum by (job, handler) (http_request_duration_seconds:increase4w{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"})`,
+		expected:  `sum by (job, handler) (http_request_duration_seconds:increase4w{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"})`,
 	}, {
 		name:      "grpc-latency",
 		objective: objectiveGRPCLatency(),
-		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"})`,
+		expected:  `sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="",slo="monitoring-grpc-latency"})`,
 	}, {
 		name:      "grpc-latency-grouping",
 		objective: objectiveGRPCLatencyGrouping(),
-		expected:  `sum by (job, handler) (grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"})`,
+		expected:  `sum by (job, handler) (grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="",slo="monitoring-grpc-latency"})`,
 	}, {
 		name:      "operator-ratio",
 		objective: objectiveOperator(),
@@ -356,7 +356,7 @@ func TestObjective_QueryTotal(t *testing.T) {
 	}, {
 		name:      "apiserver-read-resource-latency",
 		objective: objectiveAPIServerLatency(),
-		expected:  `sum by (resource, verb) (apiserver_request_duration_seconds:increase2w{job="apiserver",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"})`,
+		expected:  `sum by (resource, verb) (apiserver_request_duration_seconds:increase2w{job="apiserver",le="",resource=~"resource|",slo="apiserver-read-resource-latency",verb=~"LIST|GET"})`,
 	}, {
 		name:      "up-targets",
 		objective: objectiveUpTargets(),
