@@ -78,7 +78,6 @@ const BurnrateGraph = ({
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
-          Errors
           <Spinner
             animation="border"
             style={{
@@ -154,14 +153,14 @@ const BurnrateGraph = ({
                 label: 'short',
                 gaps: seriesGaps(from / 1000, to / 1000),
                 stroke: `#${reds[1]}`,
-                value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
+                value: (u, v) => (v == null ? '-' : v.toFixed(2)),
               },
               {
                 min: 0,
                 label: 'long',
                 gaps: seriesGaps(from / 1000, to / 1000),
                 stroke: `#${reds[2]}`,
-                value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
+                value: (u, v) => (v == null ? '-' : v.toFixed(2)),
               },
               {
                 label: 'threshold',
@@ -171,13 +170,6 @@ const BurnrateGraph = ({
             scales: {
               x: {min: from / 1000, max: to / 1000},
             },
-            axes: [
-              {},
-              {
-                values: (uplot: uPlot, v: number[]) =>
-                  v.map((v: number) => `${(100 * v).toFixed(1)}%`),
-              },
-            ],
           }}
           data={[[], [], [], []]}
         />
@@ -198,7 +190,7 @@ const BurnrateGraph = ({
       <div className="graphs-description">
         <p>
           The short ({shortFormatted}) and long ({longFormatted}) burn rates <strong>both</strong>{' '}
-          have to be over the {(100 * threshold).toFixed(2)}% threshold. <br />
+          have to be over the {threshold.toFixed(2)}% threshold. <br />
           First, the alert is <i style={{color: pendingColor}}>pending</i> for{' '}
           {formatDuration(Number(alert.for?.seconds) * 1000)} and then the alert will be{' '}
           <i style={{color: firingColor}}>firing</i>.
@@ -217,20 +209,20 @@ const BurnrateGraph = ({
               label: `short (${shortFormatted})`,
               gaps: seriesGaps(from / 1000, to / 1000),
               stroke: '#42a5f5',
-              value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
+              value: (u, v) => (v == null ? '-' : v.toFixed(2)),
             },
             {
               min: 0,
               label: `long (${longFormatted})`,
               gaps: seriesGaps(from / 1000, to / 1000),
               stroke: '#651fff',
-              value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
+              value: (u, v) => (v == null ? '-' : v.toFixed(2)),
             },
             {
               label: 'threshold',
               stroke: `#${greys[0]}`,
               dash: [25, 10],
-              value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
+              value: (u, v) => (v == null ? '-' : v.toFixed(2)),
             },
           ],
           scales: {
@@ -239,8 +231,7 @@ const BurnrateGraph = ({
           axes: [
             {},
             {
-              values: (uplot: uPlot, v: number[]) =>
-                v.map((v: number) => `${(100 * v).toFixed(1)}%`),
+              values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(1)}`),
             },
           ],
           hooks: {

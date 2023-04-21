@@ -101,17 +101,17 @@ const AlertsTable = ({
             if (a.short?.current === -1.0) {
               shortCurrent = 'NaN'
             } else if (a.short?.current === undefined) {
-              shortCurrent = (0).toFixed(2).toString() + '%'
+              shortCurrent = (0).toFixed(3).toString()
             } else {
-              shortCurrent = (100 * a.short.current).toFixed(2) + '%'
+              shortCurrent = a.short.current.toFixed(3)
             }
             let longCurrent = ''
             if (a.long?.current === -1.0) {
               longCurrent = 'NaN'
             } else if (a.long?.current === undefined) {
-              longCurrent = (0).toFixed(2).toString() + '%'
+              longCurrent = (0).toFixed(3).toString()
             } else {
-              longCurrent = (100 * a.long.current).toFixed(2) + '%'
+              longCurrent = a.long?.current.toFixed(3)
             }
 
             const seriesFiringIndex = alertsLabels.findIndex((al: Labels): boolean => {
@@ -173,10 +173,10 @@ const AlertsTable = ({
                       key={i}
                       overlay={
                         <OverlayTooltip id={`tooltip-${i}`}>
-                          100 * {a.factor} * (1 - {objective.target})
+                          {a.factor} * (1 - {objective.target})
                         </OverlayTooltip>
                       }>
-                      <span>{(100 * (a.factor * (1 - objective?.target))).toFixed(2)}%</span>
+                      <span>{(a.factor * (1 - objective?.target)).toFixed(3)}</span>
                     </OverlayTrigger>
                   </td>
                   <td style={{textAlign: 'center'}}>
