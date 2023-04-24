@@ -84,11 +84,19 @@ func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode, generic
 	// +kubebuilder:scaffold:builder
 
 	var (
-		gr  run.Group
-		ctx = context.Background()
+		gr          run.Group
+		ctx, cancel = context.WithCancel(context.Background())
 	)
 	gr.Add(run.SignalHandler(ctx, os.Interrupt, syscall.SIGTERM))
 
+	{
+		gr.Add(func() error {
+			setupLog.Info("starting manager")
+			return mgr.Start(ctx)
+		}, func(err error) {
+			cancel()
+		})
+	}
 	{
 		router := http.NewServeMux()
 		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&KubernetesObjectiveServer{
