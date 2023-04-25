@@ -262,7 +262,7 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 	var latencyNative *slo.LatencyNativeIndicator
 	if in.Spec.ServiceLevelIndicator.LatencyNative != nil {
-		latency, err := model.ParseDuration(in.Spec.Window)
+		latency, err := model.ParseDuration(in.Spec.ServiceLevelIndicator.LatencyNative.Latency)
 		if err != nil {
 			return slo.Objective{}, fmt.Errorf("failed to parse objective latency: %w", err)
 		}

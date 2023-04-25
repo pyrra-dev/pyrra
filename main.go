@@ -618,6 +618,14 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 					}
 				}
 			}
+			if oi.Indicator.LatencyNative != nil {
+				for _, m := range oi.Indicator.LatencyNative.Total.LabelMatchers {
+					if rm, replace := groupingMatchers[m.Name]; replace {
+						m.Type = rm.Type
+						m.Value = rm.Value
+					}
+				}
+			}
 			if oi.Indicator.BoolGauge != nil {
 				for _, m := range oi.Indicator.BoolGauge.LabelMatchers {
 					if rm, replace := groupingMatchers[m.Name]; replace {

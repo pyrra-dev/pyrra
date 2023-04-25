@@ -134,7 +134,13 @@ export declare class Indicator extends Message<Indicator> {
     case: "latency";
   } | {
     /**
-     * @generated from field: objectives.v1alpha1.BoolGauge boolGauge = 3;
+     * @generated from field: objectives.v1alpha1.LatencyNative latency_native = 3;
+     */
+    value: LatencyNative;
+    case: "latencyNative";
+  } | {
+    /**
+     * @generated from field: objectives.v1alpha1.BoolGauge boolGauge = 4;
      */
     value: BoolGauge;
     case: "boolGauge";
@@ -221,6 +227,40 @@ export declare class Latency extends Message<Latency> {
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Latency;
 
   static equals(a: Latency | PlainMessage<Latency> | undefined, b: Latency | PlainMessage<Latency> | undefined): boolean;
+}
+
+/**
+ * @generated from message objectives.v1alpha1.LatencyNative
+ */
+export declare class LatencyNative extends Message<LatencyNative> {
+  /**
+   * @generated from field: objectives.v1alpha1.Query total = 1;
+   */
+  total?: Query;
+
+  /**
+   * @generated from field: string latency = 2;
+   */
+  latency: string;
+
+  /**
+   * @generated from field: repeated string grouping = 3;
+   */
+  grouping: string[];
+
+  constructor(data?: PartialMessage<LatencyNative>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "objectives.v1alpha1.LatencyNative";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LatencyNative;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LatencyNative;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LatencyNative;
+
+  static equals(a: LatencyNative | PlainMessage<LatencyNative> | undefined, b: LatencyNative | PlainMessage<LatencyNative> | undefined): boolean;
 }
 
 /**

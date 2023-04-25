@@ -77,8 +77,10 @@ const DurationGraph = ({
 
         // The first series is a straight line (same latency target value for all timestamps)
         // showing the objective.
-        durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency))
-        durationLabels.push('{quantile="target"}')
+        if (latency !== undefined) {
+          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000))
+          durationLabels.push('{quantile="target"}')
+        }
 
         resp.timeseries.forEach((timeseries: Timeseries, i: number) => {
           const [x, ...series] = timeseries.series
@@ -148,7 +150,7 @@ const DurationGraph = ({
           How long do the requests take?
           {latency !== undefined ? (
             <>
-              <br />p{target * 100} must be faster than {formatDuration(latency * 1000)}.
+              <br />p{target * 100} must be faster than {formatDuration(latency)}.
             </>
           ) : (
             ''

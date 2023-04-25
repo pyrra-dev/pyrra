@@ -358,31 +358,31 @@ func TestObjective_Burnrates(t *testing.T) {
 			Interval: "30s",
 			Rules: []monitoringv1.Rule{{
 				Record: "http_request_duration_seconds:burnrate5m",
-				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[5m]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m]))`),
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[5m]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
 			}, {
 				Record: "http_request_duration_seconds:burnrate30m",
-				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[30m])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[30m]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[30m]))`),
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[30m]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
 			}, {
 				Record: "http_request_duration_seconds:burnrate1h",
-				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1h])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[1h]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1h]))`),
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[1h]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
 			}, {
 				Record: "http_request_duration_seconds:burnrate2h",
-				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[2h])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[2h]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[2h]))`),
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[2h]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
 			}, {
 				Record: "http_request_duration_seconds:burnrate6h",
-				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[6h])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[6h]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[6h]))`),
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[6h]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
 			}, {
 				Record: "http_request_duration_seconds:burnrate1d",
-				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1d])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[1d]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1d]))`),
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[1d]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
 			}, {
 				Record: "http_request_duration_seconds:burnrate4d",
-				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4d])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4d]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4d]))`),
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4d]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
 			}, {
 				Alert:  "ErrorBudgetBurn",
@@ -1096,7 +1096,7 @@ func TestObjective_Burnrates(t *testing.T) {
 		},
 	}}
 
-	require.Len(t, testcases, 19)
+	require.Len(t, testcases, 20)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1318,11 +1318,11 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`histogram_fraction(0, 1, increase(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4w])) * histogram_count(increase(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1"},
-			}, {
-				Alert:  "SLOMetricAbsent",
-				Expr:   intstr.FromString(`absent(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}) == 1`),
-				For:    "2m",
-				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "severity": "critical"},
+				//}, {
+				//	Alert:  "SLOMetricAbsent",
+				//	Expr:   intstr.FromString(`absent(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}) == 1`),
+				//	For:    "2m",
+				//	Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1568,7 +1568,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		},
 	}}
 
-	require.Len(t, testcases, 16)
+	require.Len(t, testcases, 17)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

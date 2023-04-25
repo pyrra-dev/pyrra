@@ -2,9 +2,14 @@ import React from 'react'
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import List from './pages/List'
 import Detail from './pages/Detail'
-import {LabelMatcher, Latency, Objective} from './proto/objectives/v1alpha1/objectives_pb'
+import {
+  LabelMatcher,
+  Latency,
+  LatencyNative,
+  Objective,
+} from './proto/objectives/v1alpha1/objectives_pb'
 import {QueryClient, QueryClientProvider} from 'react-query'
-import {formatDuration} from './duration'
+import {formatDuration, parseDuration} from './duration'
 
 // @ts-expect-error - this is passed from the HTML template.
 export const PATH_PREFIX: string = window.PATH_PREFIX
@@ -40,6 +45,7 @@ const App = () => {
 export enum ObjectiveType {
   Ratio,
   Latency,
+  LatencyNative,
   BoolGauge,
 }
 
@@ -47,42 +53,56 @@ export const hasObjectiveType = (o: Objective): ObjectiveType => {
   if (o.indicator?.options.case === 'latency') {
     return ObjectiveType.Latency
   }
+  if (o.indicator?.options.case === 'latencyNative') {
+    return ObjectiveType.LatencyNative
+  }
   if (o.indicator?.options.case === 'boolGauge') {
     return ObjectiveType.BoolGauge
   }
   return ObjectiveType.Ratio
 }
 
+// returns the latency target in milliseconds
 export const latencyTarget = (o: Objective): number | undefined => {
-  if (hasObjectiveType(o) !== ObjectiveType.Latency) {
-    return undefined
+  const objectiveType = hasObjectiveType(o)
+
+  if (objectiveType === ObjectiveType.Latency) {
+    const latency: Latency = o.indicator?.options.value as Latency
+
+    const m = latency.success?.matchers.find((m: LabelMatcher) => {
+      return m.name === 'le'
+    })
+
+    if (m !== undefined) {
+      return parseFloat(m.value) * 1000
+    }
   }
 
-  const latency: Latency = o.indicator?.options.value as Latency
-
-  const m = latency.success?.matchers.find((m: LabelMatcher) => {
-    return m.name === 'le'
-  })
-
-  if (m !== undefined) {
-    // multiply with 1000 to get values from seconds to milliseconds
-    return parseFloat(m.value)
+  if (objectiveType === ObjectiveType.LatencyNative) {
+    const ln = o.indicator?.options.value as LatencyNative
+    return parseDuration(ln.latency) ?? undefined
   }
 
   return undefined
 }
 
 export const renderLatencyTarget = (o: Objective): string => {
-  if (hasObjectiveType(o) !== ObjectiveType.Latency) {
-    return ''
+  const objectiveType = hasObjectiveType(o)
+
+  if (objectiveType === ObjectiveType.Latency) {
+    const latency = latencyTarget(o)
+    if (latency === undefined) {
+      return ''
+    }
+
+    return formatDuration(latency * 1000)
+  }
+  if (objectiveType === ObjectiveType.LatencyNative) {
+    const ln = o.indicator?.options.value as LatencyNative
+    return ln.latency
   }
 
-  const latency = latencyTarget(o)
-  if (latency === undefined) {
-    return ''
-  }
-
-  return formatDuration(latency * 1000)
+  return ''
 }
 
 export const dateFormatter =

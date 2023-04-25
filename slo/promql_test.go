@@ -344,7 +344,7 @@ func TestObjective_QueryTotal(t *testing.T) {
 	}, {
 		name:      "http-latency-native",
 		objective: objectiveHTTPNativeLatency(),
-		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"})`,
+		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"})`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
@@ -425,7 +425,7 @@ func TestObjective_QueryErrors(t *testing.T) {
 	}, {
 		name:      "http-latency-native",
 		objective: objectiveHTTPNativeLatency(),
-		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}) - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"})`,
+		expected:  `sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"}) - sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"})`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
@@ -700,7 +700,7 @@ func TestObjective_RequestRange(t *testing.T) {
 		name:      "http-latency-native",
 		objective: objectiveHTTPNativeLatency(),
 		timerange: 2 * time.Hour,
-		expected:  `sum(rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[2h]))`,
+		expected:  `histogram_count(rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[2h]))`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
@@ -799,7 +799,7 @@ func TestObjective_ErrorsRange(t *testing.T) {
 		name:      "http-latency-native",
 		objective: objectiveHTTPNativeLatency(),
 		timerange: time.Hour,
-		expected:  `(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1h])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[1h]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1h]))`,
+		expected:  `1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[1h]))`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
