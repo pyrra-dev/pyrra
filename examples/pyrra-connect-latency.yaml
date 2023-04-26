@@ -14,7 +14,7 @@ spec:
     latencyNative:
       latency: 200ms
       total:
-        metric: connect_server_requests_duration_seconds{job="pyrra"}
+        metric: connect_server_requests_duration_seconds{job="pyrra",code="ok"}
       grouping:
         - service
         - method

@@ -623,6 +623,12 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 					if rm, replace := groupingMatchers[m.Name]; replace {
 						m.Type = rm.Type
 						m.Value = rm.Value
+						delete(groupingMatchers, m.Name)
+					}
+				}
+				if len(groupingMatchers) > 0 {
+					for _, m := range groupingMatchers {
+						oi.Indicator.LatencyNative.Total.LabelMatchers = append(oi.Indicator.LatencyNative.Total.LabelMatchers, m)
 					}
 				}
 			}

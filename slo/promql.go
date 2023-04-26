@@ -456,6 +456,15 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 				Value: m.Value,
 			}
 		}
+	case LatencyNative:
+		metric = o.BurnrateName(timerange)
+		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
+			matchers[m.Name] = &labels.Matcher{
+				Type:  m.Type,
+				Name:  m.Name,
+				Value: m.Value,
+			}
+		}
 	case BoolGauge:
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
@@ -622,7 +631,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`histogram_count(rate(metric{}[1s]))`)
+		expr, err := parser.ParseExpr(`sum(histogram_count(rate(metric{}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -705,7 +714,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`1 - sum(histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}

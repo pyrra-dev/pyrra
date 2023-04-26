@@ -700,7 +700,7 @@ func TestObjective_RequestRange(t *testing.T) {
 		name:      "http-latency-native",
 		objective: objectiveHTTPNativeLatency(),
 		timerange: 2 * time.Hour,
-		expected:  `histogram_count(rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[2h]))`,
+		expected:  `sum(histogram_count(rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[2h])))`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
@@ -799,7 +799,7 @@ func TestObjective_ErrorsRange(t *testing.T) {
 		name:      "http-latency-native",
 		objective: objectiveHTTPNativeLatency(),
 		timerange: time.Hour,
-		expected:  `1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[1h]))`,
+		expected:  `1 - sum(histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[1h])))`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
