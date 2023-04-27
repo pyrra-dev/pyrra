@@ -95,7 +95,7 @@ export const renderLatencyTarget = (o: Objective): string => {
       return ''
     }
 
-    return formatDuration(latency * 1000)
+    return formatDuration(latency)
   }
   if (objectiveType === ObjectiveType.LatencyNative) {
     const ln = o.indicator?.options.value as LatencyNative
