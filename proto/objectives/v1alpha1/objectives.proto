@@ -45,8 +45,8 @@ message Indicator {
   oneof options {
     Ratio ratio = 1;
     Latency latency = 2;
-    LatencyNative latency_native = 3;
-    BoolGauge boolGauge = 4;
+    BoolGauge boolGauge = 3;
+    LatencyNative latency_native = 4;
   }
 }
 

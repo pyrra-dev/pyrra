@@ -50,8 +50,8 @@ export const Indicator = proto3.makeMessageType(
   () => [
     { no: 1, name: "ratio", kind: "message", T: Ratio, oneof: "options" },
     { no: 2, name: "latency", kind: "message", T: Latency, oneof: "options" },
-    { no: 3, name: "latency_native", kind: "message", T: LatencyNative, oneof: "options" },
-    { no: 4, name: "boolGauge", kind: "message", T: BoolGauge, oneof: "options" },
+    { no: 3, name: "boolGauge", kind: "message", T: BoolGauge, oneof: "options" },
+    { no: 4, name: "latency_native", kind: "message", T: LatencyNative, oneof: "options" },
   ],
 );
 

@@ -96,6 +96,11 @@ type ServiceLevelIndicator struct {
 	// LatencyNative is the indicator that measures a certain percentage to be faster than the expected latency.
 	// This uses the new native histograms in Prometheus.
 	LatencyNative *NativeLatencyIndicator `json:"latencyNative,omitempty"`
+
+	// +optional
+	// BoolGauge is the indicator that measures wheter a boolean gauge is
+	// successul.
+	BoolGauge *BoolGaugeIndicator `json:"bool_gauge,omitempty"`
 }
 
 type Alerting struct {
@@ -137,6 +142,12 @@ type NativeLatencyIndicator struct {
 
 	// +optional
 	// Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
+	Grouping []string `json:"grouping"`
+}
+
+type BoolGaugeIndicator struct {
+	Query `json:",inline"`
+	// Total is the metric that returns how many requests there are in total.
 	Grouping []string `json:"grouping"`
 }
 
@@ -293,6 +304,33 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 		}
 	}
 
+	var boolGauge *slo.BoolGaugeIndicator
+	if in.Spec.ServiceLevelIndicator.BoolGauge != nil {
+		expr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.BoolGauge.Metric)
+		if err != nil {
+			return slo.Objective{}, err
+		}
+
+		vec, ok := expr.(*parser.VectorSelector)
+		if !ok {
+			return slo.Objective{}, fmt.Errorf("bool gauge metric is not a VectorSelector")
+		}
+
+		// Copy the matchers to get rid of the re field for unit testing...
+		matchers := make([]*labels.Matcher, len(vec.LabelMatchers))
+		for i, matcher := range vec.LabelMatchers {
+			matchers[i] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
+		}
+
+		boolGauge = &slo.BoolGaugeIndicator{
+			Metric: slo.Metric{
+				Name:          vec.Name,
+				LabelMatchers: matchers,
+			},
+			Grouping: in.Spec.ServiceLevelIndicator.BoolGauge.Grouping,
+		}
+	}
+
 	inCopy := in.DeepCopy()
 	inCopy.ManagedFields = nil
 	delete(inCopy.Annotations, "kubectl.kubernetes.io/last-applied-configuration")
@@ -328,6 +366,7 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 			Ratio:         ratio,
 			Latency:       latency,
 			LatencyNative: latencyNative,
+			BoolGauge:     boolGauge,
 		},
 	}, nil
 }

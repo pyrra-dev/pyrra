@@ -134,16 +134,16 @@ export declare class Indicator extends Message<Indicator> {
     case: "latency";
   } | {
     /**
-     * @generated from field: objectives.v1alpha1.LatencyNative latency_native = 3;
-     */
-    value: LatencyNative;
-    case: "latencyNative";
-  } | {
-    /**
-     * @generated from field: objectives.v1alpha1.BoolGauge boolGauge = 4;
+     * @generated from field: objectives.v1alpha1.BoolGauge boolGauge = 3;
      */
     value: BoolGauge;
     case: "boolGauge";
+  } | {
+    /**
+     * @generated from field: objectives.v1alpha1.LatencyNative latency_native = 4;
+     */
+    value: LatencyNative;
+    case: "latencyNative";
   } | { case: undefined; value?: undefined };
 
   constructor(data?: PartialMessage<Indicator>);
