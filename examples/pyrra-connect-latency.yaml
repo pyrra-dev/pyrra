@@ -1,0 +1,20 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: pyrra-connect-latency
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: '99'
+  window: 2w
+  description: Pyrra serves API requests with connect-go either via gRPC or HTTP.
+  indicator:
+    latencyNative:
+      latency: 200ms
+      total:
+        metric: connect_server_requests_duration_seconds{job="pyrra",code="ok"}
+      grouping:
+        - service
+        - method

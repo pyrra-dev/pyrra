@@ -618,6 +618,20 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 					}
 				}
 			}
+			if oi.Indicator.LatencyNative != nil {
+				for _, m := range oi.Indicator.LatencyNative.Total.LabelMatchers {
+					if rm, replace := groupingMatchers[m.Name]; replace {
+						m.Type = rm.Type
+						m.Value = rm.Value
+						delete(groupingMatchers, m.Name)
+					}
+				}
+				if len(groupingMatchers) > 0 {
+					for _, m := range groupingMatchers {
+						oi.Indicator.LatencyNative.Total.LabelMatchers = append(oi.Indicator.LatencyNative.Total.LabelMatchers, m)
+					}
+				}
+			}
 			if oi.Indicator.BoolGauge != nil {
 				for _, m := range oi.Indicator.BoolGauge.LabelMatchers {
 					if rm, replace := groupingMatchers[m.Name]; replace {
@@ -820,6 +834,9 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 				objective.Indicator.BoolGauge.Grouping = append(objective.Indicator.BoolGauge.Grouping, g)
 			}
 		}
+	}
+	if objective.Indicator.LatencyNative != nil && objective.Indicator.Ratio.Total.Name != "" {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unimplemented"))
 	}
 
 	end := time.Now()

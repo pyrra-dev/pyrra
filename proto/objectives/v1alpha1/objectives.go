@@ -15,6 +15,7 @@ import (
 func ToInternal(o *Objective) slo.Objective {
 	var ratio *slo.RatioIndicator
 	var latency *slo.LatencyIndicator
+	var latencyNative *slo.LatencyNativeIndicator
 	var boolGauge *slo.BoolGaugeIndicator
 
 	if o.Indicator != nil {
@@ -61,6 +62,24 @@ func ToInternal(o *Objective) slo.Objective {
 				})
 			}
 		}
+		if l := o.Indicator.GetLatencyNative(); l != nil {
+			latency, err := model.ParseDuration(l.Latency)
+			if err != nil {
+				return slo.Objective{}
+			}
+			latencyNative = &slo.LatencyNativeIndicator{
+				Total:    slo.Metric{Name: l.Total.GetName()},
+				Grouping: l.GetGrouping(),
+				Latency:  latency,
+			}
+			for _, m := range l.Total.GetMatchers() {
+				latencyNative.Total.LabelMatchers = append(latencyNative.Total.LabelMatchers, &labels.Matcher{
+					Type:  labels.MatchType(m.GetType()),
+					Name:  m.GetName(),
+					Value: m.GetValue(),
+				})
+			}
+		}
 
 		if b := o.Indicator.GetBoolGauge(); b != nil {
 			boolGauge = &slo.BoolGaugeIndicator{
@@ -90,9 +109,10 @@ func ToInternal(o *Objective) slo.Objective {
 		Config:      o.Config,
 		Alerting:    slo.Alerting{}, // TODO
 		Indicator: slo.Indicator{
-			Ratio:     ratio,
-			Latency:   latency,
-			BoolGauge: boolGauge,
+			Ratio:         ratio,
+			Latency:       latency,
+			LatencyNative: latencyNative,
+			BoolGauge:     boolGauge,
 		},
 	}
 }
@@ -155,6 +175,24 @@ func FromInternal(o slo.Objective) *Objective {
 			})
 		}
 	}
+	var latencyNative *LatencyNative
+	if l := o.Indicator.LatencyNative; l != nil {
+		latencyNative = &LatencyNative{
+			Grouping: o.Grouping(),
+			Total: &Query{
+				Name:   l.Total.Name,
+				Metric: l.Total.Metric(),
+			},
+			Latency: l.Latency.String(),
+		}
+		for _, m := range l.Total.LabelMatchers {
+			latencyNative.Total.Matchers = append(latencyNative.Total.Matchers, &LabelMatcher{
+				Type:  LabelMatcher_Type(m.Type),
+				Name:  m.Name,
+				Value: m.Value,
+			})
+		}
+	}
 
 	var boolGauge *BoolGauge
 	if b := o.Indicator.BoolGauge; b != nil {
@@ -196,6 +234,11 @@ func FromInternal(o slo.Objective) *Objective {
 	if latency != nil {
 		objective.Indicator = &Indicator{
 			Options: &Indicator_Latency{latency},
+		}
+	}
+	if latencyNative != nil {
+		objective.Indicator = &Indicator{
+			Options: &Indicator_LatencyNative{latencyNative},
 		}
 	}
 	if boolGauge != nil {

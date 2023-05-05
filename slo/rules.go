@@ -12,6 +12,8 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -226,6 +228,91 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}
 			rules = append(rules, r)
 		}
+	case LatencyNative:
+		matchers := o.Indicator.LatencyNative.Total.LabelMatchers
+
+		groupingMap := map[string]struct{}{}
+		for _, g := range o.Indicator.LatencyNative.Grouping {
+			groupingMap[g] = struct{}{}
+		}
+
+		ruleLabels := o.commonRuleLabels(sloName)
+		for _, m := range matchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
+		// Delete labels that are grouped as their value is part of the labels anyway
+		for g := range groupingMap {
+			delete(ruleLabels, g)
+		}
+
+		for _, br := range burnrates {
+			rules = append(rules, monitoringv1.Rule{
+				Record: o.BurnrateName(br),
+				Expr:   intstr.FromString(o.Burnrate(br)),
+				Labels: ruleLabels,
+			})
+		}
+
+		if o.Alerting.Disabled {
+			return monitoringv1.RuleGroup{
+				Name:     sloName,
+				Interval: "30s", // TODO: Increase or decrease based on availability target
+				Rules:    rules,
+			}, nil
+		}
+
+		var alertMatchers []string
+		for _, m := range matchers {
+			if m.Name == labels.MetricName {
+				continue
+			}
+			if _, ok := groupingMap[m.Name]; !ok {
+				if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+					continue
+				}
+			}
+
+			alertMatchers = append(alertMatchers, m.String())
+		}
+		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
+		sort.Strings(alertMatchers)
+		alertMatchersString := strings.Join(alertMatchers, ",")
+
+		for _, w := range ws {
+			alertLabels := o.commonRuleLabels(sloName)
+			alertAnnotations := o.commonRuleAnnotations()
+			for _, m := range matchers {
+				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
+						alertLabels[m.Name] = m.Value
+					}
+				}
+			}
+			alertLabels["short"] = model.Duration(w.Short).String()
+			alertLabels["long"] = model.Duration(w.Long).String()
+			alertLabels["severity"] = string(w.Severity)
+
+			r := monitoringv1.Rule{
+				Alert: o.AlertName(),
+				// TODO: Use expr replacer
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
+					o.BurnrateName(w.Short),
+					alertMatchersString,
+					w.Factor,
+					strconv.FormatFloat(o.Target, 'f', -1, 64),
+					o.BurnrateName(w.Long),
+					alertMatchersString,
+					w.Factor,
+					strconv.FormatFloat(o.Target, 'f', -1, 64),
+				)),
+				For:         monitoringv1.Duration(model.Duration(w.For).String()),
+				Labels:      alertLabels,
+				Annotations: alertAnnotations,
+			}
+			rules = append(rules, r)
+		}
 	case BoolGauge:
 		matchers := o.Indicator.BoolGauge.LabelMatchers
 
@@ -329,6 +416,8 @@ func (o Objective) BurnrateName(rate time.Duration) string {
 		metric = o.Indicator.Ratio.Total.Name
 	case Latency:
 		metric = o.Indicator.Latency.Total.Name
+	case LatencyNative:
+		metric = o.Indicator.LatencyNative.Total.Name
 	case BoolGauge:
 		metric = o.Indicator.BoolGauge.Name
 	}
@@ -406,6 +495,32 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
 			grouping:      grouping,
 			window:        timerange,
+		}.replace(expr)
+
+		return expr.String()
+	case LatencyNative:
+		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s]))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		groupingMap := map[string]struct{}{}
+		for _, s := range o.Indicator.LatencyNative.Grouping {
+			groupingMap[s] = struct{}{}
+		}
+
+		grouping := make([]string, 0, len(groupingMap))
+		for s := range groupingMap {
+			grouping = append(grouping, s)
+		}
+		sort.Strings(grouping)
+
+		objectiveReplacer{
+			metric:   o.Indicator.LatencyNative.Total.Name,
+			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			grouping: grouping,
+			target:   time.Duration(o.Indicator.LatencyNative.Latency).Seconds(),
+			window:   timerange,
 		}.replace(expr)
 
 		return expr.String()
@@ -765,6 +880,54 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			).String()),
 			Labels:      alertLabelsLe,
 			Annotations: o.commonRuleAnnotations(),
+		})
+	case LatencyNative:
+		ruleLabels := o.commonRuleLabels(sloName)
+		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
+
+		expr, err := parser.ParseExpr(`histogram_count(increase(metric{matchers="total"}[1s]))`)
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.LatencyNative.Total.Name,
+			matchers: slices.Clone(o.Indicator.LatencyNative.Total.LabelMatchers),
+			grouping: slices.Clone(o.Indicator.LatencyNative.Grouping),
+			window:   time.Duration(o.Window),
+		}.replace(expr)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.LatencyNative.Total.Name, o.Window),
+			Expr:   intstr.FromString(expr.String()),
+			Labels: ruleLabels,
+		})
+
+		expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, increase(metric{matchers="total"}[1s])) * histogram_count(increase(metric{matchers="total"}[1s]))`)
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		latencySeconds := time.Duration(o.Indicator.LatencyNative.Latency).Seconds()
+		objectiveReplacer{
+			metric:   o.Indicator.LatencyNative.Total.Name,
+			matchers: slices.Clone(o.Indicator.LatencyNative.Total.LabelMatchers),
+			grouping: slices.Clone(o.Indicator.LatencyNative.Grouping),
+			window:   time.Duration(o.Window),
+			target:   latencySeconds,
+		}.replace(expr)
+
+		ruleLabels = maps.Clone(ruleLabels)
+		ruleLabels["le"] = fmt.Sprintf("%g", latencySeconds)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.LatencyNative.Total.Name, o.Window),
+			Expr:   intstr.FromString(expr.String()),
+			Labels: ruleLabels,
 		})
 	case BoolGauge:
 		ruleLabels := o.commonRuleLabels(sloName)

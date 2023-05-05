@@ -89,8 +89,13 @@ type ServiceLevelIndicator struct {
 	Ratio *RatioIndicator `json:"ratio,omitempty"`
 
 	// +optional
-	// Latency is the indicator that measures a certain percentage to be fast than.
+	// Latency is the indicator that measures a certain percentage to be faster than.
 	Latency *LatencyIndicator `json:"latency,omitempty"`
+
+	// +optional
+	// LatencyNative is the indicator that measures a certain percentage to be faster than the expected latency.
+	// This uses the new native histograms in Prometheus.
+	LatencyNative *NativeLatencyIndicator `json:"latencyNative,omitempty"`
 
 	// +optional
 	// BoolGauge is the indicator that measures wheter a boolean gauge is
@@ -123,6 +128,18 @@ type LatencyIndicator struct {
 	Success Query `json:"success"`
 	// Total is the metric that returns how many requests there are in total.
 	Total Query `json:"total"`
+	// +optional
+	// Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
+	Grouping []string `json:"grouping"`
+}
+
+type NativeLatencyIndicator struct {
+	// Total is the metric that returns how many requests there are in total.
+	Total Query `json:"total"`
+
+	// Latency the requests should be faster than.
+	Latency string `json:"latency"`
+
 	// +optional
 	// Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
 	Grouping []string `json:"grouping"`
@@ -254,6 +271,39 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 		}
 	}
 
+	var latencyNative *slo.LatencyNativeIndicator
+	if in.Spec.ServiceLevelIndicator.LatencyNative != nil {
+		latency, err := model.ParseDuration(in.Spec.ServiceLevelIndicator.LatencyNative.Latency)
+		if err != nil {
+			return slo.Objective{}, fmt.Errorf("failed to parse objective latency: %w", err)
+		}
+
+		totalExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric)
+		if err != nil {
+			return slo.Objective{}, err
+		}
+
+		totalVec, ok := totalExpr.(*parser.VectorSelector)
+		if !ok {
+			return slo.Objective{}, fmt.Errorf("latency total metric is not a VectorSelector")
+		}
+
+		// Copy the matchers to get rid of the re field for unit testing...
+		totalMatchers := make([]*labels.Matcher, len(totalVec.LabelMatchers))
+		for i, matcher := range totalVec.LabelMatchers {
+			totalMatchers[i] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
+		}
+
+		latencyNative = &slo.LatencyNativeIndicator{
+			Latency: latency,
+			Total: slo.Metric{
+				Name:          totalVec.Name,
+				LabelMatchers: totalMatchers,
+			},
+			Grouping: in.Spec.ServiceLevelIndicator.LatencyNative.Grouping,
+		}
+	}
+
 	var boolGauge *slo.BoolGaugeIndicator
 	if in.Spec.ServiceLevelIndicator.BoolGauge != nil {
 		expr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.BoolGauge.Metric)
@@ -313,9 +363,10 @@ func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
 		Config:      string(config),
 		Alerting:    alerting,
 		Indicator: slo.Indicator{
-			Ratio:     ratio,
-			Latency:   latency,
-			BoolGauge: boolGauge,
+			Ratio:         ratio,
+			Latency:       latency,
+			LatencyNative: latencyNative,
+			BoolGauge:     boolGauge,
 		},
 	}, nil
 }

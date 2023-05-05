@@ -196,6 +196,8 @@ const Detail = () => {
   ]
 
   const objectiveType = hasObjectiveType(objective)
+  const objectiveTypeLatency =
+    objectiveType === ObjectiveType.Latency || objectiveType === ObjectiveType.LatencyNative
 
   const renderObjective = () => {
     switch (objectiveType) {
@@ -216,6 +218,7 @@ const Detail = () => {
           </div>
         )
       case ObjectiveType.Latency:
+      case ObjectiveType.LatencyNative:
         return (
           <div>
             <h6 className="headline">Objective</h6>
@@ -277,7 +280,7 @@ const Detail = () => {
             <table className="details">
               <tbody>
                 <tr>
-                  <td>{objectiveType === ObjectiveType.Latency ? 'Slow:' : 'Errors:'}</td>
+                  <td>{objectiveTypeLatency ? 'Slow:' : 'Errors:'}</td>
                   <td>{Math.floor(errors).toLocaleString()}</td>
                 </tr>
                 <tr>
@@ -475,8 +478,8 @@ const Detail = () => {
           <Row>
             <Col
               xs={12}
-              md={objectiveType === ObjectiveType.Latency ? 12 : 6}
-              className={objectiveType === ObjectiveType.Latency ? 'col-xxxl-4' : ''}>
+              md={objectiveTypeLatency ? 12 : 6}
+              className={objectiveTypeLatency ? 'col-xxxl-4' : ''}>
               {objective.queries?.graphRequests !== undefined ? (
                 <RequestsGraph
                   client={promClient}
@@ -493,8 +496,8 @@ const Detail = () => {
             </Col>
             <Col
               xs={12}
-              md={objectiveType === ObjectiveType.Latency ? 12 : 6}
-              className={objectiveType === ObjectiveType.Latency ? 'col-xxxl-4' : ''}>
+              md={objectiveTypeLatency ? 12 : 6}
+              className={objectiveTypeLatency ? 'col-xxxl-4' : ''}>
               {objective.queries?.graphErrors !== undefined ? (
                 <ErrorsGraph
                   client={promClient}
@@ -509,7 +512,7 @@ const Detail = () => {
                 <></>
               )}
             </Col>
-            {objectiveType === ObjectiveType.Latency ? (
+            {objectiveTypeLatency && (
               <Col xs={12} className="col-xxxl-4">
                 <DurationGraph
                   client={client}
@@ -523,8 +526,6 @@ const Detail = () => {
                   latency={latencyTarget(objective)}
                 />
               </Col>
-            ) : (
-              <></>
             )}
           </Row>
           <Row>

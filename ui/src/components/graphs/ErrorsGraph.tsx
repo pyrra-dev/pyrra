@@ -104,11 +104,13 @@ const ErrorsGraph = ({
       description = 'What percentage of requests were errors?'
       break
     case ObjectiveType.Latency:
+    case ObjectiveType.LatencyNative:
       headline = 'Too Slow'
       description = 'What percentage of requests were too slow?'
       break
     case ObjectiveType.BoolGauge:
       description = 'What percentage of probes were errors?'
+      break
   }
 
   return (

@@ -30,11 +30,18 @@ func (o Objective) QueryTotal(window model.Duration) string {
 		grouping = slices.Clone(o.Indicator.Ratio.Grouping)
 	case Latency:
 		metric = increaseName(o.Indicator.Latency.Total.Name, window)
+		grouping = slices.Clone(o.Indicator.Latency.Grouping)
 		matchers = append(
 			cloneMatchers(o.Indicator.Latency.Total.LabelMatchers),
 			&labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""},
 		)
-		grouping = slices.Clone(o.Indicator.Latency.Grouping)
+	case LatencyNative:
+		metric = increaseName(o.Indicator.LatencyNative.Total.Name, window)
+		grouping = slices.Clone(o.Indicator.LatencyNative.Grouping)
+		matchers = append(
+			cloneMatchers(o.Indicator.LatencyNative.Total.LabelMatchers),
+			&labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""},
+		)
 	case BoolGauge:
 		metric = countName(o.Indicator.BoolGauge.Name, window)
 		matchers = cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
@@ -140,6 +147,44 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
+	case LatencyNative:
+		expr, err := parser.ParseExpr(`sum by (grouping) (metric{matchers="total"}) - sum by (grouping) (errorMetric{matchers="errors"})`)
+		if err != nil {
+			return ""
+		}
+
+		metric := increaseName(o.Indicator.LatencyNative.Total.Name, window)
+		matchers := cloneMatchers(o.Indicator.LatencyNative.Total.LabelMatchers)
+		for i, m := range matchers {
+			if m.Name == labels.MetricName {
+				matchers[i].Value = metric
+				break
+			}
+		}
+		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "slo", Value: o.Name()})
+
+		// Add the matcher {le=""} to select the recording rule that summed up all requests
+		totalMatchers := append(cloneMatchers(matchers), &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  labels.BucketLabel,
+			Value: "",
+		})
+
+		errorMatchers := append(cloneMatchers(matchers), &labels.Matcher{
+			Type:  labels.MatchEqual,
+			Name:  labels.BucketLabel,
+			Value: fmt.Sprintf("%g", time.Duration(o.Indicator.LatencyNative.Latency).Seconds()),
+		})
+
+		objectiveReplacer{
+			metric:        metric,
+			matchers:      totalMatchers,
+			errorMetric:   metric,
+			errorMatchers: errorMatchers,
+			grouping:      o.Indicator.LatencyNative.Grouping,
+		}.replace(expr)
+
+		return expr.String()
 	case BoolGauge:
 		expr, err := parser.ParseExpr(`sum by (grouping) (errorMetric{matchers="errors"}) - sum by (grouping) (metric{matchers="total"})`)
 		if err != nil {
@@ -190,7 +235,8 @@ func (o Objective) QueryErrors(window model.Duration) string {
 }
 
 func (o Objective) QueryErrorBudget() string {
-	switch o.IndicatorType() {
+	indicatorType := o.IndicatorType()
+	switch indicatorType {
 	case Ratio:
 		expr, err := parser.ParseExpr(`
 (
@@ -247,7 +293,7 @@ func (o Objective) QueryErrorBudget() string {
 		}.replace(expr)
 
 		return expr.String()
-	case Latency:
+	case Latency, LatencyNative:
 		expr, err := parser.ParseExpr(`
 (
   (1 - 0.696969)
@@ -266,42 +312,61 @@ func (o Objective) QueryErrorBudget() string {
 			return ""
 		}
 
-		metric := increaseName(o.Indicator.Latency.Total.Name, o.Window)
-		matchers := cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
+		var (
+			metric        string
+			matchers      []*labels.Matcher
+			errorMetric   string
+			errorMatchers []*labels.Matcher
+			grouping      []string
+		)
+		switch indicatorType {
+		case Latency:
+			metric = increaseName(o.Indicator.Latency.Total.Name, o.Window)
+			matchers = cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
+			errorMetric = increaseName(o.Indicator.Latency.Success.Name, o.Window)
+			errorMatchers = cloneMatchers(o.Indicator.Latency.Success.LabelMatchers)
+			grouping = o.Indicator.Latency.Grouping
+		case LatencyNative:
+			metric = increaseName(o.Indicator.LatencyNative.Total.Name, o.Window)
+			matchers = cloneMatchers(o.Indicator.LatencyNative.Total.LabelMatchers)
+			errorMetric = increaseName(o.Indicator.LatencyNative.Total.Name, o.Window)
+			errorMatchers = cloneMatchers(o.Indicator.LatencyNative.Total.LabelMatchers)
+			grouping = o.Indicator.LatencyNative.Grouping
+		}
+
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
 				m.Value = metric
 				break
 			}
 		}
-		// Add the matcher {le=""} to select the recording rule that summed up all requests
-		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""})
-		matchers = append(matchers, &labels.Matcher{
-			Type:  labels.MatchEqual,
-			Name:  "slo",
-			Value: o.Name(),
-		})
-
-		errorMetric := increaseName(o.Indicator.Latency.Success.Name, o.Window)
-		errorMatchers := cloneMatchers(o.Indicator.Latency.Success.LabelMatchers)
 		for _, m := range errorMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = errorMetric
 				break
 			}
 		}
-		errorMatchers = append(errorMatchers, &labels.Matcher{
-			Type:  labels.MatchEqual,
-			Name:  "slo",
-			Value: o.Name(),
-		})
+
+		// Add the matcher {le=""} to select the recording rule that summed up all requests
+		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""})
+		matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "slo", Value: o.Name()})
+
+		errorMatchers = append(errorMatchers, &labels.Matcher{Type: labels.MatchEqual, Name: "slo", Value: o.Name()})
+		if indicatorType == LatencyNative {
+			seconds := time.Duration(o.Indicator.LatencyNative.Latency).Seconds()
+			errorMatchers = append(errorMatchers, &labels.Matcher{
+				Type:  labels.MatchEqual,
+				Name:  labels.BucketLabel,
+				Value: fmt.Sprint(seconds),
+			})
+		}
 
 		objectiveReplacer{
 			metric:        metric,
 			matchers:      matchers,
 			errorMetric:   errorMetric,
 			errorMatchers: errorMatchers,
-			grouping:      o.Indicator.Latency.Grouping,
+			grouping:      grouping,
 			target:        o.Target,
 		}.replace(expr)
 
@@ -386,6 +451,15 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
 			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+				Type:  m.Type,
+				Name:  m.Name,
+				Value: m.Value,
+			}
+		}
+	case LatencyNative:
+		metric = o.BurnrateName(timerange)
+		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
+			matchers[m.Name] = &labels.Matcher{
 				Type:  m.Type,
 				Name:  m.Name,
 				Value: m.Value,
@@ -556,6 +630,19 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
+	case LatencyNative:
+		expr, err := parser.ParseExpr(`sum(histogram_count(rate(metric{}[1s])))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.LatencyNative.Total.Name,
+			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			window:   timerange,
+		}.replace(expr)
+
+		return expr.String()
 	case BoolGauge:
 		expr, err := parser.ParseExpr(`sum by(group) (count_over_time(metric{matchers="total"}[1s])) / 86400`)
 		if err != nil {
@@ -626,6 +713,20 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 		}.replace(expr)
 
 		return expr.String()
+	case LatencyNative:
+		expr, err := parser.ParseExpr(`1 - sum(histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s])))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.LatencyNative.Total.Name,
+			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			window:   timerange,
+			target:   time.Duration(o.Indicator.LatencyNative.Latency).Seconds(),
+		}.replace(expr)
+
+		return expr.String()
 	case BoolGauge:
 		expr, err := parser.ParseExpr(`100 * sum by (group) ((count_over_time(metric{matchers="total"}[1s]) - sum_over_time(metric{matchers="total"}[1s]))) / sum by(group) (count_over_time(metric{matchers="total"}[1s]))`)
 		if err != nil {
@@ -665,6 +766,21 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 			window:        timerange,
 			grouping:      []string{labels.BucketLabel},
 			percentile:    percentile,
+		}.replace(expr)
+
+		return expr.String()
+	case LatencyNative:
+		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum(rate(metric{matchers="total"}[1s])))`)
+		if err != nil {
+			return err.Error()
+		}
+
+		objectiveReplacer{
+			metric:     o.Indicator.LatencyNative.Total.Name,
+			matchers:   o.Indicator.LatencyNative.Total.LabelMatchers,
+			grouping:   o.Indicator.LatencyNative.Grouping,
+			window:     timerange,
+			percentile: percentile,
 		}.replace(expr)
 
 		return expr.String()

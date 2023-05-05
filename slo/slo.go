@@ -53,10 +53,11 @@ func (o Objective) HasWindows(short, long model.Duration) (Window, bool) {
 type IndicatorType int
 
 const (
-	Unknown   IndicatorType = iota
-	Ratio     IndicatorType = iota
-	Latency   IndicatorType = iota
-	BoolGauge IndicatorType = iota
+	Unknown       IndicatorType = iota
+	Ratio         IndicatorType = iota
+	Latency       IndicatorType = iota
+	LatencyNative IndicatorType = iota
+	BoolGauge     IndicatorType = iota
 )
 
 func (o Objective) IndicatorType() IndicatorType {
@@ -65,6 +66,9 @@ func (o Objective) IndicatorType() IndicatorType {
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		return Latency
+	}
+	if o.Indicator.LatencyNative != nil && o.Indicator.LatencyNative.Total.Name != "" {
+		return LatencyNative
 	}
 	if o.Indicator.BoolGauge != nil && o.Indicator.BoolGauge.Name != "" {
 		return BoolGauge
@@ -78,6 +82,8 @@ func (o Objective) Grouping() []string {
 		return o.Indicator.Ratio.Grouping
 	case Latency:
 		return o.Indicator.Latency.Grouping
+	case LatencyNative:
+		return o.Indicator.LatencyNative.Grouping
 	case BoolGauge:
 		return o.Indicator.BoolGauge.Grouping
 	default:
@@ -94,9 +100,10 @@ func (o Objective) AlertName() string {
 }
 
 type Indicator struct {
-	Ratio     *RatioIndicator
-	Latency   *LatencyIndicator
-	BoolGauge *BoolGaugeIndicator
+	Ratio         *RatioIndicator
+	Latency       *LatencyIndicator
+	LatencyNative *LatencyNativeIndicator
+	BoolGauge     *BoolGaugeIndicator
 }
 
 type RatioIndicator struct {
@@ -107,6 +114,12 @@ type RatioIndicator struct {
 
 type LatencyIndicator struct {
 	Success  Metric
+	Total    Metric
+	Grouping []string
+}
+
+type LatencyNativeIndicator struct {
+	Latency  model.Duration
 	Total    Metric
 	Grouping []string
 }

@@ -551,6 +551,7 @@ const List = () => {
       case ObjectiveType.BoolGauge:
         return <></>
       case ObjectiveType.Latency:
+      case ObjectiveType.LatencyNative:
         return renderLatencyTarget(o.objective)
     }
   }
