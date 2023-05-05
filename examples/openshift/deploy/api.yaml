@@ -30,7 +30,7 @@ spec:
             - --prometheus-url=https://prometheus-k8s.openshift-monitoring.svc.cluster.local:9091
             - --api-url=http://pyrra-kubernetes.openshift-monitoring.svc.cluster.local:9444
             - --prometheus-bearer-token-path=/var/run/secrets/tokens/pyrra-kubernetes
-          image: ghcr.io/pyrra-dev/pyrra:v0.5.0
+          image: ghcr.io/pyrra-dev/pyrra:v0.6.1
           imagePullPolicy: IfNotPresent
           name: pyrra-api
           ports:

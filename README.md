@@ -140,7 +140,7 @@ Thanks to [@rlex](https://github.com/rlex) there is a [Helm chart](https://artif
 You can easily start Pyrra on its own via the provided Docker image:
 
 ```bash
-docker pull ghcr.io/pyrra-dev/pyrra:v0.5.0
+docker pull ghcr.io/pyrra-dev/pyrra:v0.6.1
 ```
 
 When running Pyrra outside of Kubernetes, the SLO object can be provided through

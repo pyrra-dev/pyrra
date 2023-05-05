@@ -23,7 +23,7 @@ services:
       - ./prometheus_pyrra:/etc/prometheus/pyrra
 
   pyrra-api:
-    image: ghcr.io/pyrra-dev/pyrra:v0.5.0
+    image: ghcr.io/pyrra-dev/pyrra:v0.6.1
     restart: always
     command:
       - api
@@ -36,7 +36,7 @@ services:
       - pyrra
 
   pyrra-filesystem:
-    image: ghcr.io/pyrra-dev/pyrra:v0.5.0
+    image: ghcr.io/pyrra-dev/pyrra:v0.6.1
     restart: always
     command:
       - filesystem
