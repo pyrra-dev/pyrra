@@ -590,35 +590,70 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 
 		// If specific grouping was selected we need to merge the label matchers for the queries.
 		if len(groupingMatchers) > 0 {
-			if oi.Indicator.Ratio != nil {
+			switch oi.IndicatorType() {
+			case slo.Ratio:
+				groupingMatchersErrors := make(map[string]*labels.Matcher, len(groupingMatchers))
+				groupingMatchersTotal := make(map[string]*labels.Matcher, len(groupingMatchers))
+				for _, matcher := range groupingMatchers {
+					// We need to copy the matchers to avoid modifying the original later on.
+					groupingMatchersErrors[matcher.Name] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
+					groupingMatchersTotal[matcher.Name] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
+				}
+
 				for _, m := range oi.Indicator.Ratio.Errors.LabelMatchers {
 					if rm, replace := groupingMatchers[m.Name]; replace {
 						m.Type = rm.Type
 						m.Value = rm.Value
+						delete(groupingMatchersErrors, m.Name)
 					}
 				}
 				for _, m := range oi.Indicator.Ratio.Total.LabelMatchers {
 					if rm, replace := groupingMatchers[m.Name]; replace {
 						m.Type = rm.Type
 						m.Value = rm.Value
+						delete(groupingMatchersTotal, m.Name)
 					}
 				}
-			}
-			if oi.Indicator.Latency != nil {
+
+				// Now add the remaining matchers we didn't find before.
+				for _, m := range groupingMatchersErrors {
+					oi.Indicator.Ratio.Errors.LabelMatchers = append(oi.Indicator.Ratio.Errors.LabelMatchers, m)
+				}
+				for _, m := range groupingMatchersTotal {
+					oi.Indicator.Ratio.Total.LabelMatchers = append(oi.Indicator.Ratio.Total.LabelMatchers, m)
+				}
+			case slo.Latency:
+				groupingMatchersSuccess := make(map[string]*labels.Matcher, len(groupingMatchers))
+				groupingMatchersTotal := make(map[string]*labels.Matcher, len(groupingMatchers))
+				for _, matcher := range groupingMatchers {
+					// We need to copy the matchers to avoid modifying the original later on.
+					groupingMatchersSuccess[matcher.Name] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
+					groupingMatchersTotal[matcher.Name] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
+				}
+
 				for _, m := range oi.Indicator.Latency.Success.LabelMatchers {
 					if rm, replace := groupingMatchers[m.Name]; replace {
 						m.Type = rm.Type
 						m.Value = rm.Value
+						delete(groupingMatchersSuccess, m.Name)
 					}
 				}
 				for _, m := range oi.Indicator.Latency.Total.LabelMatchers {
 					if rm, replace := groupingMatchers[m.Name]; replace {
 						m.Type = rm.Type
 						m.Value = rm.Value
+						delete(groupingMatchersTotal, m.Name)
 					}
 				}
-			}
-			if oi.Indicator.LatencyNative != nil {
+
+				// Now add the remaining matchers we didn't find before.
+				for _, m := range groupingMatchersSuccess {
+					oi.Indicator.Latency.Success.LabelMatchers = append(oi.Indicator.Latency.Success.LabelMatchers, m)
+				}
+				for _, m := range groupingMatchersTotal {
+					oi.Indicator.Latency.Total.LabelMatchers = append(oi.Indicator.Latency.Total.LabelMatchers, m)
+				}
+			case slo.LatencyNative:
 				for _, m := range oi.Indicator.LatencyNative.Total.LabelMatchers {
 					if rm, replace := groupingMatchers[m.Name]; replace {
 						m.Type = rm.Type
@@ -626,13 +661,10 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 						delete(groupingMatchers, m.Name)
 					}
 				}
-				if len(groupingMatchers) > 0 {
-					for _, m := range groupingMatchers {
-						oi.Indicator.LatencyNative.Total.LabelMatchers = append(oi.Indicator.LatencyNative.Total.LabelMatchers, m)
-					}
+				for _, m := range groupingMatchers {
+					oi.Indicator.LatencyNative.Total.LabelMatchers = append(oi.Indicator.LatencyNative.Total.LabelMatchers, m)
 				}
-			}
-			if oi.Indicator.BoolGauge != nil {
+			case slo.BoolGauge:
 				for _, m := range oi.Indicator.BoolGauge.LabelMatchers {
 					if rm, replace := groupingMatchers[m.Name]; replace {
 						m.Type = rm.Type
@@ -640,10 +672,8 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 						delete(groupingMatchers, m.Name)
 					}
 				}
-				if len(groupingMatchers) > 0 {
-					for _, m := range groupingMatchers {
-						oi.Indicator.BoolGauge.LabelMatchers = append(oi.Indicator.BoolGauge.LabelMatchers, m)
-					}
+				for _, m := range groupingMatchers {
+					oi.Indicator.BoolGauge.LabelMatchers = append(oi.Indicator.BoolGauge.LabelMatchers, m)
 				}
 			}
 		}
