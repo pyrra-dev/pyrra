@@ -998,9 +998,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
 
-		ruleLabels := map[string]string{
-			"slo": sloName,
-		}
+		ruleLabels := o.commonRuleLabels(sloName)
 
 		rules = append(rules, monitoringv1.Rule{
 			Record: "pyrra_objective",
@@ -1113,9 +1111,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
 
-		ruleLabels := map[string]string{
-			"slo": sloName,
-		}
+		ruleLabels := o.commonRuleLabels(sloName)
 
 		rules = append(rules, monitoringv1.Rule{
 			Record: "pyrra_objective",
