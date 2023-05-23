@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bufbuild/connect-go"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -170,7 +171,12 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 				case <-ctx.Done():
 					return nil
 				case f := <-files:
-					level.Debug(logger).Log("msg", "reading", "file", f)
+					// We only care about watching for files with the .yaml extension
+					if filepath.Ext(f) != ".yaml" {
+						continue
+					}
+
+					level.Debug(logger).Log("msg", "processing", "file", f)
 					reconcilesTotal.Inc()
 
 					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false)
