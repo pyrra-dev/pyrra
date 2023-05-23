@@ -10,16 +10,16 @@ import (
 )
 
 func TestMatchObjectives(t *testing.T) {
-	o1 := slo.Objective{Labels: labels.FromStrings("foo", "bar")}
-	o2 := slo.Objective{Labels: labels.FromStrings("foo", "bar", "ying", "yang")}
-	o3 := slo.Objective{Labels: labels.FromStrings("foo", "bar", "yes", "no")}
-	o4 := slo.Objective{Labels: labels.FromStrings("foo", "baz")}
+	obj1 := slo.Objective{Labels: labels.FromStrings("foo", "bar")}
+	obj2 := slo.Objective{Labels: labels.FromStrings("foo", "bar", "ying", "yang")}
+	obj3 := slo.Objective{Labels: labels.FromStrings("foo", "bar", "yes", "no")}
+	obj4 := slo.Objective{Labels: labels.FromStrings("foo", "baz")}
 
 	objectives := Objectives{objectives: map[string]slo.Objective{}}
-	objectives.Set(o1)
-	objectives.Set(o2)
-	objectives.Set(o3)
-	objectives.Set(o4)
+	objectives.Set(obj1)
+	objectives.Set(obj2)
+	objectives.Set(obj3)
+	objectives.Set(obj4)
 
 	matches := objectives.Match([]*labels.Matcher{
 		labels.MustNewMatcher(labels.MatchEqual, "foo", "foo"),
@@ -38,7 +38,7 @@ func TestMatchObjectives(t *testing.T) {
 		labels.MustNewMatcher(labels.MatchEqual, "foo", "baz"),
 	})
 	require.Len(t, matches, 1)
-	require.Contains(t, matches, o4)
+	require.Contains(t, matches, obj4)
 
 	matches = objectives.Match([]*labels.Matcher{
 		labels.MustNewMatcher(labels.MatchEqual, "foo", "bar"),
@@ -51,8 +51,8 @@ func TestMatchObjectives(t *testing.T) {
 		labels.MustNewMatcher(labels.MatchRegexp, "foo", "ba."),
 	})
 	require.Len(t, matches, 4)
-	require.Contains(t, matches, o1)
-	require.Contains(t, matches, o2)
-	require.Contains(t, matches, o3)
-	require.Contains(t, matches, o4)
+	require.Contains(t, matches, obj1)
+	require.Contains(t, matches, obj2)
+	require.Contains(t, matches, obj3)
+	require.Contains(t, matches, obj4)
 }
