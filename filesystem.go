@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/bufbuild/connect-go"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/bufbuild/connect-go"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -152,7 +152,10 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 						continue
 					}
 					if event.Op&fsnotify.Write == fsnotify.Write {
-						files <- event.Name
+						// We only care about watching for file with the .yaml extension
+						if filepath.Ext(event.Name) == ".yaml" {
+							files <- event.Name
+						}
 					}
 				case err := <-watcher.Errors:
 					level.Warn(logger).Log("msg", "encountered file watcher error", "err", err)
