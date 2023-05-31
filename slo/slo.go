@@ -95,14 +95,14 @@ func (o Objective) AlertName() string {
 
 // AbsentDuration returns the duration Pyrra tells Prometheus to wait before firing an alert.
 // This duration is based on the objective's window and target and
-// returns the duration to burn 1% of the error budget assuming absence of errors is a 100% error rate.
+// returns the duration to burn the passed percentage (1-100) of the error budget assuming absence of errors is a 100% error rate.
 // Learn more here: https://sre.google/workbook/alerting-on-slos/#burn_rates_and_time_to_complete_budget_ex
-func (o Objective) AbsentDuration() model.Duration {
+func (o Objective) AbsentDuration(percent float64) model.Duration {
 	sec := time.Duration(o.Window).Seconds()
 	budget := 1 - o.Target
 
 	// how many seconds does it take to burn one percent of the error budget?
-	percentBurnSeconds := (sec / 100) * budget
+	percentBurnSeconds := (sec / 100) * budget * percent
 
 	percentBurnDuration := time.Second * time.Duration(percentBurnSeconds)
 	rounded := percentBurnDuration.Round(time.Second)
