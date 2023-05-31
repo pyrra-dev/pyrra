@@ -1630,7 +1630,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
 				Expr:   intstr.FromString(`0.99`),
-				Labels: map[string]string{"slo": "monitoring-http-errors"},
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "", "info": "99.000% in 4w"},
 			}, {
 				Record: "pyrra_window",
 				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
@@ -1666,7 +1666,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
 				Expr:   intstr.FromString(`0.999`),
-				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
+				Labels: map[string]string{"slo": "monitoring-grpc-errors", "description": "", "info": "99.900% in 4w"},
 			}, {
 				Record: "pyrra_window",
 				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
@@ -1698,7 +1698,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
 				Expr:   intstr.FromString("0.995"),
-				Labels: map[string]string{"slo": "monitoring-http-latency"},
+				Labels: map[string]string{"slo": "monitoring-http-latency", "description": "", "info": "99.500% in 4w must be faster than 1s"},
 			}, {
 				Record: "pyrra_window",
 				Expr:   intstr.FromInt(2419200),
@@ -1734,7 +1734,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
 				Expr:   intstr.FromString("0.995"),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency"},
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "description": "", "info": "99.500% in 1w must be faster than 600ms"},
 			}, {
 				Record: "pyrra_window",
 				Expr:   intstr.FromInt(604800),
@@ -1766,7 +1766,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
 				Expr:   intstr.FromString("0.99"),
-				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "description": "", "info": "99.000% in 2w"},
 			}, {
 				Record: "pyrra_window",
 				Expr:   intstr.FromInt(1209600),
@@ -1798,7 +1798,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "pyrra_objective",
 				Expr:   intstr.FromString(`0.99`),
-				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
+				Labels: map[string]string{"slo": "apiserver-write-response-errors", "description": "", "info": "99.000% in 2w"},
 			}, {
 				Record: "pyrra_window",
 				Expr:   intstr.FromInt(int((14 * 24 * time.Hour).Seconds())),

@@ -1150,7 +1150,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		rules = append(rules, monitoringv1.Rule{
 			Record: "pyrra_objective",
 			Expr:   intstr.FromString(strconv.FormatFloat(o.Target, 'f', -1, 64)),
-			Labels: ruleLabels,
+			Labels: o.genericObjectiveLabels(sloName),
 		})
 		rules = append(rules, monitoringv1.Rule{
 			Record: "pyrra_window",
@@ -1263,7 +1263,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		rules = append(rules, monitoringv1.Rule{
 			Record: "pyrra_objective",
 			Expr:   intstr.FromString(strconv.FormatFloat(o.Target, 'f', -1, 64)),
-			Labels: ruleLabels,
+			Labels: o.genericObjectiveLabels(sloName),
 		})
 		rules = append(rules, monitoringv1.Rule{
 			Record: "pyrra_window",
@@ -1391,4 +1391,25 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		Interval: "30s",
 		Rules:    rules,
 	}, nil
+}
+
+func (o *Objective) genericObjectiveLabels(sloName string) map[string]string {
+	labels := o.commonRuleLabels(sloName)
+	labels["description"] = o.Description
+
+	switch o.IndicatorType() {
+	case Latency:
+		for _, matcher := range o.Indicator.Latency.Success.LabelMatchers {
+			if matcher.Name == "le" {
+				d, err := time.ParseDuration(matcher.Value + "s") // assume that the value is always in seconds
+				if err == nil {
+					labels["info"] = fmt.Sprintf("%.3f%% in %s must be faster than %s", o.Target*100, o.Window, d.String())
+				}
+			}
+		}
+	case Ratio:
+		labels["info"] = fmt.Sprintf("%.3f%% in %s", o.Target*100, o.Window)
+	}
+
+	return labels
 }
