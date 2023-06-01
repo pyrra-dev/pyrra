@@ -151,10 +151,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 						continue
 					}
 					if event.Op&fsnotify.Write == fsnotify.Write {
-						// We only care about watching for file with the .yaml extension
-						if filepath.Ext(event.Name) == ".yaml" {
-							files <- event.Name
-						}
+						files <- event.Name
 					}
 				case err := <-watcher.Errors:
 					level.Warn(logger).Log("msg", "encountered file watcher error", "err", err)
@@ -172,7 +169,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 				case <-ctx.Done():
 					return nil
 				case f := <-files:
-					// We only care about watching for files with the .yaml extension
+					// We only care about watching for files with a valid yaml extension
 					if filepath.Ext(f) != ".yaml" && filepath.Ext(f) != ".yml" {
 						level.Warn(logger).Log("msg", "ignoring non YAML file", "file", f)
 						continue
