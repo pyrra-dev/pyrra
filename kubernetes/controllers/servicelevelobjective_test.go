@@ -104,6 +104,20 @@ func Test_makePrometheusRule(t *testing.T) {
 										"description": "foo",
 									},
 									Labels: map[string]string{
+										"severity": "warning",
+										"job":      "app",
+										"slo":      "http",
+										"team":     "foo",
+									},
+								},
+								{
+									Alert: "SLOMetricAbsent",
+									Expr:  intstr.FromString(`absent(http_requests_total{job="app"}) == 1`),
+									For:   "10m",
+									Annotations: map[string]string{
+										"description": "foo",
+									},
+									Labels: map[string]string{
 										"severity": "critical",
 										"job":      "app",
 										"slo":      "http",
@@ -211,6 +225,16 @@ func Test_makeConfigMap(t *testing.T) {
       description: foo
     expr: absent(http_requests_total{job="app"}) == 1
     for: 2m
+    labels:
+      job: app
+      severity: warning
+      slo: http
+      team: foo
+  - alert: SLOMetricAbsent
+    annotations:
+      description: foo
+    expr: absent(http_requests_total{job="app"}) == 1
+    for: 10m
     labels:
       job: app
       severity: critical
