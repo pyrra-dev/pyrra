@@ -30,9 +30,9 @@ func TestMatchObjectives(t *testing.T) {
 		labels.MustNewMatcher(labels.MatchEqual, "foo", "bar"),
 	})
 	require.Len(t, matches, 3)
-	require.Contains(t, matches, o1)
-	require.Contains(t, matches, o2)
-	require.Contains(t, matches, o3)
+	require.Contains(t, matches, obj1)
+	require.Contains(t, matches, obj2)
+	require.Contains(t, matches, obj3)
 
 	matches = objectives.Match([]*labels.Matcher{
 		labels.MustNewMatcher(labels.MatchEqual, "foo", "baz"),
@@ -45,7 +45,7 @@ func TestMatchObjectives(t *testing.T) {
 		labels.MustNewMatcher(labels.MatchEqual, "ying", "yang"),
 	})
 	require.Len(t, matches, 1)
-	require.Contains(t, matches, o2)
+	require.Contains(t, matches, obj2)
 
 	matches = objectives.Match([]*labels.Matcher{
 		labels.MustNewMatcher(labels.MatchRegexp, "foo", "ba."),

@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/bufbuild/connect-go"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/bufbuild/connect-go"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -22,15 +22,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
-
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/slo"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 type Objectives struct {
@@ -173,7 +172,13 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 				case <-ctx.Done():
 					return nil
 				case f := <-files:
-					level.Debug(logger).Log("msg", "reading", "file", f)
+					// We only care about watching for files with the .yaml extension
+					if filepath.Ext(f) != ".yaml" && filepath.Ext(f) != ".yml" {
+						level.Warn(logger).Log("msg", "ignoring non YAML file", "file", f)
+						continue
+					}
+
+					level.Debug(logger).Log("msg", "processing", "file", f)
 					reconcilesTotal.Inc()
 
 					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false)
