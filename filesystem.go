@@ -172,7 +172,8 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					return nil
 				case f := <-files:
 					// We only care about watching for files with the .yaml extension
-					if filepath.Ext(f) != ".yaml" {
+					if filepath.Ext(f) != ".yaml" && filepath.Ext(f) != ".yml" {
+						level.Warn(logger).Log("msg", "ignoring non YAML file", "file", f)
 						continue
 					}
 
