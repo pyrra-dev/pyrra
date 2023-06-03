@@ -170,7 +170,13 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 				case <-ctx.Done():
 					return nil
 				case f := <-files:
-					level.Debug(logger).Log("msg", "reading", "file", f)
+					// We only care about watching for files with a valid yaml extension
+					if filepath.Ext(f) != ".yaml" && filepath.Ext(f) != ".yml" {
+						level.Warn(logger).Log("msg", "ignoring non YAML file", "file", f)
+						continue
+					}
+
+					level.Debug(logger).Log("msg", "processing", "file", f)
 					reconcilesTotal.Inc()
 
 					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false)

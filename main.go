@@ -61,7 +61,7 @@ var CLI struct {
 		PrometheusBasicAuthPassword promconfig.Secret `default:"" help:"The HTTP basic authentication password"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
-		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
 		PrometheusURL    *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
 		PrometheusFolder string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
 		GenericRules     bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
