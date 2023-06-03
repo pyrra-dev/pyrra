@@ -1,0 +1,68 @@
+.tiles {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  column-gap: 25px;
+  row-gap: 25px;
+  justify-items: stretch;
+
+  @media (min-width: 576px) {
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 50px;
+    row-gap: 50px;
+  }
+  @media (min-width: 992px) {
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 75px;
+    row-gap: 75px;
+  }
+
+  div {
+    padding: 35px;
+    background-color: $gray-300;
+    color: $gray-900;
+    border-radius: 8px;
+
+    h2, h6 {
+      font-family: $font-family-sans-serif;
+    }
+
+    h2 {
+      font-weight: 400;
+      font-size: 40px;
+      margin-bottom: 0;
+    }
+
+    h6 {
+      font-weight: 600;
+      font-size: 20px;
+    }
+
+    .headline, .details {
+      opacity: 0.5;
+    }
+
+    .metric {
+      display: inline-block;
+      margin-right: 0.5rem;
+    }
+
+    .details {
+      font-weight: 500;
+    }
+
+    &.good {
+      background-color: $green;
+      color: $green-text;
+    }
+
+    &.bad {
+      background-color: $red;
+      color: $red-text;
+    }
+
+    h2.error {
+      color: $red;
+    }
+  }
+}
