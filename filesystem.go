@@ -22,14 +22,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
-	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
-	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
-	"github.com/pyrra-dev/pyrra/slo"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
+
+	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
+	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
+	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
+	"github.com/pyrra-dev/pyrra/slo"
 )
 
 type Objectives struct {
