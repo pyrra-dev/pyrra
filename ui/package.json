@@ -22,7 +22,7 @@
     "@bufbuild/protoc-gen-connect-web": "^0.8.1",
     "@bufbuild/protoc-gen-es": "^1.2.0",
     "@fontsource/inter": "^4.5.14",
-    "@fontsource/lato": "^4.5.10",
+    "@fontsource/lato": "^5.0.2",
     "@types/node": "^18.15.11",
     "@types/react": "^18.2.6",
     "@types/react-dom": "^18.0.11",
