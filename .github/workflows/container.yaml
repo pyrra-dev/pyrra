@@ -64,7 +64,7 @@ jobs:
         uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18
+        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7
         with:
           platforms: amd64.arm64,arm
 
