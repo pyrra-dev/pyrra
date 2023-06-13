@@ -278,7 +278,7 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			Severity: "critical",
 			State:    objectivesv1alpha1.Alert_inactive,
 			For:      durationpb.New(8 * time.Minute),
-			Factor:   7,
+			Factor:   5.6,
 			Short: &objectivesv1alpha1.Burnrate{
 				Window:  durationpb.New(15 * time.Minute),
 				Current: -1,
@@ -297,7 +297,7 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			Severity: "warning",
 			State:    objectivesv1alpha1.Alert_inactive,
 			For:      durationpb.New(30 * time.Minute),
-			Factor:   2,
+			Factor:   2.8,
 			Short: &objectivesv1alpha1.Burnrate{
 				Window:  durationpb.New(time.Hour),
 				Current: -1,
@@ -373,7 +373,7 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			Severity: "critical",
 			State:    objectivesv1alpha1.Alert_inactive,
 			For:      durationpb.New(8 * time.Minute),
-			Factor:   7,
+			Factor:   5.6,
 			Short: &objectivesv1alpha1.Burnrate{
 				Window:  durationpb.New(15 * time.Minute),
 				Current: -1,
@@ -390,7 +390,7 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			Severity: "warning",
 			State:    objectivesv1alpha1.Alert_inactive,
 			For:      durationpb.New(30 * time.Minute),
-			Factor:   2,
+			Factor:   2.8,
 			Short: &objectivesv1alpha1.Burnrate{
 				Window:  durationpb.New(time.Hour),
 				Current: -1,
