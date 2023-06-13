@@ -1788,7 +1788,6 @@ func Test_windows(t *testing.T) {
 			require.Len(t, ws, len(tc.expectedWindows))
 			for i := range ws {
 				require.Equal(t, tc.expectedWindows[i], ws[i])
-
 			}
 		})
 	}
