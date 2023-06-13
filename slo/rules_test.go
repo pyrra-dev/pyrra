@@ -1580,39 +1580,218 @@ func TestObjective_IncreaseRules(t *testing.T) {
 }
 
 func Test_windows(t *testing.T) {
-	ws := Windows(28 * 24 * time.Hour)
+	// Test common SLO windows.
+	// 90d, 84d, 30d, 28d, 14d, 7d
+	testcases := []struct {
+		name            string
+		sloWindow       time.Duration
+		expectedWindows []Window
+	}{{
+		name:      "A quarter or 90 days",
+		sloWindow: 90 * 24 * time.Hour,
+		expectedWindows: []Window{{
+			Severity:   critical,
+			For:        6 * time.Minute,
+			Long:       3*time.Hour + 13*time.Minute,
+			Short:      16 * time.Minute,
+			Exhaustion: 6*24*time.Hour + 10*time.Hour + 17*time.Minute,
+			Factor:     14,
+		}, {
+			Severity:   critical,
+			For:        48 * time.Minute,
+			Long:       19*time.Hour + 17*time.Minute,
+			Short:      time.Hour + 36*time.Minute,
+			Exhaustion: 16*24*time.Hour + time.Hour + 43*time.Minute,
+			Factor:     5.6,
+		}, {
+			Severity:   warning,
+			For:        3*time.Hour + 13*time.Minute,
+			Long:       ((3*24)+5)*time.Hour + 9*time.Minute,
+			Short:      6*time.Hour + 26*time.Minute,
+			Exhaustion: 32*24*time.Hour + 3*time.Hour + 26*time.Minute,
+			Factor:     2.8,
+		}, {
+			Severity:   warning,
+			For:        9*time.Hour + 39*time.Minute,
+			Long:       ((12*24)+20)*time.Hour + 34*time.Minute,
+			Short:      19*time.Hour + 17*time.Minute,
+			Exhaustion: 90 * 24 * time.Hour,
+			Factor:     1,
+		}},
+	}, {
+		name:      "12 weeks or 84 days or a quarter",
+		sloWindow: 84 * 24 * time.Hour,
+		expectedWindows: []Window{{
+			Severity:   critical,
+			For:        6 * time.Minute,
+			Long:       3 * time.Hour,
+			Short:      15 * time.Minute,
+			Exhaustion: 6 * 24 * time.Hour,
+			Factor:     14,
+		}, {
+			Severity:   critical,
+			For:        45 * time.Minute,
+			Long:       18 * time.Hour,
+			Short:      90 * time.Minute,
+			Exhaustion: 15 * 24 * time.Hour,
+			Factor:     5.6,
+		}, {
+			Severity:   warning,
+			For:        3 * time.Hour,
+			Long:       3 * 24 * time.Hour,
+			Short:      6 * time.Hour,
+			Exhaustion: 30 * 24 * time.Hour,
+			Factor:     2.8,
+		}, {
+			Severity:   warning,
+			For:        9 * time.Hour,
+			Long:       12 * 24 * time.Hour,
+			Short:      18 * time.Hour,
+			Exhaustion: 84 * 24 * time.Hour,
+			Factor:     1,
+		}},
+	}, {
+		name:      "A month or 30 days",
+		sloWindow: 30 * 24 * time.Hour,
+		expectedWindows: []Window{{
+			Severity:   critical,
+			For:        2 * time.Minute,
+			Long:       64 * time.Minute,
+			Short:      5 * time.Minute,
+			Exhaustion: 2*24*time.Hour + 3*time.Hour + 26*time.Minute,
+			Factor:     14,
+		}, {
+			Severity:   critical,
+			For:        16 * time.Minute,
+			Long:       6*time.Hour + 26*time.Minute,
+			Short:      32 * time.Minute,
+			Exhaustion: 5*24*time.Hour + 8*time.Hour + 34*time.Minute,
+			Factor:     5.6,
+		}, {
+			Severity:   warning,
+			For:        time.Hour + 4*time.Minute,
+			Long:       25*time.Hour + 43*time.Minute,
+			Short:      2*time.Hour + 9*time.Minute,
+			Exhaustion: 10*24*time.Hour + 17*time.Hour + 9*time.Minute,
+			Factor:     2.8,
+		}, {
+			Severity:   warning,
+			For:        3*time.Hour + 13*time.Minute,
+			Long:       ((4*24)+6)*time.Hour + 51*time.Minute,
+			Short:      6*time.Hour + 26*time.Minute,
+			Exhaustion: 30 * 24 * time.Hour,
+			Factor:     1,
+		}},
+	}, {
+		name:      "4 weeks or 28 days",
+		sloWindow: 28 * 24 * time.Hour,
+		expectedWindows: []Window{{
+			Severity:   critical,
+			For:        2 * time.Minute,
+			Long:       1 * time.Hour,
+			Short:      5 * time.Minute,
+			Exhaustion: 2 * 24 * time.Hour,
+			Factor:     14,
+		}, {
+			Severity:   critical,
+			For:        15 * time.Minute,
+			Long:       6 * time.Hour,
+			Short:      30 * time.Minute,
+			Exhaustion: 5 * 24 * time.Hour,
+			Factor:     5.6,
+		}, {
+			Severity:   warning,
+			For:        time.Hour,
+			Long:       24 * time.Hour,
+			Short:      2 * time.Hour,
+			Exhaustion: 10 * 24 * time.Hour,
+			Factor:     2.8,
+		}, {
+			Severity:   warning,
+			For:        3 * time.Hour,
+			Long:       4 * 24 * time.Hour,
+			Short:      6 * time.Hour,
+			Exhaustion: 28 * 24 * time.Hour,
+			Factor:     1,
+		}},
+	}, {
+		name:      "2 weeks or 14 days",
+		sloWindow: 14 * 24 * time.Hour,
+		expectedWindows: []Window{{
+			Severity:   critical,
+			For:        1 * time.Minute,
+			Long:       30 * time.Minute,
+			Short:      3 * time.Minute,
+			Exhaustion: 24 * time.Hour,
+			Factor:     14,
+		}, {
+			Severity:   critical,
+			For:        8 * time.Minute,
+			Long:       3 * time.Hour,
+			Short:      15 * time.Minute,
+			Exhaustion: 2*24*time.Hour + 12*time.Hour,
+			Factor:     5.6,
+		}, {
+			Severity:   warning,
+			For:        30 * time.Minute,
+			Long:       12 * time.Hour,
+			Short:      1 * time.Hour,
+			Exhaustion: 5 * 24 * time.Hour,
+			Factor:     2.8,
+		}, {
+			Severity:   warning,
+			For:        90 * time.Minute,
+			Long:       2 * 24 * time.Hour,
+			Short:      3 * time.Hour,
+			Exhaustion: 14 * 24 * time.Hour,
+			Factor:     1,
+		}},
+	}, {
+		name:      "A week or 7 days",
+		sloWindow: 7 * 24 * time.Hour,
+		expectedWindows: []Window{{
+			Severity:   critical,
+			For:        1 * time.Minute,
+			Long:       15 * time.Minute,
+			Short:      1 * time.Minute,
+			Exhaustion: 12 * time.Hour,
+			Factor:     14,
+		}, {
+			Severity:   critical,
+			For:        4 * time.Minute,
+			Long:       90 * time.Minute,
+			Short:      8 * time.Minute,
+			Exhaustion: 1*24*time.Hour + 6*time.Hour,
+			Factor:     5.6,
+		}, {
+			Severity:   warning,
+			For:        15 * time.Minute,
+			Long:       6 * time.Hour,
+			Short:      30 * time.Minute,
+			Exhaustion: 2*24*time.Hour + 12*time.Hour,
+			Factor:     2.8,
+		}, {
+			Severity:   warning,
+			For:        45 * time.Minute,
+			Long:       24 * time.Hour,
+			Short:      90 * time.Minute,
+			Exhaustion: 7 * 24 * time.Hour,
+			Factor:     1,
+		}},
+	}}
 
-	require.Equal(t, Window{
-		Severity: critical,
-		For:      2 * time.Minute,
-		Long:     1 * time.Hour,
-		Short:    5 * time.Minute,
-		Factor:   14,
-	}, ws[0])
+	require.Len(t, testcases, 6)
 
-	require.Equal(t, Window{
-		Severity: critical,
-		For:      15 * time.Minute,
-		Long:     6 * time.Hour,
-		Short:    30 * time.Minute,
-		Factor:   7,
-	}, ws[1])
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			ws := Windows(tc.sloWindow)
+			require.Len(t, ws, len(tc.expectedWindows))
+			for i := range ws {
+				require.Equal(t, tc.expectedWindows[i], ws[i])
 
-	require.Equal(t, Window{
-		Severity: warning,
-		For:      time.Hour,
-		Long:     24 * time.Hour,
-		Short:    2 * time.Hour,
-		Factor:   2,
-	}, ws[2])
-
-	require.Equal(t, Window{
-		Severity: warning,
-		For:      3 * time.Hour,
-		Long:     4 * 24 * time.Hour,
-		Short:    6 * time.Hour,
-		Factor:   1,
-	}, ws[3])
+			}
+		})
+	}
 }
 
 func TestObjective_GrafanaRules(t *testing.T) {
