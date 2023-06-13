@@ -35,7 +35,7 @@ Make sure to keep the IDs of the dashboards so linking from the List to the Deta
 ## Dashboards
 
 The List dashboard shows and overview of all your SLOs. 
-It's simliar to the Pyrra list and shows metrics like the availablity and remaining error budget.
+It's similar to the Pyrra list and shows metrics like the availability and remaining error budget.
 You can click on the names of each SLO to take you to the detail page with the SLO pre-selected.
 
 ![list](list.png)
