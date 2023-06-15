@@ -128,7 +128,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
 				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.1f * (1-%s)) and %s{%s} > (%.1f * (1-%s))",
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%v * (1-%s)) and %s{%s} > (%v * (1-%s))",
 					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,
@@ -214,7 +214,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
 				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.1f * (1-%s)) and %s{%s} > (%.1f * (1-%s))",
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%v * (1-%s)) and %s{%s} > (%v * (1-%s))",
 					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,
@@ -300,7 +300,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
 				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.1f * (1-%s)) and %s{%s} > (%.1f * (1-%s))",
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%v * (1-%s)) and %s{%s} > (%v * (1-%s))",
 					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,
@@ -386,7 +386,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
 				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.1f * (1-%s)) and %s{%s} > (%.1f * (1-%s))",
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%v * (1-%s)) and %s{%s} > (%v * (1-%s))",
 					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,

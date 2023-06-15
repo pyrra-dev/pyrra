@@ -153,7 +153,7 @@ func Test_makePrometheusRule(t *testing.T) {
 								},
 								{
 									Alert:       "ErrorBudgetBurn",
-									Expr:        intstr.FromString(`http_requests:burnrate5m{job="app",slo="http"} > (14.0 * (1-0.995)) and http_requests:burnrate1h{job="app",slo="http"} > (14.0 * (1-0.995))`),
+									Expr:        intstr.FromString(`http_requests:burnrate5m{job="app",slo="http"} > (14 * (1-0.995)) and http_requests:burnrate1h{job="app",slo="http"} > (14 * (1-0.995))`),
 									For:         "2m",
 									Labels:      map[string]string{"severity": "critical", "job": "app", "long": "1h", "slo": "http", "short": "5m", "team": "foo", "exhaustion": "2d"},
 									Annotations: map[string]string{"description": "foo"},
@@ -174,7 +174,7 @@ func Test_makePrometheusRule(t *testing.T) {
 								},
 								{
 									Alert:       "ErrorBudgetBurn",
-									Expr:        intstr.FromString(`http_requests:burnrate6h{job="app",slo="http"} > (1.0 * (1-0.995)) and http_requests:burnrate4d{job="app",slo="http"} > (1.0 * (1-0.995))`),
+									Expr:        intstr.FromString(`http_requests:burnrate6h{job="app",slo="http"} > (1 * (1-0.995)) and http_requests:burnrate4d{job="app",slo="http"} > (1 * (1-0.995))`),
 									For:         "3h",
 									Labels:      map[string]string{"severity": "warning", "job": "app", "long": "4d", "slo": "http", "short": "6h", "team": "foo", "exhaustion": "4w"},
 									Annotations: map[string]string{"description": "foo"},
@@ -264,8 +264,8 @@ func Test_makeConfigMap(t *testing.T) {
   - alert: ErrorBudgetBurn
     annotations:
       description: foo
-    expr: http_requests:burnrate5m{job="app",slo="http"} > (14.0 * (1-0.995)) and
-      http_requests:burnrate1h{job="app",slo="http"} > (14.0 * (1-0.995))
+    expr: http_requests:burnrate5m{job="app",slo="http"} > (14 * (1-0.995)) and http_requests:burnrate1h{job="app",slo="http"}
+      > (14 * (1-0.995))
     for: 2m
     labels:
       exhaustion: 2d
@@ -306,8 +306,8 @@ func Test_makeConfigMap(t *testing.T) {
   - alert: ErrorBudgetBurn
     annotations:
       description: foo
-    expr: http_requests:burnrate6h{job="app",slo="http"} > (1.0 * (1-0.995)) and http_requests:burnrate4d{job="app",slo="http"}
-      > (1.0 * (1-0.995))
+    expr: http_requests:burnrate6h{job="app",slo="http"} > (1 * (1-0.995)) and http_requests:burnrate4d{job="app",slo="http"}
+      > (1 * (1-0.995))
     for: 3h
     labels:
       exhaustion: 4w
