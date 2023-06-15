@@ -50,6 +50,7 @@ import (
 var ui embed.FS
 
 var CLI struct {
+	LoggerConfig
 	API struct {
 		PrometheusURL               *url.URL          `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
 		PrometheusExternalURL       *url.URL          `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
@@ -82,9 +83,7 @@ var CLI struct {
 func main() {
 	ctx := kong.Parse(&CLI)
 
-	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-	logger = log.WithPrefix(logger, "caller", log.DefaultCaller)
-	logger = log.WithPrefix(logger, "ts", log.DefaultTimestampUTC)
+	logger := configureLogger(CLI.LoggerConfig)
 
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(
