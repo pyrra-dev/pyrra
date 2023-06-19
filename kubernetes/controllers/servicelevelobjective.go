@@ -160,15 +160,14 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 
 	if genericRules {
 		rules, err := objective.GenericRules()
-		if err == nil {
-			rule.Groups = append(rule.Groups, rules)
-		}
 		if err != nil {
 			if err != slo.ErrGroupingUnsupported {
 				return nil, fmt.Errorf("failed to get generic rules: %w", err)
 			}
 			// ignore these rules
 		}
+
+		rule.Groups = append(rule.Groups, rules)
 	}
 
 	bytes, err := yaml.Marshal(rule)
@@ -225,15 +224,14 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 
 	if genericRules {
 		rules, err := objective.GenericRules()
-		if err == nil {
-			rule.Groups = append(rule.Groups, rules)
-		}
 		if err != nil {
 			if err != slo.ErrGroupingUnsupported {
 				return nil, fmt.Errorf("failed to get generic rules: %w", err)
 			}
 			// ignore these rules
 		}
+
+		rule.Groups = append(rule.Groups, rules)
 	}
 
 	isController := true
