@@ -4,7 +4,7 @@
 
 We host a live demo of these dashboards on [demo.pyrra.dev/grafana](https://demo.pyrra.dev/grafana/d/ccssRIenz/pyrra-detail?orgId=1&refresh=10s&from=now-7d&to=now).
 
-## Installation 
+## Installation
 
 Let's discuss how you can install the Pyrra Grafana dashboards.
 
@@ -12,7 +12,8 @@ Let's discuss how you can install the Pyrra Grafana dashboards.
 
 Pyrra supports generic recording rules.
 It means that Pyrra generates metrics with the same name for each SLO.
-```
+
+```promql
 pyrra_objective
 pyrra_window
 pyrra_availability
@@ -21,20 +22,22 @@ pyrra_errors_total
 ```
 
 The Grafana dashboards rely on these recording rules. You need to enabled generating these on the `filesystem` or `kubernetes` component.
-Run these components with the `--generic-rules` flag. 
+Run these components with the `--generic-rules` flag.
 
-Please note that the `grouping` feature is not supported when using generic rules. 
+Please note that the `grouping` feature is not supported when using generic rules.
 This is a limitation with the Grafana dashboard dropdowns (they would need to be dynamic).
+
+You will need at least one rule without `grouping` to generate the `pyrra_` metrics that are required to make the Pyrra dashboards work.
 
 ### Import the JSON files
 
 That that the Prometheus gets configured to generate the generic rules Grafana dashboards can make use of them.
 Download the `list.json` and `detail.json` files and import them into your Grafana instance (next to creating new dashboards).
-Make sure to keep the IDs of the dashboards so linking from the List to the Detail dashboard still works. 
+Make sure to keep the IDs of the dashboards so linking from the List to the Detail dashboard still works.
 
 ## Dashboards
 
-The List dashboard shows and overview of all your SLOs. 
+The List dashboard shows and overview of all your SLOs.
 It's similar to the Pyrra list and shows metrics like the availability and remaining error budget.
 You can click on the names of each SLO to take you to the detail page with the SLO pre-selected.
 
