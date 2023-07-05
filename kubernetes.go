@@ -37,7 +37,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/kubernetes/controllers"
@@ -59,26 +61,31 @@ func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode, generic
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
+	webhookServer := webhook.NewServer(webhook.Options{Port: 9443})
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
-		Port:               9443,
+		WebhookServer:      webhookServer,
 		LeaderElection:     false,
-		LeaderElectionID:   "9d76195a.metalmatze.de",
+		LeaderElectionID:   "9d76195a.pyrra.dev",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.ServiceLevelObjectiveReconciler{
-		Client:        mgr.GetClient(),
-		Logger:        log.With(logger, "controllers", "ServiceLevelObjective"),
-		Scheme:        mgr.GetScheme(),
-		ConfigMapMode: configMapMode,
-		GenericRules:  genericRules,
-	}).SetupWithManager(mgr); err != nil {
+	reconciler := &controllers.ServiceLevelObjectiveReconciler{
+		Client:       mgr.GetClient(),
+		Logger:       log.With(logger, "controllers", "ServiceLevelObjective"),
+		GenericRules: genericRules,
+	}
+	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceLevelObjective")
+		os.Exit(1)
+	}
+	if err = reconciler.SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "ServiceLevelObjective")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
@@ -91,6 +98,12 @@ func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode, generic
 
 	{
 		gr.Add(func() error {
+			if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+				return fmt.Errorf("unable to set up health check: %w", err)
+			}
+			if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+				return fmt.Errorf("unable to set up ready check: %w", err)
+			}
 			setupLog.Info("starting manager")
 			return mgr.Start(ctx)
 		}, func(err error) {

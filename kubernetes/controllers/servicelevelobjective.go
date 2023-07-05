@@ -139,6 +139,12 @@ func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) err
 		Complete(r)
 }
 
+func (r *ServiceLevelObjectiveReconciler) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(&pyrrav1alpha1.ServiceLevelObjective{}).
+		Complete()
+}
+
 func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*corev1.ConfigMap, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {

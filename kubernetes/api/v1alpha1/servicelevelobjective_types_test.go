@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
@@ -337,4 +338,126 @@ func TestServiceLevelObjective_Internal(t *testing.T) {
 			require.Equal(t, example.objective, internal)
 		})
 	}
+}
+
+func TestServiceLevelObjective_Validate(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		empty := &v1alpha1.ServiceLevelObjective{}
+		warn, err := empty.ValidateCreate()
+		require.EqualError(t, err, "name must be set")
+		require.Nil(t, warn)
+
+		empty.Name = "name"
+		warn, err = empty.ValidateCreate()
+		require.EqualError(t, err, "target must be set")
+		require.Equal(t, "namespace must be set", warn[0])
+
+		empty.Namespace = "namespace"
+
+		empty.Spec.Target = "-99"
+		warn, err = empty.ValidateCreate()
+		require.EqualError(t, err, "target must be between 0 and 100")
+		require.Nil(t, warn)
+
+		empty.Spec.Target = "9999"
+		warn, err = empty.ValidateCreate()
+		require.EqualError(t, err, "target must be between 0 and 100")
+		require.Nil(t, warn)
+
+		empty.Spec.Target = "0.9134"
+		warn, err = empty.ValidateCreate()
+		require.Equal(t, "target is from 0-100 (91.34), not 0-1 (0.9134)", warn[0])
+		require.EqualError(t, err, "window must be set")
+
+		empty.Spec.Target = "99"
+
+		empty.Spec.Window = "2t"
+		warn, err = empty.ValidateCreate()
+		require.Nil(t, warn)
+		require.EqualError(t, err, `unknown unit "t" in duration "2t"`)
+
+		empty.Spec.Window = "2w"
+		warn, err = empty.ValidateCreate()
+		require.Nil(t, warn)
+		require.EqualError(t, err, "one of ratio, latency, latencyNative or bool_gauge must be set")
+	})
+
+	t.Run("ratio", func(t *testing.T) {
+		ratio := func() *v1alpha1.ServiceLevelObjective {
+			return &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "name",
+					Namespace: "namespace",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						Ratio: &v1alpha1.RatioIndicator{
+							Errors:   v1alpha1.Query{Metric: `errors{foo="bar"}`},
+							Total:    v1alpha1.Query{Metric: `total{foo="bar"}`},
+							Grouping: nil,
+						},
+					},
+				},
+			}
+		}
+
+		warn, err := ratio().ValidateCreate()
+		require.NoError(t, err)
+		require.Nil(t, warn)
+
+		t.Run("empty", func(t *testing.T) {
+			ratio := ratio()
+			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = ""
+			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = ""
+			warn, err := ratio.ValidateCreate()
+			require.EqualError(t, err, "ratio total metric must be set")
+			require.Nil(t, warn)
+
+			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = ""
+			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "foo"
+			warn, err = ratio.ValidateCreate()
+			require.EqualError(t, err, "ratio errors metric must be set")
+			require.Nil(t, warn)
+
+			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = "foo"
+			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = ""
+			warn, err = ratio.ValidateCreate()
+			require.EqualError(t, err, "ratio total metric must be set")
+			require.Nil(t, warn)
+		})
+
+		t.Run("equal", func(t *testing.T) {
+			ratio := ratio()
+			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = "foo"
+			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "foo"
+			warn, err := ratio.ValidateCreate()
+			require.Equal(t, "ratio errors metric should be different from ratio total metric", warn[0])
+			require.NoError(t, err)
+		})
+
+		t.Run("invalidMetric", func(t *testing.T) {
+			ratio := ratio()
+			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "foo{"
+			warn, err := ratio.ValidateCreate()
+			require.EqualError(t, err, "failed to parse ratio total metric: 1:5: parse error: unexpected end of input inside braces")
+			require.Nil(t, warn)
+
+			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "foo}"
+			warn, err = ratio.ValidateCreate()
+			require.EqualError(t, err, "failed to parse ratio total metric: 1:4: parse error: unexpected character: '}'")
+			require.Nil(t, warn)
+
+			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "$$$"
+			warn, err = ratio.ValidateCreate()
+			require.EqualError(t, err, "failed to parse ratio total metric: 1:1: parse error: unexpected character: '$'")
+			require.Nil(t, warn)
+
+			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = `foo{foo="bar'}`
+			warn, err = ratio.ValidateCreate()
+			require.EqualError(t, err, "failed to parse ratio total metric: 1:9: parse error: unterminated quoted string")
+			require.Nil(t, warn)
+		})
+	})
 }

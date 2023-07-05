@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pyrra-webhook-validation
+  namespace: monitoring
+spec:
+  secretName: pyrra-webhook-validation
+  dnsNames:
+    - pyrra-kubernetes.monitoring.svc
+  issuerRef:
+    name: selfsigned
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned
+  namespace: monitoring
+spec:
+  selfSigned: {}
