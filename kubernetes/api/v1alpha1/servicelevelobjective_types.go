@@ -89,7 +89,7 @@ type ServiceLevelIndicator struct {
 	Ratio *RatioIndicator `json:"ratio,omitempty"`
 
 	// +optional
-	// Latency is the indicator that measures a certain percentage to be faster than.
+	// Latency is the indicator that measures a certain percentage to be faster than the expected latency.
 	Latency *LatencyIndicator `json:"latency,omitempty"`
 
 	// +optional
@@ -98,8 +98,8 @@ type ServiceLevelIndicator struct {
 	LatencyNative *NativeLatencyIndicator `json:"latencyNative,omitempty"`
 
 	// +optional
-	// BoolGauge is the indicator that measures wheter a boolean gauge is
-	// successul.
+	// BoolGauge is the indicator that measures whether a boolean gauge is
+	// successful.
 	BoolGauge *BoolGaugeIndicator `json:"bool_gauge,omitempty"`
 }
 
