@@ -92,6 +92,11 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 		return ctrl.Result{}, fmt.Errorf("failed to update prometheus rule: %w", err)
 	}
 
+	kubeObjective.Status.Type = "PrometheusRule"
+	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -128,6 +133,11 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
 	level.Info(logger).Log("msg", "updating config map", "namespace", newConfigMap.GetNamespace(), "name", newConfigMap.GetName())
 	if err := r.Update(ctx, newConfigMap); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update config map: %w", err)
+	}
+
+	kubeObjective.Status.Type = "ConfigMap"
+	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
