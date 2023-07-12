@@ -38,10 +38,19 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: 30Mi
+            memory: 256Mi
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 128Mi
+        volumeMounts:
+          - mountPath: /tmp/k8s-webhook-server/serving-certs
+            name: cert
+            readOnly: true
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: pyrra-webhook-validation
 kind: Deployment
 apiVersion: apps/v1
 ---

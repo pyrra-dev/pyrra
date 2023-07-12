@@ -25,6 +25,9 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 
 	"github.com/pyrra-dev/pyrra/slo"
@@ -33,6 +36,8 @@ import (
 func init() {
 	SchemeBuilder.Register(&ServiceLevelObjective{}, &ServiceLevelObjectiveList{})
 }
+
+var _ webhook.Validator = &ServiceLevelObjective{}
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -159,7 +164,84 @@ type Query struct {
 // ServiceLevelObjectiveStatus defines the observed state of ServiceLevelObjective.
 type ServiceLevelObjectiveStatus struct{}
 
-func (in ServiceLevelObjective) Internal() (slo.Objective, error) {
+func (in *ServiceLevelObjective) ValidateCreate() (admission.Warnings, error) {
+	return in.validate()
+}
+
+func (in *ServiceLevelObjective) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	return in.validate()
+}
+
+func (in *ServiceLevelObjective) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
+}
+
+func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
+	var warnings []string
+
+	if in.GetName() == "" {
+		return warnings, fmt.Errorf("name must be set")
+	}
+	if in.GetNamespace() == "" {
+		warnings = append(warnings, "namespace must be set")
+	}
+
+	if in.Spec.Target == "" {
+		return warnings, fmt.Errorf("target must be set")
+	}
+	target, err := strconv.ParseFloat(in.Spec.Target, 64)
+	if err != nil {
+		return warnings, err
+	}
+	if target < 0 || target > 100 {
+		return warnings, fmt.Errorf("target must be between 0 and 100")
+	}
+	if target > 0 && target < 1 {
+		warnings = append(warnings, fmt.Sprintf("target is from 0-100 (%v), not 0-1 (%v)", 100*target, target))
+	}
+
+	if in.Spec.Window == "" {
+		return warnings, fmt.Errorf("window must be set")
+	}
+	_, err = model.ParseDuration(in.Spec.Window)
+	if err != nil {
+		return warnings, err
+	}
+
+	if in.Spec.ServiceLevelIndicator.Ratio == nil &&
+		in.Spec.ServiceLevelIndicator.Latency == nil &&
+		in.Spec.ServiceLevelIndicator.LatencyNative == nil &&
+		in.Spec.ServiceLevelIndicator.BoolGauge == nil {
+		return warnings, fmt.Errorf("one of ratio, latency, latencyNative or bool_gauge must be set")
+	}
+
+	if in.Spec.ServiceLevelIndicator.Ratio != nil {
+		ratio := in.Spec.ServiceLevelIndicator.Ratio
+		if ratio.Total.Metric == "" {
+			return warnings, fmt.Errorf("ratio total metric must be set")
+		}
+		if ratio.Errors.Metric == "" {
+			return warnings, fmt.Errorf("ratio errors metric must be set")
+		}
+
+		if ratio.Errors.Metric == ratio.Total.Metric {
+			warnings = append(warnings, "ratio errors metric should be different from ratio total metric")
+		}
+
+		_, err := parser.ParseExpr(ratio.Total.Metric)
+		if err != nil {
+			return warnings, fmt.Errorf("failed to parse ratio total metric: %w", err)
+		}
+		_, err = parser.ParseExpr(ratio.Errors.Metric)
+		if err != nil {
+			return warnings, fmt.Errorf("failed to parse ratio error metric: %w", err)
+		}
+	}
+
+	return warnings, nil
+}
+
+func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 	target, err := strconv.ParseFloat(in.Spec.Target, 64)
 	if err != nil {
 		return slo.Objective{}, fmt.Errorf("failed to parse objective target: %w", err)
