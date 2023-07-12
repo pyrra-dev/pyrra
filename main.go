@@ -71,7 +71,7 @@ var CLI struct {
 		MetricsAddr     string `default:":8080" help:"The address the metric endpoint binds to."`
 		ConfigMapMode   bool   `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
 		GenericRules    bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		DisableWebhooks bool   `default:"false" env:"ENABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certifictes"`
+		DisableWebhooks bool   `default:"false" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
 		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
