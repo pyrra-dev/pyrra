@@ -123,11 +123,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
+			alertLabels["exhaustion"] = model.Duration(w.Exhaustion).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
 				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%v * (1-%s)) and %s{%s} > (%v * (1-%s))",
 					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,
@@ -208,11 +209,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
+			alertLabels["exhaustion"] = model.Duration(w.Exhaustion).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
 				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%v * (1-%s)) and %s{%s} > (%v * (1-%s))",
 					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,
@@ -293,11 +295,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
+			alertLabels["exhaustion"] = model.Duration(w.Exhaustion).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
 				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%v * (1-%s)) and %s{%s} > (%v * (1-%s))",
 					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,
@@ -378,11 +381,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
+			alertLabels["exhaustion"] = model.Duration(w.Exhaustion).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
 				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
+				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%v * (1-%s)) and %s{%s} > (%v * (1-%s))",
 					o.BurnrateName(w.Short),
 					alertMatchersString,
 					w.Factor,
@@ -1074,44 +1078,55 @@ const (
 	warning  severity = "warning"
 )
 
+// Window represents a multi-window alert for a particular burn rate factor.
 type Window struct {
-	Severity severity
-	For      time.Duration
-	Long     time.Duration
-	Short    time.Duration
-	Factor   float64
+	Severity   severity
+	For        time.Duration
+	Long       time.Duration // Long represents the long window or the alerting window for a multi-window alert.
+	Short      time.Duration // Short represents the short window or reset period of a multi-window alert.
+	Exhaustion time.Duration // Exhaustion specifies the time it takes to burn the whole error budget.
+	Factor     float64
 }
 
+// Windows returns multi-window alerts across four burn rates, for a given SLO window.
+// long and short rates are calculated based on the ratio for 28 days.
+// Thus the alerts generated, would be based on the same burn rates, across different sloWindows
+// which is why they are constant.
+//
+// The burn rate factors work best for 28 days or other windows that are multiples of 7.
+// This can still be used with windows like 30d/90d, but might lead to uneven for/long/short.
+// See Test_windows for examples.
 func Windows(sloWindow time.Duration) []Window {
-	// TODO: I'm still not sure if For, Long, Short should really be based on the 28 days ratio...
-
 	round := time.Minute // TODO: Change based on sloWindow
 
-	// long and short rates are calculated based on the ratio for 28 days.
 	return []Window{{
-		Severity: critical,
-		For:      (sloWindow / (28 * 24 * (60 / 2))).Round(round), // 2m for 28d - half short
-		Long:     (sloWindow / (28 * 24)).Round(round),            // 1h for 28d
-		Short:    (sloWindow / (28 * 24 * (60 / 5))).Round(round), // 5m for 28d
-		Factor:   14,                                              // error budget burn: 50% within a day
+		Severity:   critical,
+		For:        (sloWindow / (28 * 24 * (60 / 2))).Round(round), // 2m for 28d - half short
+		Long:       (sloWindow / (28 * 24)).Round(round),            // 1h for 28d
+		Short:      (sloWindow / (28 * 24 * (60 / 5))).Round(round), // 5m for 28d
+		Exhaustion: time.Duration(sloWindow / 14).Round(round),      // error budget burn: 50% within a day / 100% within 2d for 28d
+		Factor:     14,                                              // 50 / ((24/(24 * 28)) * 100)
 	}, {
-		Severity: critical,
-		For:      (sloWindow / (28 * 24 * (60 / 15))).Round(round), // 15m for 28d - half short
-		Long:     (sloWindow / (28 * (24 / 6))).Round(round),       // 6h for 28d
-		Short:    (sloWindow / (28 * 24 * (60 / 30))).Round(round), // 30m for 28d
-		Factor:   7,                                                // error budget burn: 20% within a day / 100% within 5 days
+		Severity:   critical,
+		For:        (sloWindow / (28 * 24 * (60 / 15))).Round(round),     // 15m for 28d - half short
+		Long:       (sloWindow / (28 * (24 / 6))).Round(round),           // 6h for 28d
+		Short:      (sloWindow / (28 * 24 * (60 / 30))).Round(round),     // 30m for 28d
+		Exhaustion: time.Duration(float64(sloWindow) / 5.6).Round(round), // error budget burn: 20% within a day / 100% within 5 days for 28d
+		Factor:     5.6,                                                  // 20 / ((24/(24 * 28)) * 100)
 	}, {
-		Severity: warning,
-		For:      (sloWindow / (28 * 24)).Round(round),       // 1h for 28d - half short
-		Long:     (sloWindow / 28).Round(round),              // 1d for 28d
-		Short:    (sloWindow / (28 * (24 / 2))).Round(round), // 2h for 28d
-		Factor:   2,                                          // error budget burn: 10% within a day / 100% within 10 days
+		Severity:   warning,
+		For:        (sloWindow / (28 * 24)).Round(round),                 // 1h for 28d - half short
+		Long:       (sloWindow / 28).Round(round),                        // 1d for 28d
+		Short:      (sloWindow / (28 * (24 / 2))).Round(round),           // 2h for 28d
+		Exhaustion: time.Duration(float64(sloWindow) / 2.8).Round(round), // error budget burn: 10% within a day / 100% within 10 days for 28d
+		Factor:     2.8,                                                  // 10 / ((24/(24 * 28)) * 100)
 	}, {
-		Severity: warning,
-		For:      (sloWindow / (28 * (24 / 3))).Round(round), // 3h for 28d - half short
-		Long:     (sloWindow / 7).Round(round),               // 4d for 28d
-		Short:    (sloWindow / (28 * (24 / 6))).Round(round), // 6h for 28d
-		Factor:   1,                                          // error budget burn: 100% until the end of sloWindow
+		Severity:   warning,
+		For:        (sloWindow / (28 * (24 / 3))).Round(round), // 3h for 28d - half short
+		Long:       (sloWindow / 7).Round(round),               // 4d for 28d
+		Short:      (sloWindow / (28 * (24 / 6))).Round(round), // 6h for 28d
+		Exhaustion: (sloWindow).Round(round),                   // error budget burn: 100% until the end of sloWindow
+		Factor:     1,                                          // 100 / (((24 * 28)/(24 * 28)) * 100)
 	}}
 }
 
