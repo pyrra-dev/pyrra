@@ -50,6 +50,10 @@ func (o Objective) HasWindows(short, long model.Duration) (Window, bool) {
 	return Window{}, false
 }
 
+func (o Objective) Exhausts(factor float64) model.Duration {
+	return model.Duration(time.Second * time.Duration(time.Duration(o.Window).Seconds()/factor))
+}
+
 type IndicatorType int
 
 const (

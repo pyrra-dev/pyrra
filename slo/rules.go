@@ -125,13 +125,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
-
-			// Calculate exhaustion and propagate it as alert label
-			parsedLongWindowDuration, _ := model.ParseDuration(o.Window.String())
-			parsedWindowDuration := time.Duration(parsedLongWindowDuration)
-			exhaustionCalculation := int(parsedWindowDuration.Seconds()) / int(w.Factor)
-			parsedExhaustionCalculation, _ := model.ParseDuration(fmt.Sprintf("%ds", exhaustionCalculation))
-			alertLabels["exhaustion"] = parsedExhaustionCalculation.String()
+			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -219,13 +213,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
-
-			// Calculate exhaustion and propagate it as alert label
-			parsedLongWindowDuration, _ := model.ParseDuration(o.Window.String())
-			parsedWindowDuration := time.Duration(parsedLongWindowDuration)
-			exhaustionCalculation := int(parsedWindowDuration.Seconds()) / int(w.Factor)
-			parsedExhaustionCalculation, _ := model.ParseDuration(fmt.Sprintf("%ds", exhaustionCalculation))
-			alertLabels["exhaustion"] = parsedExhaustionCalculation.String()
+			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -313,13 +301,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
-
-			// Calculate exhaustion and propagate it as alert label
-			parsedLongWindowDuration, _ := model.ParseDuration(o.Window.String())
-			parsedWindowDuration := time.Duration(parsedLongWindowDuration)
-			exhaustionCalculation := int(parsedWindowDuration.Seconds()) / int(w.Factor)
-			parsedExhaustionCalculation, _ := model.ParseDuration(fmt.Sprintf("%ds", exhaustionCalculation))
-			alertLabels["exhaustion"] = parsedExhaustionCalculation.String()
+			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -407,13 +389,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
-
-			// Calculate exhaustion and propagate it as alert label
-			parsedLongWindowDuration, _ := model.ParseDuration(o.Window.String())
-			parsedWindowDuration := time.Duration(parsedLongWindowDuration)
-			exhaustionCalculation := int(parsedWindowDuration.Seconds()) / int(w.Factor)
-			parsedExhaustionCalculation, _ := model.ParseDuration(fmt.Sprintf("%ds", exhaustionCalculation))
-			alertLabels["exhaustion"] = parsedExhaustionCalculation.String()
+			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
