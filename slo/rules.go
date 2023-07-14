@@ -120,9 +120,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					}
 				}
 			}
+
+			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
+			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -205,9 +208,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					}
 				}
 			}
+
+			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
+			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -290,9 +296,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					}
 				}
 			}
+
+			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
+			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -375,9 +384,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					}
 				}
 			}
+
+			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = string(w.Severity)
+			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
