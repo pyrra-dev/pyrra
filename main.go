@@ -61,10 +61,12 @@ var CLI struct {
 		PrometheusBasicAuthPassword promconfig.Secret `default:"" help:"The HTTP basic authentication password"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
-		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
-		PrometheusURL    *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
-		PrometheusFolder string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
-		GenericRules     bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		ConfigFiles                 string            `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		PrometheusURL               *url.URL          `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
+		PrometheusFolder            string            `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
+		GenericRules                bool              `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		PrometheusBasicAuthUsername string            `default:"" help:"The HTTP basic authentication username"`
+		PrometheusBasicAuthPassword promconfig.Secret `default:"" help:"The HTTP basic authentication password"`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
 		MetricsAddr   string `default:":8080" help:"The address the metric endpoint binds to."`
@@ -94,19 +96,25 @@ func main() {
 	)
 
 	var prometheusURL *url.URL
+	var basicAuthUsername string
+	var basicAuthPassword promconfig.Secret
 	switch ctx.Command() {
 	case "api":
 		prometheusURL = CLI.API.PrometheusURL
+		basicAuthUsername = CLI.API.PrometheusBasicAuthUsername
+		basicAuthPassword = CLI.API.PrometheusBasicAuthPassword
 	case "filesystem":
 		prometheusURL = CLI.Filesystem.PrometheusURL
+		basicAuthUsername = CLI.Filesystem.PrometheusBasicAuthUsername
+		basicAuthPassword = CLI.Filesystem.PrometheusBasicAuthPassword
 	default:
 		prometheusURL, _ = url.Parse("http://localhost:9090")
 	}
 
 	roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
 		BasicAuth: &promconfig.BasicAuth{
-			Username: CLI.API.PrometheusBasicAuthUsername,
-			Password: CLI.API.PrometheusBasicAuthPassword,
+			Username: basicAuthUsername,
+			Password: basicAuthPassword,
 		},
 		BearerTokenFile: CLI.API.PrometheusBearerTokenPath,
 	}, "pyrra")
