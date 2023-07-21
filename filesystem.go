@@ -276,7 +276,7 @@ type FilesystemObjectiveServer struct {
 	objectives *Objectives
 }
 
-func (s *FilesystemObjectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
+func (s *FilesystemObjectiveServer) List(_ context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
 	var matchers []*labels.Matcher
 	if expr := req.Msg.Expr; expr != "" {
 		var err error

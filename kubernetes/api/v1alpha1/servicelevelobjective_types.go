@@ -168,7 +168,7 @@ func (in *ServiceLevelObjective) ValidateCreate() (admission.Warnings, error) {
 	return in.validate()
 }
 
-func (in *ServiceLevelObjective) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (in *ServiceLevelObjective) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
 	return in.validate()
 }
 

@@ -57,7 +57,7 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func cmdKubernetes(logger log.Logger, metricsAddr string, configMapMode, genericRules bool) int {
+func cmdKubernetes(logger log.Logger, metricsAddr string, _, genericRules bool) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
