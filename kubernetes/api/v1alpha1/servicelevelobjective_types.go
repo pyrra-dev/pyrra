@@ -53,6 +53,11 @@ type ServiceLevelObjectiveList struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=slo
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Window",type=string,JSONPath=`.spec.window`
+// +kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.status.type`
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // ServiceLevelObjective is the Schema for the ServiceLevelObjectives API.
 type ServiceLevelObjective struct {
@@ -162,7 +167,10 @@ type Query struct {
 }
 
 // ServiceLevelObjectiveStatus defines the observed state of ServiceLevelObjective.
-type ServiceLevelObjectiveStatus struct{}
+type ServiceLevelObjectiveStatus struct {
+	// Type is the generated resource type, like PrometheusRule or ConfigMap
+	Type string `json:"type,omitempty"`
+}
 
 func (in *ServiceLevelObjective) ValidateCreate() (admission.Warnings, error) {
 	return in.validate()

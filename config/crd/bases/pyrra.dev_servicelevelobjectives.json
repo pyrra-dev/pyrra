@@ -22,6 +22,28 @@
     "scope": "Namespaced",
     "versions": [
       {
+        "additionalPrinterColumns": [
+          {
+            "jsonPath": ".spec.window",
+            "name": "Window",
+            "type": "string"
+          },
+          {
+            "jsonPath": ".spec.target",
+            "name": "Target",
+            "type": "string"
+          },
+          {
+            "jsonPath": ".status.type",
+            "name": "Type",
+            "type": "string"
+          },
+          {
+            "jsonPath": ".metadata.creationTimestamp",
+            "name": "Age",
+            "type": "date"
+          }
+        ],
         "name": "v1alpha1",
         "schema": {
           "openAPIV3Schema": {
@@ -135,8 +157,7 @@
                           },
                           "latency": {
                             "description": "Latency the requests should be faster than.",
-                            "format": "int64",
-                            "type": "integer"
+                            "type": "string"
                           },
                           "total": {
                             "description": "Total is the metric that returns how many requests there are in total.",
@@ -219,6 +240,12 @@
               },
               "status": {
                 "description": "ServiceLevelObjectiveStatus defines the observed state of ServiceLevelObjective.",
+                "properties": {
+                  "type": {
+                    "description": "Type is the generated resource type, like PrometheusRule or ConfigMap",
+                    "type": "string"
+                  }
+                },
                 "type": "object"
               }
             },
@@ -226,7 +253,10 @@
           }
         },
         "served": true,
-        "storage": true
+        "storage": true,
+        "subresources": {
+          "status": {}
+        }
       }
     ]
   }
