@@ -87,6 +87,8 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
+ui: ui/node_modules ui/build
+
 ui/node_modules:
 	cd ui && npm install
 
