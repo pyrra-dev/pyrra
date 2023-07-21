@@ -21,16 +21,23 @@ issues:
 
 linters-settings:
   depguard:
-    list-type: blacklist
-    include-go-root: true
-    packages-with-error-message:
-      - sync/atomic: "Use go.uber.org/atomic instead of sync/atomic"
-      - debug/elf: "Use github.com/parca-dev/parca/internal/go/debug/elf instead of debug/elf"
-      - github.com/stretchr/testify/assert: "Use github.com/stretchr/testify/require instead of github.com/stretchr/testify/assert"
-      - log: "Use github.com/go-kit/log instead of github.com/go-kit/kit/log"
-      - github.com/go-kit/kit/log: "Use github.com/go-kit/log instead of github.com/go-kit/kit/log"
-      - github.com/go-logr/logr: "Use github.com/go-kit/log instead of github.com/go-kit/kit/log"
-      - github.com/pkg/errors: "Use fmt.Errorf instead"
+    rules:
+      Main:
+        deny:
+          - pkg: sync/atomic
+            desc: "Use go.uber.org/atomic instead of sync/atomic"
+          - pkg: debug/elf
+            desc: "Use github.com/parca-dev/parca/internal/go/debug/elf instead of debug/elf"
+          - pkg: github.com/stretchr/testify/assert
+            desc: "Use github.com/stretchr/testify/require instead of github.com/stretchr/testify/assert"
+          - pkg: log
+            desc: "Use github.com/go-kit/log instead of github.com/go-kit/kit/log"
+          - pkg: github.com/go-kit/kit/log
+            desc: "Use github.com/go-kit/log instead of github.com/go-kit/kit/log"
+          - pkg: github.com/go-logr/logr
+            desc: "Use github.com/go-kit/log instead of github.com/go-kit/kit/log"
+          - pkg: github.com/pkg/errors
+            desc: "Use fmt.Errorf instead"
   errcheck:
     exclude: ./.errcheck_excludes.txt
   goimports:

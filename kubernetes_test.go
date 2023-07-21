@@ -73,7 +73,7 @@ var (
 
 type mockClient struct{}
 
-func (m *mockClient) List(_ context.Context, list client.ObjectList, opts ...client.ListOption) error {
+func (m *mockClient) List(_ context.Context, list client.ObjectList, _ ...client.ListOption) error {
 	switch l := list.(type) {
 	case *pyrrav1alpha1.ServiceLevelObjectiveList:
 		l.Items = append(l.Items, o1)
