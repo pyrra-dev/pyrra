@@ -246,6 +246,57 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 		}
 	}
 
+	if in.Spec.ServiceLevelIndicator.Latency != nil {
+		latency := in.Spec.ServiceLevelIndicator.Latency
+		if latency.Total.Metric == "" {
+			return warnings, fmt.Errorf("latency total metric must be set")
+		}
+		if latency.Success.Metric == "" {
+			return warnings, fmt.Errorf("latency success metric must be set")
+		}
+		if latency.Success.Metric == latency.Total.Metric {
+			warnings = append(warnings, "latency success metric should be different from latency total metric")
+		}
+
+		parsedTotal, err := parser.ParseExpr(latency.Total.Metric)
+		if err != nil {
+			return warnings, fmt.Errorf("failed to parse latency total metric: %w", err)
+		}
+		parsedSuccess, err := parser.ParseExpr(latency.Success.Metric)
+		if err != nil {
+			return warnings, fmt.Errorf("failed to parse latency success metric: %w", err)
+		}
+
+		switch parsedTotal.Type() {
+		case parser.ValueTypeVector:
+			v := parsedTotal.(*parser.VectorSelector)
+			if !strings.HasSuffix(v.Name, "_count") {
+				warnings = append(warnings, "latency total metric should usually be a histogram count")
+			}
+		}
+		switch parsedSuccess.Type() {
+		case parser.ValueTypeVector:
+			v := parsedSuccess.(*parser.VectorSelector)
+			var bucketFound bool
+			for _, matcher := range v.LabelMatchers {
+				if matcher.Name == labels.BucketLabel {
+					if _, err := strconv.ParseFloat(matcher.Value, 64); err != nil {
+						return warnings, fmt.Errorf("latency success metric must contain a le label matcher with a float value: %w", err)
+					}
+					bucketFound = true
+					break
+				}
+			}
+			if !bucketFound {
+				return warnings, fmt.Errorf("latency success metric must contain a le label matcher")
+			}
+
+			if !strings.HasSuffix(v.Name, "_bucket") {
+				warnings = append(warnings, "latency success metric should usually be a histogram bucket")
+			}
+		}
+	}
+
 	return warnings, nil
 }
 

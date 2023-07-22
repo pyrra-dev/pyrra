@@ -8,6 +8,7 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
@@ -458,6 +459,109 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			warn, err = ratio.ValidateCreate()
 			require.EqualError(t, err, "failed to parse ratio total metric: 1:9: parse error: unterminated quoted string")
 			require.Nil(t, warn)
+		})
+	})
+
+	t.Run("latency", func(t *testing.T) {
+		latency := func() *v1alpha1.ServiceLevelObjective {
+			return &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "name",
+					Namespace: "namespace",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						Latency: &v1alpha1.LatencyIndicator{
+							Success:  v1alpha1.Query{Metric: `foo_bucket{foo="bar",le="1"}`},
+							Total:    v1alpha1.Query{Metric: `foo_count{foo="bar"}`},
+							Grouping: nil,
+						},
+					},
+				},
+			}
+		}
+
+		warn, err := latency().ValidateCreate()
+		require.NoError(t, err)
+		require.Nil(t, warn)
+
+		t.Run("empty", func(t *testing.T) {
+			latency := latency()
+			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = ""
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = ""
+			warn, err := latency.ValidateCreate()
+			require.EqualError(t, err, "latency total metric must be set")
+			require.Nil(t, warn)
+
+			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = ""
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "foo"
+			warn, err = latency.ValidateCreate()
+			require.EqualError(t, err, "latency success metric must be set")
+			require.Nil(t, warn)
+
+			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = "foo"
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = ""
+			warn, err = latency.ValidateCreate()
+			require.EqualError(t, err, "latency total metric must be set")
+			require.Nil(t, warn)
+		})
+
+		t.Run("equal", func(t *testing.T) {
+			latency := latency()
+			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = "foo"
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "foo"
+			warn, err := latency.ValidateCreate()
+			require.NotNil(t, warn)
+			require.Equal(t, "latency success metric should be different from latency total metric", warn[0])
+			require.Error(t, err)
+		})
+
+		t.Run("warnings", func(t *testing.T) {
+			latency := latency()
+			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = `foo{le="1"}`
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "bar"
+			warn, err = latency.ValidateCreate()
+			require.NoError(t, err)
+			require.Equal(t,
+				admission.Warnings{
+					"latency total metric should usually be a histogram count",
+					"latency success metric should usually be a histogram bucket",
+				},
+				warn)
+		})
+
+		t.Run("invalidMetric", func(t *testing.T) {
+			latency := latency()
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "foo{"
+			warn, err := latency.ValidateCreate()
+			require.EqualError(t, err, "failed to parse latency total metric: 1:5: parse error: unexpected end of input inside braces")
+			require.Nil(t, warn)
+
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "foo}"
+			warn, err = latency.ValidateCreate()
+			require.EqualError(t, err, "failed to parse latency total metric: 1:4: parse error: unexpected character: '}'")
+			require.Nil(t, warn)
+
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "$$$"
+			warn, err = latency.ValidateCreate()
+			require.EqualError(t, err, "failed to parse latency total metric: 1:1: parse error: unexpected character: '$'")
+			require.Nil(t, warn)
+
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = `foo{foo="bar'}`
+			warn, err = latency.ValidateCreate()
+			require.EqualError(t, err, "failed to parse latency total metric: 1:9: parse error: unterminated quoted string")
+			require.Nil(t, warn)
+
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = `foo{foo="bar"}`
+			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = `foo{foo="baz"}`
+			_, err = latency.ValidateCreate()
+			require.EqualError(t, err, "latency success metric must contain a le label matcher")
+
+			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = `foo{le="foo"}`
+			_, err = latency.ValidateCreate()
+			require.EqualError(t, err, `latency success metric must contain a le label matcher with a float value: strconv.ParseFloat: parsing "foo": invalid syntax`)
 		})
 	})
 }
