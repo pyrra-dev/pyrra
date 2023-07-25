@@ -564,4 +564,75 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			require.EqualError(t, err, `latency success metric must contain a le label matcher with a float value: strconv.ParseFloat: parsing "foo": invalid syntax`)
 		})
 	})
+
+	t.Run("latencyNative", func(t *testing.T) {
+		latencyNative := func() *v1alpha1.ServiceLevelObjective {
+			return &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "name",
+					Namespace: "namespace",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						LatencyNative: &v1alpha1.NativeLatencyIndicator{
+							Latency:  "1s",
+							Total:    v1alpha1.Query{Metric: `foo{foo="bar"}`},
+							Grouping: nil,
+						},
+					},
+				},
+			}
+		}
+
+		warn, err := latencyNative().ValidateCreate()
+		require.NoError(t, err)
+		require.Nil(t, warn)
+
+		t.Run("empty", func(t *testing.T) {
+			ln := latencyNative()
+			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = ""
+			warn, err := ln.ValidateCreate()
+			require.EqualError(t, err, "latencyNative total metric must be set")
+			require.Nil(t, warn)
+
+			ln = latencyNative()
+			ln.Spec.ServiceLevelIndicator.LatencyNative.Latency = ""
+			warn, err = ln.ValidateCreate()
+			require.EqualError(t, err, "latencyNative latency objective must be set")
+			require.Nil(t, warn)
+		})
+
+		t.Run("invalidLatency", func(t *testing.T) {
+			ln := latencyNative()
+			ln.Spec.ServiceLevelIndicator.LatencyNative.Latency = "foo"
+			warn, err := ln.ValidateCreate()
+			require.EqualError(t, err, `latencyNative latency objective must be a valid duration: not a valid duration string: "foo"`)
+			require.Nil(t, warn)
+		})
+
+		t.Run("invalidMetric", func(t *testing.T) {
+			ln := latencyNative()
+			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = "foo{"
+			warn, err := ln.ValidateCreate()
+			require.EqualError(t, err, "failed to parse latencyNative total metric: 1:5: parse error: unexpected end of input inside braces")
+			require.Nil(t, warn)
+
+			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = "foo}"
+			warn, err = ln.ValidateCreate()
+			require.EqualError(t, err, "failed to parse latencyNative total metric: 1:4: parse error: unexpected character: '}'")
+			require.Nil(t, warn)
+
+			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = "$$$"
+			warn, err = ln.ValidateCreate()
+			require.EqualError(t, err, "failed to parse latencyNative total metric: 1:1: parse error: unexpected character: '$'")
+			require.Nil(t, warn)
+
+			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = `foo{foo="bar'}`
+			warn, err = ln.ValidateCreate()
+			require.EqualError(t, err, "failed to parse latencyNative total metric: 1:9: parse error: unterminated quoted string")
+			require.Nil(t, warn)
+		})
+	})
 }
