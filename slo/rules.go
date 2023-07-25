@@ -94,7 +94,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		if o.Alerting.Disabled {
 			return monitoringv1.RuleGroup{
 				Name:     sloName,
-				Interval: "30s", // TODO: Increase or decrease based on availability target
+				Interval: monitoringDuration("30s"), // TODO: Increase or decrease based on availability target
 				Rules:    rules,
 			}, nil
 		}
@@ -140,7 +140,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
-				For:         monitoringv1.Duration(model.Duration(w.For).String()),
+				For:         monitoringDuration(w.For.String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
 			}
@@ -176,7 +176,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		if o.Alerting.Disabled {
 			return monitoringv1.RuleGroup{
 				Name:     sloName,
-				Interval: "30s", // TODO: Increase or decrease based on availability target
+				Interval: monitoringDuration("30s"), // TODO: Increase or decrease based on availability target
 				Rules:    rules,
 			}, nil
 		}
@@ -228,7 +228,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
-				For:         monitoringv1.Duration(model.Duration(w.For).String()),
+				For:         monitoringDuration(model.Duration(w.For).String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
 			}
@@ -264,7 +264,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		if o.Alerting.Disabled {
 			return monitoringv1.RuleGroup{
 				Name:     sloName,
-				Interval: "30s", // TODO: Increase or decrease based on availability target
+				Interval: monitoringDuration("30s"), // TODO: Increase or decrease based on availability target
 				Rules:    rules,
 			}, nil
 		}
@@ -316,7 +316,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
-				For:         monitoringv1.Duration(model.Duration(w.For).String()),
+				For:         monitoringDuration(model.Duration(w.For).String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
 			}
@@ -352,7 +352,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		if o.Alerting.Disabled {
 			return monitoringv1.RuleGroup{
 				Name:     sloName,
-				Interval: "30s", // TODO: Increase or decrease based on availability target
+				Interval: monitoringDuration("30s"), // TODO: Increase or decrease based on availability target
 				Rules:    rules,
 			}, nil
 		}
@@ -404,7 +404,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 					w.Factor,
 					strconv.FormatFloat(o.Target, 'f', -1, 64),
 				)),
-				For:         monitoringv1.Duration(model.Duration(w.For).String()),
+				For:         monitoringDuration(model.Duration(w.For).String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
 			}
@@ -415,7 +415,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	// We only get here if alerting was not disabled
 	return monitoringv1.RuleGroup{
 		Name:     sloName,
-		Interval: "30s", // TODO: Increase or decrease based on availability target
+		Interval: monitoringDuration("30s"), // TODO: Increase or decrease based on availability target
 		Rules:    rules,
 	}, nil
 }
@@ -712,7 +712,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
 			Expr:  intstr.FromString(expr.String()),
-			For: monitoringv1.Duration(model.Duration(
+			For: monitoringDuration(model.Duration(
 				(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
 			).String()),
 			Labels:      alertLabels,
@@ -751,7 +751,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			rules = append(rules, monitoringv1.Rule{
 				Alert: "SLOMetricAbsent",
 				Expr:  intstr.FromString(expr.String()),
-				For: monitoringv1.Duration(model.Duration(
+				For: monitoringDuration(model.Duration(
 					(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
 				).String()),
 				Labels:      alertLabels,
@@ -860,7 +860,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
 			Expr:  intstr.FromString(expr.String()),
-			For: monitoringv1.Duration(model.Duration(
+			For: monitoringDuration(model.Duration(
 				(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
 			).String()),
 			Labels:      alertLabels,
@@ -887,7 +887,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
 			Expr:  intstr.FromString(expr.String()),
-			For: monitoringv1.Duration(model.Duration(
+			For: monitoringDuration(model.Duration(
 				(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
 			).String()),
 			Labels:      alertLabelsLe,
@@ -1040,7 +1040,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
 			Expr:  intstr.FromString(expr.String()),
-			For: monitoringv1.Duration(model.Duration(
+			For: monitoringDuration(model.Duration(
 				(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
 			).String()),
 			Labels:      alertLabels,
@@ -1074,7 +1074,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 
 	return monitoringv1.RuleGroup{
 		Name:     sloName + "-increase",
-		Interval: monitoringv1.Duration(interval.String()),
+		Interval: monitoringDuration(interval.String()),
 		Rules:    rules,
 	}, nil
 }
@@ -1400,7 +1400,12 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 	return monitoringv1.RuleGroup{
 		Name:     sloName + "-generic",
-		Interval: "30s",
+		Interval: monitoringDuration("30s"),
 		Rules:    rules,
 	}, nil
+}
+
+func monitoringDuration(d string) *monitoringv1.Duration {
+	md := monitoringv1.Duration(d)
+	return &md
 }
