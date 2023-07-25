@@ -297,6 +297,25 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 		}
 	}
 
+	if in.Spec.ServiceLevelIndicator.LatencyNative != nil {
+		latencyNative := in.Spec.ServiceLevelIndicator.LatencyNative
+		if latencyNative.Total.Metric == "" {
+			return warnings, fmt.Errorf("latencyNative total metric must be set")
+		}
+		if latencyNative.Latency == "" {
+			return warnings, fmt.Errorf("latencyNative latency objective must be set")
+		}
+
+		if _, err := model.ParseDuration(latencyNative.Latency); err != nil {
+			return warnings, fmt.Errorf("latencyNative latency objective must be a valid duration: %w", err)
+		}
+
+		_, err := parser.ParseExpr(latencyNative.Total.Metric)
+		if err != nil {
+			return warnings, fmt.Errorf("failed to parse latencyNative total metric: %w", err)
+		}
+	}
+
 	return warnings, nil
 }
 
