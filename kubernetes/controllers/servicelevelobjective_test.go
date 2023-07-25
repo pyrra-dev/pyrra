@@ -85,7 +85,7 @@ func Test_makePrometheusRule(t *testing.T) {
 					Groups: []monitoringv1.RuleGroup{
 						{
 							Name:     "http-increase",
-							Interval: "2m30s",
+							Interval: monitoringDuration("2m30s"),
 							Rules: []monitoringv1.Rule{
 								{
 									Record: "http_requests:increase4w",
@@ -99,7 +99,7 @@ func Test_makePrometheusRule(t *testing.T) {
 								{
 									Alert: "SLOMetricAbsent",
 									Expr:  intstr.FromString(`absent(http_requests_total{job="app"}) == 1`),
-									For:   "2m",
+									For:   monitoringDuration("2m"),
 									Annotations: map[string]string{
 										"description": "foo",
 									},
@@ -114,7 +114,7 @@ func Test_makePrometheusRule(t *testing.T) {
 						},
 						{
 							Name:     "http",
-							Interval: "30s",
+							Interval: monitoringDuration("30s"),
 							Rules: []monitoringv1.Rule{
 								{
 									Record: "http_requests:burnrate5m",
@@ -154,28 +154,28 @@ func Test_makePrometheusRule(t *testing.T) {
 								{
 									Alert:       "ErrorBudgetBurn",
 									Expr:        intstr.FromString(`http_requests:burnrate5m{job="app",slo="http"} > (14 * (1-0.995)) and http_requests:burnrate1h{job="app",slo="http"} > (14 * (1-0.995))`),
-									For:         "2m",
+									For:         monitoringDuration("2m0s"),
 									Labels:      map[string]string{"severity": "critical", "job": "app", "long": "1h", "slo": "http", "short": "5m", "team": "foo", "exhaustion": "2d"},
 									Annotations: map[string]string{"description": "foo"},
 								},
 								{
 									Alert:       "ErrorBudgetBurn",
 									Expr:        intstr.FromString(`http_requests:burnrate30m{job="app",slo="http"} > (7 * (1-0.995)) and http_requests:burnrate6h{job="app",slo="http"} > (7 * (1-0.995))`),
-									For:         "15m",
+									For:         monitoringDuration("15m0s"),
 									Labels:      map[string]string{"severity": "critical", "job": "app", "long": "6h", "slo": "http", "short": "30m", "team": "foo", "exhaustion": "4d"},
 									Annotations: map[string]string{"description": "foo"},
 								},
 								{
 									Alert:       "ErrorBudgetBurn",
 									Expr:        intstr.FromString(`http_requests:burnrate2h{job="app",slo="http"} > (2 * (1-0.995)) and http_requests:burnrate1d{job="app",slo="http"} > (2 * (1-0.995))`),
-									For:         "1h",
+									For:         monitoringDuration("1h0m0s"),
 									Labels:      map[string]string{"severity": "warning", "job": "app", "long": "1d", "slo": "http", "short": "2h", "team": "foo", "exhaustion": "2w"},
 									Annotations: map[string]string{"description": "foo"},
 								},
 								{
 									Alert:       "ErrorBudgetBurn",
 									Expr:        intstr.FromString(`http_requests:burnrate6h{job="app",slo="http"} > (1 * (1-0.995)) and http_requests:burnrate4d{job="app",slo="http"} > (1 * (1-0.995))`),
-									For:         "3h",
+									For:         monitoringDuration("3h0m0s"),
 									Labels:      map[string]string{"severity": "warning", "job": "app", "long": "4d", "slo": "http", "short": "6h", "team": "foo", "exhaustion": "4w"},
 									Annotations: map[string]string{"description": "foo"},
 								},
@@ -266,7 +266,7 @@ func Test_makeConfigMap(t *testing.T) {
       description: foo
     expr: http_requests:burnrate5m{job="app",slo="http"} > (14 * (1-0.995)) and http_requests:burnrate1h{job="app",slo="http"}
       > (14 * (1-0.995))
-    for: 2m
+    for: 2m0s
     labels:
       exhaustion: 2d
       job: app
@@ -280,7 +280,7 @@ func Test_makeConfigMap(t *testing.T) {
       description: foo
     expr: http_requests:burnrate30m{job="app",slo="http"} > (7 * (1-0.995)) and http_requests:burnrate6h{job="app",slo="http"}
       > (7 * (1-0.995))
-    for: 15m
+    for: 15m0s
     labels:
       exhaustion: 4d
       job: app
@@ -294,7 +294,7 @@ func Test_makeConfigMap(t *testing.T) {
       description: foo
     expr: http_requests:burnrate2h{job="app",slo="http"} > (2 * (1-0.995)) and http_requests:burnrate1d{job="app",slo="http"}
       > (2 * (1-0.995))
-    for: 1h
+    for: 1h0m0s
     labels:
       exhaustion: 2w
       job: app
@@ -308,7 +308,7 @@ func Test_makeConfigMap(t *testing.T) {
       description: foo
     expr: http_requests:burnrate6h{job="app",slo="http"} > (1 * (1-0.995)) and http_requests:burnrate4d{job="app",slo="http"}
       > (1 * (1-0.995))
-    for: 3h
+    for: 3h0m0s
     labels:
       exhaustion: 4w
       job: app
@@ -377,4 +377,9 @@ func Test_makeConfigMap(t *testing.T) {
 			require.Equal(t, tc.want, configMap)
 		})
 	}
+}
+
+func monitoringDuration(d string) *monitoringv1.Duration {
+	md := monitoringv1.Duration(d)
+	return &md
 }
