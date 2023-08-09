@@ -17,7 +17,7 @@ jobs:
     name: Go
     steps:
       - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753
+      - uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe
         with:
           go-version-file: 'go.mod'
       - run: mkdir -p ui/build && touch ui/build/empty
