@@ -74,8 +74,8 @@ spec:
                   with specific selectors for your service.
                 properties:
                   bool_gauge:
-                    description: BoolGauge is the indicator that measures whether a
-                      boolean gauge is successful.
+                    description: BoolGauge is the indicator that measures whether
+                      a boolean gauge is successful.
                     properties:
                       grouping:
                         description: Total is the metric that returns how many requests
@@ -86,7 +86,6 @@ spec:
                       metric:
                         type: string
                     required:
-                    - grouping
                     - metric
                     type: object
                   latency:

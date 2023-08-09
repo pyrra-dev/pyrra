@@ -157,6 +157,8 @@ type NativeLatencyIndicator struct {
 
 type BoolGaugeIndicator struct {
 	Query `json:",inline"`
+
+	// +optional
 	// Total is the metric that returns how many requests there are in total.
 	Grouping []string `json:"grouping"`
 }

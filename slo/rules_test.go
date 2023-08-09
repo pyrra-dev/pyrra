@@ -1821,9 +1821,41 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		name: "apiserver-read-resource-latency",
 		slo:  objectiveAPIServerLatency(),
 		err:  ErrGroupingUnsupported,
+	}, {
+		name: "up-targets",
+		slo:  objectiveUpTargets(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "up-targets-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.99`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`sum(up:sum4w{slo="up-targets"}) / sum(up:count4w{slo="up-targets"})`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(up:count4w{slo="up-targets"})`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(up:count4w{slo="up-targets"}) - sum(up:sum4w{slo="up-targets"})`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}},
+		},
+	}, {
+		name: "up-targets-grouping-regex",
+		slo:  objectiveUpTargetsGroupingRegex(),
+		err:  ErrGroupingUnsupported,
 	}}
 
-	require.Len(t, testcases, 14)
+	require.Len(t, testcases, 16)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

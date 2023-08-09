@@ -523,14 +523,16 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 }
 
 type objectiveReplacer struct {
-	metric        string
-	matchers      []*labels.Matcher
-	errorMetric   string
-	errorMatchers []*labels.Matcher
-	grouping      []string
-	window        time.Duration
-	target        float64
-	percentile    float64
+	metric          string
+	matchers        []*labels.Matcher
+	errorMetric     string
+	errorMatchers   []*labels.Matcher
+	successMetric   string
+	successMatchers []*labels.Matcher
+	grouping        []string
+	window          time.Duration
+	target          float64
+	percentile      float64
 }
 
 func (r objectiveReplacer) replace(node parser.Node) {
@@ -552,6 +554,8 @@ func (r objectiveReplacer) replace(node parser.Node) {
 	case *parser.VectorSelector:
 		if n.Name == "errorMetric" {
 			n.Name = r.errorMetric
+		} else if n.Name == "successMetric" {
+			n.Name = r.successMetric
 		} else {
 			n.Name = r.metric
 		}
@@ -560,6 +564,8 @@ func (r objectiveReplacer) replace(node parser.Node) {
 				if m.Name == "matchers" {
 					if m.Value == "errors" {
 						n.LabelMatchers = r.errorMatchers
+					} else if m.Value == "successes" {
+						n.LabelMatchers = r.successMatchers
 					} else {
 						n.LabelMatchers = r.matchers
 					}
