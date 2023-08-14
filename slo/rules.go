@@ -1420,16 +1420,16 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 		// availability
 		{
-			expr, err := parser.ParseExpr(`sum(successMetric{matchers="successes"}) / sum(metric{matchers="total"})`)
+			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"}) / sum(metric{matchers="total"})`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
 
 			objectiveReplacer{
-				metric:          totalMetric,
-				matchers:        totalMatchers,
-				successMetric:   successMetric,
-				successMatchers: successMatchers,
+				metric:        totalMetric,
+				matchers:      totalMatchers,
+				errorMetric:   successMetric,
+				errorMatchers: successMatchers,
 			}.replace(expr)
 
 			rules = append(rules, monitoringv1.Rule{
@@ -1460,16 +1460,16 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 		// errors
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(successMetric{matchers="successes"})`)
+			rate, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
 
 			objectiveReplacer{
-				metric:          totalMetric,
-				matchers:        totalMatchers,
-				successMetric:   successMetric,
-				successMatchers: successMatchers,
+				metric:        totalMetric,
+				matchers:      totalMatchers,
+				errorMetric:   successMetric,
+				errorMatchers: successMatchers,
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
