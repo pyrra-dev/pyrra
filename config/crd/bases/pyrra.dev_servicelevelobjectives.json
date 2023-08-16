@@ -99,7 +99,6 @@
                           }
                         },
                         "required": [
-                          "grouping",
                           "metric"
                         ],
                         "type": "object"
