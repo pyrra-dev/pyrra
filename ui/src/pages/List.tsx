@@ -22,7 +22,6 @@ import {
   getCoreRowModel,
   getSortedRowModel,
   Row as TableRow,
-  RowData as TableRowData,
   SortingFnOption,
   SortingState,
   useReactTable,
@@ -242,9 +241,9 @@ interface row {
 }
 
 const columnHelper = createColumnHelper<row>()
-const sortingNumberNull: SortingFnOption<TableRowData> = (
-  rowA: TableRow<TableRowData>,
-  rowB: TableRow<TableRowData>,
+const sortingNumberNull: SortingFnOption<row> = (
+  rowA: TableRow<row>,
+  rowB: TableRow<row>,
   columnId: string,
 ): number => {
   const av: number | null = rowA.getValue(columnId)
@@ -323,7 +322,7 @@ const columns = [
     header: 'Availability',
     cell: (props) => {
       const v = props.getValue()
-      const target = props.row.getValue('objective') ?? 0
+      const target = props.row.getValue<number>('objective') ?? 0
       if (v === undefined) {
         return 'No data'
       }
