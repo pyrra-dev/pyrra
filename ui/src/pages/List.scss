@@ -1,8 +1,15 @@
 .content.list {
+  h3 {
+   margin-bottom: 32px;
+  }
+
   button.filter-close {
-    margin-top: 20px;
-    margin-bottom: 20px;
     margin-right: 10px;
+    margin-bottom: 10px;
+
+    @media (min-width: 768px) {
+      margin-bottom: 0;
+    }
 
     span.btn-close {
       display: inline-block;
@@ -17,8 +24,16 @@
     border-top-color: inherit;
   }
 
+  .table {
+    margin-top: 8px;
+  }
+
   table th {
     color: $gray-700;
+
+    &::selection {
+      background: none;
+    }
 
     &:hover {
       cursor: pointer;

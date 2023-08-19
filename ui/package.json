@@ -4,17 +4,21 @@
   "private": true,
   "homepage": "./",
   "dependencies": {
+    "@tanstack/react-table": "^8.9.3",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.4.3",
+    "awesome-debounce-promise": "^2.1.0",
     "bootstrap": "^5.2.3",
     "react": "^18.1.0",
+    "react-async-hook": "^4.0.0",
     "react-bootstrap": "^2.7.4",
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.14.1",
     "uplot": "1.6.24",
-    "uplot-react": "^1.1.4"
+    "uplot-react": "^1.1.4",
+    "use-constant": "^1.1.1"
   },
   "devDependencies": {
     "@bufbuild/connect-web": "^0.8.1",

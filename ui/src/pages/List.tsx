@@ -1,26 +1,8 @@
 import React, {useEffect, useMemo, useReducer, useState} from 'react'
-import {
-  Alert,
-  Badge,
-  Button,
-  Col,
-  Container,
-  OverlayTrigger,
-  Row,
-  Spinner,
-  Table,
-  Tooltip as OverlayTooltip,
-} from 'react-bootstrap'
-import {
-  API_BASEPATH,
-  hasObjectiveType,
-  latencyTarget,
-  ObjectiveType,
-  renderLatencyTarget,
-} from '../App'
-import {Link, useLocation, useNavigate} from 'react-router-dom'
+import {Alert, Badge, Button, Col, Container, Dropdown, Row, Table} from 'react-bootstrap'
+import {API_BASEPATH, latencyTarget} from '../App'
+import {useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import {IconArrowDown, IconArrowUp, IconArrowUpDown, IconWarning} from '../components/Icons'
 import {Labels, labelsString, MetricName, parseLabels} from '../labels'
 import {createConnectTransport, createPromiseClient} from '@bufbuild/connect-web'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
@@ -29,11 +11,34 @@ import {
   Alert_State,
   GetAlertsResponse,
   GetStatusResponse,
-  ListResponse,
   Objective,
   ObjectiveStatus,
 } from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../duration'
+import {
+  Cell,
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  Row as TableRow,
+  SortingFnOption,
+  SortingState,
+  useReactTable,
+  VisibilityState,
+} from '@tanstack/react-table'
+import {Duration} from '@bufbuild/protobuf'
+import {useObjectivesList} from '../objectives'
+import {
+  IconArrowDown,
+  IconArrowUp,
+  IconArrowUpDown,
+  IconMagnifyingGlass,
+  IconTableColumns,
+} from '../components/Icons'
+import AwesomeDebouncePromise from 'awesome-debounce-promise'
+import useConstant from 'use-constant'
+import {useAsync} from 'react-async-hook'
 
 enum TableObjectiveState {
   Unknown,
@@ -223,42 +228,152 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
   }
 }
 
-enum TableSortType {
-  Name,
-  Window,
-  Objective,
-  Latency,
-  Availability,
-  Budget,
-  Alerts,
+interface row {
+  lset: {lset: Labels; grouping: Labels}
+  window: Duration | undefined
+  objective: number
+  latency: number | undefined
+  errors: number | undefined
+  total: number | undefined
+  availability: number | undefined
+  budget: number | undefined | null
+  alerts: string
 }
 
-enum TableSortOrder {
-  Ascending,
-  Descending,
+const columnHelper = createColumnHelper<row>()
+const sortingNumberNull: SortingFnOption<row> = (
+  rowA: TableRow<row>,
+  rowB: TableRow<row>,
+  columnId: string,
+): number => {
+  const av: number | null = rowA.getValue(columnId)
+  const bv: number | null = rowB.getValue(columnId)
+  if (av !== null && bv !== null) {
+    return av - bv
+  }
+  if (av === null && bv !== null) {
+    return 1
+  }
+  if (av !== null && bv === null) {
+    return -1
+  }
+  return 0
 }
 
-interface TableSorting {
-  type: TableSortType
-  order: TableSortOrder
-}
+const columns = [
+  columnHelper.accessor('lset', {
+    id: 'lset',
+    header: 'Name',
+  }),
+  columnHelper.accessor('window', {
+    id: 'window',
+    header: 'Time Window',
+    cell: (props) => {
+      return formatDuration(Number(props.getValue()?.seconds) * 1000)
+    },
+    sortingFn: (a, b, column): number => {
+      const av: Duration = a.getValue(column)
+      const bv: Duration = b.getValue(column)
+      return Number(av.seconds - bv.seconds)
+    },
+  }),
+  columnHelper.accessor('objective', {
+    id: 'objective',
+    header: 'Objective',
+    cell: (props) => `${(100 * props.getValue()).toFixed(2)}%`,
+  }),
+  columnHelper.accessor('latency', {
+    id: 'latency',
+    header: 'Latency',
+    cell: (props): string => {
+      const v = props.getValue()
+      if (v === undefined) {
+        return ''
+      }
+      return formatDuration(v)
+    },
+  }),
+  columnHelper.accessor('errors', {
+    id: 'errors',
+    header: 'Errors',
+    cell: (props) => {
+      const v = props.getValue()
+      if (v === undefined) {
+        return 'No data'
+      }
+      return `${Math.floor(v).toLocaleString()}`
+    },
+    sortingFn: sortingNumberNull,
+  }),
+  columnHelper.accessor('total', {
+    id: 'total',
+    header: 'Total',
+    cell: (props) => {
+      const v = props.getValue()
+      if (v === undefined) {
+        return 'No data'
+      }
+      return `${Math.floor(v).toLocaleString()}`
+    },
+    sortingFn: sortingNumberNull,
+  }),
+  columnHelper.accessor('availability', {
+    id: 'availability',
+    header: 'Availability',
+    cell: (props) => {
+      const v = props.getValue()
+      const target = props.row.getValue<number>('objective') ?? 0
+      if (v === undefined) {
+        return 'No data'
+      }
+      return <span className={v > target ? 'good' : 'bad'}>{(100 * v).toFixed(2)}%</span>
+    },
+    sortingFn: sortingNumberNull,
+  }),
+  columnHelper.accessor('budget', {
+    id: 'budget',
+    header: 'Budget',
+    cell: (props) => {
+      const v = props.getValue()
+      if (v === undefined || v === null) {
+        return 'No data'
+      }
+      return <span className={v >= 0 ? 'good' : 'bad'}>{(100 * v).toFixed(2)}%</span>
+    },
+    sortingFn: sortingNumberNull,
+  }),
+  columnHelper.accessor('alerts', {
+    id: 'alerts',
+    header: 'Alerts',
+    cell: (props) => {
+      const v = props.getValue()
+      if (v === '') {
+        return
+      }
+      return <span className="severity">{v}</span>
+    },
+  }),
+]
+
+const emptyData: row[] = []
 
 const List = () => {
+  console.log('render List')
+
+  document.title = 'Objectives - Pyrra'
+  const navigate = useNavigate()
+  const {search} = useLocation()
+
   const client = useMemo(() => {
     const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
     return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [])
 
-  const navigate = useNavigate()
-  const {search} = useLocation()
-
-  const [objectives, setObjectives] = useState<Objective[]>([])
-  const initialTableState: TableState = {objectives: {}}
-  const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
-  const [tableSortState, setTableSortState] = useState<TableSorting>({
-    type: TableSortType.Budget,
-    order: TableSortOrder.Ascending,
-  })
+  const [filterSearch] = useMemo((): [string] => {
+    const query = new URLSearchParams(search)
+    const querySearch = query.get('search')
+    return [querySearch ?? '']
+  }, [search])
 
   const [filterLabels, filterError] = useMemo((): [Labels, boolean] => {
     const query = new URLSearchParams(search)
@@ -279,13 +394,76 @@ const List = () => {
     return [{}, false]
   }, [search])
 
+  // TODO: Pass in the search to the useObjectivesList hook
+  const {
+    response: objectiveResponse,
+    // error: objectiveError,
+    status: objectiveStatus,
+  } = useObjectivesList(client, labelsString(filterLabels), '')
+
+  const navigateFilterURL = (search: string, labels: Labels) => {
+    // TODO: use something like URLState?
+
+    const hasSearch = search.length > 0
+    const hasLabels = Object.keys(labels).length > 0
+    console.log('hasSearch', hasSearch, 'hasLabels', hasLabels, labels)
+
+    if (!hasSearch && !hasLabels) {
+      navigate('?')
+      return
+    }
+    if (hasSearch && !hasLabels) {
+      navigate(`?search=${encodeURI(search)}`)
+      return
+    }
+    if (!hasSearch && hasLabels) {
+      navigate(`?filter=${encodeURI(labelsString(labels))}`)
+      return
+    }
+
+    navigate(`?search=${encodeURI(search)}&filter=${encodeURI(labelsString(labels))}`)
+  }
+
+  const initialTableState: TableState = {objectives: {}}
+  const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
+
+  const [sorting, setSorting] = React.useState<SortingState>([{id: 'budget', desc: false}])
+  const [searchInput, setSearchInput] = React.useState<string>(filterSearch)
+
+  // Only update the URL when the user stops typing for 1 second
+  const debouncedSearchFunction = useConstant(() =>
+    AwesomeDebouncePromise((search: string, labels: Labels) => {
+      navigateFilterURL(search, labels)
+    }, 1000),
+  )
+
+  // The async callback is run each time the text changes,
+  // but as the search function is debounced, it does not
+  // fire a new request on each keystroke
+  useAsync(async () => {
+    return debouncedSearchFunction(searchInput, filterLabels)
+  }, [debouncedSearchFunction, searchInput, filterLabels])
+
+  // TODO: Persist the column visibility in the browser's state
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    lset: true,
+    window: true,
+    objective: true,
+    latency: true,
+    errors: false,
+    total: false,
+    availability: true,
+    budget: true,
+    alerts: true,
+  })
+
   const updateFilter = (lset: Labels) => {
     // Copy existing filterLabels (from router) and add/overwrite k-v-pairs
     const updatedFilter: Labels = {...filterLabels}
     for (const l in lset) {
       updatedFilter[l] = lset[l]
     }
-    navigate(`?filter=${encodeURI(labelsString(updatedFilter))}`)
+    navigateFilterURL(searchInput, updatedFilter)
   }
 
   const removeFilterLabel = (k: string) => {
@@ -295,34 +473,11 @@ const List = () => {
         updatedFilter[name] = filterLabels[name]
       }
     }
-
-    if (Object.keys(updatedFilter).length === 0) {
-      navigate(`?`)
-      return
-    }
-
-    navigate(`?filter=${encodeURI(labelsString(updatedFilter))}`)
+    navigateFilterURL(searchInput, updatedFilter)
   }
 
   useEffect(() => {
-    document.title = 'Objectives - Pyrra'
-
-    client
-      .list({expr: labelsString(filterLabels)})
-      .then((resp: ListResponse) => setObjectives(resp.objectives))
-      .catch((err) => console.log(err))
-  }, [client, filterLabels])
-
-  useEffect(() => {
-    // const controller = new AbortController()
-    // const signal = controller.signal // TODO: Pass this to the generated fetch client?
-
-    // First we need to make sure to have objectives before we try fetching alerts for them.
-    // If we were to do this concurrently it may end up in a situation
-    // where we try to add an alert for a not yet existing objective.
-    // TODO: This is prone to a concurrency race with updates of status that have additional groupings...
-    // One solution would be to store this in a separate array and reconcile against that array after every status update.
-    if (objectives.length > 0) {
+    if (objectiveStatus === 'success' && objectiveResponse !== null) {
       client
         .getAlerts({
           expr: '',
@@ -341,13 +496,8 @@ const List = () => {
           })
         })
         .catch((err) => console.log(err))
-    }
 
-    objectives
-      .sort((a: Objective, b: Objective) =>
-        labelsString(a.labels).localeCompare(labelsString(b.labels)),
-      )
-      .forEach((o: Objective) => {
+      objectiveResponse.objectives.forEach((o: Objective) => {
         dispatchTable({
           type: TableActionType.SetObjective,
           lset: labelsString(o.labels),
@@ -389,255 +539,73 @@ const List = () => {
             dispatchTable({type: TableActionType.SetStatusError, lset: labelsString(o.labels)})
           })
       })
-
-    // return () => {
-    //   // cancel pending requests if necessary
-    //   controller.abort()
-    // }
-  }, [client, objectives])
-
-  const handleTableSort = (e: any, type: TableSortType): void => {
-    e.preventDefault()
-
-    if (tableSortState.type === type) {
-      const order =
-        tableSortState.order === TableSortOrder.Ascending
-          ? TableSortOrder.Descending
-          : TableSortOrder.Ascending
-      setTableSortState({type: type, order: order})
-    } else {
-      setTableSortState({type: type, order: TableSortOrder.Ascending})
     }
-  }
+  }, [client, objectiveResponse, objectiveStatus])
 
-  // Indicates whether a latency column is needed or not.
-  let tableLatency = false
-
-  const tableList = Object.keys(table.objectives)
-    .map((k: string) => table.objectives[k])
-    .filter((o: TableObjective) => {
-      const labels = {...o.objective.labels, ...o.groupingLabels}
-      for (const k in filterLabels) {
-        // if label doesn't exist by key or if values differ filter out.
-        if (labels[k] === undefined || labels[k] !== filterLabels[k]) {
-          return false
-        }
-      }
-      return true
-    })
-    .sort((a: TableObjective, b: TableObjective) => {
-      if (a.latency !== undefined || b.latency !== undefined) {
-        tableLatency = true
-      }
-
-      // TODO: Make higher order function returning the sort function itself.
-      switch (tableSortState.type) {
-        case TableSortType.Name:
-          if (tableSortState.order === TableSortOrder.Ascending) {
-            return a.lset.localeCompare(b.lset)
-          } else {
-            return b.lset.localeCompare(a.lset)
-          }
-        case TableSortType.Window:
-          if (tableSortState.order === TableSortOrder.Ascending) {
-            return Number(a.objective.window?.seconds) - Number(b.objective.window?.seconds)
-          } else {
-            return Number(b.objective.window?.seconds) - Number(a.objective.window?.seconds)
-          }
-        case TableSortType.Objective:
-          if (tableSortState.order === TableSortOrder.Ascending) {
-            return a.objective.target - b.objective.target
-          } else {
-            return b.objective.target - a.objective.target
-          }
-        case TableSortType.Latency:
-          if (a.latency === undefined && b.latency !== undefined) {
-            return 1
-          }
-          if (a.latency !== undefined && b.latency === undefined) {
-            return -1
-          }
-          if (a.latency !== undefined && b.latency !== undefined) {
-            if (tableSortState.order === TableSortOrder.Ascending) {
-              return a.latency - b.latency
-            } else {
-              return b.latency - a.latency
+  const reactTableData = useMemo(() => {
+    if (Object.keys(table.objectives).length === 0) {
+      return emptyData
+    }
+    return (
+      Object.keys(table.objectives)
+        // TODO: Replace with a react-table filter.
+        // I couldn't make it work...
+        .filter((k): boolean => {
+          // first filter for labels filtered for
+          const o = table.objectives[k]
+          const labels = {...o.objective.labels, ...o.groupingLabels}
+          for (const k in filterLabels) {
+            // if label doesn't exist by key or if values differ filter out.
+            if (labels[k] === undefined || labels[k] !== filterLabels[k]) {
+              return false
             }
           }
+          // if all labels match, filter for the search string
+          // TODO: Use fuzzy search
+          return k.toLowerCase().includes(searchInput.toLowerCase())
+        })
+        .map((k: string) => {
+          const o = table.objectives[k]
+          const r: row = {
+            lset: {lset: o.objective.labels, grouping: o.groupingLabels},
+            window: o.objective.window,
+            objective: o.objective.target,
+            latency: o.latency,
+            errors: o.availability?.errors,
+            total: o.availability?.total,
+            availability: o.availability?.percentage,
+            budget: o.budget,
+            alerts: o.severity !== null ? o.severity : '',
+          }
+          return r
+        }) ?? null
+    )
+  }, [table.objectives, searchInput, filterLabels])
 
-          return 0
-        case TableSortType.Availability:
-          if (a.availability == null && b.availability != null) {
-            return 1
-          }
-          if (a.availability != null && b.availability == null) {
-            return -1
-          }
-          if (
-            a.availability !== undefined &&
-            a.availability != null &&
-            b.availability !== undefined &&
-            b.availability != null
-          ) {
-            if (tableSortState.order === TableSortOrder.Ascending) {
-              return a.availability.percentage - b.availability.percentage
-            } else {
-              return b.availability.percentage - a.availability.percentage
-            }
-          } else {
-            return 0
-          }
-        case TableSortType.Budget:
-          if (a.budget == null && b.budget != null) {
-            return 1
-          }
-          if (a.budget != null && b.budget == null) {
-            return -1
-          }
-          if (
-            a.budget !== undefined &&
-            a.budget != null &&
-            b.budget !== undefined &&
-            b.budget != null
-          ) {
-            if (tableSortState.order === TableSortOrder.Ascending) {
-              return a.budget - b.budget
-            } else {
-              return b.budget - a.budget
-            }
-          } else {
-            return 0
-          }
-        case TableSortType.Alerts:
-          if (a.severity === null && b.severity === null) {
-            return 0
-          }
-          if (a.severity === null && b.severity !== null) {
-            return 1
-          }
-          if (a.severity !== null && b.severity === null) {
-            return -1
-          }
-          if (tableSortState.order === TableSortOrder.Ascending) {
-            if (a.severity === 'critical' && b.severity === 'warning') {
-              return -1
-            } else {
-              return 1
-            }
-          } else {
-            if (a.severity === 'critical' && b.severity === 'warning') {
-              return 1
-            } else {
-              return 1
-            }
-          }
-      }
-      return 0
-    })
-
-  const upDownIcon =
-    tableSortState.order === TableSortOrder.Ascending ? <IconArrowUp /> : <IconArrowDown />
+  const reactTable = useReactTable({
+    data: reactTableData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    state: {
+      sorting,
+      columnVisibility,
+    },
+    // sorting
+    getSortedRowModel: getSortedRowModel(),
+    enableSortingRemoval: false,
+    onSortingChange: setSorting,
+    sortingFns: {
+      sortingNumberNull,
+    },
+    // debugTable: true,
+    // debugHeaders: true,
+    // debugColumns: true,
+  })
 
   const objectivePage = (labels: Labels, grouping: Labels) => {
     return `/objectives?expr=${encodeURI(labelsString(labels))}&grouping=${encodeURI(
       labelsString(grouping),
     )}`
-  }
-
-  const renderLatency = (o: TableObjective) => {
-    switch (hasObjectiveType(o.objective)) {
-      case ObjectiveType.Ratio:
-        return <></>
-      case ObjectiveType.BoolGauge:
-        return <></>
-      case ObjectiveType.Latency:
-      case ObjectiveType.LatencyNative:
-        return renderLatencyTarget(o.objective)
-    }
-  }
-
-  const renderAvailability = (o: TableObjective) => {
-    switch (o.state) {
-      case TableObjectiveState.Unknown:
-        return (
-          <Spinner
-            animation={'border'}
-            style={{width: 20, height: 20, borderWidth: 2, opacity: 0.1}}
-          />
-        )
-      case TableObjectiveState.NoData:
-        return <>No data</>
-      case TableObjectiveState.Error:
-        return <span className="error">Error</span>
-      case TableObjectiveState.Success: {
-        if (o.availability === null || o.availability === undefined) {
-          return <></>
-        }
-
-        const volumeWarning = (1 - o.objective.target) * o.availability.total
-
-        const ls = labelsString(Object.assign({}, o.objective.labels, o.groupingLabels))
-        return (
-          <>
-            <OverlayTrigger
-              key={ls}
-              overlay={
-                <OverlayTooltip id={`tooltip-${ls}`}>
-                  Errors: {Math.floor(o.availability.errors).toLocaleString()}
-                  <br />
-                  Total: {Math.floor(o.availability.total).toLocaleString()}
-                </OverlayTooltip>
-              }>
-              <span className={o.availability.percentage > o.objective.target ? 'good' : 'bad'}>
-                {(100 * o.availability.percentage).toFixed(2)}%
-              </span>
-            </OverlayTrigger>
-            {volumeWarning < 1 ? (
-              <>
-                <OverlayTrigger
-                  key={`${ls}-warning`}
-                  overlay={
-                    <OverlayTooltip id={`tooltip-${ls}-warning`}>
-                      Too few requests!
-                      <br />
-                      Adjust your objective or wait for events.
-                    </OverlayTooltip>
-                  }>
-                  <span className="volume-warning">
-                    <IconWarning width={20} height={20} fill="#b10d0d" />
-                  </span>
-                </OverlayTrigger>
-              </>
-            ) : (
-              <></>
-            )}
-          </>
-        )
-      }
-    }
-  }
-
-  const renderErrorBudget = (o: TableObjective) => {
-    switch (o.state) {
-      case TableObjectiveState.Unknown:
-        return (
-          <Spinner
-            animation={'border'}
-            style={{width: 20, height: 20, borderWidth: 2, opacity: 0.1}}
-          />
-        )
-      case TableObjectiveState.NoData:
-        return <>No data</>
-      case TableObjectiveState.Error:
-        return <span className="error">Error</span>
-      case TableObjectiveState.Success:
-        if (o.budget === null || o.budget === undefined) {
-          return <></>
-        }
-        return (
-          <span className={o.budget >= 0 ? 'good' : 'bad'}>{(100 * o.budget).toFixed(2)}%</span>
-        )
-    }
   }
 
   return (
@@ -646,161 +614,147 @@ const List = () => {
       <Container className="content list">
         <Row>
           <Col>
-            <h3>Objectives</h3>
+            <h3>Service Level Objectives</h3>
           </Col>
         </Row>
-        <Row>
-          <Col>
-            {Object.keys(filterLabels).map((k: string) => (
-              <Button
-                key={k}
-                variant="light"
-                size="sm"
-                className="filter-close"
-                onClick={() => removeFilterLabel(k)}>
-                {`${k}=${filterLabels[k]}`}
-                <span className="btn-close"></span>
-              </Button>
-            ))}
+        <Row className="align-items-center">
+          <Col xs={12} md={6} lg={4} className="my-2">
+            <div className="position-relative">
+              <div className="position-absolute" style={{top: 5, left: 14}}>
+                <IconMagnifyingGlass width={16} height={16} />
+              </div>
+              <input
+                type="search"
+                className="form-control"
+                placeholder="Search name"
+                aria-label="Search"
+                style={{paddingLeft: 40}}
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value)
+                }}
+              />
+            </div>
+          </Col>
+          <Col className="my-2 order-md-2 order-lg-1 flex-lg-fill" xs={12} lg={'auto'}>
+            {Object.keys(filterLabels)
+              .sort((a, b) => a.localeCompare(b))
+              .map((k: string) => (
+                <Button
+                  key={k}
+                  variant="light"
+                  size="sm"
+                  className="filter-close"
+                  onClick={() => removeFilterLabel(k)}>
+                  {`${k}=${filterLabels[k]}`}
+                  <span className="btn-close"></span>
+                </Button>
+              ))}
             <Alert show={filterError} variant="danger">
               Your SLO filter is broken. Please reset the filter.
             </Alert>
+          </Col>
+          <Col
+            xs={12}
+            md={6}
+            lg={'auto'}
+            className="my-2 order-md-1 order-lg-2"
+            style={{textAlign: 'right'}}>
+            <Dropdown>
+              <Dropdown.Toggle
+                variant="outline-light"
+                id="dropdown-basic"
+                role="checkbox"
+                style={{color: 'var(--bs-body-color)', justifyContent: 'center'}}>
+                <IconTableColumns width={16} height={16} />
+                <span style={{marginLeft: 8}}>Columns</span>
+              </Dropdown.Toggle>
+              <Dropdown.Menu align="end">
+                <ul style={{listStyle: 'none', padding: '0 10px'}}>
+                  {columns.map((c) => {
+                    const id = c.id ?? ''
+                    const header = c.header as string
+                    return (
+                      <li key={id} style={{padding: '4px 0'}}>
+                        <input
+                          type="checkbox"
+                          checked={columnVisibility[id]}
+                          id={id}
+                          onChange={() =>
+                            setColumnVisibility({
+                              ...columnVisibility,
+                              [id]: !columnVisibility[id],
+                            })
+                          }
+                        />
+                        <label htmlFor={id} style={{marginLeft: 8}}>
+                          {header}
+                        </label>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </Dropdown.Menu>
+            </Dropdown>
           </Col>
         </Row>
         <Row>
           <div className="table-responsive">
             <Table hover={true}>
               <thead>
-                <tr>
-                  <th
-                    className={tableSortState.type === TableSortType.Name ? 'active' : ''}
-                    onClick={(e) => handleTableSort(e, TableSortType.Name)}>
-                    <a>Name </a>
-                    {tableSortState.type === TableSortType.Name ? upDownIcon : <IconArrowUpDown />}
-                  </th>
-                  <th
-                    className={tableSortState.type === TableSortType.Window ? 'active' : ''}
-                    onClick={(e) => handleTableSort(e, TableSortType.Window)}>
-                    <a>Time Window </a>
-                    {tableSortState.type === TableSortType.Window ? (
-                      upDownIcon
-                    ) : (
-                      <IconArrowUpDown />
-                    )}
-                  </th>
-                  <th
-                    className={tableSortState.type === TableSortType.Objective ? 'active' : ''}
-                    onClick={(e) => handleTableSort(e, TableSortType.Objective)}>
-                    <a>Objective </a>
-                    {tableSortState.type === TableSortType.Objective ? (
-                      upDownIcon
-                    ) : (
-                      <IconArrowUpDown />
-                    )}
-                  </th>
-                  {tableLatency ? (
-                    <th
-                      className={tableSortState.type === TableSortType.Latency ? 'active' : ''}
-                      onClick={(e) => handleTableSort(e, TableSortType.Latency)}>
-                      <a>Latency </a>
-                      {tableSortState.type === TableSortType.Latency ? (
-                        upDownIcon
-                      ) : (
-                        <IconArrowUpDown />
-                      )}
-                    </th>
-                  ) : (
-                    <></>
-                  )}
-                  <th
-                    className={tableSortState.type === TableSortType.Availability ? 'active' : ''}
-                    onClick={(e) => handleTableSort(e, TableSortType.Availability)}>
-                    <a>Availability </a>
-                    {tableSortState.type === TableSortType.Availability ? (
-                      upDownIcon
-                    ) : (
-                      <IconArrowUpDown />
-                    )}
-                  </th>
-                  <th
-                    className={tableSortState.type === TableSortType.Budget ? 'active' : ''}
-                    onClick={(e) => handleTableSort(e, TableSortType.Budget)}>
-                    <a>Error Budget </a>
-                    {tableSortState.type === TableSortType.Budget ? (
-                      upDownIcon
-                    ) : (
-                      <IconArrowUpDown />
-                    )}
-                  </th>
-                  <th
-                    className={tableSortState.type === TableSortType.Alerts ? 'active' : ''}
-                    onClick={(e) => handleTableSort(e, TableSortType.Alerts)}>
-                    <a>Alerts </a>
-                    {tableSortState.type === TableSortType.Alerts ? (
-                      upDownIcon
-                    ) : (
-                      <IconArrowUpDown />
-                    )}
-                  </th>
-                </tr>
+                {reactTable.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className={header.column.getIsSorted() !== false ? 'active' : ''}
+                        onClick={header.column.getToggleSortingHandler()}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.column.getCanSort() && header.column.getIsSorted() === false ? (
+                          <IconArrowUpDown />
+                        ) : (
+                          ''
+                        )}
+                        {header.column.getIsSorted() === 'asc' ? <IconArrowUp /> : ''}
+                        {header.column.getIsSorted() === 'desc' ? <IconArrowDown /> : ''}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
               </thead>
               <tbody>
-                {tableList.map((o: TableObjective) => {
-                  const name = o.objective.labels[MetricName]
-                  const labelBadges = Object.entries({...o.objective.labels, ...o.groupingLabels})
-                    .filter((l: [string, string]) => l[0] !== MetricName)
-                    .map((l: [string, string]) => (
-                      <Badge
-                        key={l[0]}
-                        bg="light"
-                        text="dark"
-                        className="fw-normal"
-                        style={{marginRight: 5}}
-                        onClick={(event) => {
-                          event.stopPropagation()
-
-                          const lset: Labels = {}
-                          lset[l[0]] = l[1]
-                          updateFilter(lset)
-                        }}>
-                        <a>
-                          {l[0]}={l[1]}
-                        </a>
-                      </Badge>
-                    ))
-
-                  const classes =
-                    o.severity !== null
-                      ? ['table-row-clickable', 'firing']
-                      : ['table-row-clickable']
-
-                  return (
-                    <tr
-                      key={o.lset}
-                      className={classes.join(' ')}
-                      onClick={() => {
-                        navigate(objectivePage(o.objective.labels, o.groupingLabels))
-                      }}>
-                      <td>
-                        <Link
-                          to={objectivePage(o.objective.labels, o.groupingLabels)}
-                          className="text-reset"
-                          style={{marginRight: 5}}>
-                          {name}
-                        </Link>
-                        {labelBadges}
+                {reactTable.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    onClick={() => {
+                      const labels: {lset: Labels; grouping: Labels} = row.getValue('lset')
+                      navigate(objectivePage(labels.lset, labels.grouping))
+                    }}
+                    className={
+                      row.getValue('alerts') !== ''
+                        ? 'table-row-clickable firing'
+                        : 'table-row-clickable'
+                    }>
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id}>
+                        <>
+                          {cell.column.id === 'lset' ? (
+                            <NameCell
+                              cell={cell}
+                              onFilter={(lset) => {
+                                updateFilter(lset)
+                              }}
+                            />
+                          ) : (
+                            flexRender(cell.column.columnDef.cell, cell.getContext())
+                          )}
+                        </>
                       </td>
-                      <td>{formatDuration(Number(o.objective.window?.seconds) * 1000)}</td>
-                      <td>{(100 * o.objective.target).toFixed(2)}%</td>
-                      {tableLatency ? <td>{renderLatency(o)}</td> : <></>}
-                      <td>{renderAvailability(o)}</td>
-                      <td>{renderErrorBudget(o)}</td>
-                      <td>
-                        <span className="severity">{o.severity !== null ? o.severity : ''}</span>
-                      </td>
-                    </tr>
-                  )
-                })}
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </Table>
           </div>
@@ -814,6 +768,44 @@ const List = () => {
           </Col>
         </Row>
       </Container>
+    </>
+  )
+}
+
+interface NameCellProps {
+  cell: Cell<row, any>
+  onFilter: (lset: Labels) => void
+}
+
+const NameCell = ({cell, onFilter}: NameCellProps): React.JSX.Element => {
+  const v: {lset: Labels; grouping: Labels} = cell.getValue()
+  const name = v.lset[MetricName]
+  const labelBadges = Object.entries({...v.lset, ...v.grouping})
+    .filter((l: [string, string]) => l[0] !== MetricName)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map((l: [string, string]) => (
+      <Badge
+        key={l[0]}
+        bg="light"
+        text="dark"
+        className="fw-normal"
+        style={{marginRight: 5}}
+        onClick={(event) => {
+          event.stopPropagation()
+          const lset: Labels = {}
+          lset[l[0]] = l[1]
+          console.log('filter', lset)
+          onFilter(lset)
+        }}>
+        <a>
+          {l[0]}={l[1]}
+        </a>
+      </Badge>
+    ))
+
+  return (
+    <>
+      <a>{name}</a> {labelBadges}
     </>
   )
 }
