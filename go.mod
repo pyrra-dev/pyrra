@@ -20,7 +20,7 @@ require (
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 	golang.org/x/net v0.14.0
 	google.golang.org/protobuf v1.31.0
-	k8s.io/api v0.27.4
+	k8s.io/api v0.28.0
 	k8s.io/apimachinery v0.28.0
 	k8s.io/client-go v0.27.4
 	sigs.k8s.io/controller-runtime v0.15.1
