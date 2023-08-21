@@ -16,7 +16,7 @@
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.14.1",
-    "uplot": "1.6.24",
+    "uplot": "1.6.25",
     "uplot-react": "^1.1.4",
     "use-constant": "^1.1.1"
   },
