@@ -10,7 +10,7 @@ plugins:
     path: ui/node_modules/.bin/protoc-gen-es
     out: ui/src/proto
     opt: target=js+dts
-  - name: connect-web
-    path: ui/node_modules/.bin/protoc-gen-connect-web
+  - name: connect-es
+    path: ui/node_modules/.bin/protoc-gen-connect-es
     out: ui/src/proto
     opt: target=js+dts

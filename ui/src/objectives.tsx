@@ -1,6 +1,6 @@
-import {ConnectError, PromiseClient} from '@bufbuild/connect-web'
+import {ConnectError, PromiseClient} from '@connectrpc/connect'
 import {QueryStatus} from 'react-query/types/core/types'
-import {ObjectiveService} from './proto/objectives/v1alpha1/objectives_connectweb'
+import {ObjectiveService} from './proto/objectives/v1alpha1/objectives_connect'
 import {Timestamp} from '@bufbuild/protobuf'
 import {QueryOptions, useConnectQuery} from './query'
 import {GetStatusResponse, ListResponse} from './proto/objectives/v1alpha1/objectives_pb'

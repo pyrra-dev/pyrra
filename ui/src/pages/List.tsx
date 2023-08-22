@@ -4,8 +4,9 @@ import {API_BASEPATH, latencyTarget} from '../App'
 import {useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import {Labels, labelsString, MetricName, parseLabels} from '../labels'
-import {createConnectTransport, createPromiseClient} from '@bufbuild/connect-web'
-import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
+import {createConnectTransport} from '@bufbuild/connect-web'
+import {createPromiseClient} from '@connectrpc/connect'
+import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
 import {
   Alert as ObjectiveAlert,
   Alert_State,
