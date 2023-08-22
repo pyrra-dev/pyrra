@@ -1,5 +1,5 @@
-import {PromiseClient} from '@bufbuild/connect-web'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connectweb'
+import {PromiseClient} from '@connectrpc/connect'
+import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
 import uPlot, {AlignedData} from 'uplot'
 import React, {useLayoutEffect, useRef, useState} from 'react'
 import {usePrometheusQueryRange} from '../../prometheus'

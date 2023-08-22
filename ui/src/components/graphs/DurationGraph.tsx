@@ -7,8 +7,8 @@ import {IconExternal} from '../Icons'
 import {Labels, labelsString, parseLabelValue} from '../../labels'
 import {colorful, greys} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@bufbuild/connect-web'
-import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connectweb'
+import {PromiseClient} from '@connectrpc/connect'
+import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connect'
 import {Timestamp} from '@bufbuild/protobuf'
 import {
   GraphDurationResponse,

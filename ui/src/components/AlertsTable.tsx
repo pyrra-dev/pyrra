@@ -9,11 +9,11 @@ import {
   GetAlertsResponse,
   Objective,
 } from '../proto/objectives/v1alpha1/objectives_pb'
-import {PromiseClient} from '@bufbuild/connect-web'
-import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connectweb'
+import {PromiseClient} from '@connectrpc/connect'
+import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
 import BurnrateGraph from './graphs/BurnrateGraph'
 import uPlot, {AlignedData} from 'uplot'
-import {PrometheusService} from '../proto/prometheus/v1/prometheus_connectweb'
+import {PrometheusService} from '../proto/prometheus/v1/prometheus_connect'
 import {usePrometheusQueryRange} from '../prometheus'
 import {step} from './graphs/step'
 import {convertAlignedData} from './graphs/aligneddata'
