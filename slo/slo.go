@@ -37,11 +37,11 @@ func (o Objective) Name() string {
 }
 
 func (o Objective) Windows() []Window {
-	return Windows(time.Duration(o.Window))
+	return Windows(time.Duration(o.Window), o.AlertHighSeverity(), o.AlertLowSeverity())
 }
 
 func (o Objective) HasWindows(short, long model.Duration) (Window, bool) {
-	for _, w := range Windows(time.Duration(o.Window)) {
+	for _, w := range Windows(time.Duration(o.Window), o.AlertHighSeverity(), o.AlertLowSeverity()) {
 		if w.Short == time.Duration(short) && w.Long == time.Duration(long) {
 			return w, true
 		}
@@ -103,6 +103,20 @@ func (o Objective) AlertName() string {
 	return defaultAlertname
 }
 
+func (o Objective) AlertHighSeverity() Severity {
+	if o.Alerting.HighSev != "" {
+		return o.Alerting.HighSev
+	}
+	return critical
+}
+
+func (o Objective) AlertLowSeverity() Severity {
+	if o.Alerting.LowSev != "" {
+		return o.Alerting.LowSev
+	}
+	return warning
+}
+
 type Indicator struct {
 	Ratio         *RatioIndicator
 	Latency       *LatencyIndicator
@@ -136,6 +150,8 @@ type BoolGaugeIndicator struct {
 type Alerting struct {
 	Disabled bool
 	Name     string
+	HighSev  Severity
+	LowSev   Severity
 }
 
 type Metric struct {

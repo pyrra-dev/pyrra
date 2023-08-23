@@ -29,7 +29,7 @@ type MultiBurnRateAlert struct {
 }
 
 func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
-	ws := Windows(time.Duration(o.Window))
+	ws := Windows(time.Duration(o.Window), o.AlertHighSeverity(), o.AlertLowSeverity())
 
 	mbras := make([]MultiBurnRateAlert, len(ws))
 	for i, w := range ws {
@@ -59,7 +59,7 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
-	ws := Windows(time.Duration(o.Window))
+	ws := Windows(time.Duration(o.Window), o.AlertHighSeverity(), o.AlertLowSeverity())
 	burnrates := burnratesFromWindows(ws)
 	rules := make([]monitoringv1.Rule, 0, len(burnrates))
 
@@ -707,7 +707,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels[k] = v
 		}
 		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
+		alertLabels["severity"] = string(o.AlertHighSeverity())
 
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
@@ -855,7 +855,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels[k] = v
 		}
 		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
+		alertLabels["severity"] = string(o.AlertHighSeverity())
 
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
@@ -882,7 +882,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabelsLe[k] = v
 		}
 		// Add severity label for alerts
-		alertLabelsLe["severity"] = string(critical)
+		alertLabelsLe["severity"] = string(o.AlertHighSeverity())
 
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
@@ -1035,7 +1035,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels[k] = v
 		}
 		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
+		alertLabels["severity"] = string(o.AlertHighSeverity())
 
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
@@ -1079,47 +1079,47 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	}, nil
 }
 
-type severity string
+type Severity string
 
 const (
-	critical severity = "critical"
-	warning  severity = "warning"
+	critical Severity = "critical"
+	warning  Severity = "warning"
 )
 
 type Window struct {
-	Severity severity
+	Severity Severity
 	For      time.Duration
 	Long     time.Duration
 	Short    time.Duration
 	Factor   float64
 }
 
-func Windows(sloWindow time.Duration) []Window {
+func Windows(sloWindow time.Duration, highSev, lowSev Severity) []Window {
 	// TODO: I'm still not sure if For, Long, Short should really be based on the 28 days ratio...
 
 	round := time.Minute // TODO: Change based on sloWindow
 
 	// long and short rates are calculated based on the ratio for 28 days.
 	return []Window{{
-		Severity: critical,
+		Severity: highSev,
 		For:      (sloWindow / (28 * 24 * (60 / 2))).Round(round), // 2m for 28d - half short
 		Long:     (sloWindow / (28 * 24)).Round(round),            // 1h for 28d
 		Short:    (sloWindow / (28 * 24 * (60 / 5))).Round(round), // 5m for 28d
 		Factor:   14,                                              // error budget burn: 50% within a day
 	}, {
-		Severity: critical,
+		Severity: highSev,
 		For:      (sloWindow / (28 * 24 * (60 / 15))).Round(round), // 15m for 28d - half short
 		Long:     (sloWindow / (28 * (24 / 6))).Round(round),       // 6h for 28d
 		Short:    (sloWindow / (28 * 24 * (60 / 30))).Round(round), // 30m for 28d
 		Factor:   7,                                                // error budget burn: 20% within a day / 100% within 5 days
 	}, {
-		Severity: warning,
+		Severity: lowSev,
 		For:      (sloWindow / (28 * 24)).Round(round),       // 1h for 28d - half short
 		Long:     (sloWindow / 28).Round(round),              // 1d for 28d
 		Short:    (sloWindow / (28 * (24 / 2))).Round(round), // 2h for 28d
 		Factor:   2,                                          // error budget burn: 10% within a day / 100% within 10 days
 	}, {
-		Severity: warning,
+		Severity: lowSev,
 		For:      (sloWindow / (28 * (24 / 3))).Round(round), // 3h for 28d - half short
 		Long:     (sloWindow / 7).Round(round),               // 4d for 28d
 		Short:    (sloWindow / (28 * (24 / 6))).Round(round), // 6h for 28d
