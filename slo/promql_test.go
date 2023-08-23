@@ -54,6 +54,11 @@ var (
 		o.Indicator.Ratio.Errors.LabelMatchers = append(o.Indicator.Ratio.Errors.LabelMatchers, matcher)
 		return o
 	}
+	objectiveHTTPRatioAlertingDisabled = func() Objective {
+		o := objectiveHTTPRatio()
+		o.Alerting.Disabled = true
+		return o
+	}
 	objectiveGRPCRatio = func() Objective {
 		return Objective{
 			Labels:      labels.FromStrings(labels.MetricName, "monitoring-grpc-errors"),

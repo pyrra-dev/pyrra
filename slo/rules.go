@@ -707,7 +707,11 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels[k] = v
 		}
 		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
+		if !o.Alerting.Disabled {
+			alertLabels["severity"] = string(critical)
+		} else {
+			alertLabels["severity"] = string(info)
+		}
 
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
@@ -855,7 +859,11 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels[k] = v
 		}
 		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
+		if !o.Alerting.Disabled {
+			alertLabels["severity"] = string(critical)
+		} else {
+			alertLabels["severity"] = string(info)
+		}
 
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
@@ -882,7 +890,11 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabelsLe[k] = v
 		}
 		// Add severity label for alerts
-		alertLabelsLe["severity"] = string(critical)
+		if !o.Alerting.Disabled {
+			alertLabelsLe["severity"] = string(critical)
+		} else {
+			alertLabelsLe["severity"] = string(info)
+		}
 
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
@@ -1035,7 +1047,11 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels[k] = v
 		}
 		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
+		if !o.Alerting.Disabled {
+			alertLabels["severity"] = string(critical)
+		} else {
+			alertLabels["severity"] = string(info)
+		}
 
 		rules = append(rules, monitoringv1.Rule{
 			Alert: "SLOMetricAbsent",
@@ -1084,6 +1100,7 @@ type severity string
 const (
 	critical severity = "critical"
 	warning  severity = "warning"
+	info     severity = "info"
 )
 
 type Window struct {

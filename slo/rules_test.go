@@ -1245,6 +1245,23 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "http-ratio-alerting-disabled",
+		slo:  objectiveHTTPRatioAlertingDisabled(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-increase",
+			Interval: monitoringDuration("2m30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:increase4w",
+				Expr:   intstr.FromString(`sum by (code) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(http_requests_total{job="thanos-receive-default"}) == 1`),
+				For:    monitoringDuration("2m"),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors", "severity": "info"},
+			}},
+		},
+	}, {
 		name: "grpc-errors",
 		slo:  objectiveGRPCRatio(),
 		rules: monitoringv1.RuleGroup{
@@ -1568,7 +1585,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		},
 	}}
 
-	require.Len(t, testcases, 17)
+	require.Len(t, testcases, 18)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
