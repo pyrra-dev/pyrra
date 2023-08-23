@@ -318,6 +318,17 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 		}
 	}
 
+	if in.Spec.ServiceLevelIndicator.BoolGauge != nil {
+		boolGauge := in.Spec.ServiceLevelIndicator.BoolGauge
+		if boolGauge.Query.Metric == "" {
+			return warnings, fmt.Errorf("boolGauge metric must be set")
+		}
+
+		if _, err := parser.ParseExpr(boolGauge.Query.Metric); err != nil {
+			return warnings, fmt.Errorf("failed to parse boolGauge metric: %w", err)
+		}
+	}
+
 	return warnings, nil
 }
 
