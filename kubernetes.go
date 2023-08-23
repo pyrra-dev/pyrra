@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
@@ -64,11 +65,13 @@ func cmdKubernetes(logger log.Logger, metricsAddr string, _, genericRules bool) 
 	webhookServer := webhook.NewServer(webhook.Options{Port: 9443})
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		WebhookServer:      webhookServer,
-		LeaderElection:     false,
-		LeaderElectionID:   "9d76195a.pyrra.dev",
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: metricsAddr,
+		},
+		WebhookServer:    webhookServer,
+		LeaderElection:   false,
+		LeaderElectionID: "9d76195a.pyrra.dev",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
