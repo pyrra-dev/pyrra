@@ -635,4 +635,61 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			require.Nil(t, warn)
 		})
 	})
+
+	t.Run("boolGauge", func(t *testing.T) {
+		boolGauge := func() *v1alpha1.ServiceLevelObjective {
+			return &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "name",
+					Namespace: "namespace",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						BoolGauge: &v1alpha1.BoolGaugeIndicator{
+							Query: v1alpha1.Query{
+								Metric: `foo{foo="bar"}`,
+							},
+						},
+					},
+				},
+			}
+		}
+
+		warn, err := boolGauge().ValidateCreate()
+		require.NoError(t, err)
+		require.Nil(t, warn)
+
+		t.Run("empty", func(t *testing.T) {
+			bg := boolGauge()
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = ""
+			warn, err := bg.ValidateCreate()
+			require.EqualError(t, err, "boolGauge metric must be set")
+			require.Nil(t, warn)
+		})
+
+		t.Run("invalidMetric", func(t *testing.T) {
+			bg := boolGauge()
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "foo{"
+			warn, err := bg.ValidateCreate()
+			require.EqualError(t, err, "failed to parse boolGauge metric: 1:5: parse error: unexpected end of input inside braces")
+			require.Nil(t, warn)
+
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "foo}"
+			warn, err = bg.ValidateCreate()
+			require.EqualError(t, err, "failed to parse boolGauge metric: 1:4: parse error: unexpected character: '}'")
+			require.Nil(t, warn)
+
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "$$$"
+			warn, err = bg.ValidateCreate()
+			require.EqualError(t, err, "failed to parse boolGauge metric: 1:1: parse error: unexpected character: '$'")
+			require.Nil(t, warn)
+
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = `foo{foo="bar'}`
+			warn, err = bg.ValidateCreate()
+			require.EqualError(t, err, "failed to parse boolGauge metric: 1:9: parse error: unterminated quoted string")
+			require.Nil(t, warn)
+		})
+	})
 }
