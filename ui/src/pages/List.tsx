@@ -1,5 +1,16 @@
 import React, {useEffect, useMemo, useReducer, useState} from 'react'
-import {Alert, Badge, Button, Col, Container, Dropdown, Row, Table} from 'react-bootstrap'
+import {
+  Alert,
+  Badge,
+  Button,
+  Col,
+  Container,
+  Dropdown,
+  OverlayTrigger,
+  Row,
+  Table,
+  Tooltip as OverlayTooltip,
+} from 'react-bootstrap'
 import {API_BASEPATH, latencyTarget} from '../App'
 import {useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
@@ -36,6 +47,7 @@ import {
   IconArrowUpDown,
   IconMagnifyingGlass,
   IconTableColumns,
+  IconWarning,
 } from '../components/Icons'
 import AwesomeDebouncePromise from 'awesome-debounce-promise'
 import useConstant from 'use-constant'
@@ -268,7 +280,7 @@ const columns = [
   }),
   columnHelper.accessor('window', {
     id: 'window',
-    header: 'Time Window',
+    header: 'Window',
     cell: (props) => {
       return formatDuration(Number(props.getValue()?.seconds) * 1000)
     },
@@ -314,7 +326,14 @@ const columns = [
       if (v === undefined) {
         return 'No data'
       }
-      return `${Math.floor(v).toLocaleString()}`
+
+      const objective: number = props.row.getValue('objective')
+      return (
+        <>
+          {Math.floor(v).toLocaleString()}
+          <VolumeWarningTooltip id={props.cell.id} objective={objective} total={v} />
+        </>
+      )
     },
     sortingFn: sortingNumberNull,
   }),
@@ -327,7 +346,19 @@ const columns = [
       if (v === undefined) {
         return 'No data'
       }
-      return <span className={v > target ? 'good' : 'bad'}>{(100 * v).toFixed(2)}%</span>
+
+      const objective: number = props.row.getValue('objective')
+      const total: number = props.row.getValue('total')
+      const totalVisible = props.table.getColumn('total')?.getIsVisible() ?? false
+
+      return (
+        <>
+          <span className={v > target ? 'good' : 'bad'}>{(100 * v).toFixed(2)}%</span>
+          {!totalVisible && (
+            <VolumeWarningTooltip id={props.cell.id} objective={objective} total={total} />
+          )}
+        </>
+      )
     },
     sortingFn: sortingNumberNull,
   }),
@@ -355,6 +386,36 @@ const columns = [
     },
   }),
 ]
+
+const VolumeWarningTooltip = ({
+  id,
+  objective,
+  total,
+}: {
+  id: string
+  objective: number
+  total: number
+}): React.JSX.Element => {
+  const show = (1 - objective) * total < 1
+
+  if (!show) return <></>
+
+  return (
+    <OverlayTrigger
+      key={`${id}-warning`}
+      overlay={
+        <OverlayTooltip id={`tooltip-${id}-warning`}>
+          Too few requests!
+          <br />
+          Adjust your objective or wait for events.
+        </OverlayTooltip>
+      }>
+      <span className="volume-warning">
+        <IconWarning width={20} height={20} fill="#b10d0d" />
+      </span>
+    </OverlayTrigger>
+  )
+}
 
 const emptyData: row[] = []
 
