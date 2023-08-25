@@ -134,8 +134,10 @@ type BoolGaugeIndicator struct {
 }
 
 type Alerting struct {
-	Disabled bool
-	Name     string
+	Disabled  bool // deprecated, use Burnrates instead
+	Burnrates bool
+	Absent    bool
+	Name      string
 }
 
 type Metric struct {
