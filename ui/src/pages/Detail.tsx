@@ -33,6 +33,7 @@ import ObjectiveTile from '../components/tiles/ObjectiveTile'
 import AvailabilityTile from '../components/tiles/AvailabilityTile'
 import ErrorBudgetTile from '../components/tiles/ErrorBudgetTile'
 import Tiles from '../components/tiles/Tiles'
+import {IconChartArea, IconChartLine} from '../components/Icons'
 
 const Detail = () => {
   const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
@@ -88,6 +89,7 @@ const Detail = () => {
   }, [search])
 
   const [autoReload, setAutoReload] = useState<boolean>(true)
+  const [absolute, setAbsolute] = useState<boolean>(true)
 
   const {
     response: objectiveResponse,
@@ -296,7 +298,6 @@ const Detail = () => {
                     </Button>
                   ))}
                 </ButtonGroup>
-                &nbsp; &nbsp; &nbsp;
                 <OverlayTrigger
                   key="auto-reload"
                   overlay={
@@ -310,6 +311,36 @@ const Detail = () => {
                     />
                   </span>
                 </OverlayTrigger>
+                <ButtonGroup aria-label="Time Range">
+                  <OverlayTrigger
+                    key="auto-reload"
+                    overlay={
+                      <OverlayTooltip id={`tooltip-auto-reload`}>Absolute Chart</OverlayTooltip>
+                    }>
+                    <Button
+                      variant="light"
+                      onClick={() => {
+                        setAbsolute(true)
+                      }}
+                      active={absolute}>
+                      <IconChartArea width={16} height={16} fill={absolute ? 'white' : 'black'} />
+                    </Button>
+                  </OverlayTrigger>
+                  <OverlayTrigger
+                    key="auto-reload"
+                    overlay={
+                      <OverlayTooltip id={`tooltip-auto-reload`}>Relative Chart</OverlayTooltip>
+                    }>
+                    <Button
+                      variant="light"
+                      onClick={() => {
+                        setAbsolute(false)
+                      }}
+                      active={!absolute}>
+                      <IconChartLine width={16} height={16} fill={!absolute ? 'white' : 'black'} />
+                    </Button>
+                  </OverlayTrigger>
+                </ButtonGroup>
               </div>
             </Col>
           </Row>
@@ -323,6 +354,7 @@ const Detail = () => {
                   to={to}
                   uPlotCursor={uPlotCursor}
                   updateTimeRange={updateTimeRangeSelect}
+                  absolute={absolute}
                 />
               ) : (
                 <></>
@@ -361,6 +393,7 @@ const Detail = () => {
                   to={to}
                   uPlotCursor={uPlotCursor}
                   updateTimeRange={updateTimeRangeSelect}
+                  absolute={absolute}
                 />
               ) : (
                 <></>

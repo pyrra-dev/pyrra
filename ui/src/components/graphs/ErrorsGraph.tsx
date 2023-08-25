@@ -23,6 +23,7 @@ interface ErrorsGraphProps {
   to: number
   uPlotCursor: uPlot.Cursor
   updateTimeRange: (min: number, max: number, absolute: boolean) => void
+  absolute: boolean
 }
 
 const ErrorsGraph = ({
@@ -33,6 +34,7 @@ const ErrorsGraph = ({
   to,
   uPlotCursor,
   updateTimeRange,
+  absolute = false,
 }: ErrorsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -155,8 +157,8 @@ const ErrorsGraph = ({
               x: {min: from / 1000, max: to / 1000},
               y: {
                 range: {
-                  min: {hard: 0},
-                  max: {hard: 100},
+                  min: absolute ? {hard: 0, mode: 1, soft: 0} : {hard: 0},
+                  max: absolute ? {hard: 1, mode: 1, soft: 1} : {hard: 1},
                 },
               },
             },
