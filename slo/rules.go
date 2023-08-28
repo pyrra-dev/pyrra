@@ -91,7 +91,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
-		if o.Alerting.Disabled {
+		if o.Alerting.Disabled || !o.Alerting.Burnrates {
 			return monitoringv1.RuleGroup{
 				Name:     sloName,
 				Interval: monitoringDuration("30s"), // TODO: Increase or decrease based on availability target
@@ -173,7 +173,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
-		if o.Alerting.Disabled {
+		if o.Alerting.Disabled || !o.Alerting.Burnrates {
 			return monitoringv1.RuleGroup{
 				Name:     sloName,
 				Interval: monitoringDuration("30s"), // TODO: Increase or decrease based on availability target
@@ -261,7 +261,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
-		if o.Alerting.Disabled {
+		if o.Alerting.Disabled || !o.Alerting.Burnrates {
 			return monitoringv1.RuleGroup{
 				Name:     sloName,
 				Interval: monitoringDuration("30s"), // TODO: Increase or decrease based on availability target
@@ -349,7 +349,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
-		if o.Alerting.Disabled {
+		if o.Alerting.Disabled || !o.Alerting.Burnrates {
 			return monitoringv1.RuleGroup{
 				Name:     sloName,
 				Interval: monitoringDuration("30s"), // TODO: Increase or decrease based on availability target
@@ -692,16 +692,6 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		expr, err = absentExpr()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
-		}
-
-		objectiveReplacer{
-			metric:   o.Indicator.Ratio.Total.Name,
-			matchers: o.Indicator.Ratio.Total.LabelMatchers,
-		}.replace(expr)
-
 		alertLabels := make(map[string]string, len(ruleLabels)+1)
 		for k, v := range ruleLabels {
 			alertLabels[k] = v
@@ -709,15 +699,28 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		// Add severity label for alerts
 		alertLabels["severity"] = string(critical)
 
-		rules = append(rules, monitoringv1.Rule{
-			Alert: "SLOMetricAbsent",
-			Expr:  intstr.FromString(expr.String()),
-			For: monitoringDuration(model.Duration(
-				(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
-			).String()),
-			Labels:      alertLabels,
-			Annotations: o.commonRuleAnnotations(),
-		})
+		// add the absent alert if configured
+		if o.Alerting.Absent {
+			expr, err = absentExpr()
+			if err != nil {
+				return monitoringv1.RuleGroup{}, err
+			}
+
+			objectiveReplacer{
+				metric:   o.Indicator.Ratio.Total.Name,
+				matchers: o.Indicator.Ratio.Total.LabelMatchers,
+			}.replace(expr)
+
+			rules = append(rules, monitoringv1.Rule{
+				Alert: "SLOMetricAbsent",
+				Expr:  intstr.FromString(expr.String()),
+				For: monitoringDuration(model.Duration(
+					(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
+				).String()),
+				Labels:      alertLabels,
+				Annotations: o.commonRuleAnnotations(),
+			})
+		}
 
 		if o.Indicator.Ratio.Total.Name != o.Indicator.Ratio.Errors.Name {
 			expr, err := increaseExpr()
@@ -738,25 +741,28 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				Labels: ruleLabels,
 			})
 
-			expr, err = absentExpr()
-			if err != nil {
-				return monitoringv1.RuleGroup{}, err
+			// add the absent alert if configured
+			if o.Alerting.Absent {
+				expr, err = absentExpr()
+				if err != nil {
+					return monitoringv1.RuleGroup{}, err
+				}
+
+				objectiveReplacer{
+					metric:   o.Indicator.Ratio.Errors.Name,
+					matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+				}.replace(expr)
+
+				rules = append(rules, monitoringv1.Rule{
+					Alert: "SLOMetricAbsent",
+					Expr:  intstr.FromString(expr.String()),
+					For: monitoringDuration(model.Duration(
+						(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
+					).String()),
+					Labels:      alertLabels,
+					Annotations: o.commonRuleAnnotations(),
+				})
 			}
-
-			objectiveReplacer{
-				metric:   o.Indicator.Ratio.Errors.Name,
-				matchers: o.Indicator.Ratio.Errors.LabelMatchers,
-			}.replace(expr)
-
-			rules = append(rules, monitoringv1.Rule{
-				Alert: "SLOMetricAbsent",
-				Expr:  intstr.FromString(expr.String()),
-				For: monitoringDuration(model.Duration(
-					(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
-				).String()),
-				Labels:      alertLabels,
-				Annotations: o.commonRuleAnnotations(),
-			})
 		}
 	case Latency:
 		ruleLabels := o.commonRuleLabels(sloName)
@@ -840,59 +846,62 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabelsLe,
 		})
 
-		expr, err = absentExpr()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
+		// add the absent alert if configured
+		if o.Alerting.Absent {
+			expr, err = absentExpr()
+			if err != nil {
+				return monitoringv1.RuleGroup{}, err
+			}
+
+			objectiveReplacer{
+				metric:   o.Indicator.Latency.Total.Name,
+				matchers: o.Indicator.Latency.Total.LabelMatchers,
+			}.replace(expr)
+
+			alertLabels := make(map[string]string, len(ruleLabels)+1)
+			for k, v := range ruleLabels {
+				alertLabels[k] = v
+			}
+			// Add severity label for alerts
+			alertLabels["severity"] = string(critical)
+
+			rules = append(rules, monitoringv1.Rule{
+				Alert: "SLOMetricAbsent",
+				Expr:  intstr.FromString(expr.String()),
+				For: monitoringDuration(model.Duration(
+					(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
+				).String()),
+				Labels:      alertLabels,
+				Annotations: o.commonRuleAnnotations(),
+			})
+
+			expr, err = absentExpr()
+			if err != nil {
+				return monitoringv1.RuleGroup{}, err
+			}
+
+			objectiveReplacer{
+				metric:   o.Indicator.Latency.Success.Name,
+				matchers: o.Indicator.Latency.Success.LabelMatchers,
+			}.replace(expr)
+
+			alertLabelsLe := make(map[string]string, len(ruleLabelsLe)+1)
+			for k, v := range ruleLabelsLe {
+				alertLabelsLe[k] = v
+			}
+			// Add severity label for alerts
+			alertLabelsLe["severity"] = string(critical)
+
+			rules = append(rules, monitoringv1.Rule{
+				Alert: "SLOMetricAbsent",
+				Expr:  intstr.FromString(expr.String()),
+				For: monitoringDuration(model.Duration(
+					(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
+				).String()),
+				Labels:      alertLabelsLe,
+				Annotations: o.commonRuleAnnotations(),
+			})
 		}
-
-		objectiveReplacer{
-			metric:   o.Indicator.Latency.Total.Name,
-			matchers: o.Indicator.Latency.Total.LabelMatchers,
-		}.replace(expr)
-
-		alertLabels := make(map[string]string, len(ruleLabels)+1)
-		for k, v := range ruleLabels {
-			alertLabels[k] = v
-		}
-		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
-
-		rules = append(rules, monitoringv1.Rule{
-			Alert: "SLOMetricAbsent",
-			Expr:  intstr.FromString(expr.String()),
-			For: monitoringDuration(model.Duration(
-				(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
-			).String()),
-			Labels:      alertLabels,
-			Annotations: o.commonRuleAnnotations(),
-		})
-
-		expr, err = absentExpr()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
-		}
-
-		objectiveReplacer{
-			metric:   o.Indicator.Latency.Success.Name,
-			matchers: o.Indicator.Latency.Success.LabelMatchers,
-		}.replace(expr)
-
-		alertLabelsLe := make(map[string]string, len(ruleLabelsLe)+1)
-		for k, v := range ruleLabelsLe {
-			alertLabelsLe[k] = v
-		}
-		// Add severity label for alerts
-		alertLabelsLe["severity"] = string(critical)
-
-		rules = append(rules, monitoringv1.Rule{
-			Alert: "SLOMetricAbsent",
-			Expr:  intstr.FromString(expr.String()),
-			For: monitoringDuration(model.Duration(
-				(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
-			).String()),
-			Labels:      alertLabelsLe,
-			Annotations: o.commonRuleAnnotations(),
-		})
 	case LatencyNative:
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
@@ -972,7 +981,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		}
 		sort.Strings(grouping)
 
-		expr, err := countExpr()
+		count, err := countExpr()
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -987,7 +996,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			matchers: o.Indicator.BoolGauge.LabelMatchers,
 			grouping: grouping,
 			window:   time.Duration(o.Window),
-		}.replace(expr)
+		}.replace(count)
 
 		objectiveReplacer{
 			metric:   o.Indicator.BoolGauge.Name,
@@ -998,7 +1007,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 
 		rules = append(rules, monitoringv1.Rule{
 			Record: countName(o.Indicator.BoolGauge.Name, o.Window),
-			Expr:   intstr.FromString(expr.String()),
+			Expr:   intstr.FromString(count.String()),
 			Labels: ruleLabels,
 		})
 
@@ -1008,44 +1017,34 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		expr, err = countExpr()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
+		if o.Alerting.Absent {
+			expr, err := absentExpr()
+			if err != nil {
+				return monitoringv1.RuleGroup{}, err
+			}
+
+			objectiveReplacer{
+				metric:   o.Indicator.BoolGauge.Name,
+				matchers: o.Indicator.BoolGauge.LabelMatchers,
+			}.replace(expr)
+
+			alertLabels := make(map[string]string, len(ruleLabels)+1)
+			for k, v := range ruleLabels {
+				alertLabels[k] = v
+			}
+			// Add severity label for alerts
+			alertLabels["severity"] = string(critical)
+
+			rules = append(rules, monitoringv1.Rule{
+				Alert: "SLOMetricAbsent",
+				Expr:  intstr.FromString(expr.String()),
+				For: monitoringDuration(model.Duration(
+					(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
+				).String()),
+				Labels:      alertLabels,
+				Annotations: o.commonRuleAnnotations(),
+			})
 		}
-
-		objectiveReplacer{
-			metric:   o.Indicator.BoolGauge.Name,
-			matchers: o.Indicator.BoolGauge.LabelMatchers,
-			grouping: grouping,
-			window:   time.Duration(o.Window),
-		}.replace(expr)
-
-		expr, err = absentExpr()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
-		}
-
-		objectiveReplacer{
-			metric:   o.Indicator.BoolGauge.Name,
-			matchers: o.Indicator.BoolGauge.LabelMatchers,
-		}.replace(expr)
-
-		alertLabels := make(map[string]string, len(ruleLabels)+1)
-		for k, v := range ruleLabels {
-			alertLabels[k] = v
-		}
-		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
-
-		rules = append(rules, monitoringv1.Rule{
-			Alert: "SLOMetricAbsent",
-			Expr:  intstr.FromString(expr.String()),
-			For: monitoringDuration(model.Duration(
-				(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
-			).String()),
-			Labels:      alertLabels,
-			Annotations: o.commonRuleAnnotations(),
-		})
 	}
 
 	day := 24 * time.Hour

@@ -52,6 +52,10 @@ spec:
 			Description: "",
 			Target:      0.99,
 			Window:      model.Duration(7 * 24 * time.Hour),
+			Alerting: slo.Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: slo.Indicator{
 				Ratio: &slo.RatioIndicator{
 					Errors: slo.Metric{
@@ -101,6 +105,10 @@ spec:
 			Description: "",
 			Target:      0.9990000000000001, // TODO fix this? maybe not /100?
 			Window:      model.Duration(7 * 24 * time.Hour),
+			Alerting: slo.Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: slo.Indicator{
 				Ratio: &slo.RatioIndicator{
 					Errors: slo.Metric{
@@ -153,6 +161,10 @@ spec:
 			),
 			Target: 0.995,
 			Window: model.Duration(28 * 24 * time.Hour),
+			Alerting: slo.Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: slo.Indicator{
 				Latency: &slo.LatencyIndicator{
 					Success: slo.Metric{
@@ -203,6 +215,10 @@ spec:
 			),
 			Target: 0.995,
 			Window: model.Duration(7 * 24 * time.Hour),
+			Alerting: slo.Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: slo.Indicator{
 				Latency: &slo.LatencyIndicator{
 					Success: slo.Metric{
@@ -255,6 +271,10 @@ spec:
 			),
 			Target: 0.99,
 			Window: model.Duration(28 * 24 * time.Hour),
+			Alerting: slo.Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: slo.Indicator{
 				Latency: &slo.LatencyIndicator{
 					Success: slo.Metric{
@@ -306,6 +326,10 @@ spec:
 			),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
+			Alerting: slo.Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: slo.Indicator{
 				Ratio: &slo.RatioIndicator{
 					Errors: slo.Metric{

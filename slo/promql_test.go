@@ -17,6 +17,10 @@ var (
 			Labels: labels.FromStrings(labels.MetricName, "monitoring-http-errors"),
 			Target: 0.99,
 			Window: model.Duration(28 * 24 * time.Hour),
+			Alerting: Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: Indicator{
 				Ratio: &RatioIndicator{
 					Errors: Metric{
@@ -60,6 +64,10 @@ var (
 			Description: "",
 			Target:      0.999,
 			Window:      model.Duration(28 * 24 * time.Hour),
+			Alerting: Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: Indicator{
 				Ratio: &RatioIndicator{
 					Errors: Metric{
@@ -95,6 +103,10 @@ var (
 			Labels: labels.FromStrings(labels.MetricName, "monitoring-http-latency"),
 			Target: 0.995,
 			Window: model.Duration(28 * 24 * time.Hour),
+			Alerting: Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: Indicator{
 				Latency: &LatencyIndicator{
 					Success: Metric{
@@ -156,6 +168,10 @@ var (
 			Labels: labels.FromStrings(labels.MetricName, "monitoring-grpc-latency"),
 			Target: 0.995,
 			Window: model.Duration(7 * 24 * time.Hour),
+			Alerting: Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: Indicator{
 				Latency: &LatencyIndicator{
 					Success: Metric{
@@ -191,6 +207,10 @@ var (
 			Labels: labels.FromStrings(labels.MetricName, "monitoring-prometheus-operator-errors"),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
+			Alerting: Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: Indicator{
 				Ratio: &RatioIndicator{
 					Errors: Metric{
@@ -219,6 +239,10 @@ var (
 			Labels: labels.FromStrings(labels.MetricName, "apiserver-write-response-errors"),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
+			Alerting: Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: Indicator{
 				Ratio: &RatioIndicator{
 					Errors: Metric{
@@ -243,6 +267,8 @@ var (
 	objectiveAPIServerRatioAlertingDisabled = func() Objective {
 		o := objectiveAPIServerRatio()
 		o.Alerting.Disabled = true
+		o.Alerting.Burnrates = false
+		o.Alerting.Absent = false
 		return o
 	}
 	objectiveAPIServerLatency = func() Objective {
@@ -250,6 +276,10 @@ var (
 			Labels: labels.FromStrings(labels.MetricName, "apiserver-read-resource-latency"),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
+			Alerting: Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: Indicator{
 				Latency: &LatencyIndicator{
 					Grouping: []string{
@@ -280,6 +310,8 @@ var (
 	objectiveAPIServerLatencyAlertingDisabled = func() Objective {
 		o := objectiveAPIServerLatency()
 		o.Alerting.Disabled = true
+		o.Alerting.Burnrates = false
+		o.Alerting.Absent = false
 		return o
 	}
 	objectiveAPIServerLatencyCustomAlertname = func() Objective {
@@ -292,6 +324,10 @@ var (
 			Labels: labels.FromStrings(labels.MetricName, "up-targets"),
 			Target: 0.99,
 			Window: model.Duration(28 * 24 * time.Hour),
+			Alerting: Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
 			Indicator: Indicator{
 				BoolGauge: &BoolGaugeIndicator{
 					Metric: Metric{Name: "up"},
