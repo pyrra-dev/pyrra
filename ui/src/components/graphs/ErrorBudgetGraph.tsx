@@ -21,6 +21,7 @@ interface ErrorBudgetGraphProps {
   to: number
   uPlotCursor: uPlot.Cursor
   updateTimeRange: (min: number, max: number, absolute: boolean) => void
+  absolute: boolean
 }
 
 const ErrorBudgetGraph = ({
@@ -30,6 +31,7 @@ const ErrorBudgetGraph = ({
   to,
   uPlotCursor,
   updateTimeRange,
+  absolute = false,
 }: ErrorBudgetGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -178,8 +180,8 @@ const ErrorBudgetGraph = ({
                 x: {min: from / 1000, max: to / 1000},
                 y: {
                   range: {
-                    min: {},
-                    max: {hard: 100},
+                    min: absolute ? {mode: 1, soft: 0} : {},
+                    max: absolute ? {hard: 100, mode: 1, soft: 0} : {hard: 100},
                   },
                 },
               },

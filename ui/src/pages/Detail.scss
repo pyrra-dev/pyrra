@@ -13,8 +13,10 @@
     background: linear-gradient(0deg, rgba(0, 0, 0, 0) 45%, $gray-300 50%, rgba(0, 0, 0, 0) 55%);
 
     .inner {
+      display: flex;
       margin: 0 auto;
       background-color: $body-bg;
+      column-gap: 20px;
 
       @media (min-width: 576px) {
         width: 66%;
