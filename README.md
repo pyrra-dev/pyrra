@@ -22,14 +22,17 @@
 - Support for Kubernetes, Docker, and filesystem
 - Alerting: Generates 4 Multi Burn Rate Alerts with different severity
 - Page listing all Service Level Objectives
-  - All columns sortable
+  - Search through names and labels
   - Sorted by remaining error budget to see the worst ones quickly
+  - All columns sortable
+  - View and hide individual columns
   - Clicking on labels to filter SLOs that contain the label  
   - Tool-tips when hovering for extra context
 - Page with details for a Service Level Objective
   - Objective, Availability, Error Budget highlighted as 3 most important numbers
   - Graph to see how the error budget develops over time
   - Time range picker to change graphs
+  - Switch between absolute and relative chart scales
   - Request, Errors, Duration (RED) graphs for the underlying service
   - Multi Burn Rate Alerts overview table
 - Caching of Prometheus query results
