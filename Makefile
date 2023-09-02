@@ -35,26 +35,11 @@ pyrra: fmt vet
 	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o pyrra
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests config/api.yaml config/kubernetes.yaml
+deploy: manifests
 	kubectl apply -f ./config/api.yaml
 	kubectl apply -f ./config/rbac/role.yaml -n monitoring
 	kubectl apply -f ./config/kubernetes.yaml
 
-# Generate manifests e.g. CRD, RBAC etc.
-.PHONY: manifests
-manifests: controller-gen gojsontoyaml ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=pyrra-kubernetes crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	find config/crd/bases -name '*.yaml' -print0 | xargs -0 -I{} sh -c '$(GOJSONTOYAML) -yamltojson < "$$1" | jq > "$(PWD)/config/crd/bases/$$(basename -s .yaml $$1).json"' -- {}
-
-config: config/api.yaml config/kubernetes.yaml
-
-config/api.yaml: config/api.cue
-	cue fmt -s ./config/
-	cue cmd --inject image=${IMG} "api.yaml" ./config
-
-config/kubernetes.yaml: config/kubernetes.cue
-	cue fmt -s ./config/
-	cue cmd --inject image=${IMG} "kubernetes.yaml" ./config
 
 # Run code linters
 lint: fmt vet
@@ -67,9 +52,12 @@ fmt:
 vet:
 	go vet ./...
 
-# Generate code
-generate: controller-gen manifests
-	$(CONTROLLER_GEN) object:headerFile="kubernetes/hack/boilerplate.go.txt" paths="./..."
+# Generate manifests e.g. CRD, RBAC etc.
+.PHONY: generate
+generate: controller-gen gojsontoyaml ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	$(CONTROLLER_GEN) rbac:roleName=pyrra-kubernetes crd rbac:roleName="pyrra-kubernetes" webhook paths="./..." output:crd:artifacts:config=jsonnet/controller-gen
+	find jsonnet/controller-gen -name '*.yaml' -print0 | xargs -0 -I{} sh -c '$(GOJSONTOYAML) -yamltojson < "$$1" | jq > "$(PWD)/jsonnet/controller-gen/$$(basename -s .yaml $$1).json"' -- {}
+	find jsonnet/controller-gen -type f ! -name '*.json' -delete
 
 docker-build:
 	docker build . -t ${IMG}
