@@ -287,35 +287,41 @@ const Detail = () => {
           <Row>
             <Col className="text-center timerange">
               <div className="inner">
-                <ButtonGroup aria-label="Time Range">
-                  {timeRanges.map((t: number) => (
-                    <Button
-                      key={t}
-                      variant="light"
-                      onClick={handleTimeRangeClick(t)}
-                      active={to - from === t}>
-                      {formatDuration(t)}
-                    </Button>
-                  ))}
-                </ButtonGroup>
-                <OverlayTrigger
-                  key="auto-reload"
-                  overlay={
-                    <OverlayTooltip id={`tooltip-auto-reload`}>Automatically reload</OverlayTooltip>
-                  }>
-                  <span>
-                    <Toggle
-                      checked={autoReload}
-                      onChange={() => setAutoReload(!autoReload)}
-                      onText={formatDuration(interval)}
-                    />
-                  </span>
-                </OverlayTrigger>
-                <ButtonGroup aria-label="Time Range">
+                <div className="time">
+                  <ButtonGroup aria-label="Time Range">
+                    {timeRanges.map((t: number) => (
+                      <Button
+                        key={t}
+                        variant="light"
+                        onClick={handleTimeRangeClick(t)}
+                        active={to - from === t}>
+                        {formatDuration(t)}
+                      </Button>
+                    ))}
+                  </ButtonGroup>
                   <OverlayTrigger
                     key="auto-reload"
                     overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>Absolute Chart</OverlayTooltip>
+                      <OverlayTooltip id={`tooltip-auto-reload`}>
+                        Automatically reload
+                      </OverlayTooltip>
+                    }>
+                    <span>
+                      <Toggle
+                        checked={autoReload}
+                        onChange={() => setAutoReload(!autoReload)}
+                        onText={formatDuration(interval)}
+                      />
+                    </span>
+                  </OverlayTrigger>
+                </div>
+                <ButtonGroup aria-label="Charts" className="scale">
+                  <OverlayTrigger
+                    key="auto-reload"
+                    overlay={
+                      <OverlayTooltip id={`tooltip-auto-reload`}>
+                        Absolute scale gives a good impression of the big picture.
+                      </OverlayTooltip>
                     }>
                     <Button
                       variant="light"
@@ -324,12 +330,15 @@ const Detail = () => {
                       }}
                       active={absolute}>
                       <IconChartArea width={16} height={16} fill={absolute ? 'white' : 'black'} />
+                      Absolute
                     </Button>
                   </OverlayTrigger>
                   <OverlayTrigger
                     key="auto-reload"
                     overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>Relative Chart</OverlayTooltip>
+                      <OverlayTooltip id={`tooltip-auto-reload`}>
+                        Relative scale gives a good impression of every detail.
+                      </OverlayTooltip>
                     }>
                     <Button
                       variant="light"
@@ -338,6 +347,7 @@ const Detail = () => {
                       }}
                       active={!absolute}>
                       <IconChartLine width={16} height={16} fill={!absolute ? 'white' : 'black'} />
+                      Relative
                     </Button>
                   </OverlayTrigger>
                 </ButtonGroup>

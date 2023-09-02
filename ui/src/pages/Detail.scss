@@ -16,7 +16,21 @@
       display: flex;
       margin: 0 auto;
       background-color: $body-bg;
+      row-gap: 20px;
       column-gap: 20px;
+      flex-direction: column;
+
+      .time {
+        display: flex;
+        column-gap: 20px;
+        justify-content: center;
+      }
+
+      .scale {
+        svg {
+          margin-right: 8px;
+        }
+      }
 
       @media (min-width: 576px) {
         width: 66%;
@@ -25,7 +39,8 @@
         width: 50%;
       }
       @media (min-width: 1440px) {
-        width: 33%;
+        justify-content: center;
+        flex-direction: row;
       }
     }
   }
