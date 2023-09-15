@@ -4,15 +4,15 @@ metadata:
   labels:
     prometheus: k8s
     role: alert-rules
-  name: prometheus-http-errors
+  name: coredns-response-errors
   namespace: monitoring
 spec:
   description: ""
   indicator:
     ratio:
       errors:
-        metric: prometheus_http_requests_total{job="prometheus-k8s",code=~"5.."}
+        metric: coredns_dns_responses_total{job="kube-dns",rcode="SERVFAIL"}
       total:
-        metric: prometheus_http_requests_total{job="prometheus-k8s"}
+        metric: coredns_dns_responses_total{job="kube-dns"}
   target: "99.99"
   window: 2w
