@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -242,6 +243,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 	}
 	{
 		prometheusInterceptor := connectprometheus.NewInterceptor(reg)
+		dir := filepath.Dir(configFiles)
 
 		router := http.NewServeMux()
 		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(
@@ -251,6 +253,49 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 			connect.WithInterceptors(prometheusInterceptor),
 		))
 		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+
+		router.HandleFunc("/ingest", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPost {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+
+			level.Info(logger).Log("msg", "processing SLO spec")
+
+			r.ParseMultipartForm(32 << 20)
+			file, handler, err := r.FormFile("spec")
+
+			if err != nil {
+				level.Error(logger).Log("msg", "failed to process HTTP request", "err", err)
+				return
+			}
+			defer file.Close()
+
+			var ingestedSpec = dir + "/" + handler.Filename
+
+			level.Info(logger).Log("msg", "writing spec to disk")
+			f, err := os.OpenFile(ingestedSpec, os.O_WRONLY|os.O_CREATE, 0666)
+
+			if err != nil {
+				level.Error(logger).Log("msg", "failed to write spec to disk", "err", err)
+				return
+			}
+
+			io.Copy(f, file)
+
+			reconcilesTotal.Inc()
+			level.Info(logger).Log("msg", "writing rules to disk")
+			err = writeRuleFile(logger, ingestedSpec, prometheusFolder, genericRules, false)
+			if err != nil {
+				reconcilesErrors.Inc()
+				level.Error(logger).Log("msg", "error creating rule file", "file", ingestedSpec, "err", err)
+			}
+
+			level.Info(logger).Log("msg", "signaling Prometheus reload")
+			reload <- struct{}{}
+
+			fmt.Fprintf(w, "ok")
+		})
 
 		server := http.Server{
 			Addr:    ":9444",
