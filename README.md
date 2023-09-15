@@ -19,7 +19,7 @@
 
 ## Features
 
-- Support for Kubernetes, Docker, and filesystem
+- Support for Kubernetes, Docker, and reading from the filesystem
 - Alerting: Generates 4 Multi Burn Rate Alerts with different severity
 - Page listing all Service Level Objectives
   - Search through names and labels
@@ -62,7 +62,7 @@ There are three components of Pyrra, all of which work through a single binary:
   - For Kubernetes, there is a Kubernetes Operator available
   - For everything else, there is a filesystem-based Operator available
 
-For the backend/operator to do its magic, an SLO object has to be provided in
+For the backend/operator to do its work, an SLO object has to be provided in
 YAML-format:
 
 ```yaml
@@ -100,6 +100,7 @@ The following rules would be created for the above example:
 
 ```
 http_requests:increase2w
+
 http_requests:burnrate3m
 http_requests:burnrate15m
 http_requests:burnrate30m
@@ -129,6 +130,35 @@ objects that are automatically picked up by the [Prometheus Operator](https://pr
 If you're unable to run the Prometheus Operator inside your cluster, you can add
 the `--config-map-mode=true` flag after the `kubernetes` argument. This will
 save each recording rule in a separate `ConfigMap`.
+
+#### Applying YAML
+
+This repository contains generated YAML files in the [example/kubernetes/manifests](examples/kubernetes/manifests) folder.
+You can use the following commands to deploy them to a cluster right away.
+
+```bash
+kubectl apply --server-side -f ./example/kubernetes/manifests/setup
+kubectl apply --server-side -f ./example/kubernetes/manifests
+kubectl apply --server-side -f ./example/kubernetes/manifests/slos
+```
+
+##### Applying YAML and validating webhooks via cert-manager
+
+This repository contains more generated YAML files in the [example/kubernetes/manifests-webhook](examples/kubernetes/manifests-webhook) folder.
+
+This example deployment additionally applies and self-sign Issuer and requests a certificate via cert-manager,
+so that the Kubernetes APIServer can connect to Pyrra to validate any configuration object before applying it to the cluster.
+
+```bash
+kubectl apply --server-side -f ./example/kubernetes/manifests-webhook/setup
+kubectl apply --server-side -f ./example/kubernetes/manifests-webhook
+kubectl apply --server-side -f ./example/kubernetes/manifests-webhook/slos
+```
+
+##### kube-prometheus
+
+The underlying jsonnet code is imported by the [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus) project. 
+If you want to install an entire monitoring stack including Pyrra we highly recommend using kube-prometheus.
 
 #### Install with Helm
 
