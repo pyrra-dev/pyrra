@@ -1,0 +1,28 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: monitoring/pyrra-webhook-validation
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: pyrra-kubernetes
+      namespace: monitoring
+      path: /validate-pyrra-dev-v1alpha1-servicelevelobjective
+      port: 9443
+  failurePolicy: Fail
+  name: slo.pyrra.dev-servicelevelobjectives
+  rules:
+  - apiGroups:
+    - pyrra.dev
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - servicelevelobjectives
+  sideEffects: None
