@@ -25,7 +25,7 @@ clean:
 	rm -rf ui/build ui/node_modules
 
 # Run tests
-test: generate fmt vet manifests
+test: generate fmt vet
 	go test -race ./... -coverprofile cover.out
 
 build: pyrra
