@@ -33,7 +33,7 @@ spec:
       containers:
       - args:
         - kubernetes
-        image: ghcr.io/pyrra-dev/pyrra:v0.6.1
+        image: ghcr.io/pyrra-dev/pyrra:v0.7.0-rc.1
         name: pyrra-kubernetes
         resources:
           limits:
