@@ -16,7 +16,7 @@
     "react-bootstrap": "^2.8.0",
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
-    "react-router-dom": "^6.15.0",
+    "react-router-dom": "^6.16.0",
     "uplot": "1.6.25",
     "uplot-react": "^1.1.5",
     "use-constant": "^1.1.1"
