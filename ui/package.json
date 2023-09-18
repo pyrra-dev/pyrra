@@ -5,7 +5,7 @@
   "homepage": "./",
   "dependencies": {
     "@connectrpc/connect": "^0.13.2",
-    "@tanstack/react-table": "^8.9.8",
+    "@tanstack/react-table": "^8.10.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.4.3",
