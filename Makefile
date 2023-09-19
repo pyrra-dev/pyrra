@@ -83,6 +83,8 @@ ui/node_modules:
 ui/build:
 	cd ui && npm run build
 
+examples: examples/kubernetes/manifests examples/kubernetes/manifests-webhook examples/openshift/manifests
+
 examples/kubernetes/manifests: examples/kubernetes/main.jsonnet jsonnet/controller-gen/pyrra.dev_servicelevelobjectives.json jsonnet/pyrra/kubernetes.libsonnet
 	jsonnetfmt -i examples/kubernetes/main.jsonnet
 	jsonnet -m examples/kubernetes/manifests examples/kubernetes/main.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
@@ -92,3 +94,8 @@ examples/kubernetes/manifests-webhook: examples/kubernetes/main-webhook.jsonnet 
 	jsonnetfmt -i examples/kubernetes/main-webhook.jsonnet
 	jsonnet -m examples/kubernetes/manifests-webhook examples/kubernetes/main-webhook.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
 	find examples/kubernetes/manifests-webhook -type f ! -name '*.yaml' -delete
+
+examples/openshift/manifests: examples/openshift/main.jsonnet jsonnet/controller-gen/pyrra.dev_servicelevelobjectives.json jsonnet/pyrra/kubernetes.libsonnet
+	jsonnetfmt -i examples/openshift/main.jsonnet
+	jsonnet -m examples/openshift/manifests examples/openshift/main.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
+	find examples/openshift/manifests -type f ! -name '*.yaml' -delete

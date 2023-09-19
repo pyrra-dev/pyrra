@@ -54,6 +54,12 @@
       if !std.setMember(labelName, ['app.kubernetes.io/version'])
     },
 
+    apiServiceAccount: {
+      apiVersion: 'v1',
+      kind: 'ServiceAccount',
+      metadata: pyrra._apiMetadata,
+    },
+
     apiService: {
       apiVersion: 'v1',
       kind: 'Service',
@@ -102,7 +108,7 @@
             metadata: { labels: pyrra._apiMetadata.labels },
             spec: {
               containers: [c],
-              // serviceAccountName: $.serviceAccount.metadata.name,
+              serviceAccountName: pyrra.apiServiceAccount.metadata.name,
               nodeSelector: { 'kubernetes.io/os': 'linux' },
             },
           },
