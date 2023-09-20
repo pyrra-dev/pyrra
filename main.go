@@ -60,6 +60,7 @@ var CLI struct {
 		PrometheusBearerTokenPath   string            `default:"" help:"Bearer token path"`
 		PrometheusBasicAuthUsername string            `default:"" help:"The HTTP basic authentication username"`
 		PrometheusBasicAuthPassword promconfig.Secret `default:"" help:"The HTTP basic authentication password"`
+		PrometheusServiceCAPath     string            `default:"/etc/ssl/certs/service-ca.crt" help:"The path to the SA certificate to load"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
@@ -103,13 +104,21 @@ func main() {
 		prometheusURL, _ = url.Parse("http://localhost:9090")
 	}
 
-	roundTripper, err := promconfig.NewRoundTripperFromConfig(promconfig.HTTPClientConfig{
-		BasicAuth: &promconfig.BasicAuth{
+	clientConfig := promconfig.HTTPClientConfig{}
+	if CLI.API.PrometheusBasicAuthUsername != "" && CLI.API.PrometheusBasicAuthPassword != "" {
+		clientConfig.BasicAuth = &promconfig.BasicAuth{
 			Username: CLI.API.PrometheusBasicAuthUsername,
 			Password: CLI.API.PrometheusBasicAuthPassword,
-		},
-		BearerTokenFile: CLI.API.PrometheusBearerTokenPath,
-	}, "pyrra")
+		}
+	}
+	if CLI.API.PrometheusBearerTokenPath != "" {
+		clientConfig.BearerTokenFile = CLI.API.PrometheusBearerTokenPath
+	}
+	if CLI.API.PrometheusServiceCAPath != "" {
+		clientConfig.TLSConfig = promconfig.TLSConfig{CAFile: CLI.API.PrometheusServiceCAPath}
+	}
+
+	roundTripper, err := promconfig.NewRoundTripperFromConfig(clientConfig, "pyrra")
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to create API client round tripper", "err", err)
 		os.Exit(1)

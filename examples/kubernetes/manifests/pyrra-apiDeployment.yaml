@@ -4,7 +4,6 @@ metadata:
   labels:
     app.kubernetes.io/component: api
     app.kubernetes.io/name: pyrra
-    app.kubernetes.io/part-of: kube-prometheus
     app.kubernetes.io/version: 0.7.0-rc.1
   name: pyrra-api
   namespace: monitoring
@@ -14,7 +13,6 @@ spec:
     matchLabels:
       app.kubernetes.io/component: api
       app.kubernetes.io/name: pyrra
-      app.kubernetes.io/part-of: kube-prometheus
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -24,7 +22,6 @@ spec:
       labels:
         app.kubernetes.io/component: api
         app.kubernetes.io/name: pyrra
-        app.kubernetes.io/part-of: kube-prometheus
         app.kubernetes.io/version: 0.7.0-rc.1
     spec:
       containers:
@@ -41,3 +38,4 @@ spec:
           readOnlyRootFilesystem: true
       nodeSelector:
         kubernetes.io/os: linux
+      serviceAccountName: pyrra-api

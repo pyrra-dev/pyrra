@@ -1,12 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
+  annotations: {}
   labels:
     app.kubernetes.io/component: api
     app.kubernetes.io/name: pyrra
     app.kubernetes.io/version: 0.7.0-rc.1
   name: pyrra-api
-  namespace: monitoring
+  namespace: openshift-monitoring
 spec:
   ports:
   - name: http

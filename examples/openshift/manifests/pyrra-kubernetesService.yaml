@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: pyrra
     app.kubernetes.io/version: 0.7.0-rc.1
   name: pyrra-kubernetes
-  namespace: monitoring
+  namespace: openshift-monitoring
 spec:
   ports:
   - name: metrics

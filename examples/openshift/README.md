@@ -67,23 +67,22 @@ to leave the cluster. In order to deploy Pyrra including the serviceAccount,
 you can run the following commands:
 
 ```shell
-oc apply -f examples/openshift/deploy/openshift.yaml
-oc apply -f examples/openshift/deploy/role.yaml
-oc apply -f examples/openshift/deploy/api.yaml
+oc apply --server-side -f ./example/openshift/manifests/setup
+oc apply --server-side -f ./example/openshift/manifests
 ```
 
 If you want to access Pyrra, you can leverage OpenShift's router and create 
 a route with the following command:
 
 ```shell
-oc expose service pyrra-api -n openshift-monitoring
+oc expose service -n openshift-monitoring pyrra-api
 ```
 
 This command will return the URL to for you to access Pyrra. In case you 
 missed it, you can always find it out later with the following command:
 
 ```shell
-oc get route pyrra-api -n openshift-monitoring
+oc get route -n openshift-monitoring pyrra-api
 ```
 
 ## Deploying SLO Examples
@@ -92,7 +91,7 @@ The following command will deploy an example set of SLOs targeting the
 availability of the API-Server using errors as Service Level Indicator:
 
 ```shell
-oc apply -f examples/openshift/slos/apiserver-request-errors.yaml
+oc apply --server-side -f ./example/openshift/manifests/slos
 ```
 
 ## Using Pyrra
@@ -100,5 +99,5 @@ oc apply -f examples/openshift/slos/apiserver-request-errors.yaml
 Maneuver to URL that you get from the following command:
 
 ```shell
-oc get route pyrra-api -n openshift-monitoring
+oc get route -n openshift-monitoring pyrra-api
 ```

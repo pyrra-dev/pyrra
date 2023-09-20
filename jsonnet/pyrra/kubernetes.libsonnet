@@ -28,7 +28,6 @@
     commonLabels:: {
       'app.kubernetes.io/name': 'pyrra',
       'app.kubernetes.io/version': defaults.version,
-      'app.kubernetes.io/part-of': 'kube-prometheus',
     },
   },
 
@@ -52,6 +51,12 @@
       [labelName]: pyrra._apiMetadata.labels[labelName]
       for labelName in std.objectFields(pyrra._apiMetadata.labels)
       if !std.setMember(labelName, ['app.kubernetes.io/version'])
+    },
+
+    apiServiceAccount: {
+      apiVersion: 'v1',
+      kind: 'ServiceAccount',
+      metadata: pyrra._apiMetadata,
     },
 
     apiService: {
@@ -102,12 +107,29 @@
             metadata: { labels: pyrra._apiMetadata.labels },
             spec: {
               containers: [c],
-              // serviceAccountName: $.serviceAccount.metadata.name,
+              serviceAccountName: pyrra.apiServiceAccount.metadata.name,
               nodeSelector: { 'kubernetes.io/os': 'linux' },
             },
           },
         },
       },
+
+    apiServiceMonitor: {
+      apiVersion: 'monitoring.coreos.com/v1',
+      kind: 'ServiceMonitor',
+      metadata: pyrra._apiMetadata,
+      spec: {
+        endpoints: [
+          { port: 'http' },
+        ],
+        selector: {
+          matchLabels: pyrra.apiSelectorLabels,
+        },
+        namespaceSelector: {
+          matchNames: [pyrra._config.namespace],
+        },
+      },
+    },
 
     _kubernetesMetadata:: {
       name: pyrra._config.name + '-kubernetes',
@@ -173,6 +195,7 @@
       metadata: pyrra._kubernetesMetadata,
       spec: {
         ports: [
+          { name: 'metrics', targetPort: 8080, port: 8080 },
           { name: 'http', targetPort: 9444, port: 9444 },
           { name: 'webhooks', targetPort: 9443, port: 9443 },
         ],
@@ -223,6 +246,22 @@
         },
       },
 
+    kubernetesServiceMonitor: {
+      apiVersion: 'monitoring.coreos.com/v1',
+      kind: 'ServiceMonitor',
+      metadata: pyrra._kubernetesMetadata,
+      spec: {
+        endpoints: [
+          { port: 'metrics' },
+        ],
+        selector: {
+          matchLabels: pyrra.kubernetesSelectorLabels,
+        },
+        namespaceSelector: {
+          matchNames: [pyrra._config.namespace],
+        },
+      },
+    },
     // Most of these should eventually be moved to the components themselves.
     // For now, this is a good start to have everything in one place.
     'slo-apiserver-read-response-errors': {

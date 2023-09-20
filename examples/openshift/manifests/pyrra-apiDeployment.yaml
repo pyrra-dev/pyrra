@@ -1,12 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
   labels:
     app.kubernetes.io/component: api
     app.kubernetes.io/name: pyrra
     app.kubernetes.io/version: 0.7.0-rc.1
   name: pyrra-api
-  namespace: monitoring
+  namespace: openshift-monitoring
 spec:
   replicas: 1
   selector:
@@ -27,8 +29,9 @@ spec:
       containers:
       - args:
         - api
-        - --api-url=http://pyrra-kubernetes.monitoring.svc.cluster.local:9444
-        - --prometheus-url=http://prometheus-k8s.monitoring.svc.cluster.local:9090
+        - --api-url=http://pyrra-kubernetes.openshift-monitoring.svc.cluster.local:9444
+        - --prometheus-bearer-token-path=/var/run/secrets/tokens/pyrra-api
+        - --prometheus-url=https://thanos-querier.openshift-monitoring.svc.cluster.local:9091
         image: ghcr.io/pyrra-dev/pyrra:v0.7.0-rc.1
         name: pyrra
         ports:
@@ -36,6 +39,25 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /var/run/secrets/tokens
+          name: pyrra-sa-token
+          readOnly: true
+        - mountPath: /etc/ssl/certs
+          name: trusted-ca
+          readOnly: true
       nodeSelector:
         kubernetes.io/os: linux
       serviceAccountName: pyrra-api
+      volumes:
+      - name: pyrra-sa-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              path: pyrra-api
+      - configMap:
+          items:
+          - key: service-ca.crt
+            path: service-ca.crt
+          name: openshift-service-ca.crt
+        name: trusted-ca
