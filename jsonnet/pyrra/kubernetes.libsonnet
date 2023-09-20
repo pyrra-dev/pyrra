@@ -28,7 +28,6 @@
     commonLabels:: {
       'app.kubernetes.io/name': 'pyrra',
       'app.kubernetes.io/version': defaults.version,
-      'app.kubernetes.io/part-of': 'kube-prometheus',
     },
   },
 
@@ -115,6 +114,23 @@
         },
       },
 
+    apiServiceMonitor: {
+      apiVersion: 'monitoring.coreos.com/v1',
+      kind: 'ServiceMonitor',
+      metadata: pyrra._apiMetadata,
+      spec: {
+        endpoints: [
+          { port: 'http' },
+        ],
+        selector: {
+          matchLabels: pyrra.apiSelectorLabels,
+        },
+        namespaceSelector: {
+          matchNames: [pyrra._config.namespace],
+        },
+      },
+    },
+
     _kubernetesMetadata:: {
       name: pyrra._config.name + '-kubernetes',
       namespace: pyrra._config.namespace,
@@ -179,6 +195,7 @@
       metadata: pyrra._kubernetesMetadata,
       spec: {
         ports: [
+          { name: 'metrics', targetPort: 8080, port: 8080 },
           { name: 'http', targetPort: 9444, port: 9444 },
           { name: 'webhooks', targetPort: 9443, port: 9443 },
         ],
@@ -229,6 +246,22 @@
         },
       },
 
+    kubernetesServiceMonitor: {
+      apiVersion: 'monitoring.coreos.com/v1',
+      kind: 'ServiceMonitor',
+      metadata: pyrra._kubernetesMetadata,
+      spec: {
+        endpoints: [
+          { port: 'metrics' },
+        ],
+        selector: {
+          matchLabels: pyrra.kubernetesSelectorLabels,
+        },
+        namespaceSelector: {
+          matchNames: [pyrra._config.namespace],
+        },
+      },
+    },
     // Most of these should eventually be moved to the components themselves.
     // For now, this is a good start to have everything in one place.
     'slo-apiserver-read-response-errors': {

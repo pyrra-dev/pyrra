@@ -33,6 +33,34 @@ local kp =
           namespace: 'openshift-monitoring',
         }],
       },
+      apiClusterRole: {
+        apiVersion: 'rbac.authorization.k8s.io/v1',
+        kind: 'ClusterRole',
+        metadata: {
+          name: 'pyrra-api',
+        },
+        rules: [
+          { apiGroups: [''], resources: ['namespaces'], verbs: ['get', 'list', 'watch'] },
+        ],
+      },
+      apiClusterRoleBinding: {
+        apiVersion: 'rbac.authorization.k8s.io/v1',
+        kind: 'ClusterRoleBinding',
+        metadata: {
+          name: 'pyrra-api',
+        },
+        roleRef: {
+          apiGroup: 'rbac.authorization.k8s.io',
+          kind: 'ClusterRole',
+          name: 'pyrra-api',
+        },
+        subjects: [{
+          kind: 'ServiceAccount',
+          name: 'pyrra-api',
+          namespace: 'openshift-monitoring',
+        }],
+      },
+
       // We add the additional necessary configuration to mount the self-signed certiciate via a Kubernetes secret.
       // This certificate is used to serve the webhook http server.
       apiService+: {
@@ -59,7 +87,6 @@ local kp =
                     '--api-url=http://pyrra-kubernetes.openshift-monitoring.svc.cluster.local:9444',
                     '--prometheus-bearer-token-path=/var/run/secrets/tokens/pyrra-api',
                     '--prometheus-url=https://thanos-querier.openshift-monitoring.svc.cluster.local:9091',
-                    '--prometheus-service-ca-path=/etc/ssl/certs/service-ca.crt',
                   ],
                   volumeMounts+: [{
                     name: 'pyrra-sa-token',

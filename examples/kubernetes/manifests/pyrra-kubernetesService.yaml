@@ -4,12 +4,14 @@ metadata:
   labels:
     app.kubernetes.io/component: kubernetes
     app.kubernetes.io/name: pyrra
-    app.kubernetes.io/part-of: kube-prometheus
     app.kubernetes.io/version: 0.7.0-rc.1
   name: pyrra-kubernetes
   namespace: monitoring
 spec:
   ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
   - name: http
     port: 9444
     targetPort: 9444
@@ -19,4 +21,3 @@ spec:
   selector:
     app.kubernetes.io/component: kubernetes
     app.kubernetes.io/name: pyrra
-    app.kubernetes.io/part-of: kube-prometheus
