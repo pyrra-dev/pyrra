@@ -10,7 +10,7 @@ local kp =
       common+: {
         namespace: 'openshift-monitoring',
         versions+: {
-          pyrra: '0.7.0-rc.2',
+          pyrra: '0.7.0-rc.3',
         },
       },
     },
