@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"embed"
 	"fmt"
 	"html/template"
@@ -60,7 +61,9 @@ var CLI struct {
 		PrometheusBearerTokenPath   string            `default:"" help:"Bearer token path"`
 		PrometheusBasicAuthUsername string            `default:"" help:"The HTTP basic authentication username"`
 		PrometheusBasicAuthPassword promconfig.Secret `default:"" help:"The HTTP basic authentication password"`
-		PrometheusServiceCAPath     string            `default:"/etc/ssl/certs/service-ca.crt" help:"The path to the SA certificate to load"`
+		TLSCertFile                 string            `default:"" help:"File containing the default x509 Certificate for HTTPS."`
+		TLSPrivateKeyFile           string            `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
+		TLSClientCAFile             string            `default:"" help:"File containing the CA certificate for the client"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
@@ -69,10 +72,12 @@ var CLI struct {
 		GenericRules     bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
-		MetricsAddr     string `default:":8080" help:"The address the metric endpoint binds to."`
-		ConfigMapMode   bool   `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
-		GenericRules    bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		DisableWebhooks bool   `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
+		MetricsAddr       string `default:":8080" help:"The address the metric endpoint binds to."`
+		ConfigMapMode     bool   `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
+		GenericRules      bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		DisableWebhooks   bool   `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
+		TLSCertFile       string `default:"" help:"File containing the default x509 Certificate for HTTPS."`
+		TLSPrivateKeyFile string `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
 		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
@@ -114,11 +119,11 @@ func main() {
 	if CLI.API.PrometheusBearerTokenPath != "" {
 		clientConfig.BearerTokenFile = CLI.API.PrometheusBearerTokenPath
 	}
-	if CLI.API.PrometheusServiceCAPath != "" {
-		clientConfig.TLSConfig = promconfig.TLSConfig{CAFile: CLI.API.PrometheusServiceCAPath}
+	if CLI.API.TLSClientCAFile != "" {
+		clientConfig.TLSConfig = promconfig.TLSConfig{CAFile: CLI.API.TLSClientCAFile}
 	}
 
-	roundTripper, err := promconfig.NewRoundTripperFromConfig(clientConfig, "pyrra")
+	roundTripper, err := promconfig.NewRoundTripperFromConfig(clientConfig, "prometheus")
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to create API client round tripper", "err", err)
 		os.Exit(1)
@@ -151,6 +156,8 @@ func main() {
 			CLI.API.APIURL,
 			CLI.API.RoutePrefix,
 			CLI.API.UIRoutePrefix,
+			CLI.API.TLSCertFile,
+			CLI.API.TLSPrivateKeyFile,
 		)
 	case "filesystem":
 		code = cmdFilesystem(
@@ -168,6 +175,8 @@ func main() {
 			CLI.Kubernetes.ConfigMapMode,
 			CLI.Kubernetes.GenericRules,
 			CLI.Kubernetes.DisableWebhooks,
+			CLI.Kubernetes.TLSCertFile,
+			CLI.Kubernetes.TLSPrivateKeyFile,
 		)
 	case "generate":
 		code = cmdGenerate(
@@ -181,7 +190,14 @@ func main() {
 	os.Exit(code)
 }
 
-func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, prometheusExternal, apiURL *url.URL, routePrefix, uiRoutePrefix string) int {
+func cmdAPI(
+	logger log.Logger,
+	reg *prometheus.Registry,
+	promClient api.Client,
+	prometheusExternal, apiURL *url.URL,
+	routePrefix, uiRoutePrefix string,
+	tlsCertFile, tlsPrivateKeyFile string,
+) int {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to read UI build files", "err", err)
@@ -235,12 +251,28 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 	prometheusInterceptor := connectprometheus.NewInterceptor(reg)
 
 	r.Route(routePrefix, func(r chi.Router) {
+		clientConfig := promconfig.HTTPClientConfig{
+			TLSConfig: promconfig.TLSConfig{
+				InsecureSkipVerify: true,
+			},
+		}
+
+		roundTripper, err := promconfig.NewRoundTripperFromConfig(clientConfig, "api")
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to create API client round tripper", "err", err)
+			os.Exit(1)
+		}
+
+		client := &http.Client{
+			Transport: roundTripper,
+		}
+
 		objectiveService := &objectiveServer{
 			logger:  log.WithPrefix(logger, "service", "objective"),
 			promAPI: promAPI,
 			client: newBackendClientCache(
 				objectivesv1alpha1connect.NewObjectiveBackendServiceClient(
-					http.DefaultClient,
+					client,
 					apiURL.String(),
 					connect.WithInterceptors(prometheusInterceptor),
 				),
@@ -321,11 +353,16 @@ func cmdAPI(logger log.Logger, reg *prometheus.Registry, promClient api.Client, 
 
 	{
 		httpServer := &http.Server{
-			Addr:    ":9099",
-			Handler: h2c.NewHandler(r, &http2.Server{}),
+			Addr:      ":9099",
+			Handler:   h2c.NewHandler(r, &http2.Server{}),
+			TLSConfig: &tls.Config{},
 		}
 		gr.Add(
 			func() error {
+				if tlsCertFile != "" && tlsPrivateKeyFile != "" {
+					level.Info(logger).Log("msg", "serving using TLS", "cert", tlsCertFile, "key", tlsPrivateKeyFile)
+					return httpServer.ListenAndServeTLS(tlsCertFile, tlsPrivateKeyFile)
+				}
 				return httpServer.ListenAndServe()
 			},
 			func(error) {

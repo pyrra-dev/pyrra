@@ -1,11 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  annotations: {}
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: pyrra-api-tls
   labels:
     app.kubernetes.io/component: api
     app.kubernetes.io/name: pyrra
-    app.kubernetes.io/version: 0.7.0-rc.1
+    app.kubernetes.io/version: 0.7.0-rc.2
   name: pyrra-api
   namespace: openshift-monitoring
 spec:

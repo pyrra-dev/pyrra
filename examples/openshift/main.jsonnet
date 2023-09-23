@@ -10,7 +10,7 @@ local kp =
       common+: {
         namespace: 'openshift-monitoring',
         versions+: {
-          pyrra: '0.7.0-rc.1',
+          pyrra: '0.7.0-rc.2',
         },
       },
     },
@@ -66,8 +66,7 @@ local kp =
       apiService+: {
         metadata+: {
           annotations+: {
-            // TODO: uncomment to enable TLS for the Pyrra API server.
-            // 'service.beta.openshift.io/serving-cert-secret-name': 'pyrra-api-tls',
+            'service.beta.openshift.io/serving-cert-secret-name': 'pyrra-api-tls',
           },
         },
       },
@@ -84,9 +83,12 @@ local kp =
                 c {
                   args: [
                     'api',
-                    '--api-url=http://pyrra-kubernetes.openshift-monitoring.svc.cluster.local:9444',
+                    '--api-url=https://pyrra-kubernetes.openshift-monitoring.svc.cluster.local:9444',
                     '--prometheus-bearer-token-path=/var/run/secrets/tokens/pyrra-api',
                     '--prometheus-url=https://thanos-querier.openshift-monitoring.svc.cluster.local:9091',
+                    '--tls-cert-file=/etc/tls/private/tls.crt',
+                    '--tls-private-key-file=/etc/tls/private/tls.key',
+                    '--tls-client-ca-file=/etc/tls/certs/service-ca.crt',
                   ],
                   volumeMounts+: [{
                     name: 'pyrra-sa-token',
@@ -94,13 +96,12 @@ local kp =
                     readOnly: true,
                   }, {
                     name: 'trusted-ca',
-                    mountPath: '/etc/ssl/certs',
+                    mountPath: '/etc/tls/certs',
                     readOnly: true,
-                    // TODO: uncomment to enable TLS for the Pyrra API server.
-                    // }, {
-                    //   name: 'tls',
-                    //   mountPath: '/etc/tls/private',
-                    //   readOnly: true,
+                  }, {
+                    name: 'tls',
+                    mountPath: '/etc/tls/private',
+                    readOnly: true,
                   }],
                 }
                 for c in super.containers
@@ -121,12 +122,47 @@ local kp =
                     path: 'service-ca.crt',
                   }],
                 },
-                // TODO: uncomment to enable TLS for the Pyrra API server.
-                // }, {
-                //   name: 'tls',
-                //   secret: {
-                //     secretName: 'pyrra-api-tls',
-                //   },
+              }, {
+                name: 'tls',
+                secret: {
+                  secretName: 'pyrra-api-tls',
+                },
+              }],
+            },
+          },
+        },
+      },
+
+      kubernetesService+: {
+        metadata+: {
+          annotations+: {
+            'service.beta.openshift.io/serving-cert-secret-name': 'pyrra-kubernetes-tls',
+          },
+        },
+      },
+      kubernetesDeployment+: {
+        spec+: {
+          template+: {
+            spec+: {
+              containers: [
+                c {
+                  args+: [
+                    '--tls-cert-file=/etc/tls/private/tls.crt',
+                    '--tls-private-key-file=/etc/tls/private/tls.key',
+                  ],
+                  volumeMounts+: [{
+                    name: 'tls',
+                    mountPath: '/etc/tls/private',
+                    readOnly: true,
+                  }],
+                }
+                for c in super.containers
+              ],
+              volumes+: [{
+                name: 'tls',
+                secret: {
+                  secretName: 'pyrra-kubernetes-tls',
+                },
               }],
             },
           },

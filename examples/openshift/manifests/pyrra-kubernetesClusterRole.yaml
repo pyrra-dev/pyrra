@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/component: kubernetes
     app.kubernetes.io/name: pyrra
-    app.kubernetes.io/version: 0.7.0-rc.1
+    app.kubernetes.io/version: 0.7.0-rc.2
   name: pyrra-kubernetes
   namespace: openshift-monitoring
 rules:

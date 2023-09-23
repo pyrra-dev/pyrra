@@ -58,7 +58,12 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-func cmdKubernetes(logger log.Logger, metricsAddr string, _, genericRules, disableWebhooks bool) int {
+func cmdKubernetes(
+	logger log.Logger,
+	metricsAddr string,
+	_, genericRules, disableWebhooks bool,
+	certFile, privateKeyFile string,
+) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
@@ -127,6 +132,10 @@ func cmdKubernetes(logger log.Logger, metricsAddr string, _, genericRules, disab
 		}
 
 		gr.Add(func() error {
+			if certFile != "" && privateKeyFile != "" {
+				setupLog.Info("serving with TLS", "cert", certFile, "key", privateKeyFile)
+				return server.ListenAndServeTLS(certFile, privateKeyFile)
+			}
 			return server.ListenAndServe()
 		}, func(err error) {
 			shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
