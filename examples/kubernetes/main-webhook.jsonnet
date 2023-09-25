@@ -8,7 +8,7 @@ local kp =
       common+: {
         namespace: 'monitoring',
         versions+: {
-          pyrra: '0.7.0-rc.3',
+          pyrra: '0.7.0',
         },
       },
     },

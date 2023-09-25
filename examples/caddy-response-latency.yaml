@@ -1,0 +1,15 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: caddy-response-latency
+spec:
+  description: We want our demo to be fast and therefore we want 90% of our responses
+    to be faster than 50ms as seen by Caddy.
+  indicator:
+    latency:
+      success:
+        metric: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code!~"5..",le="0.05"}
+      total:
+        metric: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code!~"5.."}
+  target: "90"
+  window: 4w
