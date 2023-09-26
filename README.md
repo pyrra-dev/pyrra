@@ -19,17 +19,20 @@
 
 ## Features
 
-- Support for Kubernetes, Docker, and filesystem
+- Support for Kubernetes, Docker, and reading from the filesystem
 - Alerting: Generates 4 Multi Burn Rate Alerts with different severity
 - Page listing all Service Level Objectives
-  - All columns sortable
+  - Search through names and labels
   - Sorted by remaining error budget to see the worst ones quickly
+  - All columns sortable
+  - View and hide individual columns
   - Clicking on labels to filter SLOs that contain the label  
   - Tool-tips when hovering for extra context
 - Page with details for a Service Level Objective
   - Objective, Availability, Error Budget highlighted as 3 most important numbers
   - Graph to see how the error budget develops over time
   - Time range picker to change graphs
+  - Switch between absolute and relative chart scales
   - Request, Errors, Duration (RED) graphs for the underlying service
   - Multi Burn Rate Alerts overview table
 - Caching of Prometheus query results
@@ -59,7 +62,7 @@ There are three components of Pyrra, all of which work through a single binary:
   - For Kubernetes, there is a Kubernetes Operator available
   - For everything else, there is a filesystem-based Operator available
 
-For the backend/operator to do its magic, an SLO object has to be provided in
+For the backend/operator to do its work, an SLO object has to be provided in
 YAML-format:
 
 ```yaml
@@ -97,6 +100,7 @@ The following rules would be created for the above example:
 
 ```
 http_requests:increase2w
+
 http_requests:burnrate3m
 http_requests:burnrate15m
 http_requests:burnrate30m
@@ -127,6 +131,35 @@ If you're unable to run the Prometheus Operator inside your cluster, you can add
 the `--config-map-mode=true` flag after the `kubernetes` argument. This will
 save each recording rule in a separate `ConfigMap`.
 
+#### Applying YAML
+
+This repository contains generated YAML files in the [example/kubernetes/manifests](examples/kubernetes/manifests) folder.
+You can use the following commands to deploy them to a cluster right away.
+
+```bash
+kubectl apply --server-side -f ./example/kubernetes/manifests/setup
+kubectl apply --server-side -f ./example/kubernetes/manifests
+kubectl apply --server-side -f ./example/kubernetes/manifests/slos
+```
+
+##### Applying YAML and validating webhooks via cert-manager
+
+This repository contains more generated YAML files in the [example/kubernetes/manifests-webhook](examples/kubernetes/manifests-webhook) folder.
+
+This example deployment additionally applies and self-sign Issuer and requests a certificate via cert-manager,
+so that the Kubernetes APIServer can connect to Pyrra to validate any configuration object before applying it to the cluster.
+
+```bash
+kubectl apply --server-side -f ./example/kubernetes/manifests-webhook/setup
+kubectl apply --server-side -f ./example/kubernetes/manifests-webhook
+kubectl apply --server-side -f ./example/kubernetes/manifests-webhook/slos
+```
+
+##### kube-prometheus
+
+The underlying jsonnet code is imported by the [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus) project. 
+If you want to install an entire monitoring stack including Pyrra we highly recommend using kube-prometheus.
+
 #### Install with Helm
 
 Thanks to [@rlex](https://github.com/rlex) there is a [Helm chart](https://artifacthub.io/packages/helm/rlex/pyrra) for deploying Pyrra too. 
@@ -140,7 +173,7 @@ Thanks to [@rlex](https://github.com/rlex) there is a [Helm chart](https://artif
 You can easily start Pyrra on its own via the provided Docker image:
 
 ```bash
-docker pull ghcr.io/pyrra-dev/pyrra:v0.6.1
+docker pull ghcr.io/pyrra-dev/pyrra:v0.7.0
 ```
 
 When running Pyrra outside of Kubernetes, the SLO object can be provided through

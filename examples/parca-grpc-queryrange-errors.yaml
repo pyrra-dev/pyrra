@@ -1,0 +1,18 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  labels:
+    prometheus: k8s
+    pyrra.dev/team: parca
+    role: alert-rules
+  name: parca-grpc-queryrange-errors
+  namespace: parca
+spec:
+  indicator:
+    ratio:
+      errors:
+        metric: grpc_server_handled_total{grpc_service="parca.query.v1alpha1.QueryService",grpc_method="QueryRange",grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"}
+      total:
+        metric: grpc_server_handled_total{grpc_service="parca.query.v1alpha1.QueryService",grpc_method="QueryRange"}
+  target: "99"
+  window: 2w

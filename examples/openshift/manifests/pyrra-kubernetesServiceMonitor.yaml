@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/component: kubernetes
+    app.kubernetes.io/name: pyrra
+    app.kubernetes.io/version: 0.7.0
+  name: pyrra-kubernetes
+  namespace: openshift-monitoring
+spec:
+  endpoints:
+  - port: metrics
+  namespaceSelector:
+    matchNames:
+    - openshift-monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: kubernetes
+      app.kubernetes.io/name: pyrra

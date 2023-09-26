@@ -12,7 +12,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  GORELEASER_VERSION: v1.10.3
+  GORELEASER_VERSION: v1.20.0
 
 permissions:
   contents: write
@@ -39,11 +39,11 @@ jobs:
           node-version-file: .node-version
 
       - name: Build and release binaries
-        uses: goreleaser/goreleaser-action@5fdedb94abba051217030cc86d4523cf3f02243d
+        uses: goreleaser/goreleaser-action@5fdedb94abba051217030cc86d4523cf3f02243d # v4.6.0
         with:
           distribution: goreleaser
           version: ${{ env.GORELEASER_VERSION }}
-          args: release --rm-dist
+          args: release --clean --timeout=60m
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
