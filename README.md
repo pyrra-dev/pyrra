@@ -133,7 +133,7 @@ save each recording rule in a separate `ConfigMap`.
 
 #### Applying YAML
 
-This repository contains generated YAML files in the [example/kubernetes/manifests](examples/kubernetes/manifests) folder.
+This repository contains generated YAML files in the [examples/kubernetes/manifests](examples/kubernetes/manifests) folder.
 You can use the following commands to deploy them to a cluster right away.
 
 ```bash
@@ -144,7 +144,7 @@ kubectl apply --server-side -f ./example/kubernetes/manifests/slos
 
 ##### Applying YAML and validating webhooks via cert-manager
 
-This repository contains more generated YAML files in the [example/kubernetes/manifests-webhook](examples/kubernetes/manifests-webhook) folder.
+This repository contains more generated YAML files in the [examples/kubernetes/manifests-webhook](examples/kubernetes/manifests-webhook) folder.
 
 This example deployment additionally applies and self-sign Issuer and requests a certificate via cert-manager,
 so that the Kubernetes APIServer can connect to Pyrra to validate any configuration object before applying it to the cluster.
