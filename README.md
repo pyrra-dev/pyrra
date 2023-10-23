@@ -137,9 +137,9 @@ This repository contains generated YAML files in the [example/kubernetes/manifes
 You can use the following commands to deploy them to a cluster right away.
 
 ```bash
-kubectl apply --server-side -f ./example/kubernetes/manifests/setup
-kubectl apply --server-side -f ./example/kubernetes/manifests
-kubectl apply --server-side -f ./example/kubernetes/manifests/slos
+kubectl apply --server-side -f ./examples/kubernetes/manifests/setup
+kubectl apply --server-side -f ./examples/kubernetes/manifests
+kubectl apply --server-side -f ./examples/kubernetes/manifests/slos
 ```
 
 ##### Applying YAML and validating webhooks via cert-manager
@@ -150,9 +150,9 @@ This example deployment additionally applies and self-sign Issuer and requests a
 so that the Kubernetes APIServer can connect to Pyrra to validate any configuration object before applying it to the cluster.
 
 ```bash
-kubectl apply --server-side -f ./example/kubernetes/manifests-webhook/setup
-kubectl apply --server-side -f ./example/kubernetes/manifests-webhook
-kubectl apply --server-side -f ./example/kubernetes/manifests-webhook/slos
+kubectl apply --server-side -f ./examples/kubernetes/manifests-webhook/setup
+kubectl apply --server-side -f ./examples/kubernetes/manifests-webhook
+kubectl apply --server-side -f ./examples/kubernetes/manifests-webhook/slos
 ```
 
 ##### kube-prometheus
