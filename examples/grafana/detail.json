@@ -598,7 +598,7 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "reqps"
         },
         "overrides": [
           {
@@ -644,7 +644,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "builder",
-          "expr": "sum(rate(pyrra_errors_total{slo=\"$slo\"}[$__rate_interval]))",
+          "expr": "sum(pyrra_errors_total{slo=\"$slo\"})",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,

@@ -547,7 +547,9 @@ func (r objectiveReplacer) replace(node parser.Node) {
 			r.replace(expr)
 		}
 	case *parser.MatrixSelector:
-		n.Range = r.window
+		if r.window != 0 {
+			n.Range = r.window
+		}
 		r.replace(n.VectorSelector)
 	case *parser.VectorSelector:
 		if n.Name == "errorMetric" {
