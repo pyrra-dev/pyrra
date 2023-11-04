@@ -83,7 +83,7 @@ func cmdKubernetes(
 		WebhookServer:    webhookServer,
 		LeaderElection:   false,
 		LeaderElectionID: "9d76195a.pyrra.dev",
-		Namespace:        namespace
+		Namespace:        namespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
