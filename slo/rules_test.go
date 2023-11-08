@@ -1749,7 +1749,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-grpc-latency"},
 			}, {
 				Record: "pyrra_errors_total",
-				Expr:   intstr.FromString(`sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})[5m]) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[5m))`),
+				Expr:   intstr.FromString(`sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[5m])) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[5m))`),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency"},
 			}},
 		},
