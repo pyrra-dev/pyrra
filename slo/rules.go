@@ -1241,7 +1241,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}.replace(rate)
 
 		rules = append(rules, monitoringv1.Rule{
-			Record: "pyrra_requests_total",
+			Record: "pyrra_requests:rate5m",
 			Expr:   intstr.FromString(rate.String()),
 			Labels: ruleLabels,
 		})
@@ -1260,7 +1260,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}.replace(errorsParsedExpr)
 
 		rules = append(rules, monitoringv1.Rule{
-			Record: "pyrra_errors_total",
+			Record: "pyrra_errors:rate5m",
 			Expr:   intstr.FromString(errorsParsedExpr.String()),
 			Labels: ruleLabels,
 		})
@@ -1340,7 +1340,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: "pyrra_requests_total",
+				Record: "pyrra_requests:rate5m",
 				Expr:   intstr.FromString(rate.String()),
 				Labels: ruleLabels,
 			})
@@ -1378,7 +1378,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			}.replace(errorsExpr)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: "pyrra_errors_total",
+				Record: "pyrra_errors:rate5m",
 				Expr:   intstr.FromString(errorsExpr.String()),
 				Labels: ruleLabels,
 			})
@@ -1451,7 +1451,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: "pyrra_requests_total",
+				Record: "pyrra_requests:rate5m",
 				Expr:   intstr.FromString(rate.String()),
 				Labels: ruleLabels,
 			})
@@ -1472,7 +1472,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: "pyrra_errors_total",
+				Record: "pyrra_errors:rate5m",
 				Expr:   intstr.FromString(rate.String()),
 				Labels: ruleLabels,
 			})

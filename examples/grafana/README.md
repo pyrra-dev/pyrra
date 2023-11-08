@@ -17,8 +17,8 @@ It means that Pyrra generates metrics with the same name for each SLO.
 pyrra_objective
 pyrra_window
 pyrra_availability
-pyrra_requests_total
-pyrra_errors_total
+pyrra_requests:rate5m
+pyrra_errors:rate5m
 ```
 
 The Grafana dashboards rely on these recording rules. You need to enabled generating these on the `filesystem` or `kubernetes` component.
