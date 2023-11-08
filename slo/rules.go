@@ -1230,7 +1230,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m))`)
+		rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m]))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
