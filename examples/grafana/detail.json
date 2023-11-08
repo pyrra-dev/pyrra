@@ -529,7 +529,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(pyrra_requests_total{slo=\"$slo\"}[$__rate_interval]))",
+          "expr": "sum(rate(pyrra_requests:rate5m{slo=\"$slo\"}[$__rate_interval]))",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
@@ -598,7 +598,7 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "reqps"
         },
         "overrides": [
           {
@@ -644,7 +644,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "builder",
-          "expr": "sum(rate(pyrra_errors_total{slo=\"$slo\"}[$__rate_interval]))",
+          "expr": "sum(pyrra_errors:rate5m{slo=\"$slo\"})",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
