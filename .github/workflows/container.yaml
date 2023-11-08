@@ -93,7 +93,7 @@ jobs:
         uses: docker/build-push-action@0a97817b6ade9f46837855d676c4cca3a2471fc9
         with:
           context: .
-          push: ${{ github.repository == 'pyrra-dev/pyrra' && github.event_name != 'pull_request' }}
+          push: ${{ github.repository == 'jmichalek/pyrra' && github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64, linux/arm64, linux/arm/v7
