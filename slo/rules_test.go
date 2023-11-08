@@ -1641,11 +1641,11 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
 			}, {
 				Record: "pyrra_requests_total",
-				Expr:   intstr.FromString(`sum(http_requests_total{job="thanos-receive-default"})`),
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{job="thanos-receive-default"}[5m]))`),
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
 			}, {
 				Record: "pyrra_errors_total",
-				Expr:   intstr.FromString(`sum(http_requests_total{code=~"5..",job="thanos-receive-default"} or vector(0))`),
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[5m])) or vector(0)`),
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
 			}},
 		},
