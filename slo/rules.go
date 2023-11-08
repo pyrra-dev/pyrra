@@ -1230,7 +1230,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+		rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -1321,7 +1321,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 		// rate
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+			rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1347,7 +1347,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 		// errors
 		{
-			errorsExpr, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
+			errorsExpr, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m])) - sum(rate(errorMetric{matchers="errors"}[5m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
