@@ -29,7 +29,7 @@
     "@fontsource/inter": "^5.0.15",
     "@fontsource/lato": "^5.0.15",
     "@types/node": "^20.6.5",
-    "@types/react": "^18.2.21",
+    "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.7",
     "cra-template-typescript": "^1.2.0",
     "eslint": "^7.32.0",
