@@ -153,7 +153,7 @@ picked up by a Prometheus instance. While running Pyrra on its own works, there
 won't be any SLO configured, nor will there be any data from a Prometheus to
 work with. It's designed to work alongside a Prometheus.
 
-SLO specs may be published using the `/ingest` endpoint. This will cause `pyrra` to
+SLO specs may be published using the `/specs/create` endpoint. This will cause `pyrra` to
 generate the corresponding recordingRules, write them out to disk and trigger a reload
 of Prometheus.
 
