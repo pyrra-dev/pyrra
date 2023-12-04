@@ -29,9 +29,6 @@ metadata:
   labels:
     prometheus: k8s
     role: alert-rules
-    pyrra.dev/team: foo
-  annotations:
-    pyrra.dev/description: "foo"
 spec:
   target: 99
   window: 1w
@@ -41,20 +38,29 @@ spec:
         metric: http_requests_total{job="metrics-service-thanos-receive-default",code=~"5.."}
       total:
         metric: http_requests_total{job="metrics-service-thanos-receive-default"}
+  alerting:
+    labels:
+      team: foo
+    annotations:
+      description: foo
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
 				labels.MetricName, "http-errors",
 				"namespace", "monitoring",
-				"pyrra.dev/team", "foo",
 			),
-			Annotations: map[string]string{"pyrra.dev/description": "foo"},
 			Description: "",
 			Target:      0.99,
 			Window:      model.Duration(7 * 24 * time.Hour),
 			Alerting: slo.Alerting{
 				Burnrates: true,
 				Absent:    true,
+				Labels: map[string]string{
+					"team": "foo",
+				},
+				Annotations: map[string]string{
+					"description": "foo",
+				},
 			},
 			Indicator: slo.Indicator{
 				Ratio: &slo.RatioIndicator{

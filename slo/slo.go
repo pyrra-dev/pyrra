@@ -11,6 +11,8 @@ import (
 const (
 	// PropagationLabelsPrefix provides a way to propagate labels from the
 	// ObjectMeta to the PrometheusRule.
+	// DEPRECATED: use the `Alerting.labels` field instead.
+	// This is being kept for backwards compatibility.
 	PropagationLabelsPrefix = "pyrra.dev/"
 	defaultAlertname        = "ErrorBudgetBurn"
 )
@@ -134,10 +136,12 @@ type BoolGaugeIndicator struct {
 }
 
 type Alerting struct {
-	Disabled  bool // deprecated, use Burnrates instead
-	Burnrates bool
-	Absent    bool
-	Name      string
+	Disabled    bool // deprecated, use Burnrates instead
+	Burnrates   bool
+	Absent      bool
+	Name        string
+	Labels      map[string]string
+	Annotations map[string]string
 }
 
 type Metric struct {

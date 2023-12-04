@@ -595,9 +595,18 @@ func (o Objective) commonRuleLabels(sloName string) map[string]string {
 		"slo": sloName,
 	}
 
+	// DEPRECATED: Labels prefixed with "pyrra.dev" are still being used for backwards compatibility.
+	// Use "o.Alerting.Labels" instead.
+	// TODO: Remove this in a future release.
 	for _, label := range o.Labels {
 		if strings.HasPrefix(label.Name, PropagationLabelsPrefix) {
 			ruleLabels[strings.TrimPrefix(label.Name, PropagationLabelsPrefix)] = label.Value
+		}
+	}
+
+	if o.Alerting.Labels != nil {
+		for key, value := range o.Alerting.Labels {
+			ruleLabels[key] = value
 		}
 	}
 
@@ -608,10 +617,22 @@ func (o Objective) commonRuleAnnotations() map[string]string {
 	var annotations map[string]string
 	if len(o.Annotations) > 0 {
 		annotations = make(map[string]string)
+		// DEPRECATED: Annotations prefixed with "pyrra.dev" are still being used for backwards compatibility.
+		// Use "o.Alerting.Annotations" instead.
+		// TODO: Remove this in a future release.
 		for key, value := range o.Annotations {
 			if strings.HasPrefix(key, PropagationLabelsPrefix) {
 				annotations[strings.TrimPrefix(key, PropagationLabelsPrefix)] = value
 			}
+		}
+	}
+
+	if o.Alerting.Annotations != nil {
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		for key, value := range o.Alerting.Annotations {
+			annotations[key] = value
 		}
 	}
 

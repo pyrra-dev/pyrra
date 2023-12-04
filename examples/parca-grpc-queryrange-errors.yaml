@@ -3,7 +3,6 @@ kind: ServiceLevelObjective
 metadata:
   labels:
     prometheus: k8s
-    pyrra.dev/team: parca
     role: alert-rules
   name: parca-grpc-queryrange-errors
   namespace: parca
@@ -16,3 +15,6 @@ spec:
         metric: grpc_server_handled_total{grpc_service="parca.query.v1alpha1.QueryService",grpc_method="QueryRange"}
   target: "99"
   window: 2w
+  alerting:
+    labels:
+      team: parca 
