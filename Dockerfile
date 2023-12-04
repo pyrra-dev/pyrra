@@ -15,7 +15,7 @@ RUN if [ "${TARGETARCH}" = 'amd64' ]; then \
     fi
 RUN chmod +x pyrra
 
-FROM --platform="${TARGETPLATFORM:-linux/amd64}"  docker.io/alpine:3.18.4 AS runner
+FROM --platform="${TARGETPLATFORM:-linux/amd64}"  docker.io/alpine:3.18.5 AS runner
 WORKDIR /
 COPY --chown=0:0 --from=builder /app/pyrra /usr/bin/pyrra
 USER 65533
