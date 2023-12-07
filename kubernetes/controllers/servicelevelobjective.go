@@ -79,10 +79,9 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 			if err := r.Create(ctx, newRule); err != nil {
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, fmt.Errorf("failed to create prometheus rule: %w", err)
+		} else {
+			return ctrl.Result{}, fmt.Errorf("failed to get prometheus rule: %w", err)
 		}
-
-		return ctrl.Result{}, fmt.Errorf("failed to get prometheus rule: %w", err)
 	}
 
 	newRule.ResourceVersion = rule.ResourceVersion
@@ -123,9 +122,9 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
 			if err := r.Create(ctx, newConfigMap); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to create config map: %w", err)
 			}
+		} else {
+			return ctrl.Result{}, fmt.Errorf("failed to get config map: %w", err)
 		}
-
-		return ctrl.Result{}, err
 	}
 
 	newConfigMap.ResourceVersion = existingConfigMap.ResourceVersion
