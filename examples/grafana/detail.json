@@ -529,7 +529,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(pyrra_requests:rate5m{slo=\"$slo\"}[$__rate_interval]))",
+          "expr": "sum(pyrra_requests:rate5m{slo=\"$slo\"}[$__rate_interval])",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
