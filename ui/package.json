@@ -8,7 +8,7 @@
     "@tanstack/react-table": "^8.10.7",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
-    "@testing-library/user-event": "^14.4.3",
+    "@testing-library/user-event": "^14.5.1",
     "awesome-debounce-promise": "^2.1.0",
     "bootstrap": "^5.2.3",
     "react": "^18.1.0",
