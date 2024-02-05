@@ -34,7 +34,7 @@ jobs:
           cache: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@8c91899e586c5b171469028077307d293428b516
+        uses: actions/setup-node@b39b52d1213e96004bfcb1c61a8a6fa8ab84f3e8
         with:
           node-version-file: .node-version
 
