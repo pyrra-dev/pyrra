@@ -1,0 +1,33 @@
+FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/golang:1.21.6-alpine as go-builder
+
+# renovate: datasource=go depName=github.com/go-delve/delve
+ARG DLV_VERSION=v1.21.0
+
+# hadolint ignore=DL3018
+RUN apk update && apk add --no-cache build-base
+RUN go install "github.com/go-delve/delve/cmd/dlv@${DLV_VERSION}"
+
+FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/busybox:1.36.1 as builder
+
+ARG TARGETOS TARGETARCH TARGETVARIANT
+
+WORKDIR /app
+COPY dist dist
+
+# NOTICE: See goreleaser.yml for the build paths.
+RUN if [ "${TARGETARCH}" = 'amd64' ]; then \
+        cp "dist/pyrra_${TARGETOS}_${TARGETARCH}_${TARGETVARIANT:-v1}/pyrra" . ; \
+    elif [ "${TARGETARCH}" = 'arm' ]; then \
+        cp "dist/pyrra_${TARGETOS}_${TARGETARCH}_${TARGETVARIANT##v}/pyrra" . ; \
+    else \
+        cp "dist/pyrra_${TARGETOS}_${TARGETARCH}/pyrra" . ; \
+    fi
+RUN chmod +x pyrra
+
+FROM --platform="${TARGETPLATFORM:-linux/amd64}"  docker.io/alpine:3.19.1 AS runner
+WORKDIR /
+COPY --chown=0:0 --from=builder /app/pyrra /usr/bin/pyrra
+COPY --chown=0:0 --from=go-builder /go/bin/dlv /usr/bin/dlv
+USER 65533
+
+ENTRYPOINT ["/usr/bin/dlv", "--listen=:40000", "--headless=true", "--api-version=2", "--accept-multiclient", "exec", "--continue", "--", "/usr/bin/pyrra"]
