@@ -70,6 +70,7 @@ var CLI struct {
 		PrometheusURL    *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
 		PrometheusFolder string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
 		GenericRules     bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		SpecsApi         bool     `default:"false" help:"Enables the specs ingestion API."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
 		MetricsAddr       string `default:":8080" help:"The address the metric endpoint binds to."`
@@ -166,6 +167,7 @@ func main() {
 			client,
 			CLI.Filesystem.ConfigFiles,
 			CLI.Filesystem.PrometheusFolder,
+			CLI.Filesystem.SpecsApi,
 			CLI.Filesystem.GenericRules,
 		)
 	case "kubernetes":

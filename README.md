@@ -201,6 +201,8 @@ Content-Type: text/plain; charset=utf-8
 ok
 ```
 
+Note: the specs endpoint does not require authentication.
+
 ## Tech Stack
 
 **Client:** TypeScript with React, Bootstrap, and uPlot.

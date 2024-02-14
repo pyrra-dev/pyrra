@@ -223,7 +223,7 @@ func removeSpecHandler(logger log.Logger, dir string, prometheusFolder string, r
 	}
 }
 
-func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules bool) int {
+func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, specsApi bool, genericRules bool) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
 		Help: "The total amount of reconciles.",
@@ -387,9 +387,14 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 		))
 		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
-		router.HandleFunc("/specs/remove", removeSpecHandler(logger, dir, prometheusFolder, reload))
-		router.HandleFunc("/specs/create", createSpecHandler(logger, dir, prometheusFolder, reload, genericRules))
-		router.HandleFunc("/specs/list", listSpecsHandler(logger, dir, prometheusFolder))
+		if specsApi {
+			level.Info(logger).Log("msg", "specs API endpoints are enabled")
+			router.HandleFunc("/specs/remove", removeSpecHandler(logger, dir, prometheusFolder, reload))
+			router.HandleFunc("/specs/create", createSpecHandler(logger, dir, prometheusFolder, reload, genericRules))
+			router.HandleFunc("/specs/list", listSpecsHandler(logger, dir, prometheusFolder))
+		} else {
+			level.Info(logger).Log("msg", "specs API endpoints are disabled")
+		}
 
 		server := http.Server{
 			Addr:    ":9444",
