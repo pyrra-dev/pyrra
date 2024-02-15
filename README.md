@@ -201,7 +201,7 @@ Content-Type: text/plain; charset=utf-8
 ok
 ```
 
-Note: the specs endpoint does not require authentication.
+Note: the specs endpoint does not require authentication and needs to be explicitly enabled using `--specs-api`.
 
 ## Tech Stack
 
