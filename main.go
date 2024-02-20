@@ -299,7 +299,7 @@ func cmdAPI(
 		}
 
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-		r.Get("/objectives", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/objectives", func(w http.ResponseWriter, _ *http.Request) {
 			err := tmpl.Execute(w, struct {
 				PrometheusURL string
 				PathPrefix    string
