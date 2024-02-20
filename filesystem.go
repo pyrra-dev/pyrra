@@ -122,7 +122,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 			}
 			<-ctx.Done()
 			return nil
-		}, func(err error) {
+		}, func(_ error) {
 			cancel()
 		})
 	}
@@ -158,7 +158,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Warn(logger).Log("msg", "encountered file watcher error", "err", err)
 				}
 			}
-		}, func(err error) {
+		}, func(_ error) {
 			_ = watcher.Close()
 			cancel()
 		})
@@ -195,7 +195,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					reload <- struct{}{} // Trigger a Prometheus reload
 				}
 			}
-		}, func(err error) {
+		}, func(_ error) {
 			cancel()
 		})
 	}
@@ -235,7 +235,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					}
 				}
 			}
-		}, func(err error) {
+		}, func(_ error) {
 			cancel()
 			close(reload)
 		})
@@ -260,7 +260,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 		gr.Add(func() error {
 			level.Info(logger).Log("msg", "starting up HTTP API", "address", server.Addr)
 			return server.ListenAndServe()
-		}, func(err error) {
+		}, func(_ error) {
 			_ = server.Shutdown(context.Background())
 		})
 	}
