@@ -12,6 +12,7 @@
       namespace: $.values.common.namespace,
       version: $.values.common.versions.pyrra,
       image: $.values.common.images.pyrra,
+      prometheusURL: 'http://prometheus-k8s.%s.svc.cluster.local:9090' % $.values.common.namespace,
     },
   },
 
@@ -78,7 +79,7 @@
         args: [
           'api',
           '--api-url=http://%s.%s.svc.cluster.local:9444' % [pyrra.kubernetesService.metadata.name, pyrra.kubernetesService.metadata.namespace],
-          '--prometheus-url=http://prometheus-k8s.%s.svc.cluster.local:9090' % pyrra._config.namespace,
+          '--prometheus-url=%s' % pyrra._config.prometheusURL,
         ],
         // resources: pyrra._config.resources,
         ports: [{ containerPort: pyrra._config.port }],

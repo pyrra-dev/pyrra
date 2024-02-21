@@ -116,7 +116,7 @@ func cmdKubernetes(
 			}
 			setupLog.Info("starting manager")
 			return mgr.Start(ctx)
-		}, func(err error) {
+		}, func(_ error) {
 			cancel()
 		})
 	}
@@ -137,7 +137,7 @@ func cmdKubernetes(
 				return server.ListenAndServeTLS(certFile, privateKeyFile)
 			}
 			return server.ListenAndServe()
-		}, func(err error) {
+		}, func(_ error) {
 			shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 			defer cancel()
 			_ = server.Shutdown(shutdownCtx)
