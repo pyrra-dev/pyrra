@@ -111,7 +111,7 @@ func listFolderContents(folderPath string) ([]string, error) {
 	return fileNames, err
 }
 
-func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) http.HandlerFunc {
+func listSpecsHandler(logger log.Logger, specsDir, prometheusDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -149,7 +149,7 @@ func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) 
 	}
 }
 
-func createSpecHandler(logger log.Logger, dir string, prometheusFolder string, reload chan struct{}, genericRules bool) http.HandlerFunc {
+func createSpecHandler(logger log.Logger, dir, prometheusFolder string, reload chan struct{}, genericRules bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -211,7 +211,7 @@ func createSpecHandler(logger log.Logger, dir string, prometheusFolder string, r
 	}
 }
 
-func removeSpecHandler(logger log.Logger, dir string, prometheusFolder string, reload chan struct{}) http.HandlerFunc {
+func removeSpecHandler(logger log.Logger, dir, prometheusFolder string, reload chan struct{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -251,7 +251,7 @@ func removeSpecHandler(logger log.Logger, dir string, prometheusFolder string, r
 	}
 }
 
-func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, specsApi bool, genericRules bool) int {
+func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, specsApi, genericRules bool) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
 		Help: "The total amount of reconciles.",
