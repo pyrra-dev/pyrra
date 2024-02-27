@@ -90,7 +90,7 @@ Objectives:
 	return objectives
 }
 
-func _listFolderContents(folderPath string, w http.ResponseWriter) error {
+func listFolderContents(folderPath string, w http.ResponseWriter) error {
 	err := filepath.Walk(folderPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -113,7 +113,7 @@ func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) 
 		level.Info(logger).Log("msg", "listing available specs", "dir", specsDir)
 		fmt.Fprintf(w, "Specs currently available:\n")
 
-		err := _listFolderContents(specsDir, w)
+		err := listFolderContents(specsDir, w)
 		if err != nil {
 			level.Error(logger).Log("msg", "error listing available specs", "err", err)
 		}
@@ -121,7 +121,7 @@ func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) 
 		level.Info(logger).Log("msg", "listing generated rules", "dir", prometheusDir)
 		fmt.Fprintf(w, "Rules currently generated:\n")
 
-		err = _listFolderContents(prometheusDir, w)
+		err = listFolderContents(prometheusDir, w)
 		if err != nil {
 			level.Error(logger).Log("msg", "error listing generated rules", "err", err)
 		}
