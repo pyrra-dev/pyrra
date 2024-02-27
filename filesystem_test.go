@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/prometheus/prometheus/model/labels"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pyrra-dev/pyrra/slo"
@@ -38,18 +37,18 @@ func TestListSpecsHandler(t *testing.T) {
 	testLogger := NewTestLogger(t)
 
 	req, err := http.NewRequest("GET", "/specs/list", nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	specsDir, err := ioutil.TempDir("", "pyrra-test1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(specsDir)
 
 	file, err := os.Create(specsDir + "/foobar.yaml")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer file.Close()
 
 	prometheusDir, err := ioutil.TempDir("", "pyrra-test2")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(prometheusDir)
 
 	rr := httptest.NewRecorder()
@@ -57,15 +56,15 @@ func TestListSpecsHandler(t *testing.T) {
 	handler := http.HandlerFunc(listSpecsHandler(testLogger, specsDir, prometheusDir))
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, rr.Code, http.StatusOK, "Should return OK")
+	require.Equal(t, rr.Code, http.StatusOK, "Should return OK")
 
 	var payload SpecsList
 	json.Unmarshal(rr.Body.Bytes(), &payload)
 	specsAvailable := payload.SpecsAvailable
 	rulesGenerated := payload.RulesGenerated
 
-	assert.Contains(t, specsAvailable, "foobar.yaml", "Unexpected value for the SpecsAvailable field in response payload")
-	assert.Empty(t, rulesGenerated, "The RulesGenerated field in response payload should be empty")
+	require.Contains(t, specsAvailable, "foobar.yaml", "Unexpected value for the SpecsAvailable field in response payload")
+	require.Empty(t, rulesGenerated, "The RulesGenerated field in response payload should be empty")
 }
 
 func TestCreateSpecHandlerOkSpec(t *testing.T) {
@@ -94,30 +93,30 @@ spec:
 	writer := multipart.NewWriter(&body)
 
 	fileWriter, err := writer.CreateFormFile("spec", "foo-spec.yaml")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	_, err = fileWriter.Write([]byte(fileContent))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	writer.Close()
 
 	req, err := http.NewRequest("POST", "/specs/create", &body)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rr := httptest.NewRecorder()
 
 	tmpDir1, err := ioutil.TempDir("", "pyrra-test1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir1)
 
 	tmpDir2, err := ioutil.TempDir("", "pyrra-test2")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir2)
 
 	handler := http.HandlerFunc(createSpecHandler(testLogger, tmpDir1, tmpDir2, reload, false))
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, rr.Code, http.StatusOK, "Should return OK")
+	require.Equal(t, rr.Code, http.StatusOK, "Should return OK")
 }
 
 func TestCreateSpecHandlerBadSpec(t *testing.T) {
@@ -146,7 +145,7 @@ func TestCreateSpecHandlerBadSpec(t *testing.T) {
 	handler := http.HandlerFunc(createSpecHandler(testLogger, "/tmp/", "/tmp/", reload, false))
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
+	require.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
 }
 
 func TestCreateSpecHandlerInvalidMethod(t *testing.T) {
@@ -163,7 +162,7 @@ func TestCreateSpecHandlerInvalidMethod(t *testing.T) {
 	handler := http.HandlerFunc(createSpecHandler(logger, "/tmp/pyrra/1", "/tmp/pyrra/2", reload, false))
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, rr.Code, http.StatusMethodNotAllowed, "Should return MethodNotAllowed")
+	require.Equal(t, rr.Code, http.StatusMethodNotAllowed, "Should return MethodNotAllowed")
 }
 
 func TestCreateSpecHandlerMissingParameter(t *testing.T) {
@@ -180,7 +179,7 @@ func TestCreateSpecHandlerMissingParameter(t *testing.T) {
 	handler := http.HandlerFunc(createSpecHandler(logger, "/tmp/pyrra/1", "/tmp/pyrra/2", reload, false))
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
+	require.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
 }
 
 func TestRemoveSpecHandlerInvalidMethod(t *testing.T) {
@@ -197,7 +196,7 @@ func TestRemoveSpecHandlerInvalidMethod(t *testing.T) {
 	handler := http.HandlerFunc(removeSpecHandler(logger, "/tmp/pyrra/1", "/tmp/pyrra/2", reload))
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, rr.Code, http.StatusMethodNotAllowed, "Should return MethodNotAllowed")
+	require.Equal(t, rr.Code, http.StatusMethodNotAllowed, "Should return MethodNotAllowed")
 }
 
 func TestRemoveSpecHandlerMissingParameter(t *testing.T) {
@@ -214,12 +213,12 @@ func TestRemoveSpecHandlerMissingParameter(t *testing.T) {
 	handler := http.HandlerFunc(removeSpecHandler(logger, "/tmp/pyrra/1", "/tmp/pyrra/2", reload))
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
+	require.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
 
 	expectedBody := "Missing 'f' parameter in the query"
 
-	assert.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
-	assert.Equal(t, strings.TrimSpace(rr.Body.String()), expectedBody, "Should return expected body")
+	require.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
+	require.Equal(t, strings.TrimSpace(rr.Body.String()), expectedBody, "Should return expected body")
 }
 
 func TestMatchObjectives(t *testing.T) {

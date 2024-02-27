@@ -96,7 +96,7 @@ Objectives:
 	return objectives
 }
 
-func listFolderContents(folderPath string, w http.ResponseWriter) (error, []string) {
+func listFolderContents(folderPath string) ([]string, error) {
 	var fileNames []string
 	err := filepath.Walk(folderPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -108,7 +108,7 @@ func listFolderContents(folderPath string, w http.ResponseWriter) (error, []stri
 		fileNames = append(fileNames, filepath.Base(path))
 		return nil
 	})
-	return err, fileNames
+	return fileNames, err
 }
 
 func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) http.HandlerFunc {
@@ -125,7 +125,7 @@ func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) 
 
 		level.Info(logger).Log("msg", "listing available specs", "dir", specsDir)
 
-		err, fileNames := listFolderContents(specsDir, w)
+		fileNames, err := listFolderContents(specsDir)
 		if err != nil {
 			level.Error(logger).Log("msg", "error listing available specs", "err", err)
 		} else {
@@ -134,7 +134,7 @@ func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) 
 
 		level.Info(logger).Log("msg", "listing generated rules", "dir", prometheusDir)
 
-		err, fileNames = listFolderContents(prometheusDir, w)
+		fileNames, err = listFolderContents(prometheusDir)
 		if err != nil {
 			level.Error(logger).Log("msg", "error listing generated rules", "err", err)
 		} else {
@@ -142,7 +142,10 @@ func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) 
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(payload)
+		err = json.NewEncoder(w).Encode(payload)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to encode payload")
+		}
 	}
 }
 
@@ -153,7 +156,11 @@ func createSpecHandler(logger log.Logger, dir string, prometheusFolder string, r
 			return
 		}
 
-		r.ParseMultipartForm(32 << 20)
+		err := r.ParseMultipartForm(32 << 20)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to parseMultipartForm")
+		}
+
 		file, handler, err := r.FormFile("spec")
 		if err != nil {
 			http.Error(w, "Failure reading spec field in form upload: "+err.Error(), 400)
@@ -179,7 +186,10 @@ func createSpecHandler(logger log.Logger, dir string, prometheusFolder string, r
 		}
 		defer f.Close()
 
-		io.Copy(f, file)
+		_, err = io.Copy(f, file)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to copy contents", "err", err)
+		}
 
 		level.Info(logger).Log("msg", "attempting to build rules from spec", "location", ingestedSpec)
 		err = writeRuleFile(logger, ingestedSpec, prometheusFolder, genericRules, false)
