@@ -2,10 +2,9 @@ package main
 
 import (
 	"bytes"
-	"mime/multipart"
-
 	"encoding/json"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"

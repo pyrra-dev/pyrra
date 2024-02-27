@@ -175,10 +175,10 @@ func createSpecHandler(logger log.Logger, dir string, prometheusFolder string, r
 			return
 		}
 
-		var ingestedSpec = dir + "/" + handler.Filename
+		ingestedSpec := dir + "/" + handler.Filename
 
 		level.Info(logger).Log("msg", "writing spec to disk", "location", ingestedSpec)
-		f, err := os.OpenFile(ingestedSpec, os.O_WRONLY|os.O_CREATE, 0666)
+		f, err := os.OpenFile(ingestedSpec, os.O_WRONLY|os.O_CREATE, 0o666)
 		if err != nil {
 			level.Error(logger).Log("msg", "failed to write spec to disk", "err", err)
 			http.Error(w, "Failure: "+err.Error(), 500)
