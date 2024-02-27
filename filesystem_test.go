@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -38,7 +37,7 @@ func TestListSpecsHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "/specs/list", nil)
 	require.NoError(t, err)
 
-	specsDir, err := ioutil.TempDir("", "pyrra-test1")
+	specsDir, err := os.MkdirTemp("", "pyrra-test1")
 	require.NoError(t, err)
 	defer os.RemoveAll(specsDir)
 
@@ -46,7 +45,7 @@ func TestListSpecsHandler(t *testing.T) {
 	require.NoError(t, err)
 	defer file.Close()
 
-	prometheusDir, err := ioutil.TempDir("", "pyrra-test2")
+	prometheusDir, err := os.MkdirTemp("", "pyrra-test2")
 	require.NoError(t, err)
 	defer os.RemoveAll(prometheusDir)
 
@@ -104,11 +103,11 @@ spec:
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rr := httptest.NewRecorder()
 
-	tmpDir1, err := ioutil.TempDir("", "pyrra-test1")
+	tmpDir1, err := os.MkdirTemp("", "pyrra-test1")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir1)
 
-	tmpDir2, err := ioutil.TempDir("", "pyrra-test2")
+	tmpDir2, err := os.MkdirTemp("", "pyrra-test2")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir2)
 
