@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,6 +34,11 @@ import (
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/slo"
 )
+
+type SpecsList struct {
+	SpecsAvailable []string `json:"specsAvailable"`
+	RulesGenerated []string `json:"rulesGenerated"`
+}
 
 type Objectives struct {
 	mu         sync.RWMutex
@@ -90,7 +96,8 @@ Objectives:
 	return objectives
 }
 
-func listFolderContents(folderPath string, w http.ResponseWriter) error {
+func listFolderContents(folderPath string, w http.ResponseWriter) (error, []string) {
+	var fileNames []string
 	err := filepath.Walk(folderPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -98,10 +105,10 @@ func listFolderContents(folderPath string, w http.ResponseWriter) error {
 		if info.IsDir() {
 			return nil
 		}
-		fmt.Fprintf(w, "%v\n", filepath.Base(path))
+		fileNames = append(fileNames, filepath.Base(path))
 		return nil
 	})
-	return err
+	return err, fileNames
 }
 
 func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) http.HandlerFunc {
@@ -110,21 +117,32 @@ func listSpecsHandler(logger log.Logger, specsDir string, prometheusDir string) 
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		level.Info(logger).Log("msg", "listing available specs", "dir", specsDir)
-		fmt.Fprintf(w, "Specs currently available:\n")
 
-		err := listFolderContents(specsDir, w)
+		payload := &SpecsList{
+			SpecsAvailable: []string{},
+			RulesGenerated: []string{},
+		}
+
+		level.Info(logger).Log("msg", "listing available specs", "dir", specsDir)
+
+		err, fileNames := listFolderContents(specsDir, w)
 		if err != nil {
 			level.Error(logger).Log("msg", "error listing available specs", "err", err)
+		} else {
+			payload.SpecsAvailable = append(payload.SpecsAvailable, fileNames...)
 		}
 
 		level.Info(logger).Log("msg", "listing generated rules", "dir", prometheusDir)
-		fmt.Fprintf(w, "Rules currently generated:\n")
 
-		err = listFolderContents(prometheusDir, w)
+		err, fileNames = listFolderContents(prometheusDir, w)
 		if err != nil {
 			level.Error(logger).Log("msg", "error listing generated rules", "err", err)
+		} else {
+			payload.RulesGenerated = append(payload.RulesGenerated, fileNames...)
 		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(payload)
 	}
 }
 

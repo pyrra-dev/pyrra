@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"mime/multipart"
 
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -58,11 +59,13 @@ func TestListSpecsHandler(t *testing.T) {
 
 	assert.Equal(t, rr.Code, http.StatusOK, "Should return OK")
 
-	expectedBody := `Specs currently available:
-foobar.yaml
-Rules currently generated:`
+	var payload SpecsList
+	json.Unmarshal(rr.Body.Bytes(), &payload)
+	specsAvailable := payload.SpecsAvailable
+	rulesGenerated := payload.RulesGenerated
 
-	assert.Equal(t, expectedBody, strings.TrimSpace(rr.Body.String()), "Should return expected body")
+	assert.Contains(t, specsAvailable, "foobar.yaml", "Unexpected value for the SpecsAvailable field in response payload")
+	assert.Empty(t, rulesGenerated, "The RulesGenerated field in response payload should be empty")
 }
 
 func TestCreateSpecHandlerOkSpec(t *testing.T) {
