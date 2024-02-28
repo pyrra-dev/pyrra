@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/prometheus/prometheus/model/labels"
@@ -115,6 +114,10 @@ spec:
 	handler.ServeHTTP(rr, req)
 
 	require.Equal(t, rr.Code, http.StatusOK, "Should return OK")
+
+	var payload SpecsTransformation
+	json.Unmarshal(rr.Body.Bytes(), &payload)
+	require.Equal(t, payload.Outcome, "success", "Unexpected value for the Outcome field in response payload")
 }
 
 func TestCreateSpecHandlerBadSpec(t *testing.T) {
@@ -144,6 +147,10 @@ func TestCreateSpecHandlerBadSpec(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	require.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
+
+	var payload SpecsTransformation
+	json.Unmarshal(rr.Body.Bytes(), &payload)
+	require.Equal(t, payload.Outcome, "error", "Unexpected value for the Outcome field in response payload")
 }
 
 func TestCreateSpecHandlerInvalidMethod(t *testing.T) {
@@ -161,6 +168,10 @@ func TestCreateSpecHandlerInvalidMethod(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	require.Equal(t, rr.Code, http.StatusMethodNotAllowed, "Should return MethodNotAllowed")
+
+	var payload SpecsTransformation
+	json.Unmarshal(rr.Body.Bytes(), &payload)
+	require.Equal(t, payload.Outcome, "error", "Unexpected value for the Outcome field in response payload")
 }
 
 func TestCreateSpecHandlerMissingParameter(t *testing.T) {
@@ -178,6 +189,10 @@ func TestCreateSpecHandlerMissingParameter(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	require.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
+
+	var payload SpecsTransformation
+	json.Unmarshal(rr.Body.Bytes(), &payload)
+	require.Equal(t, payload.Outcome, "error", "Unexpected value for the Outcome field in response payload")
 }
 
 func TestRemoveSpecHandlerInvalidMethod(t *testing.T) {
@@ -213,10 +228,9 @@ func TestRemoveSpecHandlerMissingParameter(t *testing.T) {
 
 	require.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
 
-	expectedBody := "Missing 'f' parameter in the query"
-
-	require.Equal(t, rr.Code, http.StatusBadRequest, "Should return BadRequest")
-	require.Equal(t, strings.TrimSpace(rr.Body.String()), expectedBody, "Should return expected body")
+	var payload SpecsTransformation
+	json.Unmarshal(rr.Body.Bytes(), &payload)
+	require.Equal(t, payload.Outcome, "error", "Unexpected value for the Outcome field in response payload")
 }
 
 func TestMatchObjectives(t *testing.T) {

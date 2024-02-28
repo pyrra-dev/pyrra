@@ -35,6 +35,11 @@ import (
 	"github.com/pyrra-dev/pyrra/slo"
 )
 
+type SpecsTransformation struct {
+	Outcome string `json:"outcome"`
+	Message string `json:"message"`
+}
+
 type SpecsList struct {
 	SpecsAvailable []string `json:"specsAvailable"`
 	RulesGenerated []string `json:"rulesGenerated"`
@@ -151,51 +156,62 @@ func listSpecsHandler(logger log.Logger, specsDir, prometheusDir string) http.Ha
 
 func createSpecHandler(logger log.Logger, dir, prometheusFolder string, reload chan struct{}, genericRules bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			response := SpecsTransformation{Outcome: "error", Message: "Method not allowed"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusMethodNotAllowed)
 			return
 		}
 
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
-			level.Error(logger).Log("msg", "failed to parseMultipartForm")
+			response := SpecsTransformation{Outcome: "error", Message: "Failed to parse form upload"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusBadRequest)
+			return
 		}
 
 		file, handler, err := r.FormFile("spec")
 		if err != nil {
-			http.Error(w, "Failure reading spec field in form upload: "+err.Error(), 400)
+			response := SpecsTransformation{Outcome: "error", Message: "Failed to read spec field from form upload"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusBadRequest)
 			return
 		}
 
 		level.Info(logger).Log("msg", "processing SLO spec", "specFile", handler.Filename)
 
-		if err != nil {
-			level.Error(logger).Log("msg", "failed to process HTTP request", "err", err)
-			http.Error(w, "Failure: "+err.Error(), 400)
-			return
-		}
-
 		ingestedSpec := dir + "/" + handler.Filename
 
-		level.Info(logger).Log("msg", "writing spec to disk", "location", ingestedSpec)
 		f, err := os.OpenFile(ingestedSpec, os.O_WRONLY|os.O_CREATE, 0o666)
 		if err != nil {
 			level.Error(logger).Log("msg", "failed to write spec to disk", "err", err)
-			http.Error(w, "Failure: "+err.Error(), 500)
+			response := SpecsTransformation{Outcome: "error", Message: "There was an error writing the spec to disk"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusInternalServerError)
 			return
 		}
+
 		defer f.Close()
 
 		_, err = io.Copy(f, file)
 		if err != nil {
 			level.Error(logger).Log("msg", "failed to copy contents", "err", err)
+			response := SpecsTransformation{Outcome: "error", Message: "There was an error copying file contents"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusInternalServerError)
+			return
 		}
 
 		level.Info(logger).Log("msg", "attempting to build rules from spec", "location", ingestedSpec)
 		err = writeRuleFile(logger, ingestedSpec, prometheusFolder, genericRules, false)
 		if err != nil {
 			level.Error(logger).Log("msg", "error building rules from spec", "file", ingestedSpec, "err", err)
-			http.Error(w, "Failure: "+err.Error(), 400)
+			response := SpecsTransformation{Outcome: "error", Message: "There was an error building rules from this spec"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusBadRequest)
 
 			err := os.Remove(ingestedSpec)
 			if err != nil {
@@ -207,32 +223,44 @@ func createSpecHandler(logger log.Logger, dir, prometheusFolder string, reload c
 		level.Info(logger).Log("msg", "signaling Prometheus reload")
 		reload <- struct{}{}
 
-		fmt.Fprintf(w, "ok")
+		response := SpecsTransformation{Outcome: "success", Message: "Ok"}
+		responseAsJSON, _ := json.Marshal(response)
+		_, err = w.Write(responseAsJSON)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to return http 200", "err", err)
+		}
 	}
 }
 
 func removeSpecHandler(logger log.Logger, dir, prometheusFolder string, reload chan struct{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
 		if r.Method != http.MethodDelete {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			response := SpecsTransformation{Outcome: "error", Message: "Method not allowed"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusMethodNotAllowed)
 			return
 		}
 
 		filePath := r.URL.Query().Get("f")
 		if filePath == "" {
-			http.Error(w, "Missing 'f' parameter in the query", http.StatusBadRequest)
+			response := SpecsTransformation{Outcome: "error", Message: "Missing 'f' parameter in query"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusBadRequest)
 			return
 		}
 
+		level.Info(logger).Log("msg", "removing spec", "file", filePath, "dir", dir)
+
 		cleanPath := filepath.Clean(filePath)
 
-		level.Info(logger).Log("msg", "removing for", "file", filePath)
-
-		level.Debug(logger).Log("msg", "removing spec", "file", filePath, "dir", dir)
 		err := os.Remove(dir + "/" + cleanPath)
 		if err != nil {
 			level.Error(logger).Log("msg", "failed to remove file", "file", filePath, "clean", cleanPath, "err", err)
-			http.Error(w, fmt.Sprintf("Error deleting spec: %s", err), http.StatusInternalServerError)
+			response := SpecsTransformation{Outcome: "error", Message: "Failed to remove file"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusInternalServerError)
 			return
 		}
 
@@ -240,14 +268,21 @@ func removeSpecHandler(logger log.Logger, dir, prometheusFolder string, reload c
 		err = os.Remove(prometheusFolder + "/" + cleanPath)
 		if err != nil {
 			level.Error(logger).Log("msg", "failed to remove Prometheus rules file", "file", filePath, "clean", cleanPath, "err", err)
-			http.Error(w, fmt.Sprintf("Error deleting rules: %s", err), http.StatusInternalServerError)
+			response := SpecsTransformation{Outcome: "error", Message: "Failed to delete rules"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusInternalServerError)
 			return
 		}
 
 		level.Info(logger).Log("msg", "signaling Prometheus reload")
 		reload <- struct{}{}
 
-		fmt.Fprintf(w, "ok")
+		response := SpecsTransformation{Outcome: "success", Message: "Ok"}
+		responseAsJSON, _ := json.Marshal(response)
+		_, err = w.Write(responseAsJSON)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to return http 200", "err", err)
+		}
 	}
 }
 
