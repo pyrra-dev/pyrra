@@ -13,7 +13,7 @@ require (
 	github.com/oklog/run v1.1.0
 	github.com/polarsignals/connect-go-prometheus v0.0.0-20221202180953-626537f1f6bc
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.71.2
-	github.com/prometheus/client_golang v1.18.0
+	github.com/prometheus/client_golang v1.19.0
 	github.com/prometheus/common v0.48.0
 	github.com/prometheus/prometheus v0.50.1
 	github.com/stretchr/testify v1.8.4
