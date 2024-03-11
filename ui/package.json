@@ -41,7 +41,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^3.2.5",
     "react-scripts": "5.0.1",
-    "sass": "^1.69.5",
+    "sass": "^1.71.1",
     "typescript": "^4.8.4"
   },
   "scripts": {
