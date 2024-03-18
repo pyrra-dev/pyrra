@@ -265,6 +265,11 @@ var (
 			},
 		}
 	}
+	objectiveAPIServerRatioGrouping = func() Objective {
+		o := objectiveAPIServerRatio()
+		o.Indicator.Ratio.Grouping = []string{"verb"}
+		return o
+	}
 	objectiveAPIServerRatioAlertingDisabled = func() Objective {
 		o := objectiveAPIServerRatio()
 		o.Alerting.Disabled = true

@@ -750,6 +750,62 @@ func TestObjective_Burnrates(t *testing.T) {
 			Interval: monitoringDuration("30s"),
 			Rules: []monitoringv1.Rule{{
 				Record: "apiserver_request:burnrate3m",
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "apiserver_request:burnrate15m",
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[15m])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[15m]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "apiserver_request:burnrate30m",
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[30m])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[30m]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "apiserver_request:burnrate1h",
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[1h])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[1h]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "apiserver_request:burnrate3h",
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3h])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3h]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "apiserver_request:burnrate12h",
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[12h])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[12h]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
+			}, {
+				Record: "apiserver_request:burnrate2d",
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2d])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2d]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`apiserver_request:burnrate3m{job="apiserver",slo="apiserver-write-response-errors"} > (14 * (1-0.99)) and apiserver_request:burnrate30m{job="apiserver",slo="apiserver-write-response-errors"} > (14 * (1-0.99))`),
+				For:    monitoringDuration("1m0s"),
+				Labels: map[string]string{"severity": "critical", "long": "30m", "short": "3m", "job": "apiserver", "slo": "apiserver-write-response-errors", "exhaustion": "1d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`apiserver_request:burnrate15m{job="apiserver",slo="apiserver-write-response-errors"} > (7 * (1-0.99)) and apiserver_request:burnrate3h{job="apiserver",slo="apiserver-write-response-errors"} > (7 * (1-0.99))`),
+				For:    monitoringDuration("8m0s"),
+				Labels: map[string]string{"severity": "critical", "long": "3h", "short": "15m", "job": "apiserver", "slo": "apiserver-write-response-errors", "exhaustion": "2d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`apiserver_request:burnrate1h{job="apiserver",slo="apiserver-write-response-errors"} > (2 * (1-0.99)) and apiserver_request:burnrate12h{job="apiserver",slo="apiserver-write-response-errors"} > (2 * (1-0.99))`),
+				For:    monitoringDuration("30m0s"),
+				Labels: map[string]string{"severity": "warning", "long": "12h", "short": "1h", "job": "apiserver", "slo": "apiserver-write-response-errors", "exhaustion": "1w"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`apiserver_request:burnrate3h{job="apiserver",slo="apiserver-write-response-errors"} > (1 * (1-0.99)) and apiserver_request:burnrate2d{job="apiserver",slo="apiserver-write-response-errors"} > (1 * (1-0.99))`),
+				For:    monitoringDuration("1h30m0s"),
+				Labels: map[string]string{"severity": "warning", "long": "2d", "short": "3h", "job": "apiserver", "slo": "apiserver-write-response-errors", "exhaustion": "2w"},
+			}},
+		},
+	}, {
+		name: "apiserver-write-response-errors-grouping",
+		slo:  objectiveAPIServerRatioGrouping(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "apiserver-write-response-errors",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "apiserver_request:burnrate3m",
 				Expr:   intstr.FromString(`sum by (verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m])) / sum by (verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
@@ -806,31 +862,31 @@ func TestObjective_Burnrates(t *testing.T) {
 			Interval: monitoringDuration("30s"),
 			Rules: []monitoringv1.Rule{{
 				Record: "apiserver_request:burnrate3m",
-				Expr:   intstr.FromString(`sum by (verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m])) / sum by (verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m]))`),
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3m]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "apiserver_request:burnrate15m",
-				Expr:   intstr.FromString(`sum by (verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[15m])) / sum by (verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[15m]))`),
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[15m])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[15m]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "apiserver_request:burnrate30m",
-				Expr:   intstr.FromString(`sum by (verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[30m])) / sum by (verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[30m]))`),
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[30m])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[30m]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "apiserver_request:burnrate1h",
-				Expr:   intstr.FromString(`sum by (verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[1h])) / sum by (verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[1h]))`),
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[1h])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[1h]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "apiserver_request:burnrate3h",
-				Expr:   intstr.FromString(`sum by (verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3h])) / sum by (verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3h]))`),
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3h])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[3h]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "apiserver_request:burnrate12h",
-				Expr:   intstr.FromString(`sum by (verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[12h])) / sum by (verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[12h]))`),
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[12h])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[12h]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "apiserver_request:burnrate2d",
-				Expr:   intstr.FromString(`sum by (verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2d])) / sum by (verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2d]))`),
+				Expr:   intstr.FromString(`sum(rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2d])) / sum(rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2d]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}},
 		},
@@ -1096,7 +1152,7 @@ func TestObjective_Burnrates(t *testing.T) {
 		},
 	}}
 
-	require.Len(t, testcases, 20)
+	require.Len(t, testcases, 21)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

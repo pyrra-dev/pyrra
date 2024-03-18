@@ -104,6 +104,12 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			if m.Name == labels.MetricName {
 				continue
 			}
+			if _, ok := groupingMap[m.Name]; !ok {
+				if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+					continue
+				}
+			}
+
 			alertMatchers = append(alertMatchers, m.String())
 		}
 		alertMatchers = append(alertMatchers, fmt.Sprintf(`slo="%s"`, sloName))
@@ -451,11 +457,6 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		groupingMap := map[string]struct{}{}
 		for _, s := range o.Indicator.Ratio.Grouping {
 			groupingMap[s] = struct{}{}
-		}
-		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
-				groupingMap[m.Name] = struct{}{}
-			}
 		}
 
 		grouping := make([]string, 0, len(groupingMap))
