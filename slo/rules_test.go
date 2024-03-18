@@ -777,22 +777,22 @@ func TestObjective_Burnrates(t *testing.T) {
 				Expr:   intstr.FromString(`sum by (verb) (rate(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2d])) / sum by (verb) (rate(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2d]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
-				Alert:  "ErrorBudgetBurn",
+				Alert:  "APIServerErrorBudgetBurn",
 				Expr:   intstr.FromString(`apiserver_request:burnrate3m{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} > (14 * (1-0.99)) and apiserver_request:burnrate30m{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} > (14 * (1-0.99))`),
 				For:    monitoringDuration("1m0s"),
 				Labels: map[string]string{"severity": "critical", "long": "30m", "short": "3m", "job": "apiserver", "slo": "apiserver-write-response-errors", "exhaustion": "1d"},
 			}, {
-				Alert:  "ErrorBudgetBurn",
+				Alert:  "APIServerErrorBudgetBurn",
 				Expr:   intstr.FromString(`apiserver_request:burnrate15m{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} > (7 * (1-0.99)) and apiserver_request:burnrate3h{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} > (7 * (1-0.99))`),
 				For:    monitoringDuration("8m0s"),
 				Labels: map[string]string{"severity": "critical", "long": "3h", "short": "15m", "job": "apiserver", "slo": "apiserver-write-response-errors", "exhaustion": "2d"},
 			}, {
-				Alert:  "ErrorBudgetBurn",
+				Alert:  "APIServerErrorBudgetBurn",
 				Expr:   intstr.FromString(`apiserver_request:burnrate1h{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} > (2 * (1-0.99)) and apiserver_request:burnrate12h{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} > (2 * (1-0.99))`),
 				For:    monitoringDuration("30m0s"),
 				Labels: map[string]string{"severity": "warning", "long": "12h", "short": "1h", "job": "apiserver", "slo": "apiserver-write-response-errors", "exhaustion": "1w"},
 			}, {
-				Alert:  "ErrorBudgetBurn",
+				Alert:  "APIServerErrorBudgetBurn",
 				Expr:   intstr.FromString(`apiserver_request:burnrate3h{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} > (1 * (1-0.99)) and apiserver_request:burnrate2d{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} > (1 * (1-0.99))`),
 				For:    monitoringDuration("1h30m0s"),
 				Labels: map[string]string{"severity": "warning", "long": "2d", "short": "3h", "job": "apiserver", "slo": "apiserver-write-response-errors", "exhaustion": "2w"},
@@ -1492,7 +1492,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Expr:   intstr.FromString(`sum by (code, verb) (increase(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2w]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
-				Alert:  "SLOMetricAbsent",
+				Alert:  "APIServerErrorBudgetBurn-SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}) == 1`),
 				For:    monitoringDuration("1m"),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors", "severity": "critical"},
@@ -1865,6 +1865,74 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tc.rules, group)
+			}
+		})
+	}
+}
+
+func TestObjective_AlertName(t *testing.T) {
+	tests := []struct {
+		name      string
+		objective Objective
+		want      string
+	}{
+		{
+			name: "alert name present",
+			objective: Objective{
+				Alerting: Alerting{
+					Name: "test-alert",
+				},
+			},
+			want: "test-alert",
+		},
+		{
+			name: "alert name absent",
+			objective: Objective{
+				Alerting: Alerting{},
+			},
+			want: defaultAlertname,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := tt.objective
+			got := o.AlertName()
+			if got != tt.want {
+				t.Errorf("AlertName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestObjective_AlertNameMetricAbsent(t *testing.T) {
+	tests := []struct {
+		name      string
+		objective Objective
+		want      string
+	}{
+		{
+			name: "alert name present",
+			objective: Objective{
+				Alerting: Alerting{
+					Name: "test-alert",
+				},
+			},
+			want: "test-alert-SLOMetricAbsent",
+		},
+		{
+			name: "alert name absent",
+			objective: Objective{
+				Alerting: Alerting{},
+			},
+			want: defaultAlertnameAbsent,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := tt.objective
+			got := o.AlertNameMetricAbsent()
+			if got != tt.want {
+				t.Errorf("AlertNameMetricAbsent() = %v, want %v", got, tt.want)
 			}
 		})
 	}

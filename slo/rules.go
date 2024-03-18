@@ -754,7 +754,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				}.replace(expr)
 
 				rules = append(rules, monitoringv1.Rule{
-					Alert: "SLOMetricAbsent",
+					Alert: o.AlertNameMetricAbsent(),
 					Expr:  intstr.FromString(expr.String()),
 					For: monitoringDuration(model.Duration(
 						(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
@@ -866,7 +866,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels["severity"] = string(critical)
 
 			rules = append(rules, monitoringv1.Rule{
-				Alert: "SLOMetricAbsent",
+				Alert: o.AlertNameMetricAbsent(),
 				Expr:  intstr.FromString(expr.String()),
 				For: monitoringDuration(model.Duration(
 					(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
@@ -893,7 +893,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabelsLe["severity"] = string(critical)
 
 			rules = append(rules, monitoringv1.Rule{
-				Alert: "SLOMetricAbsent",
+				Alert: o.AlertNameMetricAbsent(),
 				Expr:  intstr.FromString(expr.String()),
 				For: monitoringDuration(model.Duration(
 					(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
@@ -1036,7 +1036,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels["severity"] = string(critical)
 
 			rules = append(rules, monitoringv1.Rule{
-				Alert: "SLOMetricAbsent",
+				Alert: o.AlertNameMetricAbsent(),
 				Expr:  intstr.FromString(expr.String()),
 				For: monitoringDuration(model.Duration(
 					(time.Duration(o.Window) / (28 * 24 * (60 / 2))).Round(time.Minute),
