@@ -240,6 +240,7 @@ var (
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
+				Name:      "APIServerErrorBudgetBurn",
 				Burnrates: true,
 				Absent:    true,
 			},

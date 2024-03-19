@@ -13,6 +13,7 @@ const (
 	// ObjectMeta to the PrometheusRule.
 	PropagationLabelsPrefix = "pyrra.dev/"
 	defaultAlertname        = "ErrorBudgetBurn"
+	defaultAlertnameAbsent  = "SLOMetricAbsent"
 )
 
 type Objective struct {
@@ -101,6 +102,14 @@ func (o Objective) AlertName() string {
 	}
 
 	return defaultAlertname
+}
+
+func (o Objective) AlertNameMetricAbsent() string {
+	if o.Alerting.Name != "" {
+		return o.Alerting.Name + "-" + defaultAlertnameAbsent
+	}
+
+	return defaultAlertnameAbsent
 }
 
 type Indicator struct {
