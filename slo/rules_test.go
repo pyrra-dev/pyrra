@@ -1548,7 +1548,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Expr:   intstr.FromString(`sum by (code, verb) (increase(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2w]))`),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
-				Alert:  "APIServerErrorBudgetBurn-SLOMetricAbsent",
+				Alert:  "APIServerMetricAbsent",
 				Expr:   intstr.FromString(`absent(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}) == 1`),
 				For:    monitoringDuration("1m"),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors", "severity": "critical"},
@@ -1967,26 +1967,26 @@ func TestObjective_AlertNameMetricAbsent(t *testing.T) {
 		want      string
 	}{
 		{
-			name: "alert name present",
-			objective: Objective{
-				Alerting: Alerting{
-					Name: "test-alert",
-				},
-			},
-			want: "test-alert-SLOMetricAbsent",
-		},
-		{
-			name: "alert name absent",
+			name: "AlertNameAbsentDefault",
 			objective: Objective{
 				Alerting: Alerting{},
 			},
 			want: defaultAlertnameAbsent,
 		},
+		{
+			name: "AlertNameAbsentCustom",
+			objective: Objective{
+				Alerting: Alerting{
+					AbsentName: "foo",
+				},
+			},
+			want: "foo",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			o := tt.objective
-			got := o.AlertNameMetricAbsent()
+			got := o.AlertNameAbsent()
 			if got != tt.want {
 				t.Errorf("AlertNameMetricAbsent() = %v, want %v", got, tt.want)
 			}

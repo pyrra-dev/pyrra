@@ -104,9 +104,9 @@ func (o Objective) AlertName() string {
 	return defaultAlertname
 }
 
-func (o Objective) AlertNameMetricAbsent() string {
-	if o.Alerting.Name != "" {
-		return o.Alerting.Name + "-" + defaultAlertnameAbsent
+func (o Objective) AlertNameAbsent() string {
+	if o.Alerting.AbsentName != "" {
+		return o.Alerting.AbsentName
 	}
 
 	return defaultAlertnameAbsent
@@ -143,10 +143,11 @@ type BoolGaugeIndicator struct {
 }
 
 type Alerting struct {
-	Disabled  bool // deprecated, use Burnrates instead
-	Burnrates bool
-	Absent    bool
-	Name      string
+	Disabled   bool // deprecated, use Burnrates instead
+	Burnrates  bool
+	Absent     bool
+	Name       string
+	AbsentName string
 }
 
 type Metric struct {

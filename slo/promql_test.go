@@ -240,9 +240,10 @@ var (
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
-				Name:      "APIServerErrorBudgetBurn",
-				Burnrates: true,
-				Absent:    true,
+				Name:       "APIServerErrorBudgetBurn",
+				AbsentName: "APIServerMetricAbsent",
+				Burnrates:  true,
+				Absent:     true,
 			},
 			Indicator: Indicator{
 				Ratio: &RatioIndicator{
