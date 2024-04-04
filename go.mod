@@ -18,7 +18,7 @@ require (
 	github.com/prometheus/prometheus v0.50.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
-	golang.org/x/net v0.22.0
+	golang.org/x/net v0.23.0
 	google.golang.org/protobuf v1.33.0
 	k8s.io/api v0.29.3
 	k8s.io/apimachinery v0.29.3
