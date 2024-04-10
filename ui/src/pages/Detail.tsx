@@ -385,6 +385,7 @@ const Detail = () => {
                   uPlotCursor={uPlotCursor}
                   type={objectiveType}
                   updateTimeRange={updateTimeRangeSelect}
+                  absolute={absolute}
                 />
               ) : (
                 <></>
