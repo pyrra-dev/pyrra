@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/component: kubernetes
     app.kubernetes.io/name: pyrra
-    app.kubernetes.io/version: 0.7.0
+    app.kubernetes.io/version: 0.7.5
   name: pyrra-kubernetes
   namespace: monitoring
 spec:
@@ -22,13 +22,13 @@ spec:
       labels:
         app.kubernetes.io/component: kubernetes
         app.kubernetes.io/name: pyrra
-        app.kubernetes.io/version: 0.7.0
+        app.kubernetes.io/version: 0.7.5
     spec:
       containers:
       - args:
         - kubernetes
         - --disable-webhooks=false
-        image: ghcr.io/pyrra-dev/pyrra:v0.7.0
+        image: ghcr.io/pyrra-dev/pyrra:v0.7.5
         name: pyrra
         ports:
         - containerPort: 9099
