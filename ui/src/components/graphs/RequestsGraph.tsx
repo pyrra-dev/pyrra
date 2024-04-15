@@ -23,6 +23,7 @@ interface RequestsGraphProps {
   uPlotCursor: uPlot.Cursor
   type: ObjectiveType
   updateTimeRange: (min: number, max: number, absolute: boolean) => void
+  absolute: boolean
 }
 
 const RequestsGraph = ({
@@ -33,6 +34,7 @@ const RequestsGraph = ({
   uPlotCursor,
   type,
   updateTimeRange,
+  absolute = false,
 }: RequestsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -115,7 +117,7 @@ const RequestsGraph = ({
             query,
           )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
           <IconExternal height={20} width={20} />
-          <span>Prometheus</span>
+          Prometheus
         </a>
       </div>
       <div>
@@ -146,7 +148,7 @@ const RequestsGraph = ({
                 x: {min: from / 1000, max: to / 1000},
                 y: {
                   range: {
-                    min: {hard: 0},
+                    min: absolute ? {hard: 0, mode: 1, soft: 0} : {hard: 0},
                     max: {},
                   },
                 },
