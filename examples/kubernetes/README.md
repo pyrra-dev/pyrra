@@ -38,8 +38,8 @@ You can double-check how things are doing by running `kubectl get pods -n monito
 From the root of this repository run the following commands to deploy Pyrra:
 
 ```bash
-kubectl apply --server-side -f ./example/kubernetes/manifests/setup
-kubectl apply --server-side -f ./example/kubernetes/manifests
+kubectl apply --server-side -f ./examples/kubernetes/manifests/setup
+kubectl apply --server-side -f ./examples/kubernetes/manifests
 ```
 
 ## Deploying SLO examples
@@ -48,7 +48,7 @@ Pyrra ships with some example SLOs for the Kubernetes apiserver and kubelet.
 
 You can deploy them in the same way:
 ```bash
-kubectl apply --server-side -f ./example/kubernetes/manifests/slos
+kubectl apply --server-side -f ./examples/kubernetes/manifests/slos
 ```
 
 Pyrra is going to see the added SLOs and generate PrometheusRule files, 
@@ -87,7 +87,7 @@ https://cert-manager.io/docs/installation/kubectl/
 
 After a successful cert-manager installation proceed to deploying the adjusted YAML of Pyrra itself.
 ```bash
-kubectl apply --server-side -f ./example/kubernetes/manifests-webhook
+kubectl apply --server-side -f ./examples/kubernetes/manifests-webhook
 ```
 This will deploy an updated Pyrra API Deployment, a ValidatingWebhookConfiguration, a cert-manager Certificate, and a cert-manager Issuer.
 
