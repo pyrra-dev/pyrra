@@ -26,6 +26,6 @@ jobs:
       - name: Build UI
         run: make ui
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v4.0.0
+        uses: golangci/golangci-lint-action@v6.0.1
         with:
           version: 'latest'
