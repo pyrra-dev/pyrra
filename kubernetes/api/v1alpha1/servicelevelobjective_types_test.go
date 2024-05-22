@@ -586,6 +586,13 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = `foo{le="foo"}`
 			_, err = latency.ValidateCreate()
 			require.EqualError(t, err, `latency success metric must contain a le label matcher with a float value: strconv.ParseFloat: parsing "foo": invalid syntax`)
+
+			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = `foo{le="1.0"} or vector(0)`
+			_, err = latency.ValidateCreate()
+			require.EqualError(t, err, `latency success metric must be a vector selector, but got *parser.BinaryExpr`)
+			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = `foo{le="1.0"} or vector(0)`
+			_, err = latency.ValidateCreate()
+			require.EqualError(t, err, `latency total metric must be a vector selector, but got *parser.BinaryExpr`)
 		})
 	})
 
