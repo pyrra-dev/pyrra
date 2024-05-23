@@ -47,7 +47,7 @@ Run the API binary in one terminal
 ./pyrra api
 ```
 
-*Note: the API assumes a Prometheus is running on [localhost:9090](http://localhost:9090) and a backend on [localhost:9444](http://localhost:9444)) by default. Check  `./bin/api --help` flag for the parameters to change those.*
+*Note: the API assumes a Prometheus is running on [localhost:9090](http://localhost:9090) and a backend on [localhost:9444](http://localhost:9444)) by default. Check  `./pyrra api --help` flag for the parameters to change those.*
 
 ### Run a Kubernetes or filesystem backend
 
