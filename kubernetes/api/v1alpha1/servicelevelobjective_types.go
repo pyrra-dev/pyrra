@@ -280,14 +280,20 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 
 		switch parsedTotal.Type() {
 		case parser.ValueTypeVector:
-			v := parsedTotal.(*parser.VectorSelector)
+			v, ok := parsedTotal.(*parser.VectorSelector)
+			if !ok {
+				return warnings, fmt.Errorf("latency total metric must be a vector selector, but got %T", parsedTotal)
+			}
 			if !strings.HasSuffix(v.Name, "_count") {
 				warnings = append(warnings, "latency total metric should usually be a histogram count")
 			}
 		}
 		switch parsedSuccess.Type() {
 		case parser.ValueTypeVector:
-			v := parsedSuccess.(*parser.VectorSelector)
+			v, ok := parsedSuccess.(*parser.VectorSelector)
+			if !ok {
+				return warnings, fmt.Errorf("latency success metric must be a vector selector, but got %T", parsedSuccess)
+			}
 			var bucketFound bool
 			for _, matcher := range v.LabelMatchers {
 				if matcher.Name == labels.BucketLabel {
