@@ -85,6 +85,9 @@ var CLI struct {
 		GenericRules     bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 		OperatorRule     bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
 	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
+	Kustomize struct {
+		ResourceList []byte `default:"-" type:"filecontent" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
+	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
 }
 
 func main() {
@@ -139,7 +142,12 @@ func main() {
 	}
 	// Wrap client to add extra headers for Thanos.
 	client = newThanosClient(client)
-	level.Info(logger).Log("msg", "using Prometheus", "url", prometheusURL.String())
+
+	switch ctx.Command() {
+	case "api":
+	case "filesystem":
+		level.Info(logger).Log("msg", "using Prometheus", "url", prometheusURL.String())
+	}
 
 	if CLI.API.PrometheusExternalURL == nil {
 		CLI.API.PrometheusExternalURL = prometheusURL
@@ -186,7 +194,14 @@ func main() {
 			CLI.Generate.GenericRules,
 			CLI.Generate.OperatorRule,
 		)
+	case "kustomize":
+		code = cmdKustomize(
+			logger,
+			CLI.Kustomize.ResourceList,
+			true,
+		)
 	}
+
 	os.Exit(code)
 }
 
