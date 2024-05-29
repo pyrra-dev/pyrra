@@ -5,8 +5,9 @@ metadata:
     app.kubernetes.io/component: api
     app.kubernetes.io/name: pyrra
     app.kubernetes.io/version: 0.7.5
+    prometheus.io/operator: "true"
   name: pyrra-api
-  namespace: monitoring
+  namespace: test-mika
 spec:
   endpoints:
   - port: http

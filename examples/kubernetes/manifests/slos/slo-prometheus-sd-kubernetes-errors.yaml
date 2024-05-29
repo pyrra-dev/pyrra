@@ -4,8 +4,9 @@ metadata:
   labels:
     prometheus: k8s
     role: alert-rules
+    prometheus.io/operator: "true"
   name: prometheus-sd-kubernetes-errors
-  namespace: monitoring
+  namespace: test-mika
 spec:
   description: If there are too many errors Prometheus is having a bad time discovering new Kubernetes services.
   indicator:

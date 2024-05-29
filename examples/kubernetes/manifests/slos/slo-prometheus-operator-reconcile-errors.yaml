@@ -4,8 +4,9 @@ metadata:
   labels:
     prometheus: k8s
     role: alert-rules
+    prometheus.io/operator: "true"
   name: prometheus-operator-reconcile-errors
-  namespace: monitoring
+  namespace: test-mika
 spec:
   description: ""
   indicator:

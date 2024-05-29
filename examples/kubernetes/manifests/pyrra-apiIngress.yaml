@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    meta.helm.sh/release-name: pyrra-api
+    meta.helm.sh/release-namespace: pyrra-api
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  labels:
+    app.kubernetes.io/component: api
+    app.kubernetes.io/name: pyrra
+    app.kubernetes.io/version: 0.7.5
+  name: pyrra-api
+  namespace: test-mika
+spec:
+  ingressClassName: traefik-v3
+  rules:
+    - host: pyrra-slo-dev.eu-west-1.csq.io
+      http:
+        paths:
+          - backend:
+              service:
+                name: pyrra-api
+                port:
+                  number: 9099
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - pyrra-slo-dev.eu-west-1.csq.io
+      secretName: prometheus-ingress-tls

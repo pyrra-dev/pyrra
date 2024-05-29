@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: pyrra
     app.kubernetes.io/version: 0.7.5
   name: pyrra-kubernetes
-  namespace: monitoring
+  namespace: test-mika
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -14,4 +14,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: pyrra-kubernetes
-  namespace: monitoring
+  namespace: test-mika

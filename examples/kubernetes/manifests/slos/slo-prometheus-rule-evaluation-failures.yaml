@@ -4,8 +4,9 @@ metadata:
   labels:
     prometheus: k8s
     role: alert-rules
+    prometheus.io/operator: "true"
   name: prometheus-rule-evaluation-failures
-  namespace: monitoring
+  namespace: test-mika
 spec:
   description: Rule and alerting rules are being evaluated every few seconds. This needs to work for recording rules to be created and most importantly for alerts to be evaluated.
   indicator:

@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: pyrra
     app.kubernetes.io/version: 0.7.5
   name: pyrra-api
-  namespace: monitoring
+  namespace: test-mika
 spec:
   replicas: 1
   selector:
@@ -27,8 +27,8 @@ spec:
       containers:
       - args:
         - api
-        - --api-url=http://pyrra-kubernetes.monitoring.svc.cluster.local:9444
-        - --prometheus-url=http://prometheus-k8s.monitoring.svc.cluster.local:9090
+        - --api-url=http://pyrra-kubernetes.test-mika.svc.cluster.local:9444
+        - --prometheus-url=http://prometheus-operator-kube-p-prometheus.prometheus-operator.svc.cluster.local:9090
         image: ghcr.io/pyrra-dev/pyrra:v0.7.5
         name: pyrra
         ports:

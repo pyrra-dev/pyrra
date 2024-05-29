@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: pyrra
     app.kubernetes.io/version: 0.7.5
   name: pyrra-kubernetes
-  namespace: monitoring
+  namespace: test-mika
 spec:
   ports:
   - name: metrics
