@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -179,7 +180,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "processing", "file", f)
 					reconcilesTotal.Inc()
 
-					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false)
+					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false, false)
 					if err != nil {
 						reconcilesErrors.Inc()
 						level.Error(logger).Log("msg", "error creating rule file", "file", f, "err", err)
@@ -301,7 +302,7 @@ func (s *FilesystemObjectiveServer) List(_ context.Context, req *connect.Request
 	}), nil
 }
 
-func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule bool) error {
+func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule bool, isArmFormat bool) error {
 	kubeObjective, objective, err := objectiveFromFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to get objective: %w", err)
@@ -350,7 +351,12 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		}
 	}
 
-	bytes, err := yaml.Marshal(rule)
+	formatter := yaml.Marshal
+	if isArmFormat {
+		formatter = json.Marshal
+	}
+
+	bytes, err := formatter(rule)
 	if err != nil {
 		return fmt.Errorf("failed to marshal rules: %w", err)
 	}
@@ -369,14 +375,20 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 			Spec: rule,
 		}
 
-		bytes, err = yaml.Marshal(monv1rule)
+		bytes, err = formatter(monv1rule)
 		if err != nil {
 			return fmt.Errorf("failed to marshal rules: %w", err)
 		}
 	}
 
-	_, f := filepath.Split(file)
-	path := filepath.Join(prometheusFolder, f)
+	_, fileName := filepath.Split(file)
+
+	if isArmFormat {
+		fileNameWithoutExtension := fileName[:len(fileName)-len(filepath.Ext(fileName))]
+		fileName = fileNameWithoutExtension + ".json"
+	}
+
+	path := filepath.Join(prometheusFolder, fileName)
 
 	if err := os.WriteFile(path, bytes, 0o644); err != nil {
 		return fmt.Errorf("failed to write file %q: %w", path, err)
