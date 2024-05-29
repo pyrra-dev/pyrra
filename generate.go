@@ -28,7 +28,7 @@ func cmdGenerate(logger log.Logger, configFiles, prometheusFolder string, generi
 	}
 
 	for _, file := range filenames {
-		err := writeRuleFile(logger, file, prometheusFolder, genericRules, operatorRule, false)
+		err := writeRuleFile(logger, file, prometheusFolder, genericRules, operatorRule)
 		if err != nil {
 			level.Error(logger).Log("msg", "generating rule files", "err", err)
 			return 1

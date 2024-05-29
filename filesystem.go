@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -180,7 +179,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "processing", "file", f)
 					reconcilesTotal.Inc()
 
-					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false, false)
+					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false)
 					if err != nil {
 						reconcilesErrors.Inc()
 						level.Error(logger).Log("msg", "error creating rule file", "file", f, "err", err)
@@ -302,7 +301,7 @@ func (s *FilesystemObjectiveServer) List(_ context.Context, req *connect.Request
 	}), nil
 }
 
-func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule bool, isArmFormat bool) error {
+func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule bool) error {
 	kubeObjective, objective, err := objectiveFromFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to get objective: %w", err)
@@ -351,12 +350,7 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		}
 	}
 
-	formatter := yaml.Marshal
-	if isArmFormat {
-		formatter = json.Marshal
-	}
-
-	bytes, err := formatter(rule)
+	bytes, err := yaml.Marshal(rule)
 	if err != nil {
 		return fmt.Errorf("failed to marshal rules: %w", err)
 	}
@@ -375,19 +369,13 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 			Spec: rule,
 		}
 
-		bytes, err = formatter(monv1rule)
+		bytes, err = yaml.Marshal(monv1rule)
 		if err != nil {
 			return fmt.Errorf("failed to marshal rules: %w", err)
 		}
 	}
 
 	_, fileName := filepath.Split(file)
-
-	if isArmFormat {
-		fileNameWithoutExtension := fileName[:len(fileName)-len(filepath.Ext(fileName))]
-		fileName = fileNameWithoutExtension + ".json"
-	}
-
 	path := filepath.Join(prometheusFolder, fileName)
 
 	if err := os.WriteFile(path, bytes, 0o644); err != nil {

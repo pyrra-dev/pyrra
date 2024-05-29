@@ -28,7 +28,7 @@ func cmdAzGen(logger log.Logger, configFiles, prometheusFolder string, genericRu
 	}
 
 	for _, file := range filenames {
-		err := writeRuleFile(logger, file, prometheusFolder, genericRules, operatorRule, true)
+		err := writeAzRuleFile(logger, file, prometheusFolder, genericRules, operatorRule)
 		if err != nil {
 			level.Error(logger).Log("msg", "generating rule files", "err", err)
 			return 1
