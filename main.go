@@ -86,10 +86,14 @@ var CLI struct {
 		OperatorRule     bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
 	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
 	AzGen struct {
-		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
-		PrometheusFolder string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
-		GenericRules     bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		OperatorRule     bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
+		ConfigFiles           string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		SubscriptionId        string ``
+		AzureRegion           string ``
+		ResourceGroupName     string ``
+		ClusterName           string ``
+		AzureMonitorWorkspace string ``
+		ActionGroupId         string ``
+		GenericRules          bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 	} `cmd:"" help:"Read SLO config files and rewrites them as Azure Managed Prometheus ARM rules and alerts."`
 }
 
@@ -196,9 +200,13 @@ func main() {
 		code = cmdAzGen(
 			logger,
 			CLI.AzGen.ConfigFiles,
-			CLI.AzGen.PrometheusFolder,
+			CLI.AzGen.SubscriptionId,
+			CLI.AzGen.AzureRegion,
+			CLI.AzGen.ResourceGroupName,
+			CLI.AzGen.ClusterName,
+			CLI.AzGen.AzureMonitorWorkspace,
+			CLI.AzGen.ActionGroupId,
 			CLI.AzGen.GenericRules,
-			CLI.AzGen.OperatorRule,
 		)
 	}
 	os.Exit(code)

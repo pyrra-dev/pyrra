@@ -30,3 +30,4 @@ bin
 # node
 node_modules
 package*.json
+.vscode/launch.json

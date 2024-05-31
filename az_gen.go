@@ -20,7 +20,7 @@ import (
 	"github.com/go-kit/log/level"
 )
 
-func cmdAzGen(logger log.Logger, configFiles, prometheusFolder string, genericRules, operatorRule bool) int {
+func cmdAzGen(logger log.Logger, configFiles, subscriptionId, azureRegion, resourceGroupName, clusterName, azureMonitorWorkspace, actionGroupId string, genericRules bool) int {
 	filenames, err := filepath.Glob(configFiles)
 	if err != nil {
 		level.Error(logger).Log("msg", "getting file names", "err", err)
@@ -28,7 +28,16 @@ func cmdAzGen(logger log.Logger, configFiles, prometheusFolder string, genericRu
 	}
 
 	for _, file := range filenames {
-		err := writeAzRuleFile(logger, file, prometheusFolder, genericRules, operatorRule)
+		err := writeAzManagedRule(
+			logger,
+			file,
+			subscriptionId,
+			azureRegion,
+			resourceGroupName,
+			clusterName,
+			azureMonitorWorkspace,
+			actionGroupId,
+			genericRules)
 		if err != nil {
 			level.Error(logger).Log("msg", "generating rule files", "err", err)
 			return 1
