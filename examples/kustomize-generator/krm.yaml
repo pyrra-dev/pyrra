@@ -1,0 +1,23 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: pyrra-kubernetes-errors
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  annotations:
+    config.kubernetes.io/local-config: "true"
+    config.kubernetes.io/function: |
+      container:
+        image: ghcr.io/pyrra-dev/pyrra:v0.7.0
+spec:
+  target: "99"
+  window: 1w
+  description: The reconciles when reading Pyrra's CRDs and generating their corresponding PrometheusRule CRDs.
+  indicator:
+    ratio:
+      errors:
+        metric: controller_runtime_reconcile_total{controller="servicelevelobjective",result="error"}
+      total:
+        metric: controller_runtime_reconcile_total{controller="servicelevelobjective"}
