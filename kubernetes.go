@@ -61,7 +61,7 @@ func init() {
 func cmdKubernetes(
 	logger log.Logger,
 	metricsAddr string,
-	_, genericRules, disableWebhooks bool,
+	configMapMode, genericRules, disableWebhooks bool,
 	certFile, privateKeyFile string,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
@@ -84,9 +84,10 @@ func cmdKubernetes(
 	}
 
 	reconciler := &controllers.ServiceLevelObjectiveReconciler{
-		Client:       mgr.GetClient(),
-		Logger:       log.With(logger, "controllers", "ServiceLevelObjective"),
-		GenericRules: genericRules,
+		Client:        mgr.GetClient(),
+		Logger:        log.With(logger, "controllers", "ServiceLevelObjective"),
+		GenericRules:  genericRules,
+		ConfigMapMode: configMapMode,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceLevelObjective")
