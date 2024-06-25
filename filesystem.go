@@ -375,8 +375,8 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		}
 	}
 
-	_, f := filepath.Split(file)
-	path := filepath.Join(prometheusFolder, f)
+	_, fileName := filepath.Split(file)
+	path := filepath.Join(prometheusFolder, fileName)
 
 	if err := os.WriteFile(path, bytes, 0o644); err != nil {
 		return fmt.Errorf("failed to write file %q: %w", path, err)
