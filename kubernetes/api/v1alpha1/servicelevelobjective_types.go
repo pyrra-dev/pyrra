@@ -352,6 +352,8 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 	if err != nil {
 		return slo.Objective{}, fmt.Errorf("failed to parse objective target: %w", err)
 	}
+	// round to 5 decimal places before diving by 100
+	target = (target * 10000) / 1000000
 
 	window, err := model.ParseDuration(in.Spec.Window)
 	if err != nil {
@@ -554,7 +556,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 		Labels:      ls,
 		Annotations: in.Annotations,
 		Description: in.Spec.Description,
-		Target:      target / 100,
+		Target:      target,
 		Window:      window,
 		Config:      string(config),
 		Alerting:    alerting,

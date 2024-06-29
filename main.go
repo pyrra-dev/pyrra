@@ -1567,7 +1567,7 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 
 			timeseries = append(timeseries,
 				&objectivesv1alpha1.Timeseries{
-					Labels: []string{fmt.Sprintf(`{quantile="p%.f"}`, 100*percentile)}, // TODO: Nicer format float
+					Labels: []string{fmt.Sprintf(`{quantile="p%g"}`, 100*percentile)}, // TODO: Nicer format float
 					Query:  query,
 					Series: series,
 				},
