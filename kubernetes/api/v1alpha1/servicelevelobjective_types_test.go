@@ -88,7 +88,7 @@ metadata:
    prometheus: k8s
    role: alert-rules
 spec:
- target: 99.9
+ target: 99.999
  window: 1w
  indicator:
    ratio:
@@ -103,7 +103,7 @@ spec:
 				"namespace", "monitoring",
 			),
 			Description: "",
-			Target:      0.9990000000000001, // TODO fix this? maybe not /100?
+			Target:      0.99999,
 			Window:      model.Duration(7 * 24 * time.Hour),
 			Alerting: slo.Alerting{
 				Burnrates: true,
