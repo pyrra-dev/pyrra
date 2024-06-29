@@ -1,6 +1,10 @@
 run:
   deadline: 5m
-  go: 1.20
+  go: 1.22
+
+output:
+  formats:
+    - format: colored-line-number
 
 linters:
   enable:
