@@ -339,10 +339,10 @@
         indicator: {
           latency: {
             success: {
-              metric: 'apiserver_request_slo_duration_seconds_bucket{verb=~"LIST|GET",le="0.1"}',
+              metric: 'apiserver_request_sli_duration_seconds_bucket{verb=~"LIST|GET",le="0.1"}',
             },
             total: {
-              metric: 'apiserver_request_slo_duration_seconds_count{verb=~"LIST|GET"}',
+              metric: 'apiserver_request_sli_duration_seconds_count{verb=~"LIST|GET"}',
             },
           },
         },
@@ -367,10 +367,10 @@
         indicator: {
           latency: {
             success: {
-              metric: 'apiserver_request_slo_duration_seconds_bucket{component="apiserver",scope=~"namespace|",verb=~"LIST|GET",le="5"}',
+              metric: 'apiserver_request_sli_duration_seconds_bucket{component="apiserver",scope=~"namespace|",verb=~"LIST|GET",le="5"}',
             },
             total: {
-              metric: 'apiserver_request_slo_duration_seconds_count{component="apiserver",scope=~"namespace|",verb=~"LIST|GET"}',
+              metric: 'apiserver_request_sli_duration_seconds_count{component="apiserver",scope=~"namespace|",verb=~"LIST|GET"}',
             },
           },
         },
@@ -395,10 +395,10 @@
         indicator: {
           latency: {
             success: {
-              metric: 'apiserver_request_slo_duration_seconds_bucket{component="apiserver",scope=~"cluster|",verb=~"LIST|GET",le="5"}',
+              metric: 'apiserver_request_sli_duration_seconds_bucket{component="apiserver",scope=~"cluster|",verb=~"LIST|GET",le="5"}',
             },
             total: {
-              metric: 'apiserver_request_slo_duration_seconds_count{component="apiserver",scope=~"cluster|",verb=~"LIST|GET"}',
+              metric: 'apiserver_request_sli_duration_seconds_count{component="apiserver",scope=~"cluster|",verb=~"LIST|GET"}',
             },
           },
         },
