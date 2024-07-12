@@ -23,12 +23,12 @@ import (
 
 	kitlog "github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	mimircli "github.com/grafana/mimir/pkg/mimirtool/client"
 	"github.com/grafana/mimir/pkg/mimirtool/rules/rwrulefmt"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/rulefmt"
-	"github.com/prometheus/prometheus/model/value"
 	yamlv3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -45,6 +45,7 @@ import (
 // ServiceLevelObjectiveReconciler reconciles a ServiceLevelObjective object.
 type ServiceLevelObjectiveReconciler struct {
 	client.Client
+	MimirClient   *mimircli.MimirClient
 	Logger        kitlog.Logger
 	Scheme        *runtime.Scheme
 	ConfigMapMode bool
@@ -67,6 +68,11 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 
 	if r.ConfigMapMode {
 		return r.reconcileConfigMap(ctx, logger, req, slo)
+	}
+
+	resp, err := r.reconcileMimirRuleGroup(ctx, logger, req, slo)
+	if err != nil {
+		return resp, err
 	}
 
 	return r.reconcilePrometheusRule(ctx, logger, req, slo)
@@ -107,6 +113,24 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 
 // TODO Implement
 func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	level.Info(logger).Log("msg", "updating mimir rule", "name", newRuleGroup.Name)
+
+	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// create rules
+	kubeObjective.Status.Type = "MimirRule"
+	err = r.MimirClient.CreateRuleGroup(ctx, kubeObjective.GetName(), *newRuleGroup)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -275,18 +299,24 @@ func prometheusRuleToMimirRuleNode(promRule monitoringv1.Rule) rulefmt.RuleNode 
 			forVal, _ = time.ParseDuration(string(*promRule.For))
 		}
 		return rulefmt.RuleNode{
-			Expr:        yamlv3.Node{Value: promRule.Expr.String()},
-			Alert:       yamlv3.Node{Value: promRule.Alert},
+			Expr:        yamlStringNode(promRule.Expr.String()),
+			Alert:       yamlStringNode(promRule.Alert),
 			For:         model.Duration(forVal),
 			Labels:      promRule.Labels,
 			Annotations: promRule.Annotations,
 		}
 	}
 	return rulefmt.RuleNode{
-		Expr:   yamlv3.Node{Value: promRule.Expr.String()},
-		Record: yamlv3.Node{Value: promRule.Record},
+		Expr:   yamlStringNode(promRule.Expr.String()),
+		Record: yamlStringNode(promRule.Record),
 		Labels: promRule.Labels,
 	}
+}
+
+func yamlStringNode(val string) yamlv3.Node {
+	n := yamlv3.Node{}
+	n.SetString(val)
+	return n
 }
 
 func prometheusRulesToMimirRules(promRules []monitoringv1.Rule) []rulefmt.RuleNode {

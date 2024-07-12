@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"embed"
 	"fmt"
+	mimircli "github.com/grafana/mimir/pkg/mimirtool/client"
 	"html/template"
 	"io"
 	"io/fs"
@@ -145,6 +146,16 @@ func main() {
 		CLI.API.PrometheusExternalURL = prometheusURL
 	}
 
+	//Mimir Client
+	mimirConfig := mimircli.Config{
+		Address: "http://localhost:8080",
+	}
+	mimirClient, err := mimircli.New(mimirConfig)
+	if err != nil {
+		level.Error(logger).Log("msg", "failed to create Mimirclient", "err", err)
+		os.Exit(1)
+	}
+
 	var code int
 	switch ctx.Command() {
 	case "api":
@@ -177,6 +188,7 @@ func main() {
 			CLI.Kubernetes.DisableWebhooks,
 			CLI.Kubernetes.TLSCertFile,
 			CLI.Kubernetes.TLSPrivateKeyFile,
+			mimirClient,
 		)
 	case "generate":
 		code = cmdGenerate(
