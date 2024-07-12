@@ -19,11 +19,17 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	kitlog "github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/grafana/mimir/pkg/mimirtool/rules/rwrulefmt"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/rulefmt"
+	"github.com/prometheus/prometheus/model/value"
+	yamlv3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -96,6 +102,11 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 		return ctrl.Result{}, err
 	}
 
+	return ctrl.Result{}, nil
+}
+
+// TODO Implement
+func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
@@ -216,6 +227,75 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 		},
 		Data: data,
 	}, nil
+}
+
+func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*rwrulefmt.RuleGroup, error) {
+	objective, err := kubeObjective.Internal()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get objective: %w", err)
+	}
+
+	increases, err := objective.IncreaseRules()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get increase rules: %w", err)
+	}
+	increasesMimirRules := prometheusRulesToMimirRules(increases.Rules)
+
+	burnrates, err := objective.Burnrates()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
+	}
+	burnratesMimirRules := prometheusRulesToMimirRules(burnrates.Rules)
+
+	combinedRules := make([]rulefmt.RuleNode, len(increasesMimirRules)+len(burnratesMimirRules))
+	i := 0
+	for _, r := range increasesMimirRules {
+		combinedRules[i] = r
+		i++
+	}
+	for _, r := range burnratesMimirRules {
+		combinedRules[i] = r
+		i++
+	}
+
+	return &rwrulefmt.RuleGroup{
+		RuleGroup: rulefmt.RuleGroup{
+			Name:     kubeObjective.GetName(),
+			Interval: model.Duration(time.Second * 30),
+			Rules:    combinedRules,
+		},
+	}, nil
+}
+
+func prometheusRuleToMimirRuleNode(promRule monitoringv1.Rule) rulefmt.RuleNode {
+	if promRule.Alert != "" {
+		forVal := time.Minute * 5
+		if promRule.For != nil {
+			// TODO
+			forVal, _ = time.ParseDuration(string(*promRule.For))
+		}
+		return rulefmt.RuleNode{
+			Expr:        yamlv3.Node{Value: promRule.Expr.String()},
+			Alert:       yamlv3.Node{Value: promRule.Alert},
+			For:         model.Duration(forVal),
+			Labels:      promRule.Labels,
+			Annotations: promRule.Annotations,
+		}
+	}
+	return rulefmt.RuleNode{
+		Expr:   yamlv3.Node{Value: promRule.Expr.String()},
+		Record: yamlv3.Node{Value: promRule.Record},
+		Labels: promRule.Labels,
+	}
+}
+
+func prometheusRulesToMimirRules(promRules []monitoringv1.Rule) []rulefmt.RuleNode {
+	rules := make([]rulefmt.RuleNode, len(promRules))
+	for i, r := range promRules {
+		rules[i] = prometheusRuleToMimirRuleNode(r)
+	}
+
+	return rules
 }
 
 func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*monitoringv1.PrometheusRule, error) {
