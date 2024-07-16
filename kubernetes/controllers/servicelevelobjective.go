@@ -45,11 +45,12 @@ import (
 // ServiceLevelObjectiveReconciler reconciles a ServiceLevelObjective object.
 type ServiceLevelObjectiveReconciler struct {
 	client.Client
-	MimirClient   *mimircli.MimirClient
-	Logger        kitlog.Logger
-	Scheme        *runtime.Scheme
-	ConfigMapMode bool
-	GenericRules  bool
+	MimirClient             *mimircli.MimirClient
+	MimirWriteAlertingRules bool
+	Logger                  kitlog.Logger
+	Scheme                  *runtime.Scheme
+	ConfigMapMode           bool
+	GenericRules            bool
 }
 
 // +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
@@ -113,7 +114,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 
 // TODO Implement
 func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules)
+	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -253,7 +254,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}, nil
 }
 
-func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*rwrulefmt.RuleGroup, error) {
+func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool, writeAlertingRules bool) (*rwrulefmt.RuleGroup, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -263,13 +264,13 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	if err != nil {
 		return nil, fmt.Errorf("failed to get increase rules: %w", err)
 	}
-	increasesMimirRules := prometheusRulesToMimirRules(increases.Rules)
+	increasesMimirRules := prometheusRulesToMimirRules(increases.Rules, writeAlertingRules)
 
 	burnrates, err := objective.Burnrates()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
-	burnratesMimirRules := prometheusRulesToMimirRules(burnrates.Rules)
+	burnratesMimirRules := prometheusRulesToMimirRules(burnrates.Rules, writeAlertingRules)
 
 	combinedRules := make([]rulefmt.RuleNode, len(increasesMimirRules)+len(burnratesMimirRules))
 	i := 0
@@ -319,10 +320,13 @@ func yamlStringNode(val string) yamlv3.Node {
 	return n
 }
 
-func prometheusRulesToMimirRules(promRules []monitoringv1.Rule) []rulefmt.RuleNode {
-	rules := make([]rulefmt.RuleNode, len(promRules))
-	for i, r := range promRules {
-		rules[i] = prometheusRuleToMimirRuleNode(r)
+func prometheusRulesToMimirRules(promRules []monitoringv1.Rule, writeAlertingRules bool) []rulefmt.RuleNode {
+	rules := []rulefmt.RuleNode{}
+	for _, r := range promRules {
+		if r.Alert != "" && !writeAlertingRules {
+			continue
+		}
+		rules = append(rules, prometheusRuleToMimirRuleNode(r))
 	}
 
 	return rules

@@ -73,12 +73,16 @@ var CLI struct {
 		GenericRules     bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
-		MetricsAddr       string `default:":8080" help:"The address the metric endpoint binds to."`
-		ConfigMapMode     bool   `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
-		GenericRules      bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		DisableWebhooks   bool   `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
-		TLSCertFile       string `default:"" help:"File containing the default x509 Certificate for HTTPS."`
-		TLSPrivateKeyFile string `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
+		MetricsAddr             string   `default:":8080" help:"The address the metric endpoint binds to."`
+		ConfigMapMode           bool     `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
+		GenericRules            bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		DisableWebhooks         bool     `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
+		TLSCertFile             string   `default:"" help:"File containing the default x509 Certificate for HTTPS."`
+		TLSPrivateKeyFile       string   `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
+		MimirURL                *url.URL `default:"" help:"The URL to the Mimir API"`
+		MimirBasicAuthUsername  string   `default:"" help:"The HTTP basic authentication username"`
+		MimirBasicAuthPassword  string   `default:"" help:"The HTTP basic authentication password"`
+		MimirWriteAlertingRules bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
 		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
@@ -148,11 +152,23 @@ func main() {
 
 	//Mimir Client
 	mimirConfig := mimircli.Config{
-		Address: "http://localhost:8080",
+		Address: CLI.Kubernetes.MimirURL.String(),
+		User:    CLI.Kubernetes.MimirBasicAuthUsername,
+		Key:     CLI.Kubernetes.MimirBasicAuthPassword,
 	}
+
 	mimirClient, err := mimircli.New(mimirConfig)
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to create Mimirclient", "err", err)
+		os.Exit(1)
+	}
+	resp, err := mimirClient.Query(context.TODO(), "time()")
+	if err != nil {
+		level.Error(logger).Log("msg", "failed to connect to Mimir", "err", err)
+		os.Exit(1)
+	}
+	if resp.StatusCode != http.StatusOK {
+		level.Error(logger).Log("msg", "failed to test Mimir connectivity", "status", resp.StatusCode)
 		os.Exit(1)
 	}
 
@@ -189,6 +205,7 @@ func main() {
 			CLI.Kubernetes.TLSCertFile,
 			CLI.Kubernetes.TLSPrivateKeyFile,
 			mimirClient,
+			CLI.Kubernetes.MimirWriteAlertingRules,
 		)
 	case "generate":
 		code = cmdGenerate(
