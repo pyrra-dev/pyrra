@@ -71,9 +71,8 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 		return r.reconcileConfigMap(ctx, logger, req, slo)
 	}
 
-	resp, err := r.reconcileMimirRuleGroup(ctx, logger, req, slo)
-	if err != nil {
-		return resp, err
+	if r.MimirClient != nil {
+		return r.reconcileMimirRuleGroup(ctx, logger, req, slo)
 	}
 
 	return r.reconcilePrometheusRule(ctx, logger, req, slo)
