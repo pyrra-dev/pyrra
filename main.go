@@ -79,7 +79,7 @@ var CLI struct {
 		DisableWebhooks         bool     `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
 		TLSCertFile             string   `default:"" help:"File containing the default x509 Certificate for HTTPS."`
 		TLSPrivateKeyFile       string   `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
-		MimirURL                *url.URL `default:"" help:"The URL to the Mimir API"`
+		MimirURL                *url.URL `default:"" help:"The URL to the Mimir API. If specified provisions rules via Mimir instead of Prometheus"`
 		MimirBasicAuthUsername  string   `default:"" help:"The HTTP basic authentication username"`
 		MimirBasicAuthPassword  string   `default:"" help:"The HTTP basic authentication password"`
 		MimirWriteAlertingRules bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
@@ -151,25 +151,31 @@ func main() {
 	}
 
 	//Mimir Client
-	mimirConfig := mimircli.Config{
-		Address: CLI.Kubernetes.MimirURL.String(),
-		User:    CLI.Kubernetes.MimirBasicAuthUsername,
-		Key:     CLI.Kubernetes.MimirBasicAuthPassword,
-	}
+	var mimirClient *mimircli.MimirClient
 
-	mimirClient, err := mimircli.New(mimirConfig)
-	if err != nil {
-		level.Error(logger).Log("msg", "failed to create Mimirclient", "err", err)
-		os.Exit(1)
-	}
-	resp, err := mimirClient.Query(context.TODO(), "time()")
-	if err != nil {
-		level.Error(logger).Log("msg", "failed to connect to Mimir", "err", err)
-		os.Exit(1)
-	}
-	if resp.StatusCode != http.StatusOK {
-		level.Error(logger).Log("msg", "failed to test Mimir connectivity", "status", resp.StatusCode)
-		os.Exit(1)
+	// if a MimirURL has been specified, provision rules via Mimir instead of Prometheus
+	if CLI.Kubernetes.MimirURL.String() != "" {
+		level.Info(logger).Log("msg", "using Mimir", "url", CLI.Kubernetes.MimirURL.String())
+		mimirConfig := mimircli.Config{
+			Address: CLI.Kubernetes.MimirURL.String(),
+			User:    CLI.Kubernetes.MimirBasicAuthUsername,
+			Key:     CLI.Kubernetes.MimirBasicAuthPassword,
+		}
+
+		mimirClient, err = mimircli.New(mimirConfig)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to create Mimirclient", "err", err)
+			os.Exit(1)
+		}
+		resp, err := mimirClient.Query(context.TODO(), "time()")
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to connect to Mimir", "err", err)
+			os.Exit(1)
+		}
+		if resp.StatusCode != http.StatusOK {
+			level.Error(logger).Log("msg", "failed to test Mimir connectivity", "status", resp.StatusCode)
+			os.Exit(1)
+		}
 	}
 
 	var code int
