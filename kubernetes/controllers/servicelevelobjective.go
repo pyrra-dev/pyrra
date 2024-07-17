@@ -272,13 +272,29 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	}
 	burnratesMimirRules := prometheusRulesToMimirRules(burnrates.Rules, writeAlertingRules)
 
-	combinedRules := make([]rulefmt.RuleNode, len(increasesMimirRules)+len(burnratesMimirRules))
+	genericMimirRules := []rulefmt.RuleNode{}
+	if genericRules {
+		rules, err := objective.GenericRules()
+		if err != nil {
+			if err != slo.ErrGroupingUnsupported {
+				return nil, fmt.Errorf("failed to get generic rules: %w", err)
+			}
+		} else {
+			genericMimirRules = append(genericMimirRules, prometheusRulesToMimirRules(rules.Rules, writeAlertingRules)...)
+		}
+	}
+
+	combinedRules := make([]rulefmt.RuleNode, len(increasesMimirRules)+len(burnratesMimirRules)+len(genericMimirRules))
 	i := 0
 	for _, r := range increasesMimirRules {
 		combinedRules[i] = r
 		i++
 	}
 	for _, r := range burnratesMimirRules {
+		combinedRules[i] = r
+		i++
+	}
+	for _, r := range genericMimirRules {
 		combinedRules[i] = r
 		i++
 	}
