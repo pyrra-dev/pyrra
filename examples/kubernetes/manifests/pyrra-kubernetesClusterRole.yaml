@@ -46,3 +46,9 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - pyrra.dev
+  resources:
+  - servicelevelobjectives/finalizers
+  verbs:
+  - update
