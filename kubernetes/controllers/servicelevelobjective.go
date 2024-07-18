@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
@@ -55,6 +56,7 @@ type ServiceLevelObjectiveReconciler struct {
 
 // +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives/finalizers,verbs=update
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=prometheusrules/status,verbs=get
 
@@ -72,6 +74,34 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	if r.MimirClient != nil {
+
+		mimirFinalizer := "mimir.servicelevelobjective.pyrra.dev/finalizer"
+		if slo.ObjectMeta.DeletionTimestamp.IsZero() {
+			// slo is not being deleted, add our finalizer if not already present
+			if !controllerutil.ContainsFinalizer(&slo, mimirFinalizer) {
+				controllerutil.AddFinalizer(&slo, mimirFinalizer)
+				if err := r.Update(ctx, &slo); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+		} else {
+			// slo is being deleted
+			if controllerutil.ContainsFinalizer(&slo, mimirFinalizer) {
+				level.Info(logger).Log("msg", "deleting mimir rule group", "name", slo.GetName())
+				if err := r.deleteMimirRuleGroup(ctx, logger, req, slo); err != nil {
+					return ctrl.Result{}, err
+				}
+
+				// remove finalizer
+				controllerutil.RemoveFinalizer(&slo, mimirFinalizer)
+				if err := r.Update(ctx, &slo); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+			// Stop reconciliation as the item is being deleted
+			return ctrl.Result{}, nil
+		}
+
 		return r.reconcileMimirRuleGroup(ctx, logger, req, slo)
 	}
 
@@ -111,7 +141,6 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	return ctrl.Result{}, nil
 }
 
-// TODO Implement
 func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
 	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules)
 	if err != nil {
@@ -120,18 +149,21 @@ func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Co
 
 	level.Info(logger).Log("msg", "updating mimir rule", "name", newRuleGroup.Name)
 
-	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// create rules
-	kubeObjective.Status.Type = "MimirRule"
 	err = r.MimirClient.CreateRuleGroup(ctx, kubeObjective.GetName(), *newRuleGroup)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
+	kubeObjective.Status.Type = "MimirRule"
+	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
+}
+
+func (r *ServiceLevelObjectiveReconciler) deleteMimirRuleGroup(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) error {
+	return r.MimirClient.DeleteNamespace(ctx, kubeObjective.GetName())
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
