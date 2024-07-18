@@ -47,48 +47,13 @@ store_gateway:
   persistentVolume:
     enabled: false
   replicas: 1
-  #resources:
-    #limits:
-      #memory: 2.1Gi
-    #requests:
-      #cpu: 1
-      #memory: 1.5Gi
-  #topologySpreadConstraints: {}
-  #affinity:
-    #podAntiAffinity:
-      #requiredDuringSchedulingIgnoredDuringExecution:
-        #- labelSelector:
-            #matchExpressions:
-              #- key: target # support for enterprise.legacyLabels
-                #operator: In
-                #values:
-                  #- store-gateway
-          #topologyKey: 'kubernetes.io/hostname'
-
-        #- labelSelector:
-            #matchExpressions:
-              #- key: app.kubernetes.io/component
-                #operator: In
-                #values:
-                  #- store-gateway
-          #topologyKey: 'kubernetes.io/hostname'
-  #zoneAwareReplication:
-    #topologyKey: 'kubernetes.io/hostname'
 
 nginx:
-  replicas: 1
-  #resources:
-    #limits:
-      #memory: 731Mi
-    #requests:
-      #cpu: 1
-      #memory: 512Mi
+  enabled: false
 
 gateway:
+  enabledNonEnterprise: true
   replicas: 1
-  #resources:
-    #limits:
-      #memory: 731Mi
-    #requests:
-      #cpu: 1
-      #memory: 512Mi
+  service:
+    type: "NodePort"
+    nodePort: 30950
