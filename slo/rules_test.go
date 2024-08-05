@@ -1,6 +1,7 @@
 package slo
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -1689,7 +1690,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
 			}, {
 				Record: "pyrra_window",
-				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
+				Expr:   intstr.FromString(strconv.FormatInt(int64((28 * 24 * time.Hour).Seconds()), 10)),
 				Labels: map[string]string{"slo": "monitoring-http-errors"},
 			}, {
 				Record: "pyrra_availability",
@@ -1725,7 +1726,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
 			}, {
 				Record: "pyrra_window",
-				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
+				Expr:   intstr.FromString(strconv.FormatInt(int64((28 * 24 * time.Hour).Seconds()), 10)),
 				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
 			}, {
 				Record: "pyrra_availability",
@@ -1757,7 +1758,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-http-latency"},
 			}, {
 				Record: "pyrra_window",
-				Expr:   intstr.FromInt(2419200),
+				Expr:   intstr.FromString("2419200"),
 				Labels: map[string]string{"slo": "monitoring-http-latency"},
 			}, {
 				Record: "pyrra_availability",
@@ -1793,7 +1794,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-grpc-latency"},
 			}, {
 				Record: "pyrra_window",
-				Expr:   intstr.FromInt(604800),
+				Expr:   intstr.FromString("604800"),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency"},
 			}, {
 				Record: "pyrra_availability",
@@ -1825,7 +1826,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
 			}, {
 				Record: "pyrra_window",
-				Expr:   intstr.FromInt(1209600),
+				Expr:   intstr.FromString("1209600"),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
 			}, {
 				Record: "pyrra_availability",
@@ -1857,7 +1858,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "pyrra_window",
-				Expr:   intstr.FromInt(int((14 * 24 * time.Hour).Seconds())),
+				Expr:   intstr.FromString(strconv.FormatInt(int64((14 * 24 * time.Hour).Seconds()), 10)),
 				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "pyrra_availability",
@@ -1889,7 +1890,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "up-targets"},
 			}, {
 				Record: "pyrra_window",
-				Expr:   intstr.FromInt(int((28 * 24 * time.Hour).Seconds())),
+				Expr:   intstr.FromString(strconv.FormatInt(int64((28 * 24 * time.Hour).Seconds()), 10)),
 				Labels: map[string]string{"slo": "up-targets"},
 			}, {
 				Record: "pyrra_availability",
