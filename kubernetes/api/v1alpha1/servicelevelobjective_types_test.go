@@ -15,6 +15,10 @@ import (
 	"github.com/pyrra-dev/pyrra/slo"
 )
 
+func durationPtr(d time.Duration) *time.Duration {
+	return &d
+}
+
 var examples = []struct {
 	config    string
 	objective slo.Objective
@@ -65,6 +69,7 @@ spec:
 							{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "http_requests_total",
@@ -72,6 +77,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 				},
 			},
@@ -120,6 +126,7 @@ spec:
 							{Type: labels.MatchRegexp, Name: "grpc_code", Value: "Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "grpc_server_handled_total",
@@ -129,6 +136,67 @@ spec:
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
+					},
+				},
+			},
+		},
+	},
+	{
+		config: `
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: http-errors-with-offset
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+    pyrra.dev/team: foo
+  annotations:
+    pyrra.dev/description: "foo"
+spec:
+  target: 99
+  window: 1w
+  indicator:
+    ratio:
+      errors:
+        metric: http_requests_total{job="metrics-service-thanos-receive-default",code=~"5.."} offset 10m
+      total:
+        metric: http_requests_total{job="metrics-service-thanos-receive-default"} offset 10m
+`,
+		objective: slo.Objective{
+			Labels: labels.FromStrings(
+				labels.MetricName, "http-errors-with-offset",
+				"namespace", "monitoring",
+				"pyrra.dev/team", "foo",
+			),
+			Annotations: map[string]string{"pyrra.dev/description": "foo"},
+			Description: "",
+			Target:      0.99,
+			Window:      model.Duration(7 * 24 * time.Hour),
+			Alerting: slo.Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
+			Indicator: slo.Indicator{
+				Ratio: &slo.RatioIndicator{
+					Errors: slo.Metric{
+						Name: "http_requests_total",
+						LabelMatchers: []*labels.Matcher{
+							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
+							{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
+							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+						},
+						OriginalOffset: durationPtr(10 * time.Minute),
+					},
+					Total: slo.Metric{
+						Name: "http_requests_total",
+						LabelMatchers: []*labels.Matcher{
+							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
+							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+						},
+						OriginalOffset: durationPtr(10 * time.Minute),
 					},
 				},
 			},
@@ -175,6 +243,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "le", Value: "1"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_bucket"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "http_request_duration_seconds_count",
@@ -183,6 +252,7 @@ spec:
 							{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_count"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 				},
 			},
@@ -230,6 +300,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "le", Value: "0.6"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_bucket"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "grpc_server_handling_seconds_count",
@@ -239,6 +310,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_count"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 				},
 			},
@@ -286,6 +358,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "le", Value: "0.5"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "nginx_ingress_controller_request_duration_seconds_bucket"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "nginx_ingress_controller_request_duration_seconds_count",
@@ -294,6 +367,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "path", Value: "/"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "nginx_ingress_controller_request_duration_seconds_count"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 				},
 			},
@@ -337,12 +411,14 @@ spec:
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_errors_total"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "prometheus_operator_reconcile_operations_total",
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_operations_total"},
 						},
+						OriginalOffset: durationPtr(0 * time.Second),
 					},
 				},
 			},
@@ -419,8 +495,8 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 					Window: "2w",
 					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
 						Ratio: &v1alpha1.RatioIndicator{
-							Errors:   v1alpha1.Query{Metric: `errors{foo="bar"}`},
-							Total:    v1alpha1.Query{Metric: `total{foo="bar"}`},
+							Errors:   v1alpha1.Query{Metric: `errors{foo="bar"} offset 10m`},
+							Total:    v1alpha1.Query{Metric: `total{foo="bar"} offset 10m`},
 							Grouping: nil,
 						},
 					},

@@ -25,7 +25,7 @@ Next to Prometheus, Alertmanager, node-exporter, prometheus-adapter and Grafana,
 git clone git@github.com:prometheus-operator/kube-prometheus.git
 cd kube-prometheus
 # Deploy the CRDs and the Prometheus Operator
-kubectl apply -f ./manifests/setup
+kubectl apply --server-side=true -f ./manifests/setup
 # Deploy all the resource like Prometheus, StatefulSets, and Deployments.
 kubectl apply -f ./manifests/
 ```

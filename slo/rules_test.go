@@ -71,6 +71,62 @@ func TestObjective_Burnrates(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "http-ratio-offset",
+		slo:  objectiveHTTPRatioOffset(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:burnrate5m",
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[5m] offset 5m)) / sum(rate(http_requests_total{job="thanos-receive-default"}[5m] offset 5m))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate30m",
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[30m] offset 5m)) / sum(rate(http_requests_total{job="thanos-receive-default"}[30m] offset 5m))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate1h",
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[1h] offset 5m)) / sum(rate(http_requests_total{job="thanos-receive-default"}[1h] offset 5m))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate2h",
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[2h] offset 5m)) / sum(rate(http_requests_total{job="thanos-receive-default"}[2h] offset 5m))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate6h",
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[6h] offset 5m)) / sum(rate(http_requests_total{job="thanos-receive-default"}[6h] offset 5m))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate1d",
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[1d] offset 5m)) / sum(rate(http_requests_total{job="thanos-receive-default"}[1d] offset 5m))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:burnrate4d",
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[4d] offset 5m)) / sum(rate(http_requests_total{job="thanos-receive-default"}[4d] offset 5m))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("2m0s"),
+				Expr:   intstr.FromString(`http_requests:burnrate5m{job="thanos-receive-default",slo="monitoring-http-errors"} > (14 * (1-0.99)) and http_requests:burnrate1h{job="thanos-receive-default",slo="monitoring-http-errors"} > (14 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "job": "thanos-receive-default", "long": "1h", "slo": "monitoring-http-errors", "short": "5m", "exhaustion": "2d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("15m0s"),
+				Expr:   intstr.FromString(`http_requests:burnrate30m{job="thanos-receive-default",slo="monitoring-http-errors"} > (7 * (1-0.99)) and http_requests:burnrate6h{job="thanos-receive-default",slo="monitoring-http-errors"} > (7 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "job": "thanos-receive-default", "long": "6h", "slo": "monitoring-http-errors", "short": "30m", "exhaustion": "4d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("1h0m0s"),
+				Expr:   intstr.FromString(`http_requests:burnrate2h{job="thanos-receive-default",slo="monitoring-http-errors"} > (2 * (1-0.99)) and http_requests:burnrate1d{job="thanos-receive-default",slo="monitoring-http-errors"} > (2 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "job": "thanos-receive-default", "long": "1d", "slo": "monitoring-http-errors", "short": "2h", "exhaustion": "2w"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("3h0m0s"),
+				Expr:   intstr.FromString(`http_requests:burnrate6h{job="thanos-receive-default",slo="monitoring-http-errors"} > (1 * (1-0.99)) and http_requests:burnrate4d{job="thanos-receive-default",slo="monitoring-http-errors"} > (1 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "job": "thanos-receive-default", "long": "4d", "slo": "monitoring-http-errors", "short": "6h", "exhaustion": "4w"},
+			}},
+		},
+	}, {
 		name: "http-ratio-grouping",
 		slo:  objectiveHTTPRatioGrouping(),
 		rules: monitoringv1.RuleGroup{
@@ -239,6 +295,62 @@ func TestObjective_Burnrates(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "grpc-errors-offset",
+		slo:  objectiveGRPCRatioOffset(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-errors",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "grpc_server_handled:burnrate5m",
+				Expr:   intstr.FromString(`sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[5m] offset 5m)) / sum(rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[5m] offset 5m))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "grpc_server_handled:burnrate30m",
+				Expr:   intstr.FromString(`sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[30m] offset 5m)) / sum(rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[30m] offset 5m))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "grpc_server_handled:burnrate1h",
+				Expr:   intstr.FromString(`sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1h] offset 5m)) / sum(rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1h] offset 5m))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "grpc_server_handled:burnrate2h",
+				Expr:   intstr.FromString(`sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[2h] offset 5m)) / sum(rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[2h] offset 5m))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "grpc_server_handled:burnrate6h",
+				Expr:   intstr.FromString(`sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[6h] offset 5m)) / sum(rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[6h] offset 5m))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "grpc_server_handled:burnrate1d",
+				Expr:   intstr.FromString(`sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1d] offset 5m)) / sum(rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1d] offset 5m))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "grpc_server_handled:burnrate4d",
+				Expr:   intstr.FromString(`sum(rate(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4d] offset 5m)) / sum(rate(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4d] offset 5m))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`grpc_server_handled:burnrate5m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} > (14 * (1-0.999)) and grpc_server_handled:burnrate1h{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} > (14 * (1-0.999))`),
+				For:    monitoringDuration("2m0s"),
+				Labels: map[string]string{"severity": "critical", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors", "short": "5m", "long": "1h", "exhaustion": "2d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`grpc_server_handled:burnrate30m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} > (7 * (1-0.999)) and grpc_server_handled:burnrate6h{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} > (7 * (1-0.999))`),
+				For:    monitoringDuration("15m0s"),
+				Labels: map[string]string{"severity": "critical", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors", "short": "30m", "long": "6h", "exhaustion": "4d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`grpc_server_handled:burnrate2h{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} > (2 * (1-0.999)) and grpc_server_handled:burnrate1d{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} > (2 * (1-0.999))`),
+				For:    monitoringDuration("1h0m0s"),
+				Labels: map[string]string{"severity": "warning", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors", "short": "2h", "long": "1d", "exhaustion": "2w"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`grpc_server_handled:burnrate6h{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} > (1 * (1-0.999)) and grpc_server_handled:burnrate4d{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} > (1 * (1-0.999))`),
+				For:    monitoringDuration("3h0m0s"),
+				Labels: map[string]string{"severity": "warning", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors", "short": "6h", "long": "4d", "exhaustion": "4w"},
+			}},
+		},
+	}, {
 		name: "grpc-errors-grouping",
 		slo:  objectiveGRPCRatioGrouping(),
 		rules: monitoringv1.RuleGroup{
@@ -351,6 +463,62 @@ func TestObjective_Burnrates(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "http-latency-offset",
+		slo:  objectiveHTTPLatencyOffset(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-latency",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_request_duration_seconds:burnrate5m",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m] offset 5m)) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[5m] offset 5m))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate30m",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[30m] offset 5m)) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[30m] offset 5m))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[30m] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate1h",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1h] offset 5m)) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[1h] offset 5m))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1h] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate2h",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[2h] offset 5m)) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[2h] offset 5m))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[2h] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate6h",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[6h] offset 5m)) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[6h] offset 5m))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[6h] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate1d",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1d] offset 5m)) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[1d] offset 5m))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1d] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate4d",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4d] offset 5m)) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4d] offset 5m))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4d] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("2m"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate5m{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (14 * (1-0.995)) and http_request_duration_seconds:burnrate1h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (14 * (1-0.995))`),
+				Labels: map[string]string{"severity": "critical", "long": "1h", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "5m", "exhaustion": "2d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("15m"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate30m{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (7 * (1-0.995)) and http_request_duration_seconds:burnrate6h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (7 * (1-0.995))`),
+				Labels: map[string]string{"severity": "critical", "long": "6h", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "30m", "exhaustion": "4d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("1h"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate2h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (2 * (1-0.995)) and http_request_duration_seconds:burnrate1d{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (2 * (1-0.995))`),
+				Labels: map[string]string{"severity": "warning", "long": "1d", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "2h", "exhaustion": "2w"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("3h"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate6h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (1 * (1-0.995)) and http_request_duration_seconds:burnrate4d{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (1 * (1-0.995))`),
+				Labels: map[string]string{"severity": "warning", "long": "4d", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "6h", "exhaustion": "4w"},
+			}},
+		},
+	}, {
 		name: "http-latency-native",
 		slo:  objectiveHTTPNativeLatency(),
 		rules: monitoringv1.RuleGroup{
@@ -383,6 +551,62 @@ func TestObjective_Burnrates(t *testing.T) {
 			}, {
 				Record: "http_request_duration_seconds:burnrate4d",
 				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4d]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("2m"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate5m{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (14 * (1-0.995)) and http_request_duration_seconds:burnrate1h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (14 * (1-0.995))`),
+				Labels: map[string]string{"severity": "critical", "long": "1h", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "5m", "exhaustion": "2d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("15m"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate30m{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (7 * (1-0.995)) and http_request_duration_seconds:burnrate6h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (7 * (1-0.995))`),
+				Labels: map[string]string{"severity": "critical", "long": "6h", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "30m", "exhaustion": "4d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("1h"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate2h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (2 * (1-0.995)) and http_request_duration_seconds:burnrate1d{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (2 * (1-0.995))`),
+				Labels: map[string]string{"severity": "warning", "long": "1d", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "2h", "exhaustion": "2w"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("3h"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate6h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (1 * (1-0.995)) and http_request_duration_seconds:burnrate4d{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (1 * (1-0.995))`),
+				Labels: map[string]string{"severity": "warning", "long": "4d", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "6h", "exhaustion": "4w"},
+			}},
+		},
+	}, {
+		name: "http-latency-native-offset",
+		slo:  objectiveHTTPNativeLatencyOffset(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-latency",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_request_duration_seconds:burnrate5m",
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[5m] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate30m",
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[30m] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate1h",
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[1h] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate2h",
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[2h] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate6h",
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[6h] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate1d",
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[1d] offset 5m))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate4d",
+				Expr:   intstr.FromString(`1 - histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4d] offset 5m))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
 			}, {
 				Alert:  "ErrorBudgetBurn",
@@ -575,6 +799,62 @@ func TestObjective_Burnrates(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "grpc-latency-offset",
+		slo:  objectiveGRPCLatencyOffset(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-latency",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "grpc_server_handling_seconds:burnrate1m",
+				Expr:   intstr.FromString(`(sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1m] offset 5m)) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1m] offset 5m))) / sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1m] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+			}, {
+				Record: "grpc_server_handling_seconds:burnrate8m",
+				Expr:   intstr.FromString(`(sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[8m] offset 5m)) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[8m] offset 5m))) / sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[8m] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+			}, {
+				Record: "grpc_server_handling_seconds:burnrate15m",
+				Expr:   intstr.FromString(`(sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[15m] offset 5m)) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[15m] offset 5m))) / sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[15m] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+			}, {
+				Record: "grpc_server_handling_seconds:burnrate30m",
+				Expr:   intstr.FromString(`(sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[30m] offset 5m)) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[30m] offset 5m))) / sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[30m] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+			}, {
+				Record: "grpc_server_handling_seconds:burnrate1h30m",
+				Expr:   intstr.FromString(`(sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1h30m] offset 5m)) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1h30m] offset 5m))) / sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1h30m] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+			}, {
+				Record: "grpc_server_handling_seconds:burnrate6h",
+				Expr:   intstr.FromString(`(sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[6h] offset 5m)) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[6h] offset 5m))) / sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[6h] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+			}, {
+				Record: "grpc_server_handling_seconds:burnrate1d",
+				Expr:   intstr.FromString(`(sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1d] offset 5m)) - sum(rate(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1d] offset 5m))) / sum(rate(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1d] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`grpc_server_handling_seconds:burnrate1m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"} > (14 * (1-0.995)) and grpc_server_handling_seconds:burnrate15m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"} > (14 * (1-0.995))`),
+				For:    monitoringDuration("1m"),
+				Labels: map[string]string{"severity": "critical", "long": "15m", "short": "1m", "slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "exhaustion": "12h"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`grpc_server_handling_seconds:burnrate8m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"} > (7 * (1-0.995)) and grpc_server_handling_seconds:burnrate1h30m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"} > (7 * (1-0.995))`),
+				For:    monitoringDuration("4m"),
+				Labels: map[string]string{"severity": "critical", "long": "1h30m", "short": "8m", "slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "exhaustion": "1d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`grpc_server_handling_seconds:burnrate30m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"} > (2 * (1-0.995)) and grpc_server_handling_seconds:burnrate6h{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"} > (2 * (1-0.995))`),
+				For:    monitoringDuration("15m"),
+				Labels: map[string]string{"severity": "warning", "long": "6h", "short": "30m", "slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "exhaustion": "3d12h"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				Expr:   intstr.FromString(`grpc_server_handling_seconds:burnrate1h30m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"} > (1 * (1-0.995)) and grpc_server_handling_seconds:burnrate1d{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-latency"} > (1 * (1-0.995))`),
+				For:    monitoringDuration("45m"),
+				Labels: map[string]string{"severity": "warning", "long": "1d", "short": "1h30m", "slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "exhaustion": "1w"},
+			}},
+		},
+	}, {
 		name: "grpc-latency-grouping",
 		slo:  objectiveGRPCLatencyGrouping(),
 		rules: monitoringv1.RuleGroup{
@@ -663,6 +943,62 @@ func TestObjective_Burnrates(t *testing.T) {
 			}, {
 				Record: "prometheus_operator_reconcile_operations:burnrate2d",
 				Expr:   intstr.FromString(`sum(rate(prometheus_operator_reconcile_errors_total[2d])) / sum(rate(prometheus_operator_reconcile_operations_total[2d]))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("1m0s"),
+				Expr:   intstr.FromString(`prometheus_operator_reconcile_operations:burnrate3m{slo="monitoring-prometheus-operator-errors"} > (14 * (1-0.99)) and prometheus_operator_reconcile_operations:burnrate30m{slo="monitoring-prometheus-operator-errors"} > (14 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "long": "30m", "slo": "monitoring-prometheus-operator-errors", "short": "3m", "exhaustion": "1d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("8m0s"),
+				Expr:   intstr.FromString(`prometheus_operator_reconcile_operations:burnrate15m{slo="monitoring-prometheus-operator-errors"} > (7 * (1-0.99)) and prometheus_operator_reconcile_operations:burnrate3h{slo="monitoring-prometheus-operator-errors"} > (7 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "long": "3h", "slo": "monitoring-prometheus-operator-errors", "short": "15m", "exhaustion": "2d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("30m0s"),
+				Expr:   intstr.FromString(`prometheus_operator_reconcile_operations:burnrate1h{slo="monitoring-prometheus-operator-errors"} > (2 * (1-0.99)) and prometheus_operator_reconcile_operations:burnrate12h{slo="monitoring-prometheus-operator-errors"} > (2 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "long": "12h", "slo": "monitoring-prometheus-operator-errors", "short": "1h", "exhaustion": "1w"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("1h30m0s"),
+				Expr:   intstr.FromString(`prometheus_operator_reconcile_operations:burnrate3h{slo="monitoring-prometheus-operator-errors"} > (1 * (1-0.99)) and prometheus_operator_reconcile_operations:burnrate2d{slo="monitoring-prometheus-operator-errors"} > (1 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "long": "2d", "slo": "monitoring-prometheus-operator-errors", "short": "3h", "exhaustion": "2w"},
+			}},
+		},
+	}, {
+		name: "operator-ratio-offset",
+		slo:  objectiveOperatorOffset(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-prometheus-operator-errors",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "prometheus_operator_reconcile_operations:burnrate3m",
+				Expr:   intstr.FromString(`sum(rate(prometheus_operator_reconcile_errors_total[3m] offset 5m)) / sum(rate(prometheus_operator_reconcile_operations_total[3m] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}, {
+				Record: "prometheus_operator_reconcile_operations:burnrate15m",
+				Expr:   intstr.FromString(`sum(rate(prometheus_operator_reconcile_errors_total[15m] offset 5m)) / sum(rate(prometheus_operator_reconcile_operations_total[15m] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}, {
+				Record: "prometheus_operator_reconcile_operations:burnrate30m",
+				Expr:   intstr.FromString(`sum(rate(prometheus_operator_reconcile_errors_total[30m] offset 5m)) / sum(rate(prometheus_operator_reconcile_operations_total[30m] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}, {
+				Record: "prometheus_operator_reconcile_operations:burnrate1h",
+				Expr:   intstr.FromString(`sum(rate(prometheus_operator_reconcile_errors_total[1h] offset 5m)) / sum(rate(prometheus_operator_reconcile_operations_total[1h] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}, {
+				Record: "prometheus_operator_reconcile_operations:burnrate3h",
+				Expr:   intstr.FromString(`sum(rate(prometheus_operator_reconcile_errors_total[3h] offset 5m)) / sum(rate(prometheus_operator_reconcile_operations_total[3h] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}, {
+				Record: "prometheus_operator_reconcile_operations:burnrate12h",
+				Expr:   intstr.FromString(`sum(rate(prometheus_operator_reconcile_errors_total[12h] offset 5m)) / sum(rate(prometheus_operator_reconcile_operations_total[12h] offset 5m))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
+			}, {
+				Record: "prometheus_operator_reconcile_operations:burnrate2d",
+				Expr:   intstr.FromString(`sum(rate(prometheus_operator_reconcile_errors_total[2d] offset 5m)) / sum(rate(prometheus_operator_reconcile_operations_total[2d] offset 5m))`),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors"},
 			}, {
 				Alert:  "ErrorBudgetBurn",
@@ -1095,6 +1431,62 @@ func TestObjective_Burnrates(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "prometheus-up-targets-offset",
+		slo:  objectiveUpTargetsOffset(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "up-targets",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "up:burnrate5m",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[5m] offset 5m)) - sum(sum_over_time(up[5m] offset 5m))) / sum(count_over_time(up[5m] offset 5m))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate30m",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[30m] offset 5m)) - sum(sum_over_time(up[30m] offset 5m))) / sum(count_over_time(up[30m] offset 5m))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate1h",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[1h] offset 5m)) - sum(sum_over_time(up[1h] offset 5m))) / sum(count_over_time(up[1h] offset 5m))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate2h",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[2h] offset 5m)) - sum(sum_over_time(up[2h] offset 5m))) / sum(count_over_time(up[2h] offset 5m))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate6h",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[6h] offset 5m)) - sum(sum_over_time(up[6h] offset 5m))) / sum(count_over_time(up[6h] offset 5m))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate1d",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[1d] offset 5m)) - sum(sum_over_time(up[1d] offset 5m))) / sum(count_over_time(up[1d] offset 5m))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:burnrate4d",
+				Expr:   intstr.FromString(`(sum(count_over_time(up[4d] offset 5m)) - sum(sum_over_time(up[4d] offset 5m))) / sum(count_over_time(up[4d] offset 5m))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("2m"),
+				Expr:   intstr.FromString(`up:burnrate5m{slo="up-targets"} > (14 * (1-0.99)) and up:burnrate1h{slo="up-targets"} > (14 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "long": "1h", "short": "5m", "slo": "up-targets", "exhaustion": "2d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("15m"),
+				Expr:   intstr.FromString(`up:burnrate30m{slo="up-targets"} > (7 * (1-0.99)) and up:burnrate6h{slo="up-targets"} > (7 * (1-0.99))`),
+				Labels: map[string]string{"severity": "critical", "long": "6h", "slo": "up-targets", "short": "30m", "exhaustion": "4d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("1h"),
+				Expr:   intstr.FromString(`up:burnrate2h{slo="up-targets"} > (2 * (1-0.99)) and up:burnrate1d{slo="up-targets"} > (2 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "long": "1d", "slo": "up-targets", "short": "2h", "exhaustion": "2w"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("3h"),
+				Expr:   intstr.FromString(`up:burnrate6h{slo="up-targets"} > (1 * (1-0.99)) and up:burnrate4d{slo="up-targets"} > (1 * (1-0.99))`),
+				Labels: map[string]string{"severity": "warning", "long": "4d", "slo": "up-targets", "short": "6h", "exhaustion": "4w"},
+			}},
+		},
+	}, {
 		name: "prometheus-up-targets-grouping-regex",
 		slo:  objectiveUpTargetsGroupingRegex(),
 		rules: monitoringv1.RuleGroup{
@@ -1152,7 +1544,7 @@ func TestObjective_Burnrates(t *testing.T) {
 		},
 	}}
 
-	require.Len(t, testcases, 21)
+	require.Len(t, testcases, 28)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1374,7 +1766,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`histogram_fraction(0, 1, increase(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4w])) * histogram_count(increase(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1"},
-				//}, {
+				// }, {
 				//	Alert:  "SLOMetricAbsent",
 				//	Expr:   intstr.FromString(`absent(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}) == 1`),
 				//	For:    monitoringDuration("2m"),
