@@ -26,6 +26,7 @@ import (
 
 	"github.com/bufbuild/connect-go"
 	"github.com/go-kit/log"
+	mimircli "github.com/grafana/mimir/pkg/mimirtool/client"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/prometheus/model/labels"
@@ -63,6 +64,8 @@ func cmdKubernetes(
 	metricsAddr string,
 	_, genericRules, disableWebhooks bool,
 	certFile, privateKeyFile string,
+	mimirClient *mimircli.MimirClient,
+	mimirWriteAlertingRules bool,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -84,9 +87,11 @@ func cmdKubernetes(
 	}
 
 	reconciler := &controllers.ServiceLevelObjectiveReconciler{
-		Client:       mgr.GetClient(),
-		Logger:       log.With(logger, "controllers", "ServiceLevelObjective"),
-		GenericRules: genericRules,
+		Client:                  mgr.GetClient(),
+		Logger:                  log.With(logger, "controllers", "ServiceLevelObjective"),
+		GenericRules:            genericRules,
+		MimirClient:             mimirClient,
+		MimirWriteAlertingRules: mimirWriteAlertingRules,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceLevelObjective")
