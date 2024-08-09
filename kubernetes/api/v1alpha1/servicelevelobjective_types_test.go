@@ -8,16 +8,13 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 
 	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/slo"
 )
-
-func durationPtr(d time.Duration) *time.Duration {
-	return &d
-}
 
 var examples = []struct {
 	config    string
@@ -69,7 +66,7 @@ spec:
 							{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "http_requests_total",
@@ -77,7 +74,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 				},
 			},
@@ -126,7 +123,7 @@ spec:
 							{Type: labels.MatchRegexp, Name: "grpc_code", Value: "Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "grpc_server_handled_total",
@@ -136,7 +133,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 				},
 			},
@@ -188,7 +185,7 @@ spec:
 							{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
 						},
-						OriginalOffset: durationPtr(10 * time.Minute),
+						OriginalOffset: ptr.To(10 * time.Minute),
 					},
 					Total: slo.Metric{
 						Name: "http_requests_total",
@@ -196,7 +193,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
 						},
-						OriginalOffset: durationPtr(10 * time.Minute),
+						OriginalOffset: ptr.To(10 * time.Minute),
 					},
 				},
 			},
@@ -243,7 +240,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "le", Value: "1"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_bucket"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "http_request_duration_seconds_count",
@@ -252,7 +249,7 @@ spec:
 							{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_count"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 				},
 			},
@@ -300,7 +297,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "le", Value: "0.6"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_bucket"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "grpc_server_handling_seconds_count",
@@ -310,7 +307,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_count"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 				},
 			},
@@ -358,7 +355,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "le", Value: "0.5"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "nginx_ingress_controller_request_duration_seconds_bucket"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "nginx_ingress_controller_request_duration_seconds_count",
@@ -367,7 +364,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "path", Value: "/"},
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "nginx_ingress_controller_request_duration_seconds_count"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 				},
 			},
@@ -411,14 +408,14 @@ spec:
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_errors_total"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 					Total: slo.Metric{
 						Name: "prometheus_operator_reconcile_operations_total",
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_operations_total"},
 						},
-						OriginalOffset: durationPtr(0 * time.Second),
+						OriginalOffset: ptr.To(0 * time.Second),
 					},
 				},
 			},

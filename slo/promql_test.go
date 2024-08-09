@@ -9,11 +9,8 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 )
-
-func durationPtr(d time.Duration) *time.Duration {
-	return &d
-}
 
 var (
 	objectiveHTTPRatio = func() Objective {
@@ -48,8 +45,8 @@ var (
 	}
 	objectiveHTTPRatioOffset = func() Objective {
 		o := objectiveHTTPRatio()
-		o.Indicator.Ratio.Total.OriginalOffset = durationPtr(5 * time.Minute)
-		o.Indicator.Ratio.Errors.OriginalOffset = durationPtr(5 * time.Minute)
+		o.Indicator.Ratio.Total.OriginalOffset = ptr.To(5 * time.Minute)
+		o.Indicator.Ratio.Errors.OriginalOffset = ptr.To(5 * time.Minute)
 		return o
 	}
 	objectiveHTTPRatioGrouping = func() Objective {
@@ -105,8 +102,8 @@ var (
 	}
 	objectiveGRPCRatioOffset = func() Objective {
 		o := objectiveGRPCRatio()
-		o.Indicator.Ratio.Total.OriginalOffset = durationPtr(5 * time.Minute)
-		o.Indicator.Ratio.Errors.OriginalOffset = durationPtr(5 * time.Minute)
+		o.Indicator.Ratio.Total.OriginalOffset = ptr.To(5 * time.Minute)
+		o.Indicator.Ratio.Errors.OriginalOffset = ptr.To(5 * time.Minute)
 		return o
 	}
 	objectiveGRPCRatioGrouping = func() Objective {
@@ -164,13 +161,13 @@ var (
 	}
 	objectiveHTTPNativeLatencyOffset = func() Objective {
 		o := objectiveHTTPNativeLatency()
-		o.Indicator.LatencyNative.Total.OriginalOffset = durationPtr(5 * time.Minute)
+		o.Indicator.LatencyNative.Total.OriginalOffset = ptr.To(5 * time.Minute)
 		return o
 	}
 	objectiveHTTPLatencyOffset = func() Objective {
 		o := objectiveHTTPLatency()
-		o.Indicator.Latency.Total.OriginalOffset = durationPtr(5 * time.Minute)
-		o.Indicator.Latency.Success.OriginalOffset = durationPtr(5 * time.Minute)
+		o.Indicator.Latency.Total.OriginalOffset = ptr.To(5 * time.Minute)
+		o.Indicator.Latency.Success.OriginalOffset = ptr.To(5 * time.Minute)
 		return o
 	}
 	objectiveHTTPLatencyGrouping = func() Objective {
@@ -226,8 +223,8 @@ var (
 	}
 	objectiveGRPCLatencyOffset = func() Objective {
 		o := objectiveGRPCLatency()
-		o.Indicator.Latency.Total.OriginalOffset = durationPtr(5 * time.Minute)
-		o.Indicator.Latency.Success.OriginalOffset = durationPtr(5 * time.Minute)
+		o.Indicator.Latency.Total.OriginalOffset = ptr.To(5 * time.Minute)
+		o.Indicator.Latency.Success.OriginalOffset = ptr.To(5 * time.Minute)
 		return o
 	}
 	objectiveGRPCLatencyGrouping = func() Objective {
@@ -264,8 +261,8 @@ var (
 	}
 	objectiveOperatorOffset = func() Objective {
 		o := objectiveOperator()
-		o.Indicator.Ratio.Total.OriginalOffset = durationPtr(5 * time.Minute)
-		o.Indicator.Ratio.Errors.OriginalOffset = durationPtr(5 * time.Minute)
+		o.Indicator.Ratio.Total.OriginalOffset = ptr.To(5 * time.Minute)
+		o.Indicator.Ratio.Errors.OriginalOffset = ptr.To(5 * time.Minute)
 		return o
 	}
 	objectiveOperatorGrouping = func() Objective {
@@ -383,7 +380,7 @@ var (
 	}
 	objectiveUpTargetsOffset = func() Objective {
 		o := objectiveUpTargets()
-		o.Indicator.BoolGauge.OriginalOffset = durationPtr(5 * time.Minute)
+		o.Indicator.BoolGauge.OriginalOffset = ptr.To(5 * time.Minute)
 		return o
 	}
 	objectiveUpTargetsGroupingRegex = func() Objective {

@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+	"k8s.io/utils/ptr"
 )
 
 // QueryTotal returns a PromQL query to get the total amount of requests served during the window.
@@ -559,18 +560,10 @@ func (r objectiveReplacer) replace(node parser.Node) {
 		}
 		if n.OriginalOffset == 2*time.Millisecond {
 			// 2ms is the placeholder for the errorOffset
-			if r.errorOffset != nil {
-				n.OriginalOffset = *r.errorOffset
-			} else {
-				n.OriginalOffset = 0
-			}
+			n.OriginalOffset = ptr.Deref(r.errorOffset, 0)
 		} else if n.OriginalOffset == 1*time.Millisecond {
 			// 1ms is the placeholder for the offset
-			if r.offset != nil {
-				n.OriginalOffset = *r.offset
-			} else {
-				n.OriginalOffset = 0
-			}
+			n.OriginalOffset = ptr.Deref(r.offset, 0)
 		} else {
 			n.OriginalOffset = 0
 		}
