@@ -728,7 +728,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`100 * sum by (group) ((count_over_time(metric{matchers="total"}[1s]) - sum_over_time(metric{matchers="total"}[1s]))) / sum by(group) (count_over_time(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`sum by (group) ((count_over_time(metric{matchers="total"}[1s]) - sum_over_time(metric{matchers="total"}[1s]))) / sum by(group) (count_over_time(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
