@@ -449,7 +449,7 @@ func (o Objective) BurnrateName(rate time.Duration) string {
 func (o Objective) Burnrate(timerange time.Duration) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (grouping) (rate(errorMetric{matchers="errors"}[1s])) / sum by (grouping) (rate(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`sum by (grouping) (rate(errorMetric{matchers="errors"}[1s] offset 2ms)) / sum by (grouping) (rate(metric{matchers="total"}[1s] offset 1ms))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -468,8 +468,10 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:        o.Indicator.Ratio.Total.Name,
 			matchers:      o.Indicator.Ratio.Total.LabelMatchers,
+			offset:        o.Indicator.Ratio.Total.OriginalOffset,
 			errorMetric:   o.Indicator.Ratio.Errors.Name,
 			errorMatchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			errorOffset:   o.Indicator.Ratio.Errors.OriginalOffset,
 			grouping:      grouping,
 			window:        timerange,
 		}.replace(expr)
@@ -478,12 +480,12 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 	case Latency:
 		query := `
 			(
-				sum by (grouping) (rate(metric{matchers="total"}[1s]))
+				sum by (grouping) (rate(metric{matchers="total"}[1s] offset 1ms))
 				-
-				sum by (grouping) (rate(errorMetric{matchers="errors"}[1s]))
+				sum by (grouping) (rate(errorMetric{matchers="errors"}[1s] offset 2ms))
 			)
 			/
-			sum by (grouping) (rate(metric{matchers="total"}[1s]))
+			sum by (grouping) (rate(metric{matchers="total"}[1s] offset 1ms))
 `
 		expr, err := parser.ParseExpr(query)
 		if err != nil {
@@ -504,15 +506,17 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:        o.Indicator.Latency.Total.Name,
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
+			offset:        o.Indicator.Latency.Total.OriginalOffset,
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			errorOffset:   o.Indicator.Latency.Success.OriginalOffset,
 			grouping:      grouping,
 			window:        timerange,
 		}.replace(expr)
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s] offset 1ms))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -531,6 +535,7 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:   o.Indicator.LatencyNative.Total.Name,
 			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			offset:   o.Indicator.LatencyNative.Total.OriginalOffset,
 			grouping: grouping,
 			target:   time.Duration(o.Indicator.LatencyNative.Latency).Seconds(),
 			window:   timerange,
@@ -540,12 +545,12 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 	case BoolGauge:
 		query := `
 			(
-				sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))
+				sum by (grouping) (count_over_time(metric{matchers="total"}[1s] offset 1ms))
 				-
-				sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))
+				sum by (grouping) (sum_over_time(metric{matchers="total"}[1s] offset 1ms))
 			)
 			/
-			sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))
+			sum by (grouping) (count_over_time(metric{matchers="total"}[1s] offset 1ms))
 `
 		expr, err := parser.ParseExpr(query)
 		if err != nil {
@@ -566,6 +571,7 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:   o.Indicator.BoolGauge.Name,
 			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			offset:   o.Indicator.BoolGauge.OriginalOffset,
 			grouping: grouping,
 			window:   timerange,
 		}.replace(expr)
@@ -623,19 +629,19 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
 	countExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-		return parser.ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))`)
+		return parser.ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s] offset 1ms))`)
 	}
 
 	sumExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-		return parser.ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))`)
+		return parser.ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s] offset 1ms))`)
 	}
 
 	increaseExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-		return parser.ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s]))`)
+		return parser.ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s] offset 1ms))`)
 	}
 
 	absentExpr := func() (parser.Expr, error) {
-		return parser.ParseExpr(`absent(metric{matchers="total"}) == 1`)
+		return parser.ParseExpr(`absent(metric{matchers="total"} offset 1ms) == 1`)
 	}
 
 	var rules []monitoringv1.Rule
@@ -683,6 +689,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:   o.Indicator.Ratio.Total.Name,
 			matchers: o.Indicator.Ratio.Total.LabelMatchers,
+			offset:   o.Indicator.Ratio.Total.OriginalOffset,
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(expr)
@@ -710,6 +717,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   o.Indicator.Ratio.Total.Name,
 				matchers: o.Indicator.Ratio.Total.LabelMatchers,
+				offset:   o.Indicator.Ratio.Total.OriginalOffset,
 			}.replace(expr)
 
 			rules = append(rules, monitoringv1.Rule{
@@ -732,6 +740,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   o.Indicator.Ratio.Errors.Name,
 				matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+				offset:   o.Indicator.Ratio.Errors.OriginalOffset,
 				grouping: grouping,
 				window:   time.Duration(o.Window),
 			}.replace(expr)
@@ -752,6 +761,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				objectiveReplacer{
 					metric:   o.Indicator.Ratio.Errors.Name,
 					matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+					offset:   o.Indicator.Ratio.Errors.OriginalOffset,
 				}.replace(expr)
 
 				rules = append(rules, monitoringv1.Rule{
@@ -807,6 +817,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:   o.Indicator.Latency.Total.Name,
 			matchers: o.Indicator.Latency.Total.LabelMatchers,
+			offset:   o.Indicator.Latency.Total.OriginalOffset,
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(expr)
@@ -825,6 +836,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:   o.Indicator.Latency.Success.Name,
 			matchers: o.Indicator.Latency.Success.LabelMatchers,
+			offset:   o.Indicator.Latency.Success.OriginalOffset,
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(expr)
@@ -857,6 +869,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   o.Indicator.Latency.Total.Name,
 				matchers: o.Indicator.Latency.Total.LabelMatchers,
+				offset:   o.Indicator.Latency.Total.OriginalOffset,
 			}.replace(expr)
 
 			alertLabels := make(map[string]string, len(ruleLabels)+1)
@@ -884,6 +897,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   o.Indicator.Latency.Success.Name,
 				matchers: o.Indicator.Latency.Success.LabelMatchers,
+				offset:   o.Indicator.Latency.Success.OriginalOffset,
 			}.replace(expr)
 
 			alertLabelsLe := make(map[string]string, len(ruleLabelsLe)+1)
@@ -911,7 +925,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			}
 		}
 
-		expr, err := parser.ParseExpr(`histogram_count(increase(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`histogram_count(increase(metric{matchers="total"}[1s] offset 1ms))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -919,6 +933,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:   o.Indicator.LatencyNative.Total.Name,
 			matchers: slices.Clone(o.Indicator.LatencyNative.Total.LabelMatchers),
+			offset:   o.Indicator.LatencyNative.Total.OriginalOffset,
 			grouping: slices.Clone(o.Indicator.LatencyNative.Grouping),
 			window:   time.Duration(o.Window),
 		}.replace(expr)
@@ -929,7 +944,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, increase(metric{matchers="total"}[1s])) * histogram_count(increase(metric{matchers="total"}[1s]))`)
+		expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, increase(metric{matchers="total"}[1s] offset 1ms)) * histogram_count(increase(metric{matchers="total"}[1s] offset 1ms))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -938,6 +953,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:   o.Indicator.LatencyNative.Total.Name,
 			matchers: slices.Clone(o.Indicator.LatencyNative.Total.LabelMatchers),
+			offset:   o.Indicator.LatencyNative.Total.OriginalOffset,
 			grouping: slices.Clone(o.Indicator.LatencyNative.Grouping),
 			window:   time.Duration(o.Window),
 			target:   latencySeconds,
@@ -995,6 +1011,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:   o.Indicator.BoolGauge.Name,
 			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			offset:   o.Indicator.BoolGauge.OriginalOffset,
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(count)
@@ -1002,6 +1019,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:   o.Indicator.BoolGauge.Name,
 			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			offset:   o.Indicator.BoolGauge.OriginalOffset,
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(sum)
@@ -1027,6 +1045,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   o.Indicator.BoolGauge.Name,
 				matchers: o.Indicator.BoolGauge.LabelMatchers,
+				offset:   o.Indicator.BoolGauge.OriginalOffset,
 			}.replace(expr)
 
 			alertLabels := make(map[string]string, len(ruleLabels)+1)
@@ -1170,7 +1189,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
 
-		availability, err := parser.ParseExpr(`1 - sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
+		availability, err := parser.ParseExpr(`1 - sum(errorMetric{matchers="errors"} offset 2ms or vector(0)) / sum(metric{matchers="total"} offset 1ms)`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -1221,8 +1240,10 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:        totalIncreaseName,
 			matchers:      totalMatchers,
+			offset:        o.Indicator.Ratio.Total.OriginalOffset,
 			errorMetric:   errorsIncreaseName,
 			errorMatchers: errorMatchers,
+			errorOffset:   o.Indicator.Ratio.Errors.OriginalOffset,
 		}.replace(availability)
 
 		rules = append(rules, monitoringv1.Rule{
@@ -1231,7 +1252,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+		rate, err := parser.ParseExpr(`sum(metric{matchers="total"} offset 1ms)`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -1239,6 +1260,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		objectiveReplacer{
 			metric:   o.Indicator.Ratio.Total.Name,
 			matchers: o.Indicator.Ratio.Total.LabelMatchers,
+			offset:   o.Indicator.Ratio.Total.OriginalOffset,
 		}.replace(rate)
 
 		rules = append(rules, monitoringv1.Rule{
@@ -1248,7 +1270,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		})
 
 		errorsExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-			return parser.ParseExpr(`sum(metric{matchers="total"} or vector(0))`)
+			return parser.ParseExpr(`sum(metric{matchers="total"} offset 1ms or vector(0))`)
 		}
 		errorsParsedExpr, err := errorsExpr()
 		if err != nil {
@@ -1256,8 +1278,9 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 
 		objectiveReplacer{
-			metric:   o.Indicator.Ratio.Errors.Name,
-			matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			metric:      o.Indicator.Ratio.Errors.Name,
+			matchers:    o.Indicator.Ratio.Errors.LabelMatchers,
+			errorOffset: o.Indicator.Ratio.Errors.OriginalOffset,
 		}.replace(errorsParsedExpr)
 
 		rules = append(rules, monitoringv1.Rule{
@@ -1272,7 +1295,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 		// availability
 		{
-			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
+			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"} offset 2ms or vector(0)) / sum(metric{matchers="total"} offset 1ms)`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1309,8 +1332,10 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:        metric,
 				matchers:      matchers,
+				offset:        o.Indicator.Latency.Total.OriginalOffset,
 				errorMetric:   errorMetric,
 				errorMatchers: errorMatchers,
+				errorOffset:   o.Indicator.Latency.Success.OriginalOffset,
 				window:        time.Duration(o.Window),
 			}.replace(expr)
 
@@ -1322,7 +1347,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 		// rate
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+			rate, err := parser.ParseExpr(`sum(metric{matchers="total"} offset 1ms)`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1338,6 +1363,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   metric,
 				matchers: matchers,
+				offset:   o.Indicator.Latency.Total.OriginalOffset,
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
@@ -1348,7 +1374,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 		// errors
 		{
-			errorsExpr, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
+			errorsExpr, err := parser.ParseExpr(`sum(metric{matchers="total"} offset 1ms) - sum(errorMetric{matchers="errors"} offset 2ms)`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1374,8 +1400,10 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:        metric,
 				matchers:      matchers,
+				offset:        o.Indicator.Latency.Total.OriginalOffset,
 				errorMetric:   errorMetric,
 				errorMatchers: errorMatchers,
+				errorOffset:   o.Indicator.Latency.Success.OriginalOffset,
 			}.replace(errorsExpr)
 
 			rules = append(rules, monitoringv1.Rule{
@@ -1420,7 +1448,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 		// availability
 		{
-			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"}) / sum(metric{matchers="total"})`)
+			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"} offset 2ms) / sum(metric{matchers="total"} offset 1ms)`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1428,8 +1456,10 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:        totalMetric,
 				matchers:      totalMatchers,
+				offset:        o.Indicator.BoolGauge.Metric.OriginalOffset,
 				errorMetric:   successMetric,
 				errorMatchers: successMatchers,
+				errorOffset:   o.Indicator.BoolGauge.Metric.OriginalOffset,
 			}.replace(expr)
 
 			rules = append(rules, monitoringv1.Rule{
@@ -1441,7 +1471,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 		// rate
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+			rate, err := parser.ParseExpr(`sum(metric{matchers="total"} offset 1ms)`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1449,6 +1479,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   totalMetric,
 				matchers: totalMatchers,
+				offset:   o.Indicator.BoolGauge.Metric.OriginalOffset,
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
@@ -1460,7 +1491,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 		// errors
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
+			rate, err := parser.ParseExpr(`sum(metric{matchers="total"} offset 1ms) - sum(errorMetric{matchers="errors"} offset 2ms)`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1468,8 +1499,10 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:        totalMetric,
 				matchers:      totalMatchers,
+				offset:        o.Indicator.BoolGauge.Metric.OriginalOffset,
 				errorMetric:   successMetric,
 				errorMatchers: successMatchers,
+				errorOffset:   o.Indicator.BoolGauge.Metric.OriginalOffset,
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{

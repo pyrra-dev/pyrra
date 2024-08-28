@@ -9,11 +9,12 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+	"k8s.io/utils/ptr"
 )
 
 // QueryTotal returns a PromQL query to get the total amount of requests served during the window.
 func (o Objective) QueryTotal(window model.Duration) string {
-	expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
+	expr, err := parser.ParseExpr(`sum by (grouping) (metric{} offset 1ms)`)
 	if err != nil {
 		return ""
 	}
@@ -75,7 +76,7 @@ func (o Objective) QueryTotal(window model.Duration) string {
 func (o Objective) QueryErrors(window model.Duration) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
+		expr, err := parser.ParseExpr(`sum by (grouping) (metric{} offset 1ms)`)
 		if err != nil {
 			return ""
 		}
@@ -103,7 +104,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 
 		return expr.String()
 	case Latency:
-		expr, err := parser.ParseExpr(`sum by (grouping) (metric{matchers="total"}) - sum by (grouping) (errorMetric{matchers="errors"})`)
+		expr, err := parser.ParseExpr(`sum by (grouping) (metric{matchers="total"} offset 1ms) - sum by (grouping) (errorMetric{matchers="errors"} offset 2ms)`)
 		if err != nil {
 			return ""
 		}
@@ -148,7 +149,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`sum by (grouping) (metric{matchers="total"}) - sum by (grouping) (errorMetric{matchers="errors"})`)
+		expr, err := parser.ParseExpr(`sum by (grouping) (metric{matchers="total"} offset 1ms) - sum by (grouping) (errorMetric{matchers="errors"} offset 2ms)`)
 		if err != nil {
 			return ""
 		}
@@ -186,7 +187,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`sum by (grouping) (errorMetric{matchers="errors"}) - sum by (grouping) (metric{matchers="total"})`)
+		expr, err := parser.ParseExpr(`sum by (grouping) (errorMetric{matchers="errors"} offset 2ms) - sum by (grouping) (metric{matchers="total"} offset 1ms)`)
 		if err != nil {
 			return ""
 		}
@@ -243,9 +244,9 @@ func (o Objective) QueryErrorBudget() string {
   (1 - 0.696969)
   -
   (
-    sum(errorMetric{matchers="errors"} or vector(0))
+    sum(errorMetric{matchers="errors"} offset 2ms or vector(0))
     /
-    sum(metric{matchers="total"})
+    sum(metric{matchers="total"} offset 1ms)
   )
 )
 /
@@ -300,9 +301,9 @@ func (o Objective) QueryErrorBudget() string {
   -
   (
     1 -
-    sum(errorMetric{matchers="errors"} or vector(0))
+    sum(errorMetric{matchers="errors"} offset 2ms or vector(0))
     /
-    sum(metric{matchers="total"})
+    sum(metric{matchers="total"} offset 1ms)
   )
 )
 /
@@ -377,10 +378,10 @@ func (o Objective) QueryErrorBudget() string {
   (1 - 0.696969)
   -
   (
-    (sum by (grouping) (metric{matchers="total"}) -
-    sum by (grouping) (errorMetric{matchers="errors"}))
+    (sum by (grouping) (metric{matchers="total"} offset 1ms) -
+    sum by (grouping) (errorMetric{matchers="errors"} offset 2ms))
     /
-    sum by (grouping) (metric{matchers="total"})
+    sum by (grouping) (metric{matchers="total"} offset 1ms)
   )
 )
 /
@@ -480,7 +481,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		return "", fmt.Errorf("objective misses indicator")
 	}
 
-	expr, err := parser.ParseExpr(`metric{}`)
+	expr, err := parser.ParseExpr(`metric{} offset 1ms`)
 	if err != nil {
 		return "", err
 	}
@@ -525,8 +526,10 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 type objectiveReplacer struct {
 	metric        string
 	matchers      []*labels.Matcher
+	offset        *time.Duration
 	errorMetric   string
 	errorMatchers []*labels.Matcher
+	errorOffset   *time.Duration
 	grouping      []string
 	window        time.Duration
 	target        float64
@@ -554,6 +557,15 @@ func (r objectiveReplacer) replace(node parser.Node) {
 			n.Name = r.errorMetric
 		} else {
 			n.Name = r.metric
+		}
+		if n.OriginalOffset == 2*time.Millisecond {
+			// 2ms is the placeholder for the errorOffset
+			n.OriginalOffset = ptr.Deref(r.errorOffset, 0)
+		} else if n.OriginalOffset == 1*time.Millisecond {
+			// 1ms is the placeholder for the offset
+			n.OriginalOffset = ptr.Deref(r.offset, 0)
+		} else {
+			n.OriginalOffset = 0
 		}
 		if len(n.LabelMatchers) > 1 {
 			for _, m := range n.LabelMatchers {
@@ -591,7 +603,7 @@ func (r objectiveReplacer) replace(node parser.Node) {
 func (o Objective) RequestRange(timerange time.Duration) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (group) (rate(metric{}[1s])) > 0`)
+		expr, err := parser.ParseExpr(`sum by (group) (rate(metric{}[1s] offset 1ms)) > 0`)
 		if err != nil {
 			return err.Error()
 		}
@@ -606,6 +618,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:   o.Indicator.Ratio.Total.Name,
 			matchers: matchers,
+			offset:   o.Indicator.Ratio.Total.OriginalOffset,
 			grouping: groupingLabels(
 				o.Indicator.Ratio.Errors.LabelMatchers,
 				matchers,
@@ -616,7 +629,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 
 		return expr.String()
 	case Latency:
-		expr, err := parser.ParseExpr(`sum(rate(metric{}[1s]))`)
+		expr, err := parser.ParseExpr(`sum(rate(metric{}[1s] offset 1ms))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -624,14 +637,16 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:        o.Indicator.Latency.Total.Name,
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
+			offset:        o.Indicator.Latency.Total.OriginalOffset,
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			errorOffset:   o.Indicator.Latency.Success.OriginalOffset,
 			window:        timerange,
 		}.replace(expr)
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`sum(histogram_count(rate(metric{}[1s])))`)
+		expr, err := parser.ParseExpr(`sum(histogram_count(rate(metric{}[1s] offset 1ms)))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -639,12 +654,13 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:   o.Indicator.LatencyNative.Total.Name,
 			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			offset:   o.Indicator.LatencyNative.Total.OriginalOffset,
 			window:   timerange,
 		}.replace(expr)
 
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`sum by(group) (count_over_time(metric{matchers="total"}[1s])) / 86400`)
+		expr, err := parser.ParseExpr(`sum by(group) (count_over_time(metric{matchers="total"}[1s] offset 1ms)) / 86400`)
 		if err != nil {
 			return err.Error()
 		}
@@ -653,6 +669,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:   o.Indicator.BoolGauge.Name,
 			matchers: matchers,
+			offset:   o.Indicator.BoolGauge.OriginalOffset,
 			grouping: o.Grouping(),
 			window:   timerange,
 		}.replace(expr)
@@ -666,7 +683,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 func (o Objective) ErrorsRange(timerange time.Duration) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
+		expr, err := parser.ParseExpr(`sum by (group) (rate(errorMetric{matchers="errors"}[1s] offset 2ms)) / scalar(sum(rate(metric{matchers="total"}[1s] offset 1ms))) > 0`)
 		if err != nil {
 			return err.Error()
 		}
@@ -688,8 +705,10 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:        o.Indicator.Ratio.Total.Name,
 			matchers:      matchers,
+			offset:        o.Indicator.Ratio.Total.OriginalOffset,
 			errorMetric:   o.Indicator.Ratio.Errors.Name,
 			errorMatchers: errorMatchers,
+			errorOffset:   o.Indicator.Ratio.Errors.OriginalOffset,
 			grouping: groupingLabels(
 				errorMatchers,
 				matchers,
@@ -699,7 +718,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 
 		return expr.String()
 	case Latency:
-		expr, err := parser.ParseExpr(`(sum(rate(metric{matchers="total"}[1s])) -  sum(rate(errorMetric{matchers="errors"}[1s]))) / sum(rate(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`(sum(rate(metric{matchers="total"}[1s] offset 1ms)) -  sum(rate(errorMetric{matchers="errors"}[1s] offset 2ms))) / sum(rate(metric{matchers="total"}[1s] offset 1ms))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -707,14 +726,16 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:        o.Indicator.Latency.Total.Name,
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
+			offset:        o.Indicator.Latency.Total.OriginalOffset,
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			errorOffset:   o.Indicator.Latency.Success.OriginalOffset,
 			window:        timerange,
 		}.replace(expr)
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`1 - sum(histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.ParseExpr(`1 - sum(histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s] offset 1ms)))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -722,13 +743,14 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:   o.Indicator.LatencyNative.Total.Name,
 			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			offset:   o.Indicator.LatencyNative.Total.OriginalOffset,
 			window:   timerange,
 			target:   time.Duration(o.Indicator.LatencyNative.Latency).Seconds(),
 		}.replace(expr)
 
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`100 * sum by (group) ((count_over_time(metric{matchers="total"}[1s]) - sum_over_time(metric{matchers="total"}[1s]))) / sum by(group) (count_over_time(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`100 * sum by (group) ((count_over_time(metric{matchers="total"}[1s] offset 1ms) - sum_over_time(metric{matchers="total"}[1s] offset 1ms))) / sum by(group) (count_over_time(metric{matchers="total"}[1s] offset 1ms))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -736,6 +758,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:   o.Indicator.BoolGauge.Name,
 			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			offset:   o.Indicator.BoolGauge.OriginalOffset,
 			window:   timerange,
 		}.replace(expr)
 
@@ -748,7 +771,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 func (o Objective) DurationRange(timerange time.Duration, percentile float64) string {
 	switch o.IndicatorType() {
 	case Latency:
-		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum by (le) (rate(errorMetric{matchers="errors"}[1s])))`)
+		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum by (le) (rate(errorMetric{matchers="errors"}[1s] offset 2ms)))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -763,6 +786,7 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 		objectiveReplacer{
 			errorMetric:   o.Indicator.Latency.Success.Name,
 			errorMatchers: matchers,
+			errorOffset:   o.Indicator.Latency.Success.OriginalOffset,
 			window:        timerange,
 			grouping:      []string{labels.BucketLabel},
 			percentile:    percentile,
@@ -770,7 +794,7 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum(rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum(rate(metric{matchers="total"}[1s] offset 1ms)))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -778,6 +802,7 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 		objectiveReplacer{
 			metric:     o.Indicator.LatencyNative.Total.Name,
 			matchers:   o.Indicator.LatencyNative.Total.LabelMatchers,
+			offset:     o.Indicator.LatencyNative.Total.OriginalOffset,
 			grouping:   o.Indicator.LatencyNative.Grouping,
 			window:     timerange,
 			percentile: percentile,

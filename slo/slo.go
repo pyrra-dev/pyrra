@@ -151,11 +151,12 @@ type Alerting struct {
 }
 
 type Metric struct {
-	Name          string
-	LabelMatchers []*labels.Matcher
+	Name           string
+	LabelMatchers  []*labels.Matcher
+	OriginalOffset *time.Duration
 }
 
 func (m Metric) Metric() string {
-	v := parser.VectorSelector{Name: m.Name, LabelMatchers: m.LabelMatchers}
+	v := parser.VectorSelector{Name: m.Name, LabelMatchers: m.LabelMatchers, OriginalOffset: *m.OriginalOffset}
 	return v.String()
 }

@@ -416,12 +416,14 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 		ratio = &slo.RatioIndicator{
 			Errors: slo.Metric{
-				Name:          errorVec.Name,
-				LabelMatchers: errorMatchers,
+				Name:           errorVec.Name,
+				LabelMatchers:  errorMatchers,
+				OriginalOffset: &errorVec.OriginalOffset,
 			},
 			Total: slo.Metric{
-				Name:          totalVec.Name,
-				LabelMatchers: totalVec.LabelMatchers,
+				Name:           totalVec.Name,
+				LabelMatchers:  totalVec.LabelMatchers,
+				OriginalOffset: &totalVec.OriginalOffset,
 			},
 			Grouping: in.Spec.ServiceLevelIndicator.Ratio.Grouping,
 		}
@@ -463,12 +465,14 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 		latency = &slo.LatencyIndicator{
 			Success: slo.Metric{
-				Name:          successVec.Name,
-				LabelMatchers: successMatchers,
+				Name:           successVec.Name,
+				LabelMatchers:  successMatchers,
+				OriginalOffset: &successVec.OriginalOffset,
 			},
 			Total: slo.Metric{
-				Name:          totalVec.Name,
-				LabelMatchers: totalMatchers,
+				Name:           totalVec.Name,
+				LabelMatchers:  totalMatchers,
+				OriginalOffset: &totalVec.OriginalOffset,
 			},
 			Grouping: in.Spec.ServiceLevelIndicator.Latency.Grouping,
 		}
@@ -500,8 +504,9 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 		latencyNative = &slo.LatencyNativeIndicator{
 			Latency: latency,
 			Total: slo.Metric{
-				Name:          totalVec.Name,
-				LabelMatchers: totalMatchers,
+				Name:           totalVec.Name,
+				LabelMatchers:  totalMatchers,
+				OriginalOffset: &totalVec.OriginalOffset,
 			},
 			Grouping: in.Spec.ServiceLevelIndicator.LatencyNative.Grouping,
 		}
@@ -527,8 +532,9 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 		boolGauge = &slo.BoolGaugeIndicator{
 			Metric: slo.Metric{
-				Name:          vec.Name,
-				LabelMatchers: matchers,
+				Name:           vec.Name,
+				LabelMatchers:  matchers,
+				OriginalOffset: &vec.OriginalOffset,
 			},
 			Grouping: in.Spec.ServiceLevelIndicator.BoolGauge.Grouping,
 		}
