@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"embed"
 	"fmt"
-	mimircli "github.com/grafana/mimir/pkg/mimirtool/client"
 	"html/template"
 	"io"
 	"io/fs"
@@ -42,6 +41,7 @@ import (
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	"github.com/pyrra-dev/pyrra/mimir"
 	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/proto/prometheus/v1/prometheusv1connect"
@@ -80,6 +80,7 @@ var CLI struct {
 		TLSCertFile             string   `default:"" help:"File containing the default x509 Certificate for HTTPS."`
 		TLSPrivateKeyFile       string   `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 		MimirURL                *url.URL `default:"" help:"The URL to the Mimir API. If specified provisions rules via Mimir instead of Prometheus"`
+		MimirPrometheusPrefix   string   `default:"prometheus" help:"The prefix for the Prometheus API in Mimir"`
 		MimirBasicAuthUsername  string   `default:"" help:"The HTTP basic authentication username"`
 		MimirBasicAuthPassword  string   `default:"" help:"The HTTP basic authentication password"`
 		MimirWriteAlertingRules bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
@@ -150,30 +151,27 @@ func main() {
 		CLI.API.PrometheusExternalURL = prometheusURL
 	}
 
-	//Mimir Client
-	var mimirClient *mimircli.MimirClient
+	// Mimir Client
+	var mimirClient *mimir.Client
 
 	// if a MimirURL has been specified, provision rules via Mimir instead of Prometheus
 	if CLI.Kubernetes.MimirURL.String() != "" {
 		level.Info(logger).Log("msg", "using Mimir", "url", CLI.Kubernetes.MimirURL.String())
-		mimirConfig := mimircli.Config{
-			Address: CLI.Kubernetes.MimirURL.String(),
-			User:    CLI.Kubernetes.MimirBasicAuthUsername,
-			Key:     CLI.Kubernetes.MimirBasicAuthPassword,
+		mimirConfig := mimir.Config{
+			Address:           CLI.Kubernetes.MimirURL.String(),
+			PrometheusPrefix:  CLI.Kubernetes.MimirPrometheusPrefix,
+			BasicAuthUsername: CLI.Kubernetes.MimirBasicAuthUsername,
+			BasicAuthPassword: CLI.Kubernetes.MimirBasicAuthPassword,
 		}
 
-		mimirClient, err = mimircli.New(mimirConfig)
+		mimirClient, err = mimir.NewClient(mimirConfig)
 		if err != nil {
 			level.Error(logger).Log("msg", "failed to create Mimirclient", "err", err)
 			os.Exit(1)
 		}
-		resp, err := mimirClient.Query(context.TODO(), "time()")
+		err := mimirClient.Ready(context.TODO())
 		if err != nil {
 			level.Error(logger).Log("msg", "failed to connect to Mimir", "err", err)
-			os.Exit(1)
-		}
-		if resp.StatusCode != http.StatusOK {
-			level.Error(logger).Log("msg", "failed to test Mimir connectivity", "status", resp.StatusCode)
 			os.Exit(1)
 		}
 	}

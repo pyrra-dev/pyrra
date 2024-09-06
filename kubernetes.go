@@ -26,7 +26,6 @@ import (
 
 	"github.com/bufbuild/connect-go"
 	"github.com/go-kit/log"
-	mimircli "github.com/grafana/mimir/pkg/mimirtool/client"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/prometheus/model/labels"
@@ -45,6 +44,7 @@ import (
 
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/kubernetes/controllers"
+	"github.com/pyrra-dev/pyrra/mimir"
 	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	// +kubebuilder:scaffold:imports
@@ -64,7 +64,7 @@ func cmdKubernetes(
 	metricsAddr string,
 	_, genericRules, disableWebhooks bool,
 	certFile, privateKeyFile string,
-	mimirClient *mimircli.MimirClient,
+	mimirClient *mimir.Client,
 	mimirWriteAlertingRules bool,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
