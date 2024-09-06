@@ -54,6 +54,3 @@ nginx:
 gateway:
   enabledNonEnterprise: true
   replicas: 1
-  service:
-    type: "NodePort"
-    nodePort: 30950

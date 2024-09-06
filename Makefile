@@ -100,34 +100,3 @@ examples/openshift/manifests: examples/openshift/main.jsonnet jsonnet/controller
 	jsonnet -m examples/openshift/manifests examples/openshift/main.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
 	find examples/openshift/manifests -type f ! -name '*.yaml' -delete
 
-KIND_CONFIG_FILE := testdata/kind-cluster.yaml
-
-kind:
-ifeq (, $(shell which kind))
-	go install sigs.k8s.io/kind@v0.23.0
-KIND=$(GOBIN)/kind
-else
-CONTROLLER_GEN=$(shell which kind)
-endif
-
-helm-repo-add:
-	helm repo add grafana https://grafana.github.io/helm-charts || true
-
-helm-repo-update: helm-repo-add
-	helm repo update grafana
-
-ensure-kind-cluster: kind
-	@if ! kind get clusters | grep -q "^mimir$$"; then \
-		kind create cluster --config $(KIND_CONFIG_FILE); \
-	else \
-		echo "Cluster is already configured"; \
-	fi
-
-setup-mimir-test-cluster: ensure-kind-cluster helm-repo-update
-	helm upgrade -i mimir grafana/mimir-distributed --version=5.4.0 -f ./testdata/mimir-values.yaml --wait
-	@echo "\n"
-	@echo "Mimir will be available at http://localhost:30950"
-	@echo "e.g. curl localhost:30950/prometheus/config/v1/rules/namespace"
-
-delete-mimir-test-cluster: kind
-	kind delete cluster --name mimir
