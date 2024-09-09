@@ -1,4 +1,4 @@
-FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/golang:1.22.4-alpine as go-builder
+FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/golang:1.23.1-alpine as go-builder
 
 # renovate: datasource=go depName=github.com/go-delve/delve
 ARG DLV_VERSION=v1.21.0
