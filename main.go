@@ -76,6 +76,7 @@ var CLI struct {
 		ConfigMapMode     bool   `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
 		GenericRules      bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 		DisableWebhooks   bool   `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
+		Namespaced        bool   `default:"false" help:"Set the controller to namespaced context instead of cluster."`
 		TLSCertFile       string `default:"" help:"File containing the default x509 Certificate for HTTPS."`
 		TLSPrivateKeyFile string `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
@@ -175,6 +176,7 @@ func main() {
 			CLI.Kubernetes.ConfigMapMode,
 			CLI.Kubernetes.GenericRules,
 			CLI.Kubernetes.DisableWebhooks,
+			CLI.Kubernetes.Namespaced,
 			CLI.Kubernetes.TLSCertFile,
 			CLI.Kubernetes.TLSPrivateKeyFile,
 		)

@@ -62,13 +62,19 @@ func cmdKubernetes(
 	logger log.Logger,
 	metricsAddr string,
 	_, genericRules, disableWebhooks bool,
+	namespaced bool,
 	certFile, privateKeyFile string,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	webhookServer := webhook.NewServer(webhook.Options{Port: 9443})
-
+	var namespace string
+	if namespaced {
+		namespace = os.Getenv("POD_NAMESPACE")
+	} else {
+		namespace = ""
+	}
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
@@ -77,6 +83,7 @@ func cmdKubernetes(
 		WebhookServer:    webhookServer,
 		LeaderElection:   false,
 		LeaderElectionID: "9d76195a.pyrra.dev",
+		Namespace:        namespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
