@@ -44,7 +44,7 @@ jobs:
           args: build --rm-dist --skip-validate --snapshot --debug
 
       - name: Archive generated artifacts
-        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+        uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097
         with:
           name: pyrra-dist-binaries
           if-no-files-found: error
