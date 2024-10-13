@@ -886,12 +886,12 @@ func TestObjective_ErrorsRange(t *testing.T) {
 	}, {
 		name:      "up-targets",
 		objective: objectiveUpTargets(),
-		expected:  `100 * sum((count_over_time(up[2h]) - sum_over_time(up[2h]))) / sum(count_over_time(up[2h]))`,
+		expected:  `sum((count_over_time(up[2h]) - sum_over_time(up[2h]))) / sum(count_over_time(up[2h]))`,
 		timerange: 2 * time.Hour,
 	}, {
 		name:      "up-targets-grouping-index",
 		objective: objectiveUpTargetsGroupingRegex(),
-		expected:  `100 * sum((count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]) - sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]))) / sum(count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]))`,
+		expected:  `sum((count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]) - sum_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]))) / sum(count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h]))`,
 		timerange: 2 * time.Hour,
 	}}
 
