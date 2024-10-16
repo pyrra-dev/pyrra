@@ -73,7 +73,6 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	if r.MimirClient != nil {
-
 		mimirFinalizer := "mimir.servicelevelobjective.pyrra.dev/finalizer"
 		if slo.ObjectMeta.DeletionTimestamp.IsZero() {
 			// slo is not being deleted, add our finalizer if not already present
@@ -284,7 +283,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}, nil
 }
 
-func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool, writeAlertingRules bool) (*rulefmt.RuleGroup, error) {
+func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, writeAlertingRules bool) (*rulefmt.RuleGroup, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)

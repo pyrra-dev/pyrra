@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// SetRuleGroup creates or updates a rule group
+// SetRuleGroup creates or updates a rule group.
 func (c *Client) SetRuleGroup(ctx context.Context, namespace string, ruleGroup rulefmt.RuleGroup) error {
 	path := c.address.JoinPath(c.prometheusPrefix, "/config/v1/rules/", namespace)
 
@@ -40,7 +40,7 @@ func (c *Client) SetRuleGroup(ctx context.Context, namespace string, ruleGroup r
 	return nil
 }
 
-// DeleteNamespace deletes all the rule groups in a namespace (including the namespace itself)
+// DeleteNamespace deletes all the rule groups in a namespace (including the namespace itself).
 func (c *Client) DeleteNamespace(ctx context.Context, namespace string) error {
 	path := c.address.JoinPath(c.prometheusPrefix, "/config/v1/rules/", namespace)
 

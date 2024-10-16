@@ -8,14 +8,14 @@ import (
 	"net/url"
 )
 
-// Client is a simple client for the required Mimir API resources
+// Client is a simple client for the required Mimir API resources.
 type Client struct {
 	client           http.Client
 	address          *url.URL
 	prometheusPrefix string
 }
 
-// Config is used to configure the client
+// Config is used to configure the client.
 type Config struct {
 	Address           string
 	PrometheusPrefix  string
@@ -23,7 +23,7 @@ type Config struct {
 	BasicAuthPassword string
 }
 
-// NewClient creates a new client with the given configuration
+// NewClient creates a new client with the given configuration.
 func NewClient(config Config) (*Client, error) {
 	addr, err := url.Parse(config.Address)
 	if err != nil {
@@ -51,20 +51,20 @@ func NewClient(config Config) (*Client, error) {
 	}, nil
 }
 
-// BasicAuthTransport is a transport that adds basic auth to the request
+// BasicAuthTransport is a transport that adds basic auth to the request.
 type BasicAuthTransport struct {
 	Username  string
 	Password  string
 	Transport http.RoundTripper
 }
 
-// RoundTrip adds basic auth to the request
+// RoundTrip adds basic auth to the request.
 func (t *BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.SetBasicAuth(t.Username, t.Password)
 	return t.Transport.RoundTrip(req)
 }
 
-// Ready checks if mimir is ready to serve traffic
+// Ready checks if mimir is ready to serve traffic.
 func (c *Client) Ready(ctx context.Context) error {
 	path := c.address.JoinPath("/ready")
 
