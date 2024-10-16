@@ -99,3 +99,4 @@ examples/openshift/manifests: examples/openshift/main.jsonnet jsonnet/controller
 	jsonnetfmt -i examples/openshift/main.jsonnet
 	jsonnet -m examples/openshift/manifests examples/openshift/main.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
 	find examples/openshift/manifests -type f ! -name '*.yaml' -delete
+

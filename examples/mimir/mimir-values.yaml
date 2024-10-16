@@ -1,0 +1,56 @@
+alertmanager:
+  enabled: false
+  persistentVolume:
+    enabled: false
+  replicas: 1
+
+compactor:
+  enabled: false
+
+distributor:
+  replicas: 1
+
+ingester:
+  zoneAwareReplication:
+    enabled: false
+  persistentVolume:
+    enabled: false
+  replicas: 1
+
+minio:
+  enabled: true
+
+overrides_exporter:
+  enabled: false
+
+querier:
+  replicas: 1
+
+query_frontend:
+  replicas: 1
+
+query_scheduler:
+  replicas: 1
+
+ruler:
+  replicas: 1
+
+ruler_querier:
+  replicas: 1
+
+ruler_query_scheduler:
+  replicas: 1
+
+store_gateway:
+  zoneAwareReplication:
+    enabled: false
+  persistentVolume:
+    enabled: false
+  replicas: 1
+
+nginx:
+  enabled: false
+
+gateway:
+  enabledNonEnterprise: true
+  replicas: 1

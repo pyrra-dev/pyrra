@@ -171,6 +171,11 @@
         apiGroups: ['pyrra.dev'],
         resources: ['servicelevelobjectives/status'],
         verbs: ['get', 'patch', 'update'],
+      },
+      {
+        apiGroups: ['pyrra.dev'],
+        resources: ['servicelevelobjectives/finalizers'],
+        verbs: ['update'],
       }],
     },
 
