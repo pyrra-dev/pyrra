@@ -503,7 +503,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(pyrra_requests_total{slo=\"$slo\"}[$__rate_interval]))",
+          "expr": "sum(pyrra_requests:rate5m{slo=\"$slo\"}[$__rate_interval])",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
@@ -620,7 +620,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "builder",
-          "expr": "sum(rate(pyrra_errors_total{slo=\"$slo\"}[$__rate_interval]))",
+          "expr": "sum(pyrra_errors:rate5m{slo=\"$slo\"})",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
