@@ -86,6 +86,7 @@ var CLI struct {
 		MimirBasicAuthPassword  string   `default:"" help:"The HTTP basic authentication password"`
 		MimirWriteAlertingRules bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
 		MimirOrgID              string   `default:"" help:"Multi tenant authorization"`
+		MimirDeploymentMode     string   `default:"monolithic" help:"Mimir deployment mode it can be monolithic or microservices mode"`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
 		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
@@ -173,6 +174,7 @@ func main() {
 			BasicAuthUsername: CLI.Kubernetes.MimirBasicAuthUsername,
 			BasicAuthPassword: CLI.Kubernetes.MimirBasicAuthPassword,
 			OrgID:             CLI.Kubernetes.MimirOrgID,
+			DeploymentMode:    CLI.Kubernetes.MimirDeploymentMode,
 		}
 
 		mimirClient, err = mimir.NewClient(mimirConfig)
