@@ -53,6 +53,10 @@ func (c *Client) DeleteNamespace(ctx context.Context, namespace string) error {
 		return err
 	}
 
+	if c.orgID != "" {
+		req.Header.Set("X-Scope-OrgID", c.orgID)
+	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
