@@ -13,6 +13,7 @@ type Client struct {
 	client           http.Client
 	address          *url.URL
 	prometheusPrefix string
+	orgID            string
 }
 
 // Config is used to configure the client.
@@ -21,6 +22,7 @@ type Config struct {
 	PrometheusPrefix  string
 	BasicAuthUsername string
 	BasicAuthPassword string
+	OrgID             string
 }
 
 // NewClient creates a new client with the given configuration.
@@ -48,6 +50,7 @@ func NewClient(config Config) (*Client, error) {
 		client:           httpClient,
 		address:          addr,
 		prometheusPrefix: config.PrometheusPrefix,
+		orgID:            config.OrgID,
 	}, nil
 }
 
@@ -71,6 +74,10 @@ func (c *Client) Ready(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path.String(), nil)
 	if err != nil {
 		return err
+	}
+
+	if c.orgID != "" {
+		req.Header.Set("X-Scope-OrgID", c.orgID)
 	}
 
 	resp, err := c.client.Do(req)

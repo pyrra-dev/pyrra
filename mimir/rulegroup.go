@@ -27,6 +27,10 @@ func (c *Client) SetRuleGroup(ctx context.Context, namespace string, ruleGroup r
 
 	req.Header.Set("Content-Type", "application/yaml")
 
+	if c.orgID != "" {
+		req.Header.Set("X-Scope-OrgID", c.orgID)
+	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
