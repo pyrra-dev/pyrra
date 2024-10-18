@@ -125,7 +125,6 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	}
 
 	newRule.ResourceVersion = rule.ResourceVersion
-
 	level.Info(logger).Log("msg", "updating prometheus rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
 	if err := r.Update(ctx, newRule); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update prometheus rule: %w", err)
@@ -147,7 +146,13 @@ func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Co
 
 	level.Info(logger).Log("msg", "updating mimir rule", "name", newRuleGroup.Name)
 
-	err = r.MimirClient.SetRuleGroup(ctx, kubeObjective.GetName(), *newRuleGroup)
+	var ruleName string
+	if kubeObjective.Spec.RecordingRuleNamespace == "" {
+		ruleName = kubeObjective.GetName()
+	} else {
+		ruleName = kubeObjective.Spec.RecordingRuleNamespace
+	}
+	err = r.MimirClient.SetRuleGroup(ctx, ruleName, *newRuleGroup)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -161,7 +166,13 @@ func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Co
 }
 
 func (r *ServiceLevelObjectiveReconciler) deleteMimirRuleGroup(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) error {
-	return r.MimirClient.DeleteNamespace(ctx, kubeObjective.GetName())
+	var ruleName string
+	if kubeObjective.Spec.RecordingRuleNamespace == "" {
+		ruleName = kubeObjective.GetName()
+	} else {
+		ruleName = kubeObjective.Spec.RecordingRuleNamespace
+	}
+	return r.MimirClient.DeleteNamespace(ctx, ruleName)
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(

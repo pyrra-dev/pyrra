@@ -17,15 +17,15 @@ const (
 )
 
 type Objective struct {
-	Labels      labels.Labels
-	Annotations map[string]string
-	Description string
-	Target      float64
-	Window      model.Duration
-	Config      string
-
-	Alerting  Alerting
-	Indicator Indicator
+	Labels                 labels.Labels
+	Annotations            map[string]string
+	Description            string
+	Target                 float64
+	Window                 model.Duration
+	Config                 string
+	RecordingRuleNamespace string
+	Alerting               Alerting
+	Indicator              Indicator
 }
 
 func (o Objective) Name() string {
