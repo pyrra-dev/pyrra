@@ -7,7 +7,7 @@ ARG DLV_VERSION=v1.21.0
 RUN apk update && apk add --no-cache build-base
 RUN go install "github.com/go-delve/delve/cmd/dlv@${DLV_VERSION}"
 
-FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/busybox:1.36.1 as builder
+FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/busybox:1.37.0 as builder
 
 ARG TARGETOS TARGETARCH TARGETVARIANT
 
