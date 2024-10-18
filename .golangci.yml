@@ -1,6 +1,6 @@
 run:
   deadline: 5m
-  go: 1.22
+  go: 1.23
 
 output:
   formats:
