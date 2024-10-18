@@ -185,6 +185,9 @@ spec:
                   It represents the desired availability of the service in the given window.
                   float64 are not supported: https://github.com/kubernetes-sigs/controller-tools/issues/245
                 type: string
+              rulenamespace:
+                description: Recording rule namespace override, by default recording namespace and group are kept same.
+                type: string
               window:
                 description: Window within which the Target is supposed to be kept. Usually something like 1d, 7d or 28d.
                 type: string
