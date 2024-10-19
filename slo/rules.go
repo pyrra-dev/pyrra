@@ -1150,7 +1150,6 @@ var ErrGroupingUnsupported = errors.New("objective with grouping not supported i
 func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 	var rules []monitoringv1.Rule
-	var matchers []*labels.Matcher
 
 	ruleLabels := o.commonRuleLabels(sloName)
 
@@ -1167,27 +1166,11 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 	switch o.IndicatorType() {
 	case Ratio:
-		matchers = o.Indicator.Ratio.Total.LabelMatchers
-	case Latency:
-		matchers = o.Indicator.Latency.Total.LabelMatchers
-	case LatencyNative:
-		matchers = o.Indicator.LatencyNative.Total.LabelMatchers
-	case BoolGauge:
-		matchers = o.Indicator.BoolGauge.LabelMatchers
-	}
-
-	for _, m := range matchers {
-		if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
-			ruleLabels[m.Name] = m.Value
-		}
-	}
-
-	switch o.IndicatorType() {
-	case Ratio:
 		if len(o.Indicator.Ratio.Grouping) > 0 {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
 
+		ruleLabels := o.commonRuleLabels(sloName)
 		availability, err := parser.ParseExpr(`1 - sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
@@ -1243,6 +1226,12 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			errorMatchers: errorMatchers,
 		}.replace(availability)
 
+		for _, m := range totalMatchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
+
 		rules = append(rules, monitoringv1.Rule{
 			Record: "pyrra_availability",
 			Expr:   intstr.FromString(availability.String()),
@@ -1288,6 +1277,8 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
 
+		ruleLabels := o.commonRuleLabels(sloName)
+
 		// availability
 		{
 			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
@@ -1323,6 +1314,12 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 				Name:  "slo",
 				Value: o.Name(),
 			})
+
+			for _, m := range errorMatchers {
+				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+					ruleLabels[m.Name] = m.Value
+				}
+			}
 
 			objectiveReplacer{
 				metric:        metric,
@@ -1408,6 +1405,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
 
+		ruleLabels := o.commonRuleLabels(sloName)
 		totalMetric := countName(o.Indicator.BoolGauge.Metric.Name, o.Window)
 		totalMatchers := cloneMatchers(o.Indicator.BoolGauge.Metric.LabelMatchers)
 		for _, m := range totalMatchers {
@@ -1436,6 +1434,11 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			Value: o.Name(),
 		})
 
+		for _, m := range successMatchers {
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				ruleLabels[m.Name] = m.Value
+			}
+		}
 		// availability
 		{
 			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"}) / sum(metric{matchers="total"})`)
