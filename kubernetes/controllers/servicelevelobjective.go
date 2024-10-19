@@ -231,6 +231,7 @@ func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) err
 
 				// Check if there's a difference; if not, skip reconciliation
 				if !reflect.DeepEqual(oldObject.Spec.RecordingRuleNamespace, newObject.Spec.RecordingRuleNamespace) {
+
 					var ruleNamespace string
 					if oldObject.Spec.RecordingRuleNamespace == "" {
 						ruleNamespace = oldObject.GetName()
@@ -243,7 +244,7 @@ func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) err
 					}
 					return true
 				}
-				return false
+				return true
 			},
 		}).
 		Complete(r)
