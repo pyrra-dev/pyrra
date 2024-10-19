@@ -305,7 +305,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "((pyrra_availability{slo=\"$slo\"} - pyrra_objective{slo=\"$slo\"})) / (1 - pyrra_objective{slo=\"$slo\"})",
+          "expr": "((pyrra_availability{slo=\"$slo\"} - on(slo) pyrra_objective{slo=\"$slo\"})) / (1 - pyrra_objective{slo=\"$slo\"})",
           "instant": true,
           "legendFormat": "__auto",
           "range": false,
@@ -405,7 +405,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "((pyrra_availability{slo=\"$slo\"} - pyrra_objective{slo=\"$slo\"})) / (1 - pyrra_objective{slo=\"$slo\"})",
+          "expr": "((pyrra_availability{slo=\"$slo\"} - on(slo) pyrra_objective{slo=\"$slo\"})) / (1 - pyrra_objective{slo=\"$slo\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
