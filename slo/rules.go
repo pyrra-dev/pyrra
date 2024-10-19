@@ -1150,6 +1150,7 @@ var ErrGroupingUnsupported = errors.New("objective with grouping not supported i
 func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 	var rules []monitoringv1.Rule
+	var matchers []*labels.Matcher
 
 	ruleLabels := o.commonRuleLabels(sloName)
 
@@ -1163,6 +1164,23 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		Expr:   intstr.FromString(strconv.FormatInt(int64(time.Duration(o.Window).Seconds()), 10)),
 		Labels: ruleLabels,
 	})
+
+	switch o.IndicatorType() {
+	case Ratio:
+		matchers = o.Indicator.Ratio.Total.LabelMatchers
+	case Latency:
+		matchers = o.Indicator.Latency.Total.LabelMatchers
+	case LatencyNative:
+		matchers = o.Indicator.LatencyNative.Total.LabelMatchers
+	case BoolGauge:
+		matchers = o.Indicator.BoolGauge.LabelMatchers
+	}
+
+	for _, m := range matchers {
+		if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			ruleLabels[m.Name] = m.Value
+		}
+	}
 
 	switch o.IndicatorType() {
 	case Ratio:
