@@ -1,5 +1,5 @@
 run:
-  deadline: 5m
+  deadline: 10m
   go: 1.23
 
 output:
