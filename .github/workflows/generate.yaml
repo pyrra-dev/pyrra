@@ -16,6 +16,6 @@ jobs:
     - uses: actions/setup-go@v5.0.2
       with:
         go-version-file: go.mod
-    - uses: zendesk/setup-jsonnet@v11
+    - uses: zendesk/setup-jsonnet@v12
     - run: go install github.com/brancz/gojsontoyaml@latest
     - run: make --always-make examples && git diff --exit-code
