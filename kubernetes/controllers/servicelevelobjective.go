@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	kitlog "github.com/go-kit/log"
@@ -35,6 +36,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/yaml"
 
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
@@ -125,7 +128,6 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	}
 
 	newRule.ResourceVersion = rule.ResourceVersion
-
 	level.Info(logger).Log("msg", "updating prometheus rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
 	if err := r.Update(ctx, newRule); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update prometheus rule: %w", err)
@@ -147,7 +149,13 @@ func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Co
 
 	level.Info(logger).Log("msg", "updating mimir rule", "name", newRuleGroup.Name)
 
-	err = r.MimirClient.SetRuleGroup(ctx, kubeObjective.GetName(), *newRuleGroup)
+	var ruleName string
+	if kubeObjective.Spec.RecordingRuleNamespace == "" {
+		ruleName = kubeObjective.GetName()
+	} else {
+		ruleName = kubeObjective.Spec.RecordingRuleNamespace
+	}
+	err = r.MimirClient.SetRuleGroup(ctx, ruleName, *newRuleGroup)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -160,8 +168,15 @@ func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Co
 	return ctrl.Result{}, nil
 }
 
+
 func (r *ServiceLevelObjectiveReconciler) deleteMimirRuleGroup(ctx context.Context, kubeObjective pyrrav1alpha1.ServiceLevelObjective) error {
-	return r.MimirClient.DeleteNamespace(ctx, kubeObjective.GetName())
+	var ruleName string
+	if kubeObjective.Spec.RecordingRuleNamespace == "" {
+		ruleName = kubeObjective.GetName()
+	} else {
+		ruleName = kubeObjective.Spec.RecordingRuleNamespace
+	}
+	return r.MimirClient.DeleteNamespace(ctx, ruleName)
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
@@ -210,6 +225,29 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
 func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&pyrrav1alpha1.ServiceLevelObjective{}).
+		WithEventFilter(predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldObject := e.ObjectOld.(*pyrrav1alpha1.ServiceLevelObjective)
+				newObject := e.ObjectNew.(*pyrrav1alpha1.ServiceLevelObjective)
+
+				// Check if there's a difference; if not, skip reconciliation
+				if !reflect.DeepEqual(oldObject.Spec.RecordingRuleNamespace, newObject.Spec.RecordingRuleNamespace) {
+
+					var ruleNamespace string
+					if oldObject.Spec.RecordingRuleNamespace == "" {
+						ruleNamespace = oldObject.GetName()
+					} else {
+						ruleNamespace = oldObject.Spec.RecordingRuleNamespace
+					}
+
+					if err := r.MimirClient.DeleteNamespace(context.Background(), ruleNamespace); err != nil {
+						return false
+					}
+					return true
+				}
+				return true
+			},
+		}).
 		Complete(r)
 }
 

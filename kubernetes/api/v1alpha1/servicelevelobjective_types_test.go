@@ -56,6 +56,7 @@ spec:
 				Burnrates: true,
 				Absent:    true,
 			},
+			RecordingRuleNamespace: "",
 			Indicator: slo.Indicator{
 				Ratio: &slo.RatioIndicator{
 					Errors: slo.Metric{
@@ -90,6 +91,7 @@ metadata:
 spec:
  target: 99.9
  window: 1w
+ rulenamespace: "test-namespace"
  indicator:
    ratio:
      errors:
@@ -109,6 +111,7 @@ spec:
 				Burnrates: true,
 				Absent:    true,
 			},
+			RecordingRuleNamespace: "test-namespace",
 			Indicator: slo.Indicator{
 				Ratio: &slo.RatioIndicator{
 					Errors: slo.Metric{
