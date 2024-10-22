@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/alecthomas/kong v0.9.0
 	github.com/bufbuild/connect-go v1.10.0
-	github.com/dgraph-io/ristretto v0.1.1
+	github.com/dgraph-io/ristretto v1.0.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
@@ -47,7 +47,6 @@ require (
 	github.com/go-openapi/jsonreference v0.20.4 // indirect
 	github.com/go-openapi/swag v0.22.9 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/glog v1.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
