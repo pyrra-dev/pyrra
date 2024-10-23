@@ -1695,15 +1695,15 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			}, {
 				Record: "pyrra_availability",
 				Expr:   intstr.FromString(`1 - sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"})`),
-				Labels: map[string]string{"slo": "monitoring-http-errors"},
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
 			}, {
 				Record: "pyrra_requests_total",
 				Expr:   intstr.FromString(`sum(http_requests_total{job="thanos-receive-default"})`),
-				Labels: map[string]string{"slo": "monitoring-http-errors"},
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
 			}, {
 				Record: "pyrra_errors_total",
 				Expr:   intstr.FromString(`sum(http_requests_total{code=~"5..",job="thanos-receive-default"} or vector(0))`),
-				Labels: map[string]string{"slo": "monitoring-http-errors"},
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
 			}},
 		},
 	}, {
@@ -1731,15 +1731,15 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			}, {
 				Record: "pyrra_availability",
 				Expr:   intstr.FromString(`1 - sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} or vector(0)) / sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"})`),
-				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
 			}, {
 				Record: "pyrra_requests_total",
 				Expr:   intstr.FromString(`sum(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`),
-				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
 			}, {
 				Record: "pyrra_errors_total",
 				Expr:   intstr.FromString(`sum(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"} or vector(0))`),
-				Labels: map[string]string{"slo": "monitoring-grpc-errors"},
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
 			}},
 		},
 	}, {
@@ -1763,15 +1763,15 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			}, {
 				Record: "pyrra_availability",
 				Expr:   intstr.FromString(`sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"} or vector(0)) / sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"})`),
-				Labels: map[string]string{"slo": "monitoring-http-latency"},
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "le": "1", "slo": "monitoring-http-latency"},
 			}, {
 				Record: "pyrra_requests_total",
 				Expr:   intstr.FromString(`sum(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"})`),
-				Labels: map[string]string{"slo": "monitoring-http-latency"},
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "le": "1", "slo": "monitoring-http-latency"},
 			}, {
 				Record: "pyrra_errors_total",
 				Expr:   intstr.FromString(`sum(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}) - sum(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"})`),
-				Labels: map[string]string{"slo": "monitoring-http-latency"},
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "le": "1", "slo": "monitoring-http-latency"},
 			}},
 		},
 	}, {
@@ -1799,15 +1799,15 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			}, {
 				Record: "pyrra_availability",
 				Expr:   intstr.FromString(`sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6",slo="monitoring-grpc-latency"} or vector(0)) / sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="",slo="monitoring-grpc-latency"})`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency"},
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "le": "0.6", "slo": "monitoring-grpc-latency"},
 			}, {
 				Record: "pyrra_requests_total",
 				Expr:   intstr.FromString(`sum(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency"},
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "le": "0.6", "slo": "monitoring-grpc-latency"},
 			}, {
 				Record: "pyrra_errors_total",
 				Expr:   intstr.FromString(`sum(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) - sum(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"})`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency"},
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "le": "0.6", "slo": "monitoring-grpc-latency"},
 			}},
 		},
 	}, {
@@ -1863,15 +1863,15 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			}, {
 				Record: "pyrra_availability",
 				Expr:   intstr.FromString(`1 - sum(apiserver_request:increase2w{code=~"5..",job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"})`),
-				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "pyrra_requests_total",
 				Expr:   intstr.FromString(`sum(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"})`),
-				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}, {
 				Record: "pyrra_errors_total",
 				Expr:   intstr.FromString(`sum(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"} or vector(0))`),
-				Labels: map[string]string{"slo": "apiserver-write-response-errors"},
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
 			}},
 		},
 	}, {
