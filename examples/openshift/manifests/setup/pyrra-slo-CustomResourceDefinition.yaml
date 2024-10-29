@@ -88,7 +88,7 @@ spec:
                       successful.
                     properties:
                       grouping:
-                        description: Total is the metric that returns how many requests there are in total.
+                        description: Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
                         items:
                           type: string
                         type: array
