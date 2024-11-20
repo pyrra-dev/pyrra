@@ -5,7 +5,7 @@ metadata:
     prometheus: k8s
     role: alert-rules
   name: apiserver-read-cluster-latency
-  namespace: monitoring
+  namespace: default
 spec:
   description: ""
   indicator:

@@ -55,7 +55,7 @@ vet:
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: generate
 generate: controller-gen gojsontoyaml ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=pyrra-kubernetes crd rbac:roleName="pyrra-kubernetes" webhook paths="./..." output:crd:artifacts:config=jsonnet/controller-gen
+	$(CONTROLLER_GEN) crd rbac:roleName="pyrra-kubernetes" webhook paths="./..." output:crd:artifacts:config=jsonnet/controller-gen
 	find jsonnet/controller-gen -name '*.yaml' -print0 | xargs -0 -I{} sh -c '$(GOJSONTOYAML) -yamltojson < "$$1" | jq > "$(PWD)/jsonnet/controller-gen/$$(basename -s .yaml $$1).json"' -- {}
 	find jsonnet/controller-gen -type f ! -name '*.json' -delete
 
@@ -69,7 +69,7 @@ docker-push:
 # download controller-gen if necessary
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.11.1
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
@@ -99,3 +99,4 @@ examples/openshift/manifests: examples/openshift/main.jsonnet jsonnet/controller
 	jsonnetfmt -i examples/openshift/main.jsonnet
 	jsonnet -m examples/openshift/manifests examples/openshift/main.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
 	find examples/openshift/manifests -type f ! -name '*.yaml' -delete
+

@@ -44,6 +44,7 @@ import (
 
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/kubernetes/controllers"
+	"github.com/pyrra-dev/pyrra/mimir"
 	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	// +kubebuilder:scaffold:imports
@@ -63,6 +64,8 @@ func cmdKubernetes(
 	metricsAddr string,
 	configMapMode, genericRules, disableWebhooks bool,
 	certFile, privateKeyFile string,
+	mimirClient *mimir.Client,
+	mimirWriteAlertingRules bool,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -84,10 +87,12 @@ func cmdKubernetes(
 	}
 
 	reconciler := &controllers.ServiceLevelObjectiveReconciler{
-		Client:        mgr.GetClient(),
-		Logger:        log.With(logger, "controllers", "ServiceLevelObjective"),
-		GenericRules:  genericRules,
-		ConfigMapMode: configMapMode,
+		Client:                  mgr.GetClient(),
+		Logger:                  log.With(logger, "controllers", "ServiceLevelObjective"),
+		GenericRules:            genericRules,
+		ConfigMapMode:           configMapMode,
+		MimirClient:             mimirClient,
+		MimirWriteAlertingRules: mimirWriteAlertingRules,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceLevelObjective")

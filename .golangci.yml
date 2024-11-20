@@ -1,8 +1,10 @@
 run:
-  deadline: 5m
-  go: 1.19
-  skip-dirs:
-    - proto/
+  deadline: 10m
+  go: 1.23
+
+output:
+  formats:
+    - format: colored-line-number
 
 linters:
   enable:
@@ -14,6 +16,8 @@ linters:
     - whitespace
 
 issues:
+  exclude-dirs:
+    - proto/
   exclude-rules:
     - path: _test.go
       linters:
@@ -39,7 +43,8 @@ linters-settings:
           - pkg: github.com/pkg/errors
             desc: "Use fmt.Errorf instead"
   errcheck:
-    exclude: ./.errcheck_excludes.txt
+    exclude-functions:
+      - "(github.com/go-kit/log.Logger).Log"
   goimports:
     local-prefixes: github.com/pyrra-dev/pyrra
   gofumpt:

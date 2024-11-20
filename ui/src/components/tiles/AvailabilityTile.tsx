@@ -18,8 +18,6 @@ const AvailabilityTile = ({
   errors,
   total,
 }: AvailabilityTileProps): React.JSX.Element => {
-  console.log(loading, success, errors, total)
-
   const headline = <h6 className="headline">Availability</h6>
   if (loading) {
     return (

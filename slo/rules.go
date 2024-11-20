@@ -1160,7 +1160,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 	})
 	rules = append(rules, monitoringv1.Rule{
 		Record: "pyrra_window",
-		Expr:   intstr.FromInt(int(time.Duration(o.Window).Seconds())),
+		Expr:   intstr.FromString(strconv.FormatInt(int64(time.Duration(o.Window).Seconds()), 10)),
 		Labels: ruleLabels,
 	})
 
