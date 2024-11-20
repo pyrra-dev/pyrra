@@ -62,7 +62,7 @@ func init() {
 func cmdKubernetes(
 	logger log.Logger,
 	metricsAddr string,
-	_, genericRules, disableWebhooks bool,
+	configMapMode, genericRules, disableWebhooks bool,
 	certFile, privateKeyFile string,
 	mimirClient *mimir.Client,
 	mimirWriteAlertingRules bool,
@@ -90,6 +90,7 @@ func cmdKubernetes(
 		Client:                  mgr.GetClient(),
 		Logger:                  log.With(logger, "controllers", "ServiceLevelObjective"),
 		GenericRules:            genericRules,
+		ConfigMapMode:           configMapMode,
 		MimirClient:             mimirClient,
 		MimirWriteAlertingRules: mimirWriteAlertingRules,
 	}
