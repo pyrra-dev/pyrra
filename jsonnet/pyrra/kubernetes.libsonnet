@@ -367,7 +367,7 @@
         indicator: {
           latency: {
             success: {
-              metric: 'apiserver_request_slo_duration_seconds_bucket{component="apiserver",scope=~"namespace|",verb=~"LIST|GET",le="5"}',
+              metric: 'apiserver_request_slo_duration_seconds_bucket{component="apiserver",scope=~"namespace|",verb=~"LIST|GET",le="5.0"}',
             },
             total: {
               metric: 'apiserver_request_slo_duration_seconds_count{component="apiserver",scope=~"namespace|",verb=~"LIST|GET"}',
@@ -395,7 +395,7 @@
         indicator: {
           latency: {
             success: {
-              metric: 'apiserver_request_slo_duration_seconds_bucket{component="apiserver",scope=~"cluster|",verb=~"LIST|GET",le="5"}',
+              metric: 'apiserver_request_slo_duration_seconds_bucket{component="apiserver",scope=~"cluster|",verb=~"LIST|GET",le="5.0"}',
             },
             total: {
               metric: 'apiserver_request_slo_duration_seconds_count{component="apiserver",scope=~"cluster|",verb=~"LIST|GET"}',
