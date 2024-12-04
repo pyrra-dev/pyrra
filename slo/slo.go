@@ -55,6 +55,21 @@ func (o Objective) Exhausts(factor float64) model.Duration {
 	return model.Duration(time.Second * time.Duration(time.Duration(o.Window).Seconds()/factor))
 }
 
+// AbsentDuration calculates the duration when absent alerts should fire.
+// The idea is as follows: Use the most critical of the multi burn rate alerts.
+// For that alert to fire, both the short AND long windows have to be above the threshold.
+// The long window takes the - longest - to fire.
+// Assuming absence of the metric means 100% error rate,
+// the time it takes to fire is the duration for the long window to go above the threshold (factor * objective).
+// Finally, we add the "for" duration we add to the multi burn rate alerts.
+func (o Objective) AbsentDuration() model.Duration {
+	mostCritical := o.Windows()[0]
+	mostCriticalThreshold := mostCritical.Factor * (1 - o.Target)
+	mostCriticalDuration := time.Duration(mostCriticalThreshold*mostCritical.Long.Seconds()) * time.Second
+	mostCriticalDuration += mostCritical.For
+	return model.Duration(mostCriticalDuration.Round(time.Minute))
+}
+
 type IndicatorType int
 
 const (

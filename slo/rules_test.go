@@ -1263,7 +1263,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_requests_total{job="thanos-receive-default"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("10m"),
 				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors", "severity": "critical"},
 			}},
 		},
@@ -1280,7 +1280,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_requests_total{job="thanos-receive-default"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("10m"),
 				Labels: map[string]string{"slo": "monitoring-http-errors", "severity": "critical"},
 			}},
 		},
@@ -1297,7 +1297,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_requests_total{handler=~"/api.*",job="thanos-receive-default"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("10m"),
 				Labels: map[string]string{"slo": "monitoring-http-errors", "severity": "critical"},
 			}},
 		},
@@ -1314,7 +1314,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("3m"),
 				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors", "severity": "critical"},
 			}},
 		},
@@ -1331,7 +1331,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("3m"),
 				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors", "severity": "critical"},
 			}},
 		},
@@ -1352,12 +1352,12 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("6m"),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "severity": "critical"},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("6m"),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1", "severity": "critical"},
 			}},
 		},
@@ -1375,7 +1375,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`histogram_fraction(0, 1, increase(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4w])) * histogram_count(increase(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1"},
-				//}, {
+				// }, {
 				//	Alert:  "SLOMetricAbsent",
 				//	Expr:   intstr.FromString(`absent(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}) == 1`),
 				//	For:    monitoringDuration("2m"),
@@ -1399,12 +1399,12 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("6m"),
 				Labels: map[string]string{"slo": "monitoring-http-latency", "severity": "critical"},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("6m"),
 				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1", "severity": "critical"},
 			}},
 		},
@@ -1425,12 +1425,12 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("6m"),
 				Labels: map[string]string{"slo": "monitoring-http-latency", "severity": "critical"},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("6m"),
 				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1", "severity": "critical"},
 			}},
 		},
@@ -1451,12 +1451,12 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("2m"),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "severity": "critical"},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("2m"),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6", "severity": "critical"},
 			}},
 		},
@@ -1477,12 +1477,12 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("2m"),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "severity": "critical"},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("2m"),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6", "severity": "critical"},
 			}},
 		},
@@ -1499,7 +1499,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(prometheus_operator_reconcile_operations_total) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("5m"),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "severity": "critical"},
 			}, {
 				Record: "prometheus_operator_reconcile_errors:increase2w",
@@ -1508,7 +1508,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(prometheus_operator_reconcile_errors_total) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("5m"),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "severity": "critical"},
 			}},
 		},
@@ -1525,7 +1525,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(prometheus_operator_reconcile_operations_total) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("5m"),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "severity": "critical"},
 			}, {
 				Record: "prometheus_operator_reconcile_errors:increase2w",
@@ -1534,7 +1534,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(prometheus_operator_reconcile_errors_total) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("5m"),
 				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "severity": "critical"},
 			}},
 		},
@@ -1551,7 +1551,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "APIServerMetricAbsent",
 				Expr:   intstr.FromString(`absent(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("5m"),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors", "severity": "critical"},
 			}},
 		},
@@ -1572,12 +1572,12 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("5m"),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "severity": "critical"},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}) == 1`),
-				For:    monitoringDuration("1m"),
+				For:    monitoringDuration("5m"),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1", "severity": "critical"},
 			}},
 		},
@@ -1598,7 +1598,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(up) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("10m"),
 				Labels: map[string]string{"severity": "critical", "slo": "up-targets"},
 			}},
 		},
@@ -1619,7 +1619,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(up{instance!~"(127.0.0.1|localhost).*"}) == 1`),
-				For:    monitoringDuration("2m"),
+				For:    monitoringDuration("10m"),
 				Labels: map[string]string{"severity": "critical", "slo": "up-targets"},
 			}},
 		},

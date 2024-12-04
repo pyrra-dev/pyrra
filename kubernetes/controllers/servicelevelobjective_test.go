@@ -99,7 +99,7 @@ func Test_makePrometheusRule(t *testing.T) {
 								{
 									Alert: "SLOMetricAbsent",
 									Expr:  intstr.FromString(`absent(http_requests_total{job="app"}) == 1`),
-									For:   monitoringDuration("2m"),
+									For:   monitoringDuration("6m"),
 									Annotations: map[string]string{
 										"description": "foo",
 									},
@@ -210,7 +210,7 @@ func Test_makeConfigMap(t *testing.T) {
     annotations:
       description: foo
     expr: absent(http_requests_total{job="app"}) == 1
-    for: 2m
+    for: 6m
     labels:
       job: app
       severity: critical
