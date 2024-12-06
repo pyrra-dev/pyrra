@@ -172,7 +172,7 @@ type BoolGaugeIndicator struct {
 	Query `json:",inline"`
 
 	// +optional
-	// Total is the metric that returns how many requests there are in total.
+	// Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
 	Grouping []string `json:"grouping"`
 }
 
