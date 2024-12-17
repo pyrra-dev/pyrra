@@ -232,6 +232,10 @@
                     },
                     "type": "object"
                   },
+                  "rulenamespace": {
+                    "description": "Recording rule namespace override, by default recording namespace and group are kept same.",
+                    "type": "string"
+                  },
                   "target": {
                     "description": "Target is a string that's casted to a float64 between 0 - 100.\nIt represents the desired availability of the service in the given window.\nfloat64 are not supported: https://github.com/kubernetes-sigs/controller-tools/issues/245",
                     "type": "string"
