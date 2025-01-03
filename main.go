@@ -65,6 +65,7 @@ var CLI struct {
 		TLSCertFile                 string            `default:"" help:"File containing the default x509 Certificate for HTTPS."`
 		TLSPrivateKeyFile           string            `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 		TLSClientCAFile             string            `default:"" help:"File containing the CA certificate for the client"`
+		OrgID                       string            `default:"" help:"Multi tenant authorization"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
@@ -84,6 +85,8 @@ var CLI struct {
 		MimirBasicAuthUsername  string   `default:"" help:"The HTTP basic authentication username"`
 		MimirBasicAuthPassword  string   `default:"" help:"The HTTP basic authentication password"`
 		MimirWriteAlertingRules bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
+		MimirOrgID              string   `default:"" help:"Multi tenant authorization"`
+		MimirDeploymentMode     string   `default:"monolithic" help:"Mimir deployment mode it can be monolithic or microservices mode"`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
 		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
@@ -128,7 +131,15 @@ func main() {
 	if CLI.API.TLSClientCAFile != "" {
 		clientConfig.TLSConfig = promconfig.TLSConfig{CAFile: CLI.API.TLSClientCAFile}
 	}
-
+	if CLI.API.OrgID != "" {
+		clientConfig.HTTPHeaders = &promconfig.Headers{
+			Headers: map[string]promconfig.Header{
+				"X-Scope-OrgID": {
+					Values: []string{CLI.API.OrgID},
+				},
+			},
+		}
+	}
 	roundTripper, err := promconfig.NewRoundTripperFromConfig(clientConfig, "prometheus")
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to create API client round tripper", "err", err)
@@ -162,6 +173,8 @@ func main() {
 			PrometheusPrefix:  CLI.Kubernetes.MimirPrometheusPrefix,
 			BasicAuthUsername: CLI.Kubernetes.MimirBasicAuthUsername,
 			BasicAuthPassword: CLI.Kubernetes.MimirBasicAuthPassword,
+			OrgID:             CLI.Kubernetes.MimirOrgID,
+			DeploymentMode:    CLI.Kubernetes.MimirDeploymentMode,
 		}
 
 		mimirClient, err = mimir.NewClient(mimirConfig)

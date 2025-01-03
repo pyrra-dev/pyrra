@@ -13,6 +13,8 @@ type Client struct {
 	client           http.Client
 	address          *url.URL
 	prometheusPrefix string
+	orgID            string
+	deploymentMode   string
 }
 
 // Config is used to configure the client.
@@ -21,6 +23,8 @@ type Config struct {
 	PrometheusPrefix  string
 	BasicAuthUsername string
 	BasicAuthPassword string
+	OrgID             string
+	DeploymentMode    string
 }
 
 // NewClient creates a new client with the given configuration.
@@ -48,6 +52,8 @@ func NewClient(config Config) (*Client, error) {
 		client:           httpClient,
 		address:          addr,
 		prometheusPrefix: config.PrometheusPrefix,
+		orgID:            config.OrgID,
+		deploymentMode:   config.DeploymentMode,
 	}, nil
 }
 
@@ -66,11 +72,20 @@ func (t *BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error
 
 // Ready checks if mimir is ready to serve traffic.
 func (c *Client) Ready(ctx context.Context) error {
-	path := c.address.JoinPath("/ready")
+	path := c.address.JoinPath("/")
+	if c.deploymentMode == "monolithic" {
+		path = c.address.JoinPath("/ready")
+	} else if c.deploymentMode == "microservices" {
+		path = c.address.JoinPath("/api/v1/status/buildinfo")
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path.String(), nil)
 	if err != nil {
 		return err
+	}
+
+	if c.orgID != "" {
+		req.Header.Set("X-Scope-OrgID", c.orgID)
 	}
 
 	resp, err := c.client.Do(req)
