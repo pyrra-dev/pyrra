@@ -1231,7 +1231,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+		rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[15m]))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -1248,7 +1248,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		})
 
 		errorsExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-			return parser.ParseExpr(`sum(metric{matchers="total"} or vector(0))`)
+			return parser.ParseExpr(`sum(rate(metric{matchers="total"}[15m]) or vector(0))`)
 		}
 		errorsParsedExpr, err := errorsExpr()
 		if err != nil {
@@ -1322,7 +1322,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 		// rate
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+			rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[15m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1348,7 +1348,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 		// errors
 		{
-			errorsExpr, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
+			errorsExpr, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[15m])) - sum(rate(errorMetric{matchers="errors"}[15m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1441,7 +1441,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 		// rate
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+			rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[15m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1460,7 +1460,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 		// errors
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
+			rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[15m])) - sum(rate(errorMetric{matchers="errors"}[15m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
