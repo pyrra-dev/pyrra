@@ -13,7 +13,7 @@ jobs:
     name: Generate Jsonnet examples
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-go@v5.2.0
+    - uses: actions/setup-go@v5.3.0
       with:
         go-version-file: go.mod
     - uses: zendesk/setup-jsonnet@v12
