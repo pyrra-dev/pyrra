@@ -250,6 +250,10 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 		}
 	}
 
+	for i := range rule.Groups {
+		rule.Groups[i].PartialResponseStrategy = kubeObjective.Spec.PartialResponseStrategy
+	}
+
 	bytes, err := yaml.Marshal(rule)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal recording rule: %w", err)
@@ -404,6 +408,10 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 		} else {
 			rule.Groups = append(rule.Groups, rules)
 		}
+	}
+
+	for i := range rule.Groups {
+		rule.Groups[i].PartialResponseStrategy = kubeObjective.Spec.PartialResponseStrategy
 	}
 
 	isController := true

@@ -47,6 +47,7 @@ var (
 					},
 				},
 			},
+			PartialResponseStrategy: "warn",
 		},
 	}
 )
@@ -84,8 +85,9 @@ func Test_makePrometheusRule(t *testing.T) {
 				Spec: monitoringv1.PrometheusRuleSpec{
 					Groups: []monitoringv1.RuleGroup{
 						{
-							Name:     "http-increase",
-							Interval: monitoringDuration("2m30s"),
+							Name:                    "http-increase",
+							PartialResponseStrategy: "warn",
+							Interval:                monitoringDuration("2m30s"),
 							Rules: []monitoringv1.Rule{
 								{
 									Record: "http_requests:increase4w",
@@ -113,8 +115,9 @@ func Test_makePrometheusRule(t *testing.T) {
 							},
 						},
 						{
-							Name:     "http",
-							Interval: monitoringDuration("30s"),
+							Name:                    "http",
+							PartialResponseStrategy: "warn",
+							Interval:                monitoringDuration("30s"),
 							Rules: []monitoringv1.Rule{
 								{
 									Record: "http_requests:burnrate5m",
@@ -199,6 +202,7 @@ func Test_makeConfigMap(t *testing.T) {
 	rules := `groups:
 - interval: 2m30s
   name: http-increase
+  partial_response_strategy: warn
   rules:
   - expr: sum by (status) (increase(http_requests_total{job="app"}[4w]))
     labels:
@@ -218,6 +222,7 @@ func Test_makeConfigMap(t *testing.T) {
       team: foo
 - interval: 30s
   name: http
+  partial_response_strategy: warn
   rules:
   - expr: sum(rate(http_requests_total{job="app",status=~"5.."}[5m])) / sum(rate(http_requests_total{job="app"}[5m]))
     labels:
