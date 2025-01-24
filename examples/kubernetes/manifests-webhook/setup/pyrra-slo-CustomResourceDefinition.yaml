@@ -179,6 +179,17 @@ spec:
                     - total
                     type: object
                 type: object
+              partial_response_strategy:
+                default: abort
+                description: |-
+                  PartialResponseStrategy is only used by ThanosRuler and will
+                  be ignored by Prometheus instances.
+                  More info: https://github.com/thanos-io/thanos/blob/main/docs/components/rule.md#partial-response
+                enum:
+                - abort
+                - warn
+                - ""
+                type: string
               target:
                 description: |-
                   Target is a string that's casted to a float64 between 0 - 100.
