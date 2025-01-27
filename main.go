@@ -849,7 +849,8 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 			statuses[v.Metric.Fingerprint()] = &objectivesv1alpha1.ObjectiveStatus{
 				Labels: objectiveLabels,
 				Availability: &objectivesv1alpha1.Availability{
-					Percentage: 1 - (s.Availability.Errors / s.Availability.Total),
+					Percentage: 0,
+					Errors:     float64(v.Value),
 					Total:      float64(v.Value),
 				},
 			}
