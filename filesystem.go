@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,6 +34,16 @@ import (
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	"github.com/pyrra-dev/pyrra/slo"
 )
+
+type SpecsTransformation struct {
+	Outcome string `json:"outcome"`
+	Message string `json:"message"`
+}
+
+type SpecsList struct {
+	SpecsAvailable []string `json:"specsAvailable"`
+	RulesGenerated []string `json:"rulesGenerated"`
+}
 
 type Objectives struct {
 	mu         sync.RWMutex
@@ -89,7 +101,192 @@ Objectives:
 	return objectives
 }
 
-func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules bool) int {
+func listFolderContents(folderPath string) ([]string, error) {
+	var fileNames []string
+	err := filepath.Walk(folderPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		fileNames = append(fileNames, filepath.Base(path))
+		return nil
+	})
+	return fileNames, err
+}
+
+func listSpecsHandler(logger log.Logger, specsDir, prometheusDir string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		payload := &SpecsList{
+			SpecsAvailable: []string{},
+			RulesGenerated: []string{},
+		}
+
+		level.Info(logger).Log("msg", "listing available specs", "dir", specsDir)
+
+		fileNames, err := listFolderContents(specsDir)
+		if err != nil {
+			level.Error(logger).Log("msg", "error listing available specs", "err", err)
+		} else {
+			payload.SpecsAvailable = append(payload.SpecsAvailable, fileNames...)
+		}
+
+		level.Info(logger).Log("msg", "listing generated rules", "dir", prometheusDir)
+
+		fileNames, err = listFolderContents(prometheusDir)
+		if err != nil {
+			level.Error(logger).Log("msg", "error listing generated rules", "err", err)
+		} else {
+			payload.RulesGenerated = append(payload.RulesGenerated, fileNames...)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		err = json.NewEncoder(w).Encode(payload)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to encode payload")
+		}
+	}
+}
+
+func createSpecHandler(logger log.Logger, dir, prometheusFolder string, reload chan struct{}, genericRules bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		if r.Method != http.MethodPost {
+			response := SpecsTransformation{Outcome: "error", Message: "Method not allowed"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusMethodNotAllowed)
+			return
+		}
+
+		err := r.ParseMultipartForm(32 << 20)
+		if err != nil {
+			response := SpecsTransformation{Outcome: "error", Message: "Failed to parse form upload"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusBadRequest)
+			return
+		}
+
+		file, handler, err := r.FormFile("spec")
+		if err != nil {
+			response := SpecsTransformation{Outcome: "error", Message: "Failed to read spec field from form upload"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusBadRequest)
+			return
+		}
+
+		level.Info(logger).Log("msg", "processing SLO spec", "specFile", handler.Filename)
+
+		ingestedSpec := dir + "/" + handler.Filename
+
+		f, err := os.OpenFile(ingestedSpec, os.O_WRONLY|os.O_CREATE, 0o666)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to write spec to disk", "err", err)
+			response := SpecsTransformation{Outcome: "error", Message: "There was an error writing the spec to disk"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusInternalServerError)
+			return
+		}
+
+		defer f.Close()
+
+		_, err = io.Copy(f, file)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to copy contents", "err", err)
+			response := SpecsTransformation{Outcome: "error", Message: "There was an error copying file contents"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusInternalServerError)
+			return
+		}
+
+		level.Info(logger).Log("msg", "attempting to build rules from spec", "location", ingestedSpec)
+		err = writeRuleFile(logger, ingestedSpec, prometheusFolder, genericRules, false)
+		if err != nil {
+			level.Error(logger).Log("msg", "error building rules from spec", "file", ingestedSpec, "err", err)
+			response := SpecsTransformation{Outcome: "error", Message: "There was an error building rules from this spec"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusBadRequest)
+
+			err := os.Remove(ingestedSpec)
+			if err != nil {
+				level.Error(logger).Log("msg", "failed to remove spec", "file", ingestedSpec, "err", err)
+			}
+			return
+		}
+
+		level.Info(logger).Log("msg", "signaling Prometheus reload")
+		reload <- struct{}{}
+
+		response := SpecsTransformation{Outcome: "success", Message: "Ok"}
+		responseAsJSON, _ := json.Marshal(response)
+		_, err = w.Write(responseAsJSON)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to return http 200", "err", err)
+		}
+	}
+}
+
+func removeSpecHandler(logger log.Logger, dir, prometheusFolder string, reload chan struct{}) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		if r.Method != http.MethodDelete {
+			response := SpecsTransformation{Outcome: "error", Message: "Method not allowed"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusMethodNotAllowed)
+			return
+		}
+
+		filePath := r.URL.Query().Get("f")
+		if filePath == "" {
+			response := SpecsTransformation{Outcome: "error", Message: "Missing 'f' parameter in query"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusBadRequest)
+			return
+		}
+
+		level.Info(logger).Log("msg", "removing spec", "file", filePath, "dir", dir)
+
+		cleanPath := filepath.Clean(filePath)
+
+		err := os.Remove(dir + "/" + cleanPath)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to remove file", "file", filePath, "clean", cleanPath, "err", err)
+			response := SpecsTransformation{Outcome: "error", Message: "Failed to remove file"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusInternalServerError)
+			return
+		}
+
+		level.Debug(logger).Log("msg", "removing generated rules", "file", filePath, "dir", prometheusFolder)
+		err = os.Remove(prometheusFolder + "/" + cleanPath)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to remove Prometheus rules file", "file", filePath, "clean", cleanPath, "err", err)
+			response := SpecsTransformation{Outcome: "error", Message: "Failed to delete rules"}
+			responseAsJSON, _ := json.Marshal(response)
+			http.Error(w, string(responseAsJSON), http.StatusInternalServerError)
+			return
+		}
+
+		level.Info(logger).Log("msg", "signaling Prometheus reload")
+		reload <- struct{}{}
+
+		response := SpecsTransformation{Outcome: "success", Message: "Ok"}
+		responseAsJSON, _ := json.Marshal(response)
+		_, err = w.Write(responseAsJSON)
+		if err != nil {
+			level.Error(logger).Log("msg", "failed to return http 200", "err", err)
+		}
+	}
+}
+
+func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, specsAPI, genericRules bool) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
 		Help: "The total amount of reconciles.",
@@ -242,6 +439,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 	}
 	{
 		prometheusInterceptor := connectprometheus.NewInterceptor(reg)
+		dir := filepath.Dir(configFiles)
 
 		router := http.NewServeMux()
 		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(
@@ -251,6 +449,15 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 			connect.WithInterceptors(prometheusInterceptor),
 		))
 		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+
+		if specsAPI {
+			level.Info(logger).Log("msg", "specs API endpoints are enabled")
+			router.HandleFunc("/specs/remove", removeSpecHandler(logger, dir, prometheusFolder, reload))
+			router.HandleFunc("/specs/create", createSpecHandler(logger, dir, prometheusFolder, reload, genericRules))
+			router.HandleFunc("/specs/list", listSpecsHandler(logger, dir, prometheusFolder))
+		} else {
+			level.Info(logger).Log("msg", "specs API endpoints are disabled")
+		}
 
 		server := http.Server{
 			Addr:    ":9444",
