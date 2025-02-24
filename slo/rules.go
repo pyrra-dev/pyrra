@@ -512,7 +512,7 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, sum(rate(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -911,7 +911,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			}
 		}
 
-		expr, err := parser.ParseExpr(`histogram_count(increase(metric{matchers="total"}[1s]))`)
+		expr, err := parser.ParseExpr(`histogram_count(sum(increase(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -929,7 +929,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, increase(metric{matchers="total"}[1s])) * histogram_count(increase(metric{matchers="total"}[1s]))`)
+		expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, sum(increase(metric{matchers="total"}[1s]))) * histogram_count(sum(increase(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -1381,6 +1381,47 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			rules = append(rules, monitoringv1.Rule{
 				Record: "pyrra_errors_total",
 				Expr:   intstr.FromString(errorsExpr.String()),
+				Labels: ruleLabels,
+			})
+		}
+	case LatencyNative:
+		latencySeconds := time.Duration(o.Indicator.LatencyNative.Latency).Seconds()
+
+		// availability
+		{
+			expr, err := parser.ParseExpr(`sum(metric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
+			if err != nil {
+				return monitoringv1.RuleGroup{}, err
+			}
+
+			metric := increaseName(o.Indicator.LatencyNative.Total.Name, o.Window)
+			matchers := o.Indicator.LatencyNative.Total.LabelMatchers
+			for _, m := range matchers {
+				if m.Name == labels.MetricName {
+					m.Value = metric
+					break
+				}
+			}
+			matchers = append(matchers, &labels.Matcher{
+				Type:  labels.MatchEqual,
+				Name:  "slo",
+				Value: o.Name(),
+			})
+
+			errorMatchers := slices.Clone(matchers)
+			errorMatchers = append(errorMatchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: fmt.Sprintf("%g", latencySeconds)})
+			matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
+
+			objectiveReplacer{
+				metric:        metric,
+				matchers:      matchers,
+				errorMatchers: errorMatchers,
+				window:        time.Duration(o.Window),
+			}.replace(expr)
+
+			rules = append(rules, monitoringv1.Rule{
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(expr.String()),
 				Labels: ruleLabels,
 			})
 		}
