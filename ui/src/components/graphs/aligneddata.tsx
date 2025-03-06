@@ -118,6 +118,9 @@ export const mergeAlignedData = (responses: AlignedDataResponse[]): AlignedDataR
     const timeValues = series.get(t)
     if (timeValues !== undefined) {
       timeValues.forEach((s: number | null | undefined, j: number) => {
+        while (values.length <= j) {
+          values.push([])
+        }
         values[j].push(s)
       })
     }
