@@ -17,12 +17,13 @@ const (
 )
 
 type Objective struct {
-	Labels      labels.Labels
-	Annotations map[string]string
-	Description string
-	Target      float64
-	Window      model.Duration
-	Config      string
+	Labels            labels.Labels
+	PassthroughLabels map[string]string
+	Annotations       map[string]string
+	Description       string
+	Target            float64
+	Window            model.Duration
+	Config            string
 
 	Alerting  Alerting
 	Indicator Indicator
