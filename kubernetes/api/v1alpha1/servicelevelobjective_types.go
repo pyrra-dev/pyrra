@@ -566,13 +566,14 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 	}
 
 	return slo.Objective{
-		Labels:      ls,
-		Annotations: in.Annotations,
-		Description: in.Spec.Description,
-		Target:      target / 100,
-		Window:      window,
-		Config:      string(config),
-		Alerting:    alerting,
+		Labels:             ls,
+		Annotations:        in.Annotations,
+		Description:        in.Spec.Description,
+		DescriptionAsLabel: false,
+		Target:             target / 100,
+		Window:             window,
+		Config:             string(config),
+		Alerting:           alerting,
 		Indicator: slo.Indicator{
 			Ratio:         ratio,
 			Latency:       latency,

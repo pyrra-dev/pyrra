@@ -1674,10 +1674,11 @@ func Test_windows(t *testing.T) {
 
 func TestObjective_GrafanaRules(t *testing.T) {
 	testcases := []struct {
-		name  string
-		slo   Objective
-		rules monitoringv1.RuleGroup
-		err   error
+		name               string
+		slo                Objective
+		rules              monitoringv1.RuleGroup
+		descriptionAsLabel bool
+		err                error
 	}{{
 		name: "http-ratio",
 		slo:  objectiveHTTPRatio(),
@@ -1910,13 +1911,263 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		name: "up-targets-grouping-regex",
 		slo:  objectiveUpTargetsGroupingRegex(),
 		err:  ErrGroupingUnsupported,
+	}, {
+		name: "http-ratio with description as label",
+		slo:  objectiveHTTPRatio(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.99`),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "HTTP Ratio"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromString(strconv.FormatInt(int64((28 * 24 * time.Hour).Seconds()), 10)),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "HTTP Ratio"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "HTTP Ratio"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(http_requests_total{job="thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "HTTP Ratio"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(http_requests_total{code=~"5..",job="thanos-receive-default"} or vector(0))`),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "HTTP Ratio"},
+			}},
+		},
+		descriptionAsLabel: true,
+	}, {
+		name:               "http-ratio-grouping with description as label",
+		slo:                objectiveHTTPRatioGrouping(),
+		descriptionAsLabel: true,
+		err:                ErrGroupingUnsupported,
+	}, {
+		name:               "http-ratio-grouping-regex with description as label",
+		slo:                objectiveHTTPRatioGroupingRegex(),
+		descriptionAsLabel: true,
+		err:                ErrGroupingUnsupported,
+	}, {
+		name: "grpc-errors with description as label",
+		slo:  objectiveGRPCRatio(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-errors-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.999`),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors", "description": "GRPC Ratio"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromString(strconv.FormatInt(int64((28 * 24 * time.Hour).Seconds()), 10)),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors", "description": "GRPC Ratio"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(grpc_server_handled:increase4w{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"} or vector(0)) / sum(grpc_server_handled:increase4w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"})`),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors", "description": "GRPC Ratio"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors", "description": "GRPC Ratio"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"} or vector(0))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-errors", "description": "GRPC Ratio"},
+			}},
+		},
+		descriptionAsLabel: true,
+	}, {
+		name:               "grpc-errors-grouping with description as label",
+		slo:                objectiveGRPCRatioGrouping(),
+		descriptionAsLabel: true,
+		err:                ErrGroupingUnsupported,
+	}, {
+		name: "http-latency with description as label",
+		slo:  objectiveHTTPLatency(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-latency-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString("0.995"),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "description": "HTTP Latency"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromString("2419200"),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "description": "HTTP Latency"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"} or vector(0)) / sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"})`),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "description": "HTTP Latency"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"})`),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "description": "HTTP Latency"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}) - sum(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"})`),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "description": "HTTP Latency"},
+			}},
+		},
+		descriptionAsLabel: true,
+	}, {
+		name:               "http-latency-grouping with description as label",
+		slo:                objectiveHTTPLatencyGrouping(),
+		descriptionAsLabel: true,
+		err:                ErrGroupingUnsupported,
+	}, {
+		name:               "http-latency-grouping-regex with description as label",
+		slo:                objectiveHTTPLatencyGroupingRegex(),
+		descriptionAsLabel: true,
+		err:                ErrGroupingUnsupported,
+	}, {
+		name: "grpc-latency with description as label",
+		slo:  objectiveGRPCLatency(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-latency-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString("0.995"),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "description": "GRPC Latency"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromString("604800"),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "description": "GRPC Latency"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6",slo="monitoring-grpc-latency"} or vector(0)) / sum(grpc_server_handling_seconds:increase1w{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="",slo="monitoring-grpc-latency"})`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "description": "GRPC Latency"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"})`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "description": "GRPC Latency"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) - sum(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"})`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "description": "GRPC Latency"},
+			}},
+		},
+		descriptionAsLabel: true,
+	}, {
+		name:               "grpc-latency-grouping",
+		slo:                objectiveGRPCLatencyGrouping(),
+		descriptionAsLabel: true,
+		err:                ErrGroupingUnsupported,
+	}, {
+		name: "operator-ratio with description as label",
+		slo:  objectiveOperator(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-prometheus-operator-errors-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString("0.99"),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "description": "Operator"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromString("1209600"),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "description": "Operator"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(prometheus_operator_reconcile_errors:increase2w{slo="monitoring-prometheus-operator-errors"} or vector(0)) / sum(prometheus_operator_reconcile_operations:increase2w{slo="monitoring-prometheus-operator-errors"})`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "description": "Operator"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(prometheus_operator_reconcile_operations_total)`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "description": "Operator"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(prometheus_operator_reconcile_errors_total or vector(0))`),
+				Labels: map[string]string{"slo": "monitoring-prometheus-operator-errors", "description": "Operator"},
+			}},
+		},
+		descriptionAsLabel: true,
+	}, {
+		name:               "operator-ratio-grouping with description as label",
+		slo:                objectiveOperatorGrouping(),
+		descriptionAsLabel: true,
+		err:                ErrGroupingUnsupported,
+	}, {
+		name: "apiserver-write-response-errors with description as label",
+		slo:  objectiveAPIServerRatio(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "apiserver-write-response-errors-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.99`),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors", "description": "API Server Ratio"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromString(strconv.FormatInt(int64((14 * 24 * time.Hour).Seconds()), 10)),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors", "description": "API Server Ratio"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(apiserver_request:increase2w{code=~"5..",job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"} or vector(0)) / sum(apiserver_request:increase2w{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"})`),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors", "description": "API Server Ratio"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"})`),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors", "description": "API Server Ratio"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"} or vector(0))`),
+				Labels: map[string]string{"slo": "apiserver-write-response-errors", "description": "API Server Ratio"},
+			}},
+		},
+		descriptionAsLabel: true,
+	}, {
+		name:               "apiserver-read-resource-latency with description as label",
+		slo:                objectiveAPIServerLatency(),
+		descriptionAsLabel: true,
+		err:                ErrGroupingUnsupported,
+	}, {
+		name: "up-targets with description as label",
+		slo:  objectiveUpTargets(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "up-targets-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.99`),
+				Labels: map[string]string{"slo": "up-targets", "description": "Up targets"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromString(strconv.FormatInt(int64((28 * 24 * time.Hour).Seconds()), 10)),
+				Labels: map[string]string{"slo": "up-targets", "description": "Up targets"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`sum(up:sum4w{slo="up-targets"}) / sum(up:count4w{slo="up-targets"})`),
+				Labels: map[string]string{"slo": "up-targets", "description": "Up targets"},
+			}, {
+				Record: "pyrra_requests_total",
+				Expr:   intstr.FromString(`sum(up:count4w{slo="up-targets"})`),
+				Labels: map[string]string{"slo": "up-targets", "description": "Up targets"},
+			}, {
+				Record: "pyrra_errors_total",
+				Expr:   intstr.FromString(`sum(up:count4w{slo="up-targets"}) - sum(up:sum4w{slo="up-targets"})`),
+				Labels: map[string]string{"slo": "up-targets", "description": "Up targets"},
+			}},
+		},
+		descriptionAsLabel: true,
+	}, {
+		name:               "up-targets-grouping-regex with description as label",
+		slo:                objectiveUpTargetsGroupingRegex(),
+		descriptionAsLabel: true,
+		err:                ErrGroupingUnsupported,
 	}}
 
-	require.Len(t, testcases, 16)
+	require.Len(t, testcases, 32)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			group, err := tc.slo.GenericRules()
+			t.Parallel()
+
+			group, err := tc.slo.GenericRules(tc.descriptionAsLabel)
 			if tc.err != nil {
 				require.Error(t, tc.err)
 			} else {

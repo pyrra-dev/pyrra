@@ -1147,11 +1147,15 @@ func burnratesFromWindows(ws []Window) []time.Duration {
 
 var ErrGroupingUnsupported = errors.New("objective with grouping not supported in generic rules")
 
-func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
+func (o Objective) GenericRules(descriptionAsLabel bool) (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 	var rules []monitoringv1.Rule
 
 	ruleLabels := o.commonRuleLabels(sloName)
+
+	if descriptionAsLabel {
+		ruleLabels["description"] = o.Description
+	}
 
 	rules = append(rules, monitoringv1.Rule{
 		Record: "pyrra_objective",
