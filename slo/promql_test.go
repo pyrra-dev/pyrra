@@ -14,9 +14,10 @@ import (
 var (
 	objectiveHTTPRatio = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-http-errors"),
-			Target: 0.99,
-			Window: model.Duration(28 * 24 * time.Hour),
+			Labels:      labels.FromStrings(labels.MetricName, "monitoring-http-errors"),
+			Description: "HTTP Ratio",
+			Target:      0.99,
+			Window:      model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{
 				Burnrates: true,
 				Absent:    true,
@@ -61,7 +62,7 @@ var (
 	objectiveGRPCRatio = func() Objective {
 		return Objective{
 			Labels:      labels.FromStrings(labels.MetricName, "monitoring-grpc-errors"),
-			Description: "",
+			Description: "GRPC Ratio",
 			Target:      0.999,
 			Window:      model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -100,9 +101,10 @@ var (
 	}
 	objectiveHTTPLatency = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-http-latency"),
-			Target: 0.995,
-			Window: model.Duration(28 * 24 * time.Hour),
+			Labels:      labels.FromStrings(labels.MetricName, "monitoring-http-latency"),
+			Description: "HTTP Latency",
+			Target:      0.995,
+			Window:      model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{
 				Burnrates: true,
 				Absent:    true,
@@ -165,9 +167,10 @@ var (
 	}
 	objectiveGRPCLatency = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-grpc-latency"),
-			Target: 0.995,
-			Window: model.Duration(7 * 24 * time.Hour),
+			Labels:      labels.FromStrings(labels.MetricName, "monitoring-grpc-latency"),
+			Description: "GRPC Latency",
+			Target:      0.995,
+			Window:      model.Duration(7 * 24 * time.Hour),
 			Alerting: Alerting{
 				Burnrates: true,
 				Absent:    true,
@@ -204,9 +207,10 @@ var (
 	}
 	objectiveOperator = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-prometheus-operator-errors"),
-			Target: 0.99,
-			Window: model.Duration(14 * 24 * time.Hour),
+			Labels:      labels.FromStrings(labels.MetricName, "monitoring-prometheus-operator-errors"),
+			Description: "Operator",
+			Target:      0.99,
+			Window:      model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
 				Burnrates: true,
 				Absent:    true,
@@ -236,9 +240,10 @@ var (
 	}
 	objectiveAPIServerRatio = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "apiserver-write-response-errors"),
-			Target: 0.99,
-			Window: model.Duration(14 * 24 * time.Hour),
+			Labels:      labels.FromStrings(labels.MetricName, "apiserver-write-response-errors"),
+			Description: "API Server Ratio",
+			Target:      0.99,
+			Window:      model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
 				Name:       "APIServerErrorBudgetBurn",
 				AbsentName: "APIServerMetricAbsent",
@@ -328,9 +333,10 @@ var (
 	}
 	objectiveUpTargets = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "up-targets"),
-			Target: 0.99,
-			Window: model.Duration(28 * 24 * time.Hour),
+			Labels:      labels.FromStrings(labels.MetricName, "up-targets"),
+			Description: "Up targets",
+			Target:      0.99,
+			Window:      model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{
 				Burnrates: true,
 				Absent:    true,

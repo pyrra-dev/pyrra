@@ -239,7 +239,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}
 
 	if genericRules {
-		rules, err := objective.GenericRules()
+		rules, err := objective.GenericRules(false)
 		if err != nil {
 			if err != slo.ErrGroupingUnsupported {
 				return nil, fmt.Errorf("failed to get generic rules: %w", err)
@@ -307,7 +307,7 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 
 	genericMimirRules := []rulefmt.RuleNode{}
 	if genericRules {
-		rules, err := objective.GenericRules()
+		rules, err := objective.GenericRules(false)
 		if err != nil {
 			if err != slo.ErrGroupingUnsupported {
 				return nil, fmt.Errorf("failed to get generic rules: %w", err)
@@ -399,7 +399,7 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	}
 
 	if genericRules {
-		rules, err := objective.GenericRules()
+		rules, err := objective.GenericRules(false)
 		if err != nil {
 			if err != slo.ErrGroupingUnsupported {
 				return nil, fmt.Errorf("failed to get generic rules: %w", err)

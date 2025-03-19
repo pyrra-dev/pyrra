@@ -67,10 +67,11 @@ var CLI struct {
 		TLSClientCAFile             string            `default:"" help:"File containing the CA certificate for the client"`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
-		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
-		PrometheusURL    *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
-		PrometheusFolder string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
-		GenericRules     bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		ConfigFiles        string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
+		PrometheusURL      *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
+		PrometheusFolder   string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
+		GenericRules       bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		DescriptionAsLabel bool     `default:"false" help:"Enable description of objective to be added as label."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
 		MetricsAddr             string   `default:":8080" help:"The address the metric endpoint binds to."`
@@ -86,10 +87,11 @@ var CLI struct {
 		MimirWriteAlertingRules bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
-		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
-		PrometheusFolder string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
-		GenericRules     bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		OperatorRule     bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
+		ConfigFiles        string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		PrometheusFolder   string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
+		GenericRules       bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		OperatorRule       bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
+		DescriptionAsLabel bool   `default:"false" help:"Enable description of objective to be added as label."`
 	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
 }
 
@@ -198,6 +200,7 @@ func main() {
 			CLI.Filesystem.ConfigFiles,
 			CLI.Filesystem.PrometheusFolder,
 			CLI.Filesystem.GenericRules,
+			CLI.Filesystem.DescriptionAsLabel,
 		)
 	case "kubernetes":
 		code = cmdKubernetes(
@@ -218,6 +221,7 @@ func main() {
 			CLI.Generate.PrometheusFolder,
 			CLI.Generate.GenericRules,
 			CLI.Generate.OperatorRule,
+			CLI.Generate.DescriptionAsLabel,
 		)
 	}
 	os.Exit(code)
