@@ -181,4 +181,31 @@ describe('mergeAlignedData', () => {
       ],
     })
   })
+  it('should merge misaligned inputs with gaps', () => {
+    expect(
+      mergeAlignedData([
+        {
+          labels: [{job: 'pyrra'}],
+          data: [
+            [2, 5],
+            [200, 500],
+          ],
+        },
+        {
+          labels: [{job: 'parca'}],
+          data: [
+            [1, 2, 3, 4, 5],
+            [1000, 2000, null, 4000, null],
+          ],
+        },
+      ]),
+    ).toEqual({
+      labels: [{job: 'pyrra'}, {job: 'parca'}],
+      data: [
+        [1, 2, 3, 4, 5],
+        [null, 200, null, null, 500],
+        [1000, 2000, null, 4000, null],
+      ],
+    })
+  })
 })
