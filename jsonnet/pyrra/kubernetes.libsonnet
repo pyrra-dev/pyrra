@@ -155,28 +155,33 @@
       apiVersion: 'rbac.authorization.k8s.io/v1',
       kind: 'ClusterRole',
       metadata: pyrra._kubernetesMetadata,
-      rules: [{
-        apiGroups: ['monitoring.coreos.com'],
-        resources: ['prometheusrules'],
-        verbs: ['create', 'delete', 'get', 'list', 'patch', 'update', 'watch'],
-      }, {
-        apiGroups: ['monitoring.coreos.com'],
-        resources: ['prometheusrules/status'],
-        verbs: ['get'],
-      }, {
-        apiGroups: ['pyrra.dev'],
-        resources: ['servicelevelobjectives'],
-        verbs: ['create', 'delete', 'get', 'list', 'patch', 'update', 'watch'],
-      }, {
-        apiGroups: ['pyrra.dev'],
-        resources: ['servicelevelobjectives/status'],
-        verbs: ['get', 'patch', 'update'],
-      },
-      {
-        apiGroups: ['pyrra.dev'],
-        resources: ['servicelevelobjectives/finalizers'],
-        verbs: ['update'],
-      }],
+      rules: [
+        {
+          apiGroups: ['monitoring.coreos.com'],
+          resources: ['prometheusrules'],
+          verbs: ['create', 'delete', 'get', 'list', 'patch', 'update', 'watch'],
+        },
+        {
+          apiGroups: ['monitoring.coreos.com'],
+          resources: ['prometheusrules/status'],
+          verbs: ['get'],
+        },
+        {
+          apiGroups: ['pyrra.dev'],
+          resources: ['servicelevelobjectives'],
+          verbs: ['create', 'delete', 'get', 'list', 'patch', 'update', 'watch'],
+        },
+        {
+          apiGroups: ['pyrra.dev'],
+          resources: ['servicelevelobjectives/status'],
+          verbs: ['get', 'patch', 'update'],
+        },
+        {
+          apiGroups: ['pyrra.dev'],
+          resources: ['servicelevelobjectives/finalizers'],
+          verbs: ['update'],
+        },
+      ],
     },
 
     kubernetesClusterRoleBinding: {
@@ -372,7 +377,7 @@
         indicator: {
           latency: {
             success: {
-              metric: 'apiserver_request_sli_duration_seconds_bucket{component="apiserver",scope=~"namespace|",verb=~"LIST|GET",le="5"}',
+              metric: 'apiserver_request_sli_duration_seconds_bucket{component="apiserver",scope=~"namespace|",verb=~"LIST|GET",le="5.0"}',
             },
             total: {
               metric: 'apiserver_request_sli_duration_seconds_count{component="apiserver",scope=~"namespace|",verb=~"LIST|GET"}',
@@ -400,7 +405,7 @@
         indicator: {
           latency: {
             success: {
-              metric: 'apiserver_request_sli_duration_seconds_bucket{component="apiserver",scope=~"cluster|",verb=~"LIST|GET",le="5"}',
+              metric: 'apiserver_request_sli_duration_seconds_bucket{component="apiserver",scope=~"cluster|",verb=~"LIST|GET",le="5.0"}',
             },
             total: {
               metric: 'apiserver_request_sli_duration_seconds_count{component="apiserver",scope=~"cluster|",verb=~"LIST|GET"}',
