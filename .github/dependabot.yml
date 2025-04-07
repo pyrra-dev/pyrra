@@ -1,30 +1,47 @@
 version: 2
 updates:
-  # Enable version updates for Go modules
   - package-ecosystem: "gomod"
-    # Look for `go.mod` and `sum` files in the `root` directory
     directory: "/"
-    # Check the go modules for updates every day (weekdays)
     schedule:
       interval: "daily"
 
-  # Enable version updates for npm
-  - package-ecosystem: "npm"
-    # Look for `package.json` and `lock` files in the `ui` directory
-    directory: "/ui"
-    # Check the npm registry for updates every day (weekdays)
-    schedule:
-      interval: "weekly"
-
-  # Enable version updates for Docker
-  - package-ecosystem: "docker"
-    # Look for a `Dockerfile` in the `root` directory
+  - package-ecosystem: "gomod"
     directory: "/"
-    # Check for updates once a week
+    schedule:
+      interval: "daily"
+    labels: ['release']
+    target-branch: "release-0.8"
+    ignore:
+      - update-types: patch
+
+  - package-ecosystem: "npm"
+    directory: "/ui"
     schedule:
       interval: "weekly"
 
-  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "npm"
+    directory: "/ui"
+    schedule:
+      interval: "weekly"
+    labels: ['release']
+    target-branch: "release-0.8"
+    ignore:
+      - update-types: patch
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ['release']
+    target-branch: "release-0.8"
+    ignore:
+      - update-types: patch
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
