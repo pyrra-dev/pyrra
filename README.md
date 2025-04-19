@@ -162,7 +162,8 @@ If you want to install an entire monitoring stack including Pyrra we highly reco
 
 #### Install with Helm
 
-Thanks to [@rlex](https://github.com/rlex) there is a [Helm chart](https://artifacthub.io/packages/helm/rlex/pyrra) for deploying Pyrra too. 
+Pyrra can be deployed via the official [Helm chart](https://artifacthub.io/packages/helm/pyrra-dev-helm-charts/pyrra).
+For development, please visit: https://github.com/pyrra-dev/helm-charts
 
 ### Running inside Docker / Filesystem
 
