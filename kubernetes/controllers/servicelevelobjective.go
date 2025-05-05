@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	vm "github.com/VictoriaMetrics/operator/api/operator/v1beta1"
 	kitlog "github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
@@ -49,6 +50,7 @@ type ServiceLevelObjectiveReconciler struct {
 	Logger                  kitlog.Logger
 	Scheme                  *runtime.Scheme
 	ConfigMapMode           bool
+	VictoriaMetricsMode     bool
 	GenericRules            bool
 }
 
@@ -102,6 +104,10 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 		return r.reconcileMimirRuleGroup(ctx, logger, slo)
 	}
 
+	if r.VictoriaMetricsMode {
+		return r.reconcileVictoriaMetricsRule(ctx, logger, req, slo)
+	}
+
 	return r.reconcilePrometheusRule(ctx, logger, req, slo)
 }
 
@@ -131,6 +137,43 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	}
 
 	kubeObjective.Status.Type = "PrometheusRule"
+	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceLevelObjectiveReconciler) reconcileVictoriaMetricsRule(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+	newPromRule, err := makePrometheusRule(kubeObjective, r.GenericRules)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	var rule vm.VMRule
+	newRule, err := convertPrometheusRuleToVictoriaMetricsRule(*newPromRule)
+	if err != nil {
+		logger.Log("msg", "failed to convert prometheus rule to victoria metrics rule", "err", err)
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Get(ctx, req.NamespacedName, &rule); err != nil {
+		if errors.IsNotFound(err) {
+			level.Info(logger).Log("msg", "creating victoria metrics rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
+			if err := r.Create(ctx, newRule); err != nil {
+				return ctrl.Result{}, err
+			}
+		} else {
+			return ctrl.Result{}, fmt.Errorf("failed to get victoriametrics rule: %w", err)
+		}
+	}
+	newRule.ResourceVersion = rule.ResourceVersion
+
+	level.Info(logger).Log("msg", "updating victoriametrics rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
+	if err := r.Update(ctx, newRule); err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to update victoriametrics rule: %w", err)
+	}
+
+	kubeObjective.Status.Type = "VictoriaMetricsRule"
 	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -429,4 +472,51 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 		},
 		Spec: rule,
 	}, nil
+}
+
+// convert a PrometheusRule to a VictoriaMetricsRule
+func convertPrometheusRuleToVictoriaMetricsRule(promRule monitoringv1.PrometheusRule) (*vm.VMRule, error) {
+	// Initialize the VictoriaMetrics rule
+	vmRule := &vm.VMRule{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "VMRule",
+			APIVersion: "operator.victoriametrics.com/v1beta1",
+		},
+		ObjectMeta: promRule.ObjectMeta,
+		Spec: vm.VMRuleSpec{
+			Groups: []vm.RuleGroup{},
+		},
+	}
+
+	// Iterate through Prometheus rule groups
+	for _, promGroup := range promRule.Spec.Groups {
+		vmGroup := vm.RuleGroup{
+			Name:     promGroup.Name,
+			Interval: string(*promGroup.Interval),
+			Rules:    []vm.Rule{},
+		}
+
+		// Iterate through Prometheus rules in the group
+		for _, promRule := range promGroup.Rules {
+			var ruleFor string
+			if promRule.For != nil {
+				ruleFor = string(*promRule.For)
+			}
+
+			vmRule := vm.Rule{
+				Record:      promRule.Record,
+				Alert:       promRule.Alert,
+				Expr:        promRule.Expr.String(),
+				For:         ruleFor,
+				Labels:      promRule.Labels,
+				Annotations: promRule.Annotations,
+			}
+			vmGroup.Rules = append(vmGroup.Rules, vmRule)
+		}
+
+		// Add the converted group to the VictoriaMetrics rule
+		vmRule.Spec.Groups = append(vmRule.Spec.Groups, vmGroup)
+	}
+
+	return vmRule, nil
 }
