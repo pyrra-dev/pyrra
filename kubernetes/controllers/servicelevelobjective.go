@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	vm "github.com/VictoriaMetrics/operator/api/operator/v1beta1"
+	vmv1beta1 "github.com/VictoriaMetrics/operator/api/operator/v1beta1"
 	kitlog "github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
@@ -149,7 +149,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcileVictoriaMetricsRule(ctx conte
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	var rule vm.VMRule
+	var rule vmv1beta1.VMRule
 	newRule, err := convertPrometheusRuleToVictoriaMetricsRule(*newPromRule)
 	if err != nil {
 		logger.Log("msg", "failed to convert prometheus rule to victoria metrics rule", "err", err)
@@ -475,48 +475,40 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 }
 
 // convert a PrometheusRule to a VictoriaMetricsRule
-func convertPrometheusRuleToVictoriaMetricsRule(promRule monitoringv1.PrometheusRule) (*vm.VMRule, error) {
-	// Initialize the VictoriaMetrics rule
-	vmRule := &vm.VMRule{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "VMRule",
-			APIVersion: "operator.victoriametrics.com/v1beta1",
-		},
-		ObjectMeta: promRule.ObjectMeta,
-		Spec: vm.VMRuleSpec{
-			Groups: []vm.RuleGroup{},
-		},
-	}
-
-	// Iterate through Prometheus rule groups
+// heavily inspired by the VictoriaMetrics operator convert code
+// https://github.com/VictoriaMetrics/operator/blob/master/internal/controller/operator/converter/apis.go
+func convertPrometheusRuleToVictoriaMetricsRule(promRule monitoringv1.PrometheusRule) (*vmv1beta1.VMRule, error) {
+	ruleGroups := make([]vmv1beta1.RuleGroup, 0, len(promRule.Spec.Groups))
 	for _, promGroup := range promRule.Spec.Groups {
-		vmGroup := vm.RuleGroup{
-			Name:     promGroup.Name,
-			Interval: string(*promGroup.Interval),
-			Rules:    []vm.Rule{},
+		ruleItems := make([]vmv1beta1.Rule, 0, len(promGroup.Rules))
+		for _, promRuleItem := range promGroup.Rules {
+			trule := vmv1beta1.Rule{
+				Labels:      promRuleItem.Labels,
+				Annotations: promRuleItem.Annotations,
+				Expr:        promRuleItem.Expr.String(),
+				Record:      promRuleItem.Record,
+				Alert:       promRuleItem.Alert,
+			}
+			if promRuleItem.For != nil {
+				trule.For = string(*promRuleItem.For)
+			}
+			ruleItems = append(ruleItems, trule)
 		}
 
-		// Iterate through Prometheus rules in the group
-		for _, promRule := range promGroup.Rules {
-			var ruleFor string
-			if promRule.For != nil {
-				ruleFor = string(*promRule.For)
-			}
-
-			vmRule := vm.Rule{
-				Record:      promRule.Record,
-				Alert:       promRule.Alert,
-				Expr:        promRule.Expr.String(),
-				For:         ruleFor,
-				Labels:      promRule.Labels,
-				Annotations: promRule.Annotations,
-			}
-			vmGroup.Rules = append(vmGroup.Rules, vmRule)
+		tgroup := vmv1beta1.RuleGroup{
+			Name:  promGroup.Name,
+			Rules: ruleItems,
 		}
-
-		// Add the converted group to the VictoriaMetrics rule
-		vmRule.Spec.Groups = append(vmRule.Spec.Groups, vmGroup)
+		if promGroup.Interval != nil {
+			tgroup.Interval = string(*promGroup.Interval)
+		}
+		ruleGroups = append(ruleGroups, tgroup)
 	}
-
-	return vmRule, nil
+	vm := &vmv1beta1.VMRule{
+		ObjectMeta: promRule.ObjectMeta,
+		Spec: vmv1beta1.VMRuleSpec{
+			Groups: ruleGroups,
+		},
+	}
+	return vm, nil
 }
