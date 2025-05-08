@@ -75,6 +75,10 @@ type ServiceLevelObjectiveSpec struct {
 	// gives extra context for engineers that might not directly work on the service.
 	Description string `json:"description"`
 
+	// Labels is a passthrough value where the labels provided in the ServiceLevelObjective
+	// will be passed into the metrics generated.
+	Labels map[string]string `json:"labels"`
+
 	// Target is a string that's casted to a float64 between 0 - 100.
 	// It represents the desired availability of the service in the given window.
 	// float64 are not supported: https://github.com/kubernetes-sigs/controller-tools/issues/245
@@ -566,13 +570,14 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 	}
 
 	return slo.Objective{
-		Labels:      ls,
-		Annotations: in.Annotations,
-		Description: in.Spec.Description,
-		Target:      target / 100,
-		Window:      window,
-		Config:      string(config),
-		Alerting:    alerting,
+		Labels:            ls,
+		PassthroughLabels: in.Spec.Labels,
+		Annotations:       in.Annotations,
+		Description:       in.Spec.Description,
+		Target:            target / 100,
+		Window:            window,
+		Config:            string(config),
+		Alerting:          alerting,
 		Indicator: slo.Indicator{
 			Ratio:         ratio,
 			Latency:       latency,
