@@ -384,6 +384,50 @@ func Test_makeConfigMap(t *testing.T) {
 	}
 }
 
+func Test_convertsPrometheusRuleToVictoriaMetricsRuleSuccessfully(t *testing.T) {
+	promRule := monitoringv1.PrometheusRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-rule",
+			Namespace: "default",
+		},
+		Spec: monitoringv1.PrometheusRuleSpec{
+			Groups: []monitoringv1.RuleGroup{
+				{
+					Name:     "test-group",
+					Interval: monitoringDuration("30s"),
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "test_record",
+							Alert:  "test_alert",
+							Expr:   intstr.FromString("up == 0"),
+							For:    monitoringDuration("5m"),
+							Labels: map[string]string{"severity": "critical"},
+							Annotations: map[string]string{
+								"summary": "Test summary",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	vmRule, err := convertPrometheusRuleToVictoriaMetricsRule(promRule)
+	require.NoError(t, err)
+	require.Equal(t, "test-rule", vmRule.ObjectMeta.Name)
+	require.Equal(t, "default", vmRule.ObjectMeta.Namespace)
+	require.Len(t, vmRule.Spec.Groups, 1)
+	require.Equal(t, "test-group", vmRule.Spec.Groups[0].Name)
+	require.Equal(t, "30s", vmRule.Spec.Groups[0].Interval)
+	require.Len(t, vmRule.Spec.Groups[0].Rules, 1)
+	require.Equal(t, "test_record", vmRule.Spec.Groups[0].Rules[0].Record)
+	require.Equal(t, "test_alert", vmRule.Spec.Groups[0].Rules[0].Alert)
+	require.Equal(t, "up == 0", vmRule.Spec.Groups[0].Rules[0].Expr)
+	require.Equal(t, "5m", vmRule.Spec.Groups[0].Rules[0].For)
+	require.Equal(t, map[string]string{"severity": "critical"}, vmRule.Spec.Groups[0].Rules[0].Labels)
+	require.Equal(t, map[string]string{"summary": "Test summary"}, vmRule.Spec.Groups[0].Rules[0].Annotations)
+}
+
 func monitoringDuration(d string) *monitoringv1.Duration {
 	md := monitoringv1.Duration(d)
 	return &md

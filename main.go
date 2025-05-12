@@ -75,6 +75,7 @@ var CLI struct {
 	Kubernetes struct {
 		MetricsAddr             string   `default:":8080" help:"The address the metric endpoint binds to."`
 		ConfigMapMode           bool     `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
+		VictoriaMetricsMode     bool     `default:"false" help:"If the generated recording rules should instead be in the VictoriaMetrics format."`
 		GenericRules            bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 		DisableWebhooks         bool     `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
 		TLSCertFile             string   `default:"" help:"File containing the default x509 Certificate for HTTPS."`
@@ -204,6 +205,7 @@ func main() {
 			logger,
 			CLI.Kubernetes.MetricsAddr,
 			CLI.Kubernetes.ConfigMapMode,
+			CLI.Kubernetes.VictoriaMetricsMode,
 			CLI.Kubernetes.GenericRules,
 			CLI.Kubernetes.DisableWebhooks,
 			CLI.Kubernetes.TLSCertFile,
