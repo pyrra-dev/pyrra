@@ -3,7 +3,6 @@ import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
 
-import {PROMETHEUS_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {greens, reds} from './colors'
 import {seriesGaps} from './gaps'
@@ -12,7 +11,7 @@ import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {selectTimeRange} from './selectTimeRange'
-import {formatDuration} from '../../duration'
+import {buildExternalHRef, externalName} from '../../external'
 
 interface ErrorBudgetGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -146,11 +145,9 @@ const ErrorBudgetGraph = ({
             className="external-prometheus"
             target="_blank"
             rel="noreferrer"
-            href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
-              query,
-            )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
+            href={buildExternalHRef([query], from, to)}>
             <IconExternal height={20} width={20} />
-            Prometheus
+            {externalName()}
           </a>
         ) : (
           <></>

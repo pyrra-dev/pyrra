@@ -2,7 +2,7 @@ import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
-import {PROMETHEUS_URL} from '../../App'
+import {EXTERNAL_URL} from '../../App'
 import {IconExternal} from '../Icons'
 import {Labels, labelsString, parseLabelValue} from '../../labels'
 import {colorful, greys} from './colors'
@@ -17,6 +17,7 @@ import {
 } from '../../proto/objectives/v1alpha1/objectives_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {formatDuration} from '../../duration'
+import {buildExternalHRef, externalName} from '../../external'
 
 interface DurationGraphProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -107,15 +108,6 @@ const DurationGraph = ({
       })
   }, [client, labels, grouping, from, to, latency])
 
-  const prometheusURLQuery = durationQueries.map(
-    (query: string, index: number) =>
-      `g${index}.expr=${encodeURIComponent(query)}&g${index}.range_input=${formatDuration(
-        to - from,
-      )}&g${index}.tab=0`,
-  )
-
-  const prometheusURL = `${PROMETHEUS_URL}/graph?${prometheusURLQuery.join('&')}`
-
   return (
     <>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
@@ -137,9 +129,9 @@ const DurationGraph = ({
           )}
         </h4>
         {durationQueries.length > 0 ? (
-          <a className="external-prometheus" target="_blank" rel="noreferrer" href={prometheusURL}>
+          <a className="external-prometheus" target="_blank" rel="noreferrer" href={buildExternalHRef(durationQueries, from, to)}>
             <IconExternal height={20} width={20} />
-            Prometheus
+            {externalName()}
           </a>
         ) : (
           <></>

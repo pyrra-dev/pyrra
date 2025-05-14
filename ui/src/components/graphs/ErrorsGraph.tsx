@@ -2,7 +2,7 @@ import React, {useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot from 'uplot'
-import {ObjectiveType, PROMETHEUS_URL} from '../../App'
+import {ObjectiveType} from '../../App'
 import {IconExternal} from '../Icons'
 import {reds} from './colors'
 import {seriesGaps} from './gaps'
@@ -13,7 +13,7 @@ import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
 import {Labels, labelValues} from '../../labels'
-import {formatDuration} from '../../duration'
+import {buildExternalHRef, externalName} from '../../external';
 
 interface ErrorsGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -123,11 +123,9 @@ const ErrorsGraph = ({
           className="external-prometheus"
           target="_blank"
           rel="noreferrer"
-          href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
-            query,
-          )}&g0.range_input=${formatDuration(to - from)}&g0.tab=0`}>
+          href={buildExternalHRef([query], from, to)}>
           <IconExternal height={20} width={20} />
-          Prometheus
+          {externalName()}
         </a>
       </div>
       <div>
