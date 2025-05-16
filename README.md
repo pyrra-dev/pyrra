@@ -186,6 +186,23 @@ picked up by a Prometheus instance. While running Pyrra on its own works, there
 won't be any SLO configured, nor will there be any data from a Prometheus to
 work with. It's designed to work alongside a Prometheus.
 
+SLO specs may be published using the `/specs/create` endpoint. This will cause `pyrra` to
+generate the corresponding recordingRules, write them out to disk and trigger a reload
+of Prometheus.
+
+Example:
+```
+% curl -i -X POST -H "content-type: multipart/form-data" -F "spec=@service-levels/some-slo.yaml" http://localhost:9444/ingest
+HTTP/1.1 200 OK
+Date: Fri, 15 Sep 2023 14:21:54 GMT
+Content-Length: 2
+Content-Type: text/plain; charset=utf-8
+
+ok
+```
+
+Note: the specs endpoint does not require authentication and needs to be explicitly enabled using `--specs-api`.
+
 ## Tech Stack
 
 **Client:** TypeScript with React, Bootstrap, and uPlot.
