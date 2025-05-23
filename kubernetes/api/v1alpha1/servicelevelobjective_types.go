@@ -204,7 +204,7 @@ func (in *ServiceLevelObjective) ValidateCreate(_ context.Context, obj runtime.O
 	return slo.validate()
 }
 
-func (in *ServiceLevelObjective) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (in *ServiceLevelObjective) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
 	slo, ok := newObj.(*ServiceLevelObjective)
 	if !ok {
 		return nil, fmt.Errorf("expected ServiceLevelObjective but got %T", newObj)
