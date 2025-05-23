@@ -1,6 +1,7 @@
 package v1alpha1_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -366,48 +367,51 @@ func TestServiceLevelObjective_Internal(t *testing.T) {
 }
 
 func TestServiceLevelObjective_Validate(t *testing.T) {
+	ctx := context.Background()
+
 	t.Run("empty", func(t *testing.T) {
 		empty := &v1alpha1.ServiceLevelObjective{}
-		warn, err := empty.ValidateCreate()
+		warn, err := empty.ValidateCreate(ctx, empty)
 		require.EqualError(t, err, "name must be set")
 		require.Nil(t, warn)
 
 		empty.Name = "name"
-		warn, err = empty.ValidateCreate()
+		warn, err = empty.ValidateCreate(ctx, empty)
 		require.EqualError(t, err, "target must be set")
 		require.Equal(t, "namespace must be set", warn[0])
 
 		empty.Namespace = "namespace"
 
 		empty.Spec.Target = "-99"
-		warn, err = empty.ValidateCreate()
+		warn, err = empty.ValidateCreate(ctx, empty)
 		require.EqualError(t, err, "target must be between 0 and 100")
 		require.Nil(t, warn)
 
 		empty.Spec.Target = "9999"
-		warn, err = empty.ValidateCreate()
+		warn, err = empty.ValidateCreate(ctx, empty)
 		require.EqualError(t, err, "target must be between 0 and 100")
 		require.Nil(t, warn)
 
 		empty.Spec.Target = "0.9134"
-		warn, err = empty.ValidateCreate()
+		warn, err = empty.ValidateCreate(ctx, empty)
 		require.Equal(t, "target is from 0-100 (91.34), not 0-1 (0.9134)", warn[0])
 		require.EqualError(t, err, "window must be set")
 
 		empty.Spec.Target = "99"
 
 		empty.Spec.Window = "2t"
-		warn, err = empty.ValidateCreate()
+		warn, err = empty.ValidateCreate(ctx, empty)
 		require.Nil(t, warn)
 		require.EqualError(t, err, `unknown unit "t" in duration "2t"`)
 
 		empty.Spec.Window = "2w"
-		warn, err = empty.ValidateCreate()
+		warn, err = empty.ValidateCreate(ctx, empty)
 		require.Nil(t, warn)
 		require.EqualError(t, err, "one of ratio, latency, latencyNative or bool_gauge must be set")
 	})
 
 	t.Run("ratio", func(t *testing.T) {
+		ctx := context.Background()
 		ratio := func() *v1alpha1.ServiceLevelObjective {
 			return &v1alpha1.ServiceLevelObjective{
 				ObjectMeta: metav1.ObjectMeta{
@@ -428,7 +432,7 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			}
 		}
 
-		warn, err := ratio().ValidateCreate()
+		warn, err := ratio().ValidateCreate(ctx, ratio())
 		require.NoError(t, err)
 		require.Nil(t, warn)
 
@@ -436,19 +440,19 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			ratio := ratio()
 			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = ""
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = ""
-			warn, err := ratio.ValidateCreate()
+			warn, err := ratio.ValidateCreate(ctx, ratio)
 			require.EqualError(t, err, "ratio total metric must be set")
 			require.Nil(t, warn)
 
 			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = ""
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "foo"
-			warn, err = ratio.ValidateCreate()
+			warn, err = ratio.ValidateCreate(ctx, ratio)
 			require.EqualError(t, err, "ratio errors metric must be set")
 			require.Nil(t, warn)
 
 			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = "foo"
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = ""
-			warn, err = ratio.ValidateCreate()
+			warn, err = ratio.ValidateCreate(ctx, ratio)
 			require.EqualError(t, err, "ratio total metric must be set")
 			require.Nil(t, warn)
 		})
@@ -457,7 +461,7 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			ratio := ratio()
 			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = "foo"
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "foo"
-			warn, err := ratio.ValidateCreate()
+			warn, err := ratio.ValidateCreate(ctx, ratio)
 			require.Equal(t, "ratio errors metric should be different from ratio total metric", warn[0])
 			require.NoError(t, err)
 		})
@@ -465,28 +469,29 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 		t.Run("invalidMetric", func(t *testing.T) {
 			ratio := ratio()
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "foo{"
-			warn, err := ratio.ValidateCreate()
+			warn, err := ratio.ValidateCreate(ctx, ratio)
 			require.EqualError(t, err, "failed to parse ratio total metric: 1:5: parse error: unexpected end of input inside braces")
 			require.Nil(t, warn)
 
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "foo}"
-			warn, err = ratio.ValidateCreate()
+			warn, err = ratio.ValidateCreate(ctx, ratio)
 			require.EqualError(t, err, "failed to parse ratio total metric: 1:4: parse error: unexpected character: '}'")
 			require.Nil(t, warn)
 
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "$$$"
-			warn, err = ratio.ValidateCreate()
+			warn, err = ratio.ValidateCreate(ctx, ratio)
 			require.EqualError(t, err, "failed to parse ratio total metric: 1:1: parse error: unexpected character: '$'")
 			require.Nil(t, warn)
 
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = `foo{foo="bar'}`
-			warn, err = ratio.ValidateCreate()
+			warn, err = ratio.ValidateCreate(ctx, ratio)
 			require.EqualError(t, err, "failed to parse ratio total metric: 1:9: parse error: unterminated quoted string")
 			require.Nil(t, warn)
 		})
 	})
 
 	t.Run("latency", func(t *testing.T) {
+		ctx := context.Background()
 		latency := func() *v1alpha1.ServiceLevelObjective {
 			return &v1alpha1.ServiceLevelObjective{
 				ObjectMeta: metav1.ObjectMeta{
@@ -507,7 +512,7 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			}
 		}
 
-		warn, err := latency().ValidateCreate()
+		warn, err := latency().ValidateCreate(ctx, latency())
 		require.NoError(t, err)
 		require.Nil(t, warn)
 
@@ -515,19 +520,19 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			latency := latency()
 			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = ""
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = ""
-			warn, err := latency.ValidateCreate()
+			warn, err := latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, "latency total metric must be set")
 			require.Nil(t, warn)
 
 			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = ""
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "foo"
-			warn, err = latency.ValidateCreate()
+			warn, err = latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, "latency success metric must be set")
 			require.Nil(t, warn)
 
 			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = "foo"
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = ""
-			warn, err = latency.ValidateCreate()
+			warn, err = latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, "latency total metric must be set")
 			require.Nil(t, warn)
 		})
@@ -536,7 +541,7 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			latency := latency()
 			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = "foo"
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "foo"
-			warn, err := latency.ValidateCreate()
+			warn, err := latency.ValidateCreate(ctx, latency)
 			require.NotNil(t, warn)
 			require.Equal(t, "latency success metric should be different from latency total metric", warn[0])
 			require.Error(t, err)
@@ -546,7 +551,7 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			latency := latency()
 			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = `foo{le="1"}`
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "bar"
-			warn, err = latency.ValidateCreate()
+			warn, err = latency.ValidateCreate(ctx, latency)
 			require.NoError(t, err)
 			require.Equal(t,
 				admission.Warnings{
@@ -559,44 +564,45 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 		t.Run("invalidMetric", func(t *testing.T) {
 			latency := latency()
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "foo{"
-			warn, err := latency.ValidateCreate()
+			warn, err := latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, "failed to parse latency total metric: 1:5: parse error: unexpected end of input inside braces")
 			require.Nil(t, warn)
 
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "foo}"
-			warn, err = latency.ValidateCreate()
+			warn, err = latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, "failed to parse latency total metric: 1:4: parse error: unexpected character: '}'")
 			require.Nil(t, warn)
 
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = "$$$"
-			warn, err = latency.ValidateCreate()
+			warn, err = latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, "failed to parse latency total metric: 1:1: parse error: unexpected character: '$'")
 			require.Nil(t, warn)
 
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = `foo{foo="bar'}`
-			warn, err = latency.ValidateCreate()
+			warn, err = latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, "failed to parse latency total metric: 1:9: parse error: unterminated quoted string")
 			require.Nil(t, warn)
 
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = `foo{foo="bar"}`
 			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = `foo{foo="baz"}`
-			_, err = latency.ValidateCreate()
+			_, err = latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, "latency success metric must contain a le label matcher")
 
 			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = `foo{le="foo"}`
-			_, err = latency.ValidateCreate()
+			_, err = latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, `latency success metric must contain a le label matcher with a float value: strconv.ParseFloat: parsing "foo": invalid syntax`)
 
 			latency.Spec.ServiceLevelIndicator.Latency.Success.Metric = `foo{le="1.0"} or vector(0)`
-			_, err = latency.ValidateCreate()
+			_, err = latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, `latency success metric must be a vector selector, but got *parser.BinaryExpr`)
 			latency.Spec.ServiceLevelIndicator.Latency.Total.Metric = `foo{le="1.0"} or vector(0)`
-			_, err = latency.ValidateCreate()
+			_, err = latency.ValidateCreate(ctx, latency)
 			require.EqualError(t, err, `latency total metric must be a vector selector, but got *parser.BinaryExpr`)
 		})
 	})
 
 	t.Run("latencyNative", func(t *testing.T) {
+		ctx := context.Background()
 		latencyNative := func() *v1alpha1.ServiceLevelObjective {
 			return &v1alpha1.ServiceLevelObjective{
 				ObjectMeta: metav1.ObjectMeta{
@@ -617,20 +623,20 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			}
 		}
 
-		warn, err := latencyNative().ValidateCreate()
+		warn, err := latencyNative().ValidateCreate(ctx, latencyNative())
 		require.NoError(t, err)
 		require.Nil(t, warn)
 
 		t.Run("empty", func(t *testing.T) {
 			ln := latencyNative()
 			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = ""
-			warn, err := ln.ValidateCreate()
+			warn, err := ln.ValidateCreate(ctx, ln)
 			require.EqualError(t, err, "latencyNative total metric must be set")
 			require.Nil(t, warn)
 
 			ln = latencyNative()
 			ln.Spec.ServiceLevelIndicator.LatencyNative.Latency = ""
-			warn, err = ln.ValidateCreate()
+			warn, err = ln.ValidateCreate(ctx, ln)
 			require.EqualError(t, err, "latencyNative latency objective must be set")
 			require.Nil(t, warn)
 		})
@@ -638,7 +644,7 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 		t.Run("invalidLatency", func(t *testing.T) {
 			ln := latencyNative()
 			ln.Spec.ServiceLevelIndicator.LatencyNative.Latency = "foo"
-			warn, err := ln.ValidateCreate()
+			warn, err := ln.ValidateCreate(ctx, ln)
 			require.EqualError(t, err, `latencyNative latency objective must be a valid duration: not a valid duration string: "foo"`)
 			require.Nil(t, warn)
 		})
@@ -646,28 +652,29 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 		t.Run("invalidMetric", func(t *testing.T) {
 			ln := latencyNative()
 			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = "foo{"
-			warn, err := ln.ValidateCreate()
+			warn, err := ln.ValidateCreate(ctx, ln)
 			require.EqualError(t, err, "failed to parse latencyNative total metric: 1:5: parse error: unexpected end of input inside braces")
 			require.Nil(t, warn)
 
 			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = "foo}"
-			warn, err = ln.ValidateCreate()
+			warn, err = ln.ValidateCreate(ctx, ln)
 			require.EqualError(t, err, "failed to parse latencyNative total metric: 1:4: parse error: unexpected character: '}'")
 			require.Nil(t, warn)
 
 			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = "$$$"
-			warn, err = ln.ValidateCreate()
+			warn, err = ln.ValidateCreate(ctx, ln)
 			require.EqualError(t, err, "failed to parse latencyNative total metric: 1:1: parse error: unexpected character: '$'")
 			require.Nil(t, warn)
 
 			ln.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric = `foo{foo="bar'}`
-			warn, err = ln.ValidateCreate()
+			warn, err = ln.ValidateCreate(ctx, ln)
 			require.EqualError(t, err, "failed to parse latencyNative total metric: 1:9: parse error: unterminated quoted string")
 			require.Nil(t, warn)
 		})
 	})
 
 	t.Run("boolGauge", func(t *testing.T) {
+		ctx := context.Background()
 		boolGauge := func() *v1alpha1.ServiceLevelObjective {
 			return &v1alpha1.ServiceLevelObjective{
 				ObjectMeta: metav1.ObjectMeta{
@@ -688,14 +695,14 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			}
 		}
 
-		warn, err := boolGauge().ValidateCreate()
+		warn, err := boolGauge().ValidateCreate(ctx, boolGauge())
 		require.NoError(t, err)
 		require.Nil(t, warn)
 
 		t.Run("empty", func(t *testing.T) {
 			bg := boolGauge()
 			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = ""
-			warn, err := bg.ValidateCreate()
+			warn, err := bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "boolGauge metric must be set")
 			require.Nil(t, warn)
 		})
@@ -703,22 +710,22 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 		t.Run("invalidMetric", func(t *testing.T) {
 			bg := boolGauge()
 			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "foo{"
-			warn, err := bg.ValidateCreate()
+			warn, err := bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:5: parse error: unexpected end of input inside braces")
 			require.Nil(t, warn)
 
 			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "foo}"
-			warn, err = bg.ValidateCreate()
+			warn, err = bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:4: parse error: unexpected character: '}'")
 			require.Nil(t, warn)
 
 			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "$$$"
-			warn, err = bg.ValidateCreate()
+			warn, err = bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:1: parse error: unexpected character: '$'")
 			require.Nil(t, warn)
 
 			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = `foo{foo="bar'}`
-			warn, err = bg.ValidateCreate()
+			warn, err = bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:9: parse error: unterminated quoted string")
 			require.Nil(t, warn)
 		})
