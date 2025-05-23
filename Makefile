@@ -16,6 +16,14 @@ else
 GOJSONTOYAML=$(shell which gojsontoyaml)
 endif
 
+gofumpt:
+ifeq (, $(shell which gofumpt))
+	go install mvdan.cc/gofumpt@latest
+GOFUMPT=$(GOBIN)/gofumpt
+else
+GOFUMPT=$(shell which gofumpt)
+endif
+
 all: ui/build build lint
 
 .PHONY: install
@@ -44,9 +52,9 @@ deploy: manifests
 # Run code linters
 lint: fmt vet
 
-# Run go fmt against code
-fmt:
-	go fmt ./...
+# Run gofumpt against code
+fmt: gofumpt
+	$(GOFUMPT) -w .
 
 # Run go vet against code
 vet:

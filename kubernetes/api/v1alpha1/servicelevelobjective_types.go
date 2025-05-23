@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -37,7 +38,7 @@ func init() {
 	SchemeBuilder.Register(&ServiceLevelObjective{}, &ServiceLevelObjectiveList{})
 }
 
-var _ webhook.Validator = &ServiceLevelObjective{}
+var _ webhook.CustomValidator = &ServiceLevelObjective{}
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -195,15 +196,23 @@ type ServiceLevelObjectiveStatus struct {
 	Type string `json:"type,omitempty"`
 }
 
-func (in *ServiceLevelObjective) ValidateCreate() (admission.Warnings, error) {
-	return in.validate()
+func (in *ServiceLevelObjective) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	slo, ok := obj.(*ServiceLevelObjective)
+	if !ok {
+		return nil, fmt.Errorf("expected ServiceLevelObjective but got %T", obj)
+	}
+	return slo.validate()
 }
 
-func (in *ServiceLevelObjective) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
-	return in.validate()
+func (in *ServiceLevelObjective) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	slo, ok := newObj.(*ServiceLevelObjective)
+	if !ok {
+		return nil, fmt.Errorf("expected ServiceLevelObjective but got %T", newObj)
+	}
+	return slo.validate()
 }
 
-func (in *ServiceLevelObjective) ValidateDelete() (admission.Warnings, error) {
+func (in *ServiceLevelObjective) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 

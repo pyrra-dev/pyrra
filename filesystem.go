@@ -307,7 +307,7 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		return fmt.Errorf("failed to get objective: %w", err)
 	}
 
-	warn, err := kubeObjective.ValidateCreate()
+	warn, err := kubeObjective.ValidateCreate(context.Background(), &kubeObjective)
 	if len(warn) > 0 {
 		for _, w := range warn {
 			level.Warn(logger).Log(
