@@ -1221,7 +1221,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+		rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m]))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -1232,13 +1232,13 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}.replace(rate)
 
 		rules = append(rules, monitoringv1.Rule{
-			Record: "pyrra_requests_total",
+			Record: "pyrra_requests:rate5m",
 			Expr:   intstr.FromString(rate.String()),
 			Labels: ruleLabels,
 		})
 
 		errorsExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-			return parser.ParseExpr(`sum(metric{matchers="total"} or vector(0))`)
+			return parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m])) or vector(0)`)
 		}
 		errorsParsedExpr, err := errorsExpr()
 		if err != nil {
@@ -1251,7 +1251,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}.replace(errorsParsedExpr)
 
 		rules = append(rules, monitoringv1.Rule{
-			Record: "pyrra_errors_total",
+			Record: "pyrra_errors:rate5m",
 			Expr:   intstr.FromString(errorsParsedExpr.String()),
 			Labels: ruleLabels,
 		})
@@ -1312,7 +1312,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		}
 		// rate
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+			rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1331,14 +1331,14 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: "pyrra_requests_total",
+				Record: "pyrra_requests:rate5m",
 				Expr:   intstr.FromString(rate.String()),
 				Labels: ruleLabels,
 			})
 		}
 		// errors
 		{
-			errorsExpr, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
+			errorsExpr, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m])) - sum(rate(errorMetric{matchers="errors"}[5m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1369,7 +1369,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			}.replace(errorsExpr)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: "pyrra_errors_total",
+				Record: "pyrra_errors:rate5m",
 				Expr:   intstr.FromString(errorsExpr.String()),
 				Labels: ruleLabels,
 			})
@@ -1483,7 +1483,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: "pyrra_requests_total",
+				Record: "pyrra_requests:rate5m",
 				Expr:   intstr.FromString(rate.String()),
 				Labels: ruleLabels,
 			})
@@ -1504,7 +1504,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: "pyrra_errors_total",
+				Record: "pyrra_errors:rate5m",
 				Expr:   intstr.FromString(rate.String()),
 				Labels: ruleLabels,
 			})
