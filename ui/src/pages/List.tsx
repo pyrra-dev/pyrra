@@ -354,7 +354,7 @@ const columns = [
       return (
         <>
           <span className={v > target ? 'good' : 'bad'}>{(100 * v).toFixed(2)}%</span>
-          {totalVisible === false && (
+          {!totalVisible && (
             <VolumeWarningTooltip id={props.cell.id} objective={objective} total={total} />
           )}
         </>
@@ -740,15 +740,14 @@ const List = () => {
                       <li key={id} style={{padding: '4px 0'}}>
                         <input
                           type="checkbox"
-                          checked={columnVisibility[id] ?? false}
+                          checked={columnVisibility[id]}
                           id={id}
-                          onChange={() => {
-                            const currentValue = Boolean(columnVisibility[id] ?? false)
+                          onChange={() =>
                             setColumnVisibility({
                               ...columnVisibility,
-                              [id]: !currentValue,
+                              [id]: !columnVisibility[id],
                             })
-                          }}
+                          }
                         />
                         <label htmlFor={id} style={{marginLeft: 8}}>
                           {header}
@@ -772,10 +771,10 @@ const List = () => {
                         key={header.id}
                         className={header.column.getIsSorted() !== false ? 'active' : ''}
                         onClick={header.column.getToggleSortingHandler()}>
-                        {header.isPlaceholder === true
+                        {header.isPlaceholder
                           ? null
                           : flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() === true && header.column.getIsSorted() === false ? (
+                        {header.column.getCanSort() && header.column.getIsSorted() === false ? (
                           <IconArrowUpDown />
                         ) : (
                           ''
