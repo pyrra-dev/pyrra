@@ -16,7 +16,7 @@ import {useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import {Labels, labelsString, MetricName, parseLabels} from '../labels'
 import {createConnectTransport} from '@bufbuild/connect-web'
-import {createPromiseClient} from '@connectrpc/connect'
+import {createPromiseClient, Code} from '@connectrpc/connect'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
 import {
   Alert as ObjectiveAlert,
@@ -459,7 +459,7 @@ const List = () => {
   // TODO: Pass in the search to the useObjectivesList hook
   const {
     response: objectiveResponse,
-    // error: objectiveError,
+    error: objectiveError,
     status: objectiveStatus,
   } = useObjectivesList(client, labelsString(filterLabels), '')
 
@@ -668,6 +668,44 @@ const List = () => {
     return `/objectives?expr=${encodeURI(labelsString(labels))}&grouping=${encodeURI(
       labelsString(grouping),
     )}`
+  }
+
+  if (objectiveError !== null && objectiveError !== undefined) {
+    return (
+      <>
+        <Navbar/>
+        <Container className="content list">
+          <Row className="mt-3">
+            <Col>
+              {objectiveError.code === Code.NotFound && (
+                <Alert variant="info">
+                  <h5>No Service Level Objectives found</h5>
+                  <p className="mb-0">
+                    Add objectives using the <b>filesystem</b> or <b>Kubernetes</b> backend.
+                  </p>
+                </Alert>
+              )}
+              {objectiveError.code === Code.Unavailable && (
+                <Alert variant="danger">
+                  <h5>Backend connection failed</h5>
+                  <p className="mb-0">
+                    Cannot reach the backend service. Ensure the <b>filesystem</b> or <b>Kubernetes</b> backend is running.
+                  </p>
+                </Alert>
+              )}
+              {objectiveError.code !== Code.NotFound && objectiveError.code !== Code.Unavailable && (
+                <Alert variant="danger">
+                  <h5>Error loading objectives</h5>
+                  <p className="mb-0">
+                    {objectiveError.message}
+                  </p>
+                </Alert>
+              )}
+            </Col>
+          </Row>
+        </Container>
+      </>
+    )
   }
 
   return (
