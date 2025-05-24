@@ -842,7 +842,7 @@ func TestObjective_ErrorsRange(t *testing.T) {
 		name:      "http-latency-native",
 		objective: objectiveHTTPNativeLatency(),
 		timerange: time.Hour,
-		expected:  `1 - sum(histogram_fraction(0, 1, rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[1h])))`,
+		expected:  `1 - histogram_fraction(0, 1, sum(rate(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[1h])))`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
