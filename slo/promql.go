@@ -714,7 +714,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`1 - sum(histogram_fraction(0,0.696969, rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, sum(rate(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
