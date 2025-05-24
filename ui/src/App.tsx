@@ -16,7 +16,11 @@ export const PATH_PREFIX: string = window.PATH_PREFIX
 // @ts-expect-error - this is passed from the HTML template.
 export const API_BASEPATH: string = window.API_BASEPATH
 // @ts-expect-error - this is passed from the HTML template.
-export const PROMETHEUS_URL: string = window.PROMETHEUS_URL
+export const EXTERNAL_URL: string = window.EXTERNAL_URL
+// @ts-expect-error - this is passed from the HTML template.
+export const EXTERNAL_GRAFANA_DATASOURCE_ID: string = window.EXTERNAL_GRAFANA_DATASOURCE_ID
+// @ts-expect-error - this is passed from the HTML template.
+export const EXTERNAL_GRAFANA_ORG_ID: string = window.EXTERNAL_GRAFANA_ORG_ID
 
 const queryClient = new QueryClient({
   defaultOptions: {

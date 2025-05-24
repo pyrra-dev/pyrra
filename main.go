@@ -56,6 +56,9 @@ var CLI struct {
 	API struct {
 		PrometheusURL               *url.URL          `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
 		PrometheusExternalURL       *url.URL          `help:"The URL for the UI to redirect users to when opening Prometheus. If empty the same as prometheus.url"`
+		GrafanaExternalURL          *url.URL          `help:"The URL for the UI to redirect users to Grafana Explore page"`
+		GrafanaExternalOrgID        string            `default:"1" help:"The Grafana Explore organization id"`
+		GrafanaExternalDatasourceID string            `help:"The Grafana Explore prometheus datasource id"`
 		APIURL                      *url.URL          `name:"api-url" default:"http://localhost:9444" help:"The URL to the API service like a Kubernetes Operator."`
 		RoutePrefix                 string            `default:"" help:"The route prefix Pyrra uses. If run behind a proxy you can change it to something like /pyrra here."`
 		UIRoutePrefix               string            `default:"" help:"The route prefix Pyrra's UI uses. This is helpful for when the prefix is stripped by a proxy but still runs on /pyrra. Defaults to --route-prefix"`
@@ -147,8 +150,22 @@ func main() {
 	client = newThanosClient(client)
 	level.Info(logger).Log("msg", "using Prometheus", "url", prometheusURL.String())
 
-	if CLI.API.PrometheusExternalURL == nil {
-		CLI.API.PrometheusExternalURL = prometheusURL
+	// Default external url to prometheus if not defined
+	externalURL := prometheusURL
+	if CLI.API.PrometheusExternalURL != nil && CLI.API.GrafanaExternalURL != nil {
+		level.Error(logger).Log("msg", "prometheus external URL set alongside grafana external url")
+		os.Exit(1)
+	} else if CLI.API.GrafanaExternalURL == nil && CLI.API.GrafanaExternalDatasourceID != "" {
+		level.Error(logger).Log("msg", "grafana external datasource id set without grafana external url")
+		os.Exit(1)
+	} else if CLI.API.PrometheusExternalURL != nil {
+		externalURL = CLI.API.PrometheusExternalURL
+	} else if CLI.API.GrafanaExternalURL != nil {
+		if CLI.API.GrafanaExternalDatasourceID == "" {
+			level.Error(logger).Log("msg", "grafana external datasource id cannot be empty when using an external grafana url")
+			os.Exit(1)
+		}
+		externalURL = CLI.API.GrafanaExternalURL
 	}
 
 	// Mimir Client
@@ -183,8 +200,10 @@ func main() {
 			logger,
 			reg,
 			client,
-			CLI.API.PrometheusExternalURL,
+			externalURL,
 			CLI.API.APIURL,
+			CLI.API.GrafanaExternalOrgID,
+			CLI.API.GrafanaExternalDatasourceID,
 			CLI.API.RoutePrefix,
 			CLI.API.UIRoutePrefix,
 			CLI.API.TLSCertFile,
@@ -227,7 +246,8 @@ func cmdAPI(
 	logger log.Logger,
 	reg *prometheus.Registry,
 	promClient api.Client,
-	prometheusExternal, apiURL *url.URL,
+	externalURL, apiURL *url.URL,
+	externalGrafanaOrgID, externalGrafanaDatasourceID string,
 	routePrefix, uiRoutePrefix string,
 	tlsCertFile, tlsPrivateKeyFile string,
 ) int {
@@ -245,7 +265,12 @@ func cmdAPI(
 		uiRoutePrefix = "/" + strings.Trim(uiRoutePrefix, "/")
 	}
 
-	level.Info(logger).Log("msg", "UI redirect to Prometheus", "url", prometheusExternal.String())
+	if externalGrafanaDatasourceID == "" {
+		level.Info(logger).Log("msg", "UI redirect to Prometheus", "url", externalURL.String())
+	} else {
+		level.Info(logger).Log("msg", "UI redirect to Grafana", "url", externalURL.String(),
+			"datasourceId", externalGrafanaDatasourceID, "orgId", externalGrafanaOrgID)
+	}
 	level.Info(logger).Log("msg", "using API at", "url", apiURL.String())
 	level.Info(logger).Log("msg", "using route prefix", "prefix", routePrefix)
 
@@ -334,13 +359,17 @@ func cmdAPI(
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 		r.Get("/objectives", func(w http.ResponseWriter, _ *http.Request) {
 			err := tmpl.Execute(w, struct {
-				PrometheusURL string
-				PathPrefix    string
-				APIBasepath   string
+				ExternalURL                 string
+				ExternalGrafanaDatasourceID string
+				ExternalGrafanaOrgID        string
+				PathPrefix                  string
+				APIBasepath                 string
 			}{
-				PrometheusURL: prometheusExternal.String(),
-				PathPrefix:    uiRoutePrefix,
-				APIBasepath:   uiRoutePrefix,
+				ExternalURL:                 externalURL.String(),
+				ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
+				ExternalGrafanaOrgID:        externalGrafanaOrgID,
+				PathPrefix:                  uiRoutePrefix,
+				APIBasepath:                 uiRoutePrefix,
 			})
 			if err != nil {
 				level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
@@ -350,13 +379,17 @@ func cmdAPI(
 			// Trim trailing slash to not care about matching e.g. /pyrra and /pyrra/
 			if r.URL.Path == "/" || strings.TrimSuffix(r.URL.Path, "/") == routePrefix {
 				err := tmpl.Execute(w, struct {
-					PrometheusURL string
-					PathPrefix    string
-					APIBasepath   string
+					ExternalURL                 string
+					ExternalGrafanaDatasourceID string
+					ExternalGrafanaOrgID        string
+					PathPrefix                  string
+					APIBasepath                 string
 				}{
-					PrometheusURL: prometheusExternal.String(),
-					PathPrefix:    uiRoutePrefix,
-					APIBasepath:   uiRoutePrefix,
+					ExternalURL:                 externalURL.String(),
+					ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
+					ExternalGrafanaOrgID:        externalGrafanaOrgID,
+					PathPrefix:                  uiRoutePrefix,
+					APIBasepath:                 uiRoutePrefix,
 				})
 				if err != nil {
 					level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)

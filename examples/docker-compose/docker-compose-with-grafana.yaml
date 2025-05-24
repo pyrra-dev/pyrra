@@ -1,0 +1,71 @@
+version: "3"
+
+networks:
+  pyrra:
+
+volumes:
+  prometheus_pyrra: {}
+  grafana_data: {}
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    restart: always
+    networks:
+      - pyrra
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=33d
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_pyrra:/etc/prometheus/pyrra
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    networks:
+      - pyrra
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  pyrra-api:
+    image: ghcr.io/pyrra-dev/pyrra:v0.7.5
+    container_name: pyrra_api
+    restart: always
+    command:
+      - api
+      - --prometheus-url=http://prometheus:9090
+      # Use Grafana for external links instead of Prometheus
+      # Note: You'll need to configure the datasource in Grafana first and get its UID
+      - --grafana-external-url=http://localhost:3000
+      - --grafana-external-datasource-id=prometheus-uid  # Replace with actual datasource UID
+      - --api-url=http://pyrra-filesystem:9444
+    ports:
+      - "9099:9099"
+    networks:
+      - pyrra
+
+  pyrra-filesystem:
+    image: ghcr.io/pyrra-dev/pyrra:v0.7.5
+    user: root
+    container_name: pyrra_filesystem
+    restart: always
+    command:
+      - filesystem
+      - --prometheus-url=http://prometheus:9090
+    networks:
+      - pyrra
+    volumes:
+      - ./pyrra:/etc/pyrra
+      - prometheus_pyrra:/etc/prometheus/pyrra

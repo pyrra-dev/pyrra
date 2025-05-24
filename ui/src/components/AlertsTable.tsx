@@ -1,6 +1,5 @@
 import {OverlayTrigger, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
 import React, {useEffect, useState} from 'react'
-import {PROMETHEUS_URL} from '../App'
 import {IconChevron, IconExternal} from './Icons'
 import {Labels, labelsString} from '../labels'
 import {
@@ -18,6 +17,7 @@ import {usePrometheusQueryRange} from '../prometheus'
 import {step} from './graphs/step'
 import {convertAlignedData} from './graphs/aligneddata'
 import {formatDuration} from '../duration'
+import {buildExternalHRef, externalName} from '../external';
 
 interface AlertsTableProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -91,7 +91,7 @@ const AlertsTable = ({
             <th style={{width: '5%'}} />
             <th style={{width: '10%', textAlign: 'left'}}>Long Burn</th>
             <th style={{width: '5%', textAlign: 'right'}}>For</th>
-            <th style={{width: '10%', textAlign: 'left'}}>Prometheus</th>
+            <th style={{width: '10%', textAlign: 'left'}}>{externalName()}</th>
           </tr>
         </thead>
         <tbody>
@@ -199,9 +199,7 @@ const AlertsTable = ({
                       className="external-prometheus"
                       target="_blank"
                       rel="noreferrer"
-                      href={`${PROMETHEUS_URL}/graph?g0.expr=${encodeURIComponent(
-                        a.long?.query ?? '',
-                      )}&g0.tab=0&g1.expr=${encodeURIComponent(a.short?.query ?? '')}&g1.tab=0`}>
+                      href={buildExternalHRef([a.long?.query ?? '', a.short?.query ?? ''], from, to)}>
                       <IconExternal height={20} width={20} />
                     </a>
                     {showBurnrate[i]}
