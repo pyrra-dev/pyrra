@@ -20,7 +20,7 @@ export const useObjectivesList = (
   const {data, error, status} = useConnectQuery({
     key: [expr, grouping],
     func: async () => {
-      return await client.list({expr, grouping})
+      return client.list({expr, grouping})
     },
     options,
   })
@@ -45,7 +45,7 @@ export const useObjectivesStatus = (
   const {data, error, status} = useConnectQuery({
     key: ['status', expr, grouping],
     func: async () => {
-      return await client.getStatus({expr, grouping, time: Timestamp.fromDate(new Date(to))})
+      return client.getStatus({expr, grouping, time: Timestamp.fromDate(new Date(to))})
     },
     options,
   })

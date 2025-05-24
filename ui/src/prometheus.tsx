@@ -21,7 +21,7 @@ export const usePrometheusQuery = (
   const {data, error, status} = useConnectQuery<QueryResponse>({
     key: ['query', query, time],
     func: async () => {
-      return await client.query({query: query, time: BigInt(time)})
+      return client.query({query: query, time: BigInt(time)})
     },
     options,
   })
@@ -49,7 +49,7 @@ export const usePrometheusQueryRange = (
   const {data, error, status} = useConnectQuery<QueryRangeResponse>({
     key: ['queryRange', query, start / 10, end / 10, step],
     func: async () => {
-      return await client.queryRange({
+      return client.queryRange({
         query,
         start: BigInt(start),
         end: BigInt(end),
