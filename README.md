@@ -186,6 +186,43 @@ picked up by a Prometheus instance. While running Pyrra on its own works, there
 won't be any SLO configured, nor will there be any data from a Prometheus to
 work with. It's designed to work alongside a Prometheus.
 
+## Configuration Options
+
+### API Command Flags
+
+When running `pyrra api`, you can configure various options:
+
+#### Prometheus Configuration
+- `--prometheus-url` - The URL to the Prometheus to query (default: `http://localhost:9090`)
+- `--prometheus-external-url` - The URL for the UI to redirect users to when opening Prometheus
+
+#### Grafana Integration
+As an alternative to redirecting to Prometheus, Pyrra can redirect to Grafana Explore for a richer query experience:
+
+- `--grafana-external-url` - The URL for the UI to redirect users to Grafana Explore page
+- `--grafana-external-org-id` - The Grafana Explore organization id (default: `1`)
+- `--grafana-external-datasource-id` - The Grafana Explore prometheus datasource id (required when using `--grafana-external-url`)
+
+**Note:** You cannot use both `--prometheus-external-url` and `--grafana-external-url` at the same time. Choose one based on your preference.
+
+#### Example Usage
+
+Using Prometheus external URL:
+```bash
+pyrra api \
+  --prometheus-url=http://prometheus:9090 \
+  --prometheus-external-url=http://prometheus.example.com \
+  --api-url=http://pyrra-filesystem:9444
+```
+
+Using Grafana external URL:
+```bash
+pyrra api \
+  --grafana-external-url=http://grafana:3000 \
+  --grafana-external-datasource-id=cemv8t0tc1hq8b \
+  --api-url=http://pyrra-filesystem:9444
+```
+
 ## Tech Stack
 
 **Client:** TypeScript with React, Bootstrap, and uPlot.
