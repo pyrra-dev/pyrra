@@ -8,6 +8,7 @@ import {
   Dropdown,
   OverlayTrigger,
   Row,
+  Spinner,
   Table,
   Tooltip as OverlayTooltip,
 } from 'react-bootstrap'
@@ -668,6 +669,24 @@ const List = () => {
     return `/objectives?expr=${encodeURI(labelsString(labels))}&grouping=${encodeURI(
       labelsString(grouping),
     )}`
+  }
+
+  if (objectiveStatus === 'loading') {
+    return (
+      <>
+        <Navbar/>
+        <Container className="content list">
+          <Row className="mt-3 justify-content-center">
+            <Col xs="auto" className="text-center">
+              <Spinner animation="border" role="status">
+                <span className="visually-hidden">Loading objectives...</span>
+              </Spinner>
+              <p className="mt-3">Loading objectives...</p>
+            </Col>
+          </Row>
+        </Container>
+      </>
+    )
   }
 
   if (objectiveError !== null && objectiveError !== undefined) {
