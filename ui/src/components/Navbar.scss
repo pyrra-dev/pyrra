@@ -21,11 +21,23 @@
       &:hover {
         color: $gray-900;
       }
+      
+      [data-bs-theme="dark"] & {
+        color: $dark-gray-700;
+        
+        &:hover {
+          color: $dark-gray-900;
+        }
+      }
     }
 
     span {
       color: $gray-900;
       font-weight: 700;
+      
+      [data-bs-theme="dark"] & {
+        color: $dark-gray-900;
+      }
     }
   }
 
@@ -37,5 +49,84 @@
     left: 0;
     right: 0;
     margin: 0 auto;
+  }
+  
+  .theme-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 8px;
+    
+    @media (min-width: 576px) {
+      right: 2rem;
+    }
+    
+    .btn {
+      font-size: 0.875rem;
+      padding: 0.375rem 0.75rem;
+      border-color: $gray-400;
+      color: $gray-700;
+      background-color: transparent;
+      transition: all 0.15s ease-in-out;
+      
+      span {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+      }
+      
+      &:hover:not(.active) {
+        background-color: $gray-200;
+        color: $gray-900;
+        border-color: $gray-500;
+      }
+      
+      &.active {
+        background-color: $gray-700;
+        border-color: $gray-700;
+        color: white;
+        
+        &:hover {
+          background-color: $gray-800;
+          border-color: $gray-800;
+        }
+      }
+      
+      &:focus {
+        box-shadow: 0 0 0 0.2rem rgba($gray-700, 0.25);
+      }
+      
+      &:focus:not(:focus-visible) {
+        box-shadow: none;
+      }
+    }
+    
+    [data-bs-theme="dark"] & {
+      .btn {
+        border-color: $dark-gray-600;
+        color: $dark-gray-700;
+        
+        &:hover:not(.active) {
+          background-color: $dark-gray-400;
+          color: $dark-gray-900;
+          border-color: $dark-gray-700;
+        }
+        
+        &.active {
+          background-color: $dark-gray-700;
+          border-color: $dark-gray-700;
+          color: $dark-gray-100;
+          
+          &:hover {
+            background-color: $dark-gray-800;
+            border-color: $dark-gray-800;
+            color: $dark-gray-100;
+          }
+        }
+        
+        &:focus {
+          box-shadow: 0 0 0 0.2rem rgba($dark-gray-700, 0.25);
+        }
+      }
+    }
   }
 }

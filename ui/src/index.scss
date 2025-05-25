@@ -1,3 +1,4 @@
+// Light theme colors
 $gray-100: #fafafa;
 $gray-200: #f5f5f5;
 $gray-300: #f0f0f0;
@@ -7,6 +8,17 @@ $gray-600: #979797;
 $gray-700: #818181;
 $gray-800: #606060;
 $gray-900: #3c3c3c;
+
+// Dark theme colors
+$dark-gray-100: #1a1a1a;
+$dark-gray-200: #2a2a2a;
+$dark-gray-300: #3a3a3a;
+$dark-gray-400: #4a4a4a;
+$dark-gray-500: #6a6a6a;
+$dark-gray-600: #8a8a8a;
+$dark-gray-700: #aaaaaa;
+$dark-gray-800: #cacaca;
+$dark-gray-900: #eaeaea;
 
 $blue: #005397;
 $blue-text: lighten($blue, 65%);
@@ -99,6 +111,125 @@ $container-max-widths:map-merge($container-max-widths, (
 
 @import './components/Toggle';
 
+// Dark mode support using Bootstrap's data-bs-theme
+[data-bs-theme="dark"] {
+  // Override Bootstrap's dark theme colors with our custom palette
+  --bs-body-bg: #{$dark-gray-100};
+  --bs-body-color: #{$dark-gray-900};
+  --bs-border-color: #{$dark-gray-400};
+  
+  // Table colors
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: #{$dark-gray-200};
+  --bs-table-hover-bg: #{$dark-gray-300};
+  --bs-table-border-color: #{$dark-gray-400};
+  
+  // Form colors
+  --bs-input-bg: #{$dark-gray-200};
+  --bs-input-border-color: #{$dark-gray-400};
+  --bs-input-color: #{$dark-gray-900};
+  
+  // Button colors
+  --bs-btn-bg: #{$dark-gray-300};
+  --bs-btn-border-color: #{$dark-gray-400};
+  --bs-btn-hover-bg: #{$dark-gray-400};
+  --bs-btn-hover-border-color: #{$dark-gray-500};
+  
+  // Link colors
+  --bs-link-color: lighten($blue, 20%);
+  --bs-link-hover-color: lighten($blue, 30%);
+  
+  // Custom component overrides
+  .navbar {
+    background-color: $dark-gray-200;
+  }
+  
+  .table thead th {
+    color: $dark-gray-700;
+  }
+  
+  .btn-light {
+    background-color: $dark-gray-300;
+    border-color: $dark-gray-400;
+    color: $dark-gray-900;
+    
+    &:hover {
+      background-color: $dark-gray-400;
+      border-color: $dark-gray-500;
+      color: $dark-gray-900;
+    }
+    
+    &:not(:disabled):not(.disabled):active,
+    &:not(:disabled):not(.disabled).active {
+      background-color: $dark-gray-900;
+      border-color: $dark-gray-900;
+      color: $dark-gray-100;
+    }
+    
+    &:not(:disabled):not(.disabled):active:focus,
+    &:not(:disabled):not(.disabled).active:focus {
+      box-shadow: 0 0 0 0.2rem rgba($dark-gray-900, 0.5);
+    }
+  }
+  
+  .btn-group {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+  
+  pre {
+    background-color: $dark-gray-300;
+    color: $dark-gray-900;
+  }
+  
+  .badge {
+    // Adjust badge colors for better contrast in dark mode
+    &.bg-success {
+      background-color: darken($green, 10%) !important;
+    }
+    &.bg-danger {
+      background-color: darken($red, 10%) !important;
+    }
+    &.bg-warning {
+      background-color: darken($yellow, 10%) !important;
+    }
+  }
+  
+  // Dropdown menus
+  .dropdown-menu {
+    background-color: $dark-gray-200;
+    border-color: $dark-gray-400;
+    
+    .dropdown-item {
+      color: $dark-gray-900;
+      
+      &:hover {
+        background-color: $dark-gray-300;
+      }
+    }
+  }
+  
+  // Alerts
+  .alert {
+    &.alert-danger {
+      background-color: rgba($red, 0.1);
+      border-color: rgba($red, 0.3);
+      color: lighten($red, 20%);
+    }
+    
+    &.alert-success {
+      background-color: rgba($green, 0.1);
+      border-color: rgba($green, 0.3);
+      color: lighten($green, 20%);
+    }
+    
+    &.alert-warning {
+      background-color: rgba($yellow, 0.1);
+      border-color: rgba($yellow, 0.3);
+      color: lighten($yellow, 20%);
+    }
+  }
+}
+
 .navbar {
   background-color: $gray-300;
 }
@@ -145,6 +276,12 @@ a.external-prometheus {
   svg {
     margin-top: -2px;
     margin-right: 4px;
+  }
+}
+
+[data-bs-theme="dark"] {
+  a.external-prometheus {
+    color: $dark-gray-900;
   }
 }
 

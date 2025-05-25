@@ -11,6 +11,10 @@
 
   .timerange {
     background: linear-gradient(0deg, rgba(0, 0, 0, 0) 45%, $gray-300 50%, rgba(0, 0, 0, 0) 55%);
+    
+    [data-bs-theme="dark"] & {
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0) 45%, $dark-gray-400 50%, rgba(0, 0, 0, 0) 55%);
+    }
 
     .inner {
       display: flex;
@@ -19,6 +23,10 @@
       row-gap: 20px;
       column-gap: 20px;
       flex-direction: column;
+      
+      [data-bs-theme="dark"] & {
+        background-color: $dark-gray-100;
+      }
 
       .time {
         display: flex;

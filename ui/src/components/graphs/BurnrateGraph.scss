@@ -3,6 +3,10 @@ div.burnrate {
   padding: 15px;
   background-color: white;
   border-radius: 5px;
+  
+  [data-bs-theme="dark"] & {
+    background-color: $dark-gray-200;
+  }
 
   h5.graphs-headline {
     margin-top: 20px;

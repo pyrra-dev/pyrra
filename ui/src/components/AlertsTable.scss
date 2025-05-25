@@ -11,12 +11,22 @@
     background-color: $yellow-text;
     border-left: 5px solid $yellow;
     color: darken($yellow, 25%);
+    
+    [data-bs-theme="dark"] & {
+      background-color: rgba($yellow, 0.2);
+      color: lighten($yellow, 15%);
+    }
   }
 
   tr.firing {
     background-color: $red-text;
     border-left: 5px solid $red;
     color: darken($red, 40%);
+    
+    [data-bs-theme="dark"] & {
+      background-color: rgba($red, 0.2);
+      color: lighten($red, 15%);
+    }
   }
 
   tr button.accordion {
@@ -35,5 +45,9 @@
 
   tr.burnrate {
     background-color: $gray-100;
+    
+    [data-bs-theme="dark"] & {
+      background-color: $dark-gray-100;
+    }
   }
 }

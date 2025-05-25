@@ -22,6 +22,11 @@
     background-color: $gray-300;
     color: $gray-900;
     border-radius: 8px;
+    
+    [data-bs-theme="dark"] & {
+      background-color: $dark-gray-300;
+      color: $dark-gray-900;
+    }
 
     h2, h6 {
       font-family: $font-family-sans-serif;

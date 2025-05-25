@@ -10,6 +10,7 @@ import {
 } from './proto/objectives/v1alpha1/objectives_pb'
 import {QueryClient, QueryClientProvider} from 'react-query'
 import {formatDuration, parseDuration} from './duration'
+import {ThemeProvider} from './ThemeContext'
 
 // @ts-expect-error - this is passed from the HTML template.
 export const PATH_PREFIX: string = window.PATH_PREFIX
@@ -35,14 +36,16 @@ const App = () => {
     PATH_PREFIX === undefined ? '' : `/${PATH_PREFIX.replace(/^\//, '').replace(/\/$/, '')}`
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename={basename}>
-        <Routes>
-          <Route path="/" element={<List />} />
-          <Route path="/objectives" element={<Detail />} />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter basename={basename}>
+          <Routes>
+            <Route path="/" element={<List />} />
+            <Route path="/objectives" element={<Detail />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }
 
