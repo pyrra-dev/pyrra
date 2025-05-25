@@ -27,7 +27,6 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/rulefmt"
-	yamlv3 "gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -305,7 +304,7 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	}
 	burnratesMimirRules := prometheusRulesToMimirRules(burnrates.Rules, writeAlertingRules)
 
-	genericMimirRules := []rulefmt.RuleNode{}
+	genericMimirRules := []rulefmt.Rule{}
 	if genericRules {
 		rules, err := objective.GenericRules()
 		if err != nil {
@@ -317,7 +316,7 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 		}
 	}
 
-	combinedRules := make([]rulefmt.RuleNode, len(increasesMimirRules)+len(burnratesMimirRules)+len(genericMimirRules))
+	combinedRules := make([]rulefmt.Rule, len(increasesMimirRules)+len(burnratesMimirRules)+len(genericMimirRules))
 	i := 0
 	for _, r := range increasesMimirRules {
 		combinedRules[i] = r
@@ -339,41 +338,35 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	}, nil
 }
 
-func prometheusRuleToMimirRuleNode(promRule monitoringv1.Rule) rulefmt.RuleNode {
+func prometheusRuleToMimirRule(promRule monitoringv1.Rule) rulefmt.Rule {
 	if promRule.Alert != "" {
 		forVal := time.Minute * 5
 		if promRule.For != nil {
 			// TODO
 			forVal, _ = time.ParseDuration(string(*promRule.For))
 		}
-		return rulefmt.RuleNode{
-			Expr:        yamlStringNode(promRule.Expr.String()),
-			Alert:       yamlStringNode(promRule.Alert),
+		return rulefmt.Rule{
+			Expr:        promRule.Expr.String(),
+			Alert:       promRule.Alert,
 			For:         model.Duration(forVal),
 			Labels:      promRule.Labels,
 			Annotations: promRule.Annotations,
 		}
 	}
-	return rulefmt.RuleNode{
-		Expr:   yamlStringNode(promRule.Expr.String()),
-		Record: yamlStringNode(promRule.Record),
+	return rulefmt.Rule{
+		Expr:   promRule.Expr.String(),
+		Record: promRule.Record,
 		Labels: promRule.Labels,
 	}
 }
 
-func yamlStringNode(val string) yamlv3.Node {
-	n := yamlv3.Node{}
-	n.SetString(val)
-	return n
-}
-
-func prometheusRulesToMimirRules(promRules []monitoringv1.Rule, writeAlertingRules bool) []rulefmt.RuleNode {
-	rules := []rulefmt.RuleNode{}
+func prometheusRulesToMimirRules(promRules []monitoringv1.Rule, writeAlertingRules bool) []rulefmt.Rule {
+	rules := []rulefmt.Rule{}
 	for _, r := range promRules {
 		if r.Alert != "" && !writeAlertingRules {
 			continue
 		}
-		rules = append(rules, prometheusRuleToMimirRuleNode(r))
+		rules = append(rules, prometheusRuleToMimirRule(r))
 	}
 
 	return rules
