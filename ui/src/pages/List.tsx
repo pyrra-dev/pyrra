@@ -282,7 +282,11 @@ const columns = [
     id: 'window',
     header: 'Window',
     cell: (props) => {
-      return formatDuration(Number(props.getValue()?.seconds) * 1000)
+      const window = props.getValue()
+      if (Number(window?.seconds) === 0) {
+        return <span className="text-danger">Error: Invalid SLO configuration</span>
+      }
+      return formatDuration(Number(window?.seconds) * 1000)
     },
     sortingFn: (a, b, column): number => {
       const av: Duration = a.getValue(column)
@@ -791,6 +795,11 @@ const List = () => {
                   <tr
                     key={row.id}
                     onClick={() => {
+                      const window: Duration | undefined = row.getValue('window')
+                      if (Number(window?.seconds) === 0) {
+                        // Don't navigate for invalid SLOs
+                        return
+                      }
                       const labels: {lset: Labels; grouping: Labels} = row.getValue('lset')
                       navigate(objectivePage(labels.lset, labels.grouping))
                     }}
