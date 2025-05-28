@@ -169,6 +169,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
 	req ctrl.Request,
 	kubeObjective pyrrav1alpha1.ServiceLevelObjective,
 ) (ctrl.Result, error) {
+	// TODO: make configurable
 	name := fmt.Sprintf("pyrra-recording-rule-%s", kubeObjective.GetName())
 
 	newConfigMap, err := makeConfigMap(name, kubeObjective, r.GenericRules)
@@ -269,9 +270,10 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: kubeObjective.GetNamespace(),
-			Labels:    kubeObjective.GetLabels(),
+			Name:        name,
+			Namespace:   kubeObjective.GetNamespace(),
+			Labels:      kubeObjective.GetLabels(),
+			Annotations: kubeObjective.Annotations,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: kubeObjective.APIVersion,
