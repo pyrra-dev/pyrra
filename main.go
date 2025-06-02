@@ -68,6 +68,7 @@ var CLI struct {
 		TLSCertFile                 string            `default:"" help:"File containing the default x509 Certificate for HTTPS."`
 		TLSPrivateKeyFile           string            `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 		TLSClientCAFile             string            `default:"" help:"File containing the CA certificate for the client"`
+		MimirTenantIds              []string          `default:"" help:"Mimir tenant IDs to query if multi-tenancy is enabled."`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
@@ -130,6 +131,16 @@ func main() {
 	}
 	if CLI.API.TLSClientCAFile != "" {
 		clientConfig.TLSConfig = promconfig.TLSConfig{CAFile: CLI.API.TLSClientCAFile}
+	}
+	if len(CLI.API.MimirTenantIds) > 0 {
+		mimirHeaderValue := strings.Join(CLI.API.MimirTenantIds, "|")
+		clientConfig.HTTPHeaders = &promconfig.Headers{
+			Headers: map[string]promconfig.Header{
+				"X-Scope-OrgID": {
+					Values: []string{mimirHeaderValue},
+				},
+			},
+		}
 	}
 
 	roundTripper, err := promconfig.NewRoundTripperFromConfig(clientConfig, "prometheus")
