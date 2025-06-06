@@ -502,6 +502,23 @@ func convertPrometheusRuleToVictoriaMetricsRule(promRule monitoringv1.Prometheus
 		if promGroup.Interval != nil {
 			tgroup.Interval = string(*promGroup.Interval)
 		}
+
+		// check if this is the generic rules group, by checking if the name ends on "-generic" and add a eval_offset to it
+		if promGroup.Name != "" && promGroup.Name[len(promGroup.Name)-len("-generic"):] == "-generic" {
+			// the offset should be half of the interval
+			if promGroup.Interval != nil {
+				// convert the interval to a duration
+				interval, err := time.ParseDuration(string(*promGroup.Interval))
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse interval: %w", err)
+				}
+				// set the eval_offset to half of the interval
+				tgroup.EvalOffset = fmt.Sprintf("%s", interval/2)
+			} else {
+				// if no interval is set, use a default value
+				tgroup.EvalOffset = "10s"
+			}
+		}
 		ruleGroups = append(ruleGroups, tgroup)
 	}
 	vm := &vmv1beta1.VMRule{

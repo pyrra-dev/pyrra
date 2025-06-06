@@ -428,6 +428,62 @@ func Test_convertsPrometheusRuleToVictoriaMetricsRuleSuccessfully(t *testing.T) 
 	require.Equal(t, map[string]string{"summary": "Test summary"}, vmRule.Spec.Groups[0].Rules[0].Annotations)
 }
 
+func Test_convertPrometheusRuleToVictoriaMetricsRule_EvalOffset(t *testing.T) {
+	promRule := monitoringv1.PrometheusRule{
+		Spec: monitoringv1.PrometheusRuleSpec{
+			Groups: []monitoringv1.RuleGroup{
+				{
+					Name:     "test-generic",
+					Interval: monitoringDuration("30s"),
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "test_record",
+							Expr:   intstr.FromString("up == 0"),
+						},
+					},
+				},
+				{
+					Name: "test-no-interval-generic",
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "test_record",
+							Expr:   intstr.FromString("up == 0"),
+						},
+					},
+				},
+				{
+					Name: "test-rule",
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "test_record",
+							Expr:   intstr.FromString("up == 0"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	vmRule, err := convertPrometheusRuleToVictoriaMetricsRule(promRule)
+	require.NoError(t, err)
+	require.Len(t, vmRule.Spec.Groups, 3)
+
+	// Check eval_offset for the generic group
+	genericGroup := vmRule.Spec.Groups[0]
+	require.Equal(t, "test-generic", genericGroup.Name)
+	require.Equal(t, "15s", genericGroup.EvalOffset) // Half of 30s interval
+
+	// Check no eval_offset for the non-interval generic group
+	nonIntervalGenericGroup := vmRule.Spec.Groups[1]
+	require.Equal(t, "test-no-interval-generic", nonIntervalGenericGroup.Name)
+	require.Equal(t, "10s", nonIntervalGenericGroup.EvalOffset) // No interval, so no eval_offset
+
+	// Check no eval_offset for the non-generic group
+	nonGenericGroup := vmRule.Spec.Groups[2]
+	require.Equal(t, "test-rule", nonGenericGroup.Name)
+	require.Empty(t, nonGenericGroup.EvalOffset)
+}
+
 func monitoringDuration(d string) *monitoringv1.Duration {
 	md := monitoringv1.Duration(d)
 	return &md
