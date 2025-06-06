@@ -30,6 +30,9 @@ kubectl apply -f ./manifests/setup
 kubectl apply -f ./manifests/
 ```
 
+[!NOTE] If you intend to use Pyrra with VictoriaMetrics, you can skip the Prometheus Operator and instead deploy 
+VictoriaMetrics like described [here](../victoriametrics/README.md).[!NOTE]
+
 Once that's done you should give it a minute or two to fully start everything.   
 You can double-check how things are doing by running `kubectl get pods -n monitoring`.
 

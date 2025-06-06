@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	vmv1beta1 "github.com/VictoriaMetrics/operator/api/operator/v1beta1"
 	kitlog "github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
@@ -49,6 +50,7 @@ type ServiceLevelObjectiveReconciler struct {
 	Logger                  kitlog.Logger
 	Scheme                  *runtime.Scheme
 	ConfigMapMode           bool
+	VictoriaMetricsMode     bool
 	GenericRules            bool
 }
 
@@ -102,6 +104,10 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 		return r.reconcileMimirRuleGroup(ctx, logger, slo)
 	}
 
+	if r.VictoriaMetricsMode {
+		return r.reconcileVictoriaMetricsRule(ctx, logger, req, slo)
+	}
+
 	return r.reconcilePrometheusRule(ctx, logger, req, slo)
 }
 
@@ -131,6 +137,43 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	}
 
 	kubeObjective.Status.Type = "PrometheusRule"
+	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceLevelObjectiveReconciler) reconcileVictoriaMetricsRule(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+	newPromRule, err := makePrometheusRule(kubeObjective, r.GenericRules)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	var rule vmv1beta1.VMRule
+	newRule, err := convertPrometheusRuleToVictoriaMetricsRule(*newPromRule)
+	if err != nil {
+		logger.Log("msg", "failed to convert prometheus rule to victoria metrics rule", "err", err)
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Get(ctx, req.NamespacedName, &rule); err != nil {
+		if errors.IsNotFound(err) {
+			level.Info(logger).Log("msg", "creating victoria metrics rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
+			if err := r.Create(ctx, newRule); err != nil {
+				return ctrl.Result{}, err
+			}
+		} else {
+			return ctrl.Result{}, fmt.Errorf("failed to get victoriametrics rule: %w", err)
+		}
+	}
+	newRule.ResourceVersion = rule.ResourceVersion
+
+	level.Info(logger).Log("msg", "updating victoriametrics rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
+	if err := r.Update(ctx, newRule); err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to update victoriametrics rule: %w", err)
+	}
+
+	kubeObjective.Status.Type = "VictoriaMetricsRule"
 	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -429,4 +472,60 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 		},
 		Spec: rule,
 	}, nil
+}
+
+// convert a PrometheusRule to a VictoriaMetricsRule
+// heavily inspired by the VictoriaMetrics operator convert code
+// https://github.com/VictoriaMetrics/operator/blob/master/internal/controller/operator/converter/apis.go
+func convertPrometheusRuleToVictoriaMetricsRule(promRule monitoringv1.PrometheusRule) (*vmv1beta1.VMRule, error) {
+	ruleGroups := make([]vmv1beta1.RuleGroup, 0, len(promRule.Spec.Groups))
+	for _, promGroup := range promRule.Spec.Groups {
+		ruleItems := make([]vmv1beta1.Rule, 0, len(promGroup.Rules))
+		for _, promRuleItem := range promGroup.Rules {
+			trule := vmv1beta1.Rule{
+				Labels:      promRuleItem.Labels,
+				Annotations: promRuleItem.Annotations,
+				Expr:        promRuleItem.Expr.String(),
+				Record:      promRuleItem.Record,
+				Alert:       promRuleItem.Alert,
+			}
+			if promRuleItem.For != nil {
+				trule.For = string(*promRuleItem.For)
+			}
+			ruleItems = append(ruleItems, trule)
+		}
+
+		tgroup := vmv1beta1.RuleGroup{
+			Name:  promGroup.Name,
+			Rules: ruleItems,
+		}
+		if promGroup.Interval != nil {
+			tgroup.Interval = string(*promGroup.Interval)
+		}
+
+		// check if this is the generic rules group, by checking if the name ends on "-generic" and add a eval_offset to it
+		if promGroup.Name != "" && promGroup.Name[len(promGroup.Name)-len("-generic"):] == "-generic" {
+			// the offset should be half of the interval
+			if promGroup.Interval != nil {
+				// convert the interval to a duration
+				interval, err := time.ParseDuration(string(*promGroup.Interval))
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse interval: %w", err)
+				}
+				// set the eval_offset to half of the interval
+				tgroup.EvalOffset = fmt.Sprintf("%s", interval/2)
+			} else {
+				// if no interval is set, use a default value
+				tgroup.EvalOffset = "10s"
+			}
+		}
+		ruleGroups = append(ruleGroups, tgroup)
+	}
+	vm := &vmv1beta1.VMRule{
+		ObjectMeta: promRule.ObjectMeta,
+		Spec: vmv1beta1.VMRuleSpec{
+			Groups: ruleGroups,
+		},
+	}
+	return vm, nil
 }
