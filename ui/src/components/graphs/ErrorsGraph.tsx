@@ -4,8 +4,9 @@ import UplotReact from 'uplot-react'
 import uPlot from 'uplot'
 import {ObjectiveType} from '../../App'
 import {IconExternal} from '../Icons'
-import {reds} from './colors'
+import {reds, turquoises} from './colors'
 import {seriesGaps} from './gaps'
+import {useTheme} from '../../ThemeContext'
 import {PromiseClient} from '@connectrpc/connect'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
@@ -37,6 +38,7 @@ const ErrorsGraph = ({
   absolute = false,
 }: ErrorsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const { resolvedTheme } = useTheme()
 
   const [width, setWidth] = useState<number>(500)
 
@@ -142,9 +144,10 @@ const ErrorsGraph = ({
             series: [
               {},
               ...labels.map((label: Labels, i: number): uPlot.Series => {
+                const colors = resolvedTheme === 'dark' ? turquoises : reds
                 return {
                   min: 0,
-                  stroke: `#${reds[i]}`,
+                  stroke: `#${colors[i]}`,
                   label: labelValues(label)[0],
                   gaps: seriesGaps(from / 1000, to / 1000),
                   value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),

@@ -4,8 +4,9 @@ import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
 
 import {IconExternal} from '../Icons'
-import {greens, reds} from './colors'
+import {greens, reds, turquoises} from './colors'
 import {seriesGaps} from './gaps'
+import {useTheme} from '../../ThemeContext'
 import {PromiseClient} from '@connectrpc/connect'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
 import {usePrometheusQueryRange} from '../../prometheus'
@@ -33,6 +34,7 @@ const ErrorBudgetGraph = ({
   absolute = false,
 }: ErrorBudgetGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const { resolvedTheme } = useTheme()
 
   const [width, setWidth] = useState<number>(1000)
 
@@ -98,12 +100,15 @@ const ErrorBudgetGraph = ({
       return '#fff'
     }
 
+    const goodColor = resolvedTheme === 'dark' ? turquoises[0] : greens[0]
+    const badColor = reds[0]
+
     if (min > 0) {
-      return `#${greens[0]}`
+      return `#${goodColor}`
     }
 
     if (max < 0) {
-      return `#${reds[0]}`
+      return `#${badColor}`
     }
 
     const y0 = u.valToPos(u.scales.y.min ?? 0, 'y', true)
@@ -112,11 +117,11 @@ const ErrorBudgetGraph = ({
     const zeroPercentage = (y0 - zeroHeight) / (y0 - y1)
 
     const gradient = u.ctx.createLinearGradient(0, y0, 0, y1)
-    gradient.addColorStop(0, `#${reds[0]}`)
+    gradient.addColorStop(0, `#${badColor}`)
 
-    gradient.addColorStop(zeroPercentage, `#${reds[0]}`)
-    gradient.addColorStop(zeroPercentage, `#${greens[0]}`)
-    gradient.addColorStop(1, `#${greens[0]}`)
+    gradient.addColorStop(zeroPercentage, `#${badColor}`)
+    gradient.addColorStop(zeroPercentage, `#${goodColor}`)
+    gradient.addColorStop(1, `#${goodColor}`)
     return gradient
   }
 

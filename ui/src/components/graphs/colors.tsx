@@ -54,3 +54,15 @@ export const yellows = [
 export const greys = ['3c3c3c', '616161']
 
 export const colorful = ['651FFF', '009688', '00BCD4', '3D5AFE', '1DE9B6']
+
+export const turquoises = [
+  '06B6D4', // primary turquoise
+  '0891B2', // dark turquoise  
+  '0E7490', // darker turquoise
+  '155E75', // darkest turquoise
+  '22D3EE', // light turquoise
+  '67E8F9', // lighter turquoise
+  'A5F3FC', // lightest turquoise
+  'CFFAFE', // very light turquoise
+  'E0F2FE', // ultra light turquoise
+]

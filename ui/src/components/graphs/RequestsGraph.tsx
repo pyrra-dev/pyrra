@@ -4,8 +4,9 @@ import UplotReact from 'uplot-react'
 import uPlot from 'uplot'
 import {ObjectiveType} from '../../App'
 import {IconExternal} from '../Icons'
-import {blues, greens, reds, yellows} from './colors'
+import {blues, greens, reds, yellows, turquoises} from './colors'
 import {seriesGaps} from './gaps'
+import {useTheme} from '../../ThemeContext'
 import {PromiseClient} from '@connectrpc/connect'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
@@ -37,6 +38,7 @@ const RequestsGraph = ({
   absolute = false,
 }: RequestsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const { resolvedTheme } = useTheme()
 
   const [width, setWidth] = useState<number>(500)
 
@@ -136,7 +138,7 @@ const RequestsGraph = ({
                   const value = labelValues(label)[0]
                   return {
                     label: value,
-                    stroke: `#${labelColor(pickedColors, value)}`,
+                    stroke: `#${labelColor(pickedColors, value, resolvedTheme)}`,
                     gaps: seriesGaps(from / 1000, to / 1000),
                     value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
                   }
@@ -177,15 +179,17 @@ const RequestsGraph = ({
   )
 }
 
-const labelColor = (picked: {[color: string]: number}, label: string): string => {
+const labelColor = (picked: {[color: string]: number}, label: string, theme: 'light' | 'dark'): string => {
   label = label !== undefined ? label.toLowerCase() : ''
   let color = ''
+  const goodColors = theme === 'dark' ? turquoises : greens
+  
   if (label === '{}' || label === '' || label === 'value') {
-    color = greens[picked.greens % greens.length]
+    color = goodColors[picked.greens % goodColors.length]
     picked.greens++
   }
   if (label.match(/(2\d{2}|2\w{2}|ok|noerror|hit)/) != null) {
-    color = greens[picked.greens % greens.length]
+    color = goodColors[picked.greens % goodColors.length]
     picked.greens++
   }
   if (label.match(/(3\d{2}|3\w{2})/) != null) {

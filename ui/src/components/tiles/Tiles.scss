@@ -45,6 +45,10 @@
 
     .headline, .details {
       opacity: 0.5;
+      
+      [data-bs-theme="dark"] & {
+        opacity: 0.7;
+      }
     }
 
     .metric {
@@ -59,11 +63,29 @@
     &.good {
       background-color: $green;
       color: $green-text;
+      
+      [data-bs-theme="dark"] & {
+        background-color: $dark-gray-300;
+        color: $dark-gray-900;
+        
+        h2 {
+          color: $dark-turquoise;
+        }
+      }
     }
 
     &.bad {
       background-color: $red;
       color: $red-text;
+      
+      [data-bs-theme="dark"] & {
+        background-color: $dark-gray-300;
+        color: $dark-gray-900;
+        
+        h2 {
+          color: lighten($red, 10%);
+        }
+      }
     }
 
     h2.error {
