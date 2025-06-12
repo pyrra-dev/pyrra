@@ -471,7 +471,7 @@ func Test_convertPrometheusRuleToVictoriaMetricsRule_EvalOffset(t *testing.T) {
 	// Check eval_offset for the generic group
 	genericGroup := vmRule.Spec.Groups[0]
 	require.Equal(t, "test-generic", genericGroup.Name)
-	require.Equal(t, "15s", genericGroup.EvalOffset) // Half of 30s interval
+	require.Equal(t, "29s", genericGroup.EvalOffset) // Half of 30s interval
 
 	// Check no eval_offset for the non-interval generic group
 	nonIntervalGenericGroup := vmRule.Spec.Groups[1]

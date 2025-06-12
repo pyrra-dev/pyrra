@@ -513,7 +513,7 @@ func convertPrometheusRuleToVictoriaMetricsRule(promRule monitoringv1.Prometheus
 					return nil, fmt.Errorf("failed to parse interval: %w", err)
 				}
 				// set the eval_offset to half of the interval
-				tgroup.EvalOffset = fmt.Sprintf("%s", interval/2)
+				tgroup.EvalOffset = fmt.Sprintf("%s", interval-time.Second)
 			} else {
 				// if no interval is set, use a default value
 				tgroup.EvalOffset = "10s"
