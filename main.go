@@ -68,7 +68,7 @@ var CLI struct {
 		TLSCertFile                 string            `default:"" help:"File containing the default x509 Certificate for HTTPS."`
 		TLSPrivateKeyFile           string            `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 		TLSClientCAFile             string            `default:"" help:"File containing the CA certificate for the client"`
-		MimirTenantIds              []string          `default:"" help:"Mimir tenant IDs to query if multi-tenancy is enabled."`
+		MimirTenantIDs              []string          `default:"" help:"Mimir tenant IDs to query if multi-tenancy is enabled."`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
