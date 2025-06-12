@@ -674,7 +674,7 @@ const List = () => {
   if (objectiveStatus === 'loading') {
     return (
       <>
-        <Navbar/>
+        <Navbar />
         <Container className="content list">
           <Row className="mt-3 justify-content-center">
             <Col xs="auto" className="text-center">
@@ -692,34 +692,26 @@ const List = () => {
   if (objectiveError !== null && objectiveError !== undefined) {
     return (
       <>
-        <Navbar/>
+        <Navbar />
         <Container className="content list">
           <Row className="mt-3">
             <Col>
-              {objectiveError.code === Code.NotFound && (
-                <Alert variant="info">
-                  <h5>No Service Level Objectives found</h5>
-                  <p className="mb-0">
-                    Add objectives using the <b>filesystem</b> or <b>Kubernetes</b> backend.
-                  </p>
-                </Alert>
-              )}
               {objectiveError.code === Code.Unavailable && (
                 <Alert variant="danger">
                   <h5>Backend connection failed</h5>
                   <p className="mb-0">
-                    Cannot reach the backend service. Ensure the <b>filesystem</b> or <b>Kubernetes</b> backend is running.
+                    Cannot reach the backend service. Ensure the <b>filesystem</b> or{' '}
+                    <b>Kubernetes</b> backend is running.
                   </p>
                 </Alert>
               )}
-              {objectiveError.code !== Code.NotFound && objectiveError.code !== Code.Unavailable && (
-                <Alert variant="danger">
-                  <h5>Error loading objectives</h5>
-                  <p className="mb-0">
-                    {objectiveError.message}
-                  </p>
-                </Alert>
-              )}
+              {objectiveError.code !== Code.NotFound &&
+                objectiveError.code !== Code.Unavailable && (
+                  <Alert variant="danger">
+                    <h5>Error loading objectives</h5>
+                    <p className="mb-0">{objectiveError.message}</p>
+                  </Alert>
+                )}
             </Col>
           </Row>
         </Container>
