@@ -132,8 +132,8 @@ func main() {
 	if CLI.API.TLSClientCAFile != "" {
 		clientConfig.TLSConfig = promconfig.TLSConfig{CAFile: CLI.API.TLSClientCAFile}
 	}
-	if len(CLI.API.MimirTenantIds) > 0 {
-		mimirHeaderValue := strings.Join(CLI.API.MimirTenantIds, "|")
+	if len(CLI.API.MimirTenantIDs) > 0 {
+		mimirHeaderValue := strings.Join(CLI.API.MimirTenantIDs, "|")
 		clientConfig.HTTPHeaders = &promconfig.Headers{
 			Headers: map[string]promconfig.Header{
 				"X-Scope-OrgID": {
