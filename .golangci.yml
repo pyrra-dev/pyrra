@@ -1,19 +1,20 @@
+version: "2"
+
 run:
   deadline: 10m
   go: 1.23
 
 output:
-  formats:
-    - format: colored-line-number
+  format: colored-line-number
 
 linters:
   enable:
-    - depguard
     - godot
-    - gofumpt
-    - goimports
     - revive
     - whitespace
+  formatters:
+    - gofumpt
+    - goimports
 
 issues:
   exclude-dirs:
@@ -27,6 +28,32 @@ linters-settings:
   depguard:
     rules:
       Main:
+        list-mode: lax
+        allow:
+          - $gostd
+          - github.com/alecthomas/kong
+          - github.com/bufbuild/connect-go
+          - github.com/fsnotify/fsnotify
+          - github.com/go-kit/log
+          - github.com/go-kit/log/...
+          - github.com/oklog/run
+          - github.com/polarsignals/connect-go-prometheus
+          - github.com/prometheus-operator/prometheus-operator/...
+          - github.com/prometheus/alertmanager/...
+          - github.com/prometheus/client_golang/...
+          - github.com/prometheus/common/...
+          - github.com/prometheus/prometheus/...
+          - github.com/pyrra-dev/pyrra/...
+          - github.com/rs/cors
+          - github.com/spf13/viper
+          - github.com/stretchr/testify/...
+          - github.com/thanos-io/objstore/...
+          - github.com/urfave/negroni
+          - golang.org/x/...
+          - google.golang.org/...
+          - gopkg.in/yaml.v3
+          - k8s.io/...
+          - sigs.k8s.io/...
         deny:
           - pkg: sync/atomic
             desc: "Use go.uber.org/atomic instead of sync/atomic"
