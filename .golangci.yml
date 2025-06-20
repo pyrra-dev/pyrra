@@ -8,9 +8,12 @@ output:
   format: colored-line-number
 
 linters:
+  settings:
+    errcheck:
+      exclude-functions:
+        - "(github.com/go-kit/log.Logger).Log"
   enable:
     - godot
-    - revive
     - whitespace
   formatters:
     - gofumpt
@@ -23,6 +26,9 @@ issues:
     - path: _test.go
       linters:
         - errcheck
+    - linters:
+        - revive
+      text: "exported:"
 
 linters-settings:
   depguard:
@@ -78,3 +84,7 @@ linters-settings:
     extra-rules: true
   misspell:
     locale: US
+  revive:
+    rules:
+      - name: exported
+        disabled: true

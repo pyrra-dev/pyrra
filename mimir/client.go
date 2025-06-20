@@ -78,7 +78,7 @@ func (c *Client) Ready(ctx context.Context) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("mimir not ready, unexpected status code: %d, expected %d", resp.StatusCode, http.StatusOK)

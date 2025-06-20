@@ -32,7 +32,7 @@ func (c *Client) SetRuleGroup(ctx context.Context, namespace string, ruleGroup r
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("unexpected status code: %d, expected %d", resp.StatusCode, http.StatusAccepted)
@@ -54,7 +54,7 @@ func (c *Client) DeleteNamespace(ctx context.Context, namespace string) error {
 		return err
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("unexpected status code: %d, expected %d", resp.StatusCode, http.StatusAccepted)
