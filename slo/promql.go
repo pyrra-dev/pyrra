@@ -2,6 +2,7 @@ package slo
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/prometheus/common/model"
@@ -633,7 +634,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`sum(histogram_count(rate(metric{}[1s])))`)
+		expr, err := parser.ParseExpr(`sum by (grouping) (histogram_count(rate(metric{}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -641,6 +642,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 		objectiveReplacer{
 			metric:   o.Indicator.LatencyNative.Total.Name,
 			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			grouping: o.Indicator.LatencyNative.Grouping,
 			window:   timerange,
 		}.replace(expr)
 
@@ -716,14 +718,26 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, sum(rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, sum by (grouping) (rate(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
 
+		groupingMap := map[string]struct{}{}
+		for _, s := range o.Indicator.LatencyNative.Grouping {
+			groupingMap[s] = struct{}{}
+		}
+
+		grouping := make([]string, 0, len(groupingMap))
+		for s := range groupingMap {
+			grouping = append(grouping, s)
+		}
+		sort.Strings(grouping)
+
 		objectiveReplacer{
 			metric:   o.Indicator.LatencyNative.Total.Name,
 			matchers: o.Indicator.LatencyNative.Total.LabelMatchers,
+			grouping: grouping,
 			window:   timerange,
 			target:   time.Duration(o.Indicator.LatencyNative.Latency).Seconds(),
 		}.replace(expr)
@@ -772,7 +786,7 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum(rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum by (grouping) (rate(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}

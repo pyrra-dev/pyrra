@@ -2,6 +2,7 @@ package slo
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -144,6 +145,11 @@ var (
 				},
 			},
 		}
+		return o
+	}
+	objectiveHTTPNativeLatencyGrouping = func() Objective {
+		o := objectiveHTTPNativeLatency()
+		o.Indicator.LatencyNative.Grouping = []string{"job", "handler"}
 		return o
 	}
 	objectiveHTTPLatencyGrouping = func() Objective {
@@ -642,6 +648,13 @@ func TestObjective_QueryBurnrate(t *testing.T) {
 		objective: objectiveHTTPNativeLatency(),
 		expected:  `http_request_duration_seconds:burnrate5m{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
 	}, {
+		name:      "http-latency-native-grouping",
+		objective: objectiveHTTPNativeLatencyGrouping(),
+		grouping: []*labels.Matcher{
+			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
+		},
+		expected: `http_request_duration_seconds:burnrate5m{code=~"2..",handler="/api/v1/query",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
+	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
 		grouping: []*labels.Matcher{
@@ -1085,4 +1098,25 @@ func TestReplacer(t *testing.T) {
 			require.Equal(t, outputExpr.String(), inputExpr.String())
 		})
 	}
+}
+
+func TestLatencyNativeBurnrateGrouping(t *testing.T) {
+	objective := objectiveHTTPNativeLatencyGrouping()
+
+	burnrateQuery := objective.Burnrate(5 * time.Minute)
+
+	require.True(t,
+		strings.Contains(burnrateQuery, "sum by (handler, job)") || strings.Contains(burnrateQuery, "sum by (job, handler)"),
+		"LatencyNative burnrate query should include grouping, got: %s", burnrateQuery)
+	require.Contains(t, burnrateQuery, "histogram_fraction", "LatencyNative burnrate should use histogram_fraction")
+
+	requestRangeQuery := objective.RequestRange(2 * time.Hour)
+	require.True(t,
+		strings.Contains(requestRangeQuery, "sum by (handler, job)") || strings.Contains(requestRangeQuery, "sum by (job, handler)"),
+		"LatencyNative RequestRange should include grouping, got: %s", requestRangeQuery)
+
+	errorsRangeQuery := objective.ErrorsRange(2 * time.Hour)
+	require.True(t,
+		strings.Contains(errorsRangeQuery, "sum by (handler, job)") || strings.Contains(errorsRangeQuery, "sum by (job, handler)"),
+		"LatencyNative ErrorsRange should include grouping, got: %s", errorsRangeQuery)
 }
