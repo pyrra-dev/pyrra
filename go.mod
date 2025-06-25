@@ -1,8 +1,11 @@
 module github.com/pyrra-dev/pyrra
 
-go 1.24.0
+go 1.24.3
+
+toolchain go1.24.4
 
 require (
+	github.com/VictoriaMetrics/operator/api v0.59.1
 	github.com/alecthomas/kong v1.12.0
 	github.com/bufbuild/connect-go v1.10.0
 	github.com/dgraph-io/ristretto v0.2.0
@@ -29,7 +32,12 @@ require (
 )
 
 require (
+	github.com/VictoriaMetrics/VictoriaMetrics v1.116.0 // indirect
+	github.com/VictoriaMetrics/metrics v1.35.2 // indirect
+	github.com/VictoriaMetrics/metricsql v0.84.3 // indirect
+	github.com/aws/aws-sdk-go v1.55.7 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.8.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dennwc/varint v1.0.0 // indirect
