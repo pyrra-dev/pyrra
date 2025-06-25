@@ -437,41 +437,53 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 	metric := ""
 	matchers := map[string]*labels.Matcher{}
 
+	sloName := o.Labels.Get(labels.MetricName)
+	commonRuleLabels := o.commonRuleLabels(sloName)
+	ruleLabels := append(maps.Keys(commonRuleLabels), o.Grouping()...)
+
 	switch o.IndicatorType() {
 	case Ratio:
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
-				Type:  m.Type,
-				Name:  m.Name,
-				Value: m.Value,
+			if slices.Contains(ruleLabels, m.Name) {
+				matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+					Type:  m.Type,
+					Name:  m.Name,
+					Value: m.Value,
+				}
 			}
 		}
 	case Latency:
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
-				Type:  m.Type,
-				Name:  m.Name,
-				Value: m.Value,
+			if slices.Contains(ruleLabels, m.Name) {
+				matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+					Type:  m.Type,
+					Name:  m.Name,
+					Value: m.Value,
+				}
 			}
 		}
 	case LatencyNative:
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
-			matchers[m.Name] = &labels.Matcher{
-				Type:  m.Type,
-				Name:  m.Name,
-				Value: m.Value,
+			if slices.Contains(ruleLabels, m.Name) {
+				matchers[m.Name] = &labels.Matcher{
+					Type:  m.Type,
+					Name:  m.Name,
+					Value: m.Value,
+				}
 			}
 		}
 	case BoolGauge:
 		metric = o.BurnrateName(timerange)
 		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
-			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
-				Type:  m.Type,
-				Name:  m.Name,
-				Value: m.Value,
+			if slices.Contains(ruleLabels, m.Name) {
+				matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+					Type:  m.Type,
+					Name:  m.Name,
+					Value: m.Value,
+				}
 			}
 		}
 	}
