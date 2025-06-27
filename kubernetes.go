@@ -42,6 +42,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	vm1beta1 "github.com/VictoriaMetrics/operator/api/operator/v1beta1"
+
 	pyrrav1alpha1 "github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/kubernetes/controllers"
 	"github.com/pyrra-dev/pyrra/mimir"
@@ -56,13 +58,14 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = pyrrav1alpha1.AddToScheme(scheme)
 	_ = monitoringv1.AddToScheme(scheme)
+	_ = vm1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
 func cmdKubernetes(
 	logger log.Logger,
 	metricsAddr string,
-	configMapMode, genericRules, disableWebhooks bool,
+	configMapMode, victoriaMetricsMode, genericRules, disableWebhooks bool,
 	certFile, privateKeyFile string,
 	mimirClient *mimir.Client,
 	mimirWriteAlertingRules bool,
@@ -91,6 +94,7 @@ func cmdKubernetes(
 		Logger:                  log.With(logger, "controllers", "ServiceLevelObjective"),
 		GenericRules:            genericRules,
 		ConfigMapMode:           configMapMode,
+		VictoriaMetricsMode:     victoriaMetricsMode,
 		MimirClient:             mimirClient,
 		MimirWriteAlertingRules: mimirWriteAlertingRules,
 	}
