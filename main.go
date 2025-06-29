@@ -83,6 +83,7 @@ var CLI struct {
 		PrometheusFolder           string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
 		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 		EnablePrometheus3Migration bool     `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
+		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
 		MetricsAddr                string   `default:":8080" help:"The address the metric endpoint binds to."`
@@ -99,13 +100,15 @@ var CLI struct {
 		MimirOrgID                 string   `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
 		MimirDeploymentMode        string   `default:"standalone" help:"Mimir deployment mode. Possible values: standalone (default), distributed"`
 		EnablePrometheus3Migration bool     `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
+		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
-		ConfigFiles                string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
-		PrometheusFolder           string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
-		GenericRules               bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		OperatorRule               bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
-		EnablePrometheus3Migration bool   `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
+		ConfigFiles                string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		PrometheusFolder           string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
+		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		OperatorRule               bool     `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
+		EnablePrometheus3Migration bool     `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
+		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
 	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
 }
 
@@ -187,7 +190,7 @@ func main() {
 	level.Info(logger).Log("msg", "using Prometheus", "url", prometheusURL.String())
 
 	// Default external url to prometheus if not defined
-	externalURL := prometheusURL
+	externalDatasourceURL := prometheusURL
 	if CLI.API.PrometheusExternalURL != nil && CLI.API.GrafanaExternalURL != nil {
 		level.Error(logger).Log("msg", "prometheus external URL set alongside grafana external url")
 		os.Exit(1)
@@ -195,13 +198,13 @@ func main() {
 		level.Error(logger).Log("msg", "grafana external datasource id set without grafana external url")
 		os.Exit(1)
 	} else if CLI.API.PrometheusExternalURL != nil {
-		externalURL = CLI.API.PrometheusExternalURL
+		externalDatasourceURL = CLI.API.PrometheusExternalURL
 	} else if CLI.API.GrafanaExternalURL != nil {
 		if CLI.API.GrafanaExternalDatasourceID == "" {
 			level.Error(logger).Log("msg", "grafana external datasource id cannot be empty when using an external grafana url")
 			os.Exit(1)
 		}
-		externalURL = CLI.API.GrafanaExternalURL
+		externalDatasourceURL = CLI.API.GrafanaExternalURL
 	}
 
 	// Mimir Client
@@ -238,7 +241,7 @@ func main() {
 			logger,
 			reg,
 			client,
-			externalURL,
+			externalDatasourceURL,
 			CLI.API.APIURL,
 			CLI.API.GrafanaExternalOrgID,
 			CLI.API.GrafanaExternalDatasourceID,
@@ -257,6 +260,7 @@ func main() {
 			CLI.Filesystem.PrometheusFolder,
 			CLI.Filesystem.GenericRules,
 			CLI.Filesystem.EnablePrometheus3Migration,
+			CLI.Filesystem.ExternalURL,
 		)
 	case "kubernetes":
 		code = cmdKubernetes(
@@ -270,6 +274,7 @@ func main() {
 			mimirClient,
 			CLI.Kubernetes.MimirWriteAlertingRules,
 			CLI.Kubernetes.EnablePrometheus3Migration,
+			CLI.Kubernetes.ExternalURL,
 		)
 	case "generate":
 		code = cmdGenerate(
@@ -279,6 +284,7 @@ func main() {
 			CLI.Generate.GenericRules,
 			CLI.Generate.OperatorRule,
 			CLI.Generate.EnablePrometheus3Migration,
+			CLI.Generate.ExternalURL,
 		)
 	}
 	os.Exit(code)
@@ -288,7 +294,7 @@ func cmdAPI(
 	logger log.Logger,
 	reg *prometheus.Registry,
 	promClient api.Client,
-	externalURL, apiURL *url.URL,
+	externalDatasourceURL, apiURL *url.URL,
 	externalGrafanaOrgID, externalGrafanaDatasourceID string,
 	routePrefix, uiRoutePrefix string,
 	tlsCertFile, tlsPrivateKeyFile string,
@@ -309,9 +315,9 @@ func cmdAPI(
 	}
 
 	if externalGrafanaDatasourceID == "" {
-		level.Info(logger).Log("msg", "UI redirect to Prometheus", "url", externalURL.String())
+		level.Info(logger).Log("msg", "UI redirect to Prometheus", "url", externalDatasourceURL.String())
 	} else {
-		level.Info(logger).Log("msg", "UI redirect to Grafana", "url", externalURL.String(),
+		level.Info(logger).Log("msg", "UI redirect to Grafana", "url", externalDatasourceURL.String(),
 			"datasourceId", externalGrafanaDatasourceID, "orgId", externalGrafanaOrgID)
 	}
 	level.Info(logger).Log("msg", "using API at", "url", apiURL.String())
@@ -403,14 +409,14 @@ func cmdAPI(
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 		r.Get("/objectives", func(w http.ResponseWriter, _ *http.Request) {
 			err := tmpl.Execute(w, struct {
-				ExternalURL                 string
+				ExternalDatasourceURL       string
 				ExternalGrafanaDatasourceID string
 				ExternalGrafanaOrgID        string
 				PathPrefix                  string
 				APIBasepath                 string
 				Version                     string
 			}{
-				ExternalURL:                 externalURL.String(),
+				ExternalDatasourceURL:       externalDatasourceURL.String(),
 				ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
 				ExternalGrafanaOrgID:        externalGrafanaOrgID,
 				PathPrefix:                  uiRoutePrefix,
@@ -432,7 +438,7 @@ func cmdAPI(
 					APIBasepath                 string
 					Version                     string
 				}{
-					ExternalURL:                 externalURL.String(),
+					ExternalURL:                 externalDatasourceURL.String(),
 					ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
 					ExternalGrafanaOrgID:        externalGrafanaOrgID,
 					PathPrefix:                  uiRoutePrefix,

@@ -16,6 +16,9 @@ type GenerationOptions struct {
 	// This only affects classic histograms (Latency indicators); native histograms
 	// (LatencyNative indicators) are not affected by this change.
 	EnablePrometheus3Migration bool
+	// ExternalURL is the base URL for Pyrra, used to generate direct links to the
+	// Pyrra UI in alert annotations (pyrra_url annotation).
+	ExternalURL string
 }
 
 // convertLeMatcherForPrometheus3 converts a le (bucket label) matcher from an exact
