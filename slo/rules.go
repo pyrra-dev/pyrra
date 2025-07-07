@@ -3,6 +3,7 @@ package slo
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,7 +57,7 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 	return mbras, nil
 }
 
-func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
+func (o Objective) Burnrates(externalURL string) (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
 	ws := Windows(time.Duration(o.Window))
@@ -118,7 +119,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		for _, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
-			alertAnnotations := o.commonRuleAnnotations()
+			alertAnnotations := o.commonRuleAnnotations(externalURL)
 			for _, m := range matchers {
 				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
@@ -206,7 +207,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		for _, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
-			alertAnnotations := o.commonRuleAnnotations()
+			alertAnnotations := o.commonRuleAnnotations(externalURL)
 			for _, m := range matchers {
 				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
@@ -294,7 +295,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		for _, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
-			alertAnnotations := o.commonRuleAnnotations()
+			alertAnnotations := o.commonRuleAnnotations(externalURL)
 			for _, m := range matchers {
 				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
@@ -382,7 +383,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		for _, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
-			alertAnnotations := o.commonRuleAnnotations()
+			alertAnnotations := o.commonRuleAnnotations(externalURL)
 			for _, m := range matchers {
 				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
@@ -605,13 +606,48 @@ func (o Objective) commonRuleLabels(sloName string) map[string]string {
 	return ruleLabels
 }
 
-func (o Objective) commonRuleAnnotations() map[string]string {
+func (o Objective) commonRuleAnnotations(externalURL string) map[string]string {
 	var annotations map[string]string
-	if len(o.Annotations) > 0 {
-		annotations = make(map[string]string)
-		for key, value := range o.Annotations {
-			if strings.HasPrefix(key, PropagationLabelsPrefix) {
-				annotations[strings.TrimPrefix(key, PropagationLabelsPrefix)] = value
+
+	// Add existing annotations from the objective
+	for key, value := range o.Annotations {
+		if strings.HasPrefix(key, PropagationLabelsPrefix) {
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+			annotations[strings.TrimPrefix(key, PropagationLabelsPrefix)] = value
+		}
+	}
+
+	// Add External URL if provided
+	if externalURL != "" {
+		sloName := o.Labels.Get(labels.MetricName)
+		if sloName != "" {
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+
+			externalURLParsed, err := url.Parse(externalURL)
+			if err != nil {
+				return nil
+			}
+
+			params := url.Values{}
+			params.Add("expr", `{__name__="`+sloName+`"}`)
+			params.Add("from", "now-1h")
+			params.Add("to", "now")
+
+			externalURLParsed.Path = "/objectives"
+			externalURLParsed.RawQuery = params.Encode()
+
+			annotations["pyrra_url"] = externalURLParsed.String()
+
+			if grouping := o.Grouping(); len(grouping) > 0 {
+				groups := make([]string, 0, len(grouping))
+				for _, l := range grouping {
+					groups = append(groups, l+"=%22{{$labels."+l+"}}%22")
+				}
+				annotations["pyrra_url"] += "&grouping=%7B" + strings.Join(groups, ",") + "%7D"
 			}
 		}
 	}
@@ -717,7 +753,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				Expr:        intstr.FromString(expr.String()),
 				For:         monitoringDuration(o.AbsentDuration().String()),
 				Labels:      alertLabels,
-				Annotations: o.commonRuleAnnotations(),
+				Annotations: o.commonRuleAnnotations(""),
 			})
 		}
 
@@ -757,7 +793,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 					Expr:        intstr.FromString(expr.String()),
 					For:         monitoringDuration(o.AbsentDuration().String()),
 					Labels:      alertLabels,
-					Annotations: o.commonRuleAnnotations(),
+					Annotations: o.commonRuleAnnotations(""),
 				})
 			}
 		}
@@ -867,7 +903,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				Expr:        intstr.FromString(expr.String()),
 				For:         monitoringDuration(o.AbsentDuration().String()),
 				Labels:      alertLabels,
-				Annotations: o.commonRuleAnnotations(),
+				Annotations: o.commonRuleAnnotations(""),
 			})
 
 			expr, err = absentExpr()
@@ -892,7 +928,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				Expr:        intstr.FromString(expr.String()),
 				For:         monitoringDuration(o.AbsentDuration().String()),
 				Labels:      alertLabelsLe,
-				Annotations: o.commonRuleAnnotations(),
+				Annotations: o.commonRuleAnnotations(""),
 			})
 		}
 	case LatencyNative:
@@ -1033,7 +1069,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				Expr:        intstr.FromString(expr.String()),
 				For:         monitoringDuration(o.AbsentDuration().String()),
 				Labels:      alertLabels,
-				Annotations: o.commonRuleAnnotations(),
+				Annotations: o.commonRuleAnnotations(""),
 			})
 		}
 	}
