@@ -384,6 +384,106 @@ func Test_makeConfigMap(t *testing.T) {
 	}
 }
 
+func Test_convertsPrometheusRuleToVictoriaMetricsRuleSuccessfully(t *testing.T) {
+	promRule := monitoringv1.PrometheusRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-rule",
+			Namespace: "default",
+		},
+		Spec: monitoringv1.PrometheusRuleSpec{
+			Groups: []monitoringv1.RuleGroup{
+				{
+					Name:     "test-group",
+					Interval: monitoringDuration("30s"),
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "test_record",
+							Alert:  "test_alert",
+							Expr:   intstr.FromString("up == 0"),
+							For:    monitoringDuration("5m"),
+							Labels: map[string]string{"severity": "critical"},
+							Annotations: map[string]string{
+								"summary": "Test summary",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	vmRule, err := convertPrometheusRuleToVictoriaMetricsRule(promRule)
+	require.NoError(t, err)
+	require.Equal(t, "test-rule", vmRule.ObjectMeta.Name)
+	require.Equal(t, "default", vmRule.ObjectMeta.Namespace)
+	require.Len(t, vmRule.Spec.Groups, 1)
+	require.Equal(t, "test-group", vmRule.Spec.Groups[0].Name)
+	require.Equal(t, "30s", vmRule.Spec.Groups[0].Interval)
+	require.Len(t, vmRule.Spec.Groups[0].Rules, 1)
+	require.Equal(t, "test_record", vmRule.Spec.Groups[0].Rules[0].Record)
+	require.Equal(t, "test_alert", vmRule.Spec.Groups[0].Rules[0].Alert)
+	require.Equal(t, "up == 0", vmRule.Spec.Groups[0].Rules[0].Expr)
+	require.Equal(t, "5m", vmRule.Spec.Groups[0].Rules[0].For)
+	require.Equal(t, map[string]string{"severity": "critical"}, vmRule.Spec.Groups[0].Rules[0].Labels)
+	require.Equal(t, map[string]string{"summary": "Test summary"}, vmRule.Spec.Groups[0].Rules[0].Annotations)
+}
+
+func Test_convertPrometheusRuleToVictoriaMetricsRule_EvalOffset(t *testing.T) {
+	promRule := monitoringv1.PrometheusRule{
+		Spec: monitoringv1.PrometheusRuleSpec{
+			Groups: []monitoringv1.RuleGroup{
+				{
+					Name:     "test-generic",
+					Interval: monitoringDuration("30s"),
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "test_record",
+							Expr:   intstr.FromString("up == 0"),
+						},
+					},
+				},
+				{
+					Name: "test-no-interval-generic",
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "test_record",
+							Expr:   intstr.FromString("up == 0"),
+						},
+					},
+				},
+				{
+					Name: "test-rule",
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "test_record",
+							Expr:   intstr.FromString("up == 0"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	vmRule, err := convertPrometheusRuleToVictoriaMetricsRule(promRule)
+	require.NoError(t, err)
+	require.Len(t, vmRule.Spec.Groups, 3)
+
+	// Check eval_offset for the generic group
+	genericGroup := vmRule.Spec.Groups[0]
+	require.Equal(t, "test-generic", genericGroup.Name)
+	require.Equal(t, "29s", genericGroup.EvalOffset) // Half of 30s interval
+
+	// Check no eval_offset for the non-interval generic group
+	nonIntervalGenericGroup := vmRule.Spec.Groups[1]
+	require.Equal(t, "test-no-interval-generic", nonIntervalGenericGroup.Name)
+	require.Equal(t, "10s", nonIntervalGenericGroup.EvalOffset) // No interval, so no eval_offset
+
+	// Check no eval_offset for the non-generic group
+	nonGenericGroup := vmRule.Spec.Groups[2]
+	require.Equal(t, "test-rule", nonGenericGroup.Name)
+	require.Empty(t, nonGenericGroup.EvalOffset)
+}
+
 func monitoringDuration(d string) *monitoringv1.Duration {
 	md := monitoringv1.Duration(d)
 	return &md
