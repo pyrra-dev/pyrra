@@ -48,6 +48,7 @@ type ServiceLevelObjectiveReconciler struct {
 	MimirWriteAlertingRules bool
 	Logger                  kitlog.Logger
 	Scheme                  *runtime.Scheme
+	PyrraExternalURL        string
 	ConfigMapMode           bool
 	GenericRules            bool
 }
@@ -106,7 +107,7 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules)
+	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules, r.PyrraExternalURL)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -139,7 +140,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Context, logger kitlog.Logger, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules)
+	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules, r.PyrraExternalURL)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -171,7 +172,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
 ) (ctrl.Result, error) {
 	name := fmt.Sprintf("pyrra-recording-rule-%s", kubeObjective.GetName())
 
-	newConfigMap, err := makeConfigMap(name, kubeObjective, r.GenericRules)
+	newConfigMap, err := makeConfigMap(name, kubeObjective, r.GenericRules, r.PyrraExternalURL)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -218,7 +219,7 @@ func (r *ServiceLevelObjectiveReconciler) SetupWebhookWithManager(mgr ctrl.Manag
 		Complete()
 }
 
-func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*corev1.ConfigMap, error) {
+func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool, externalURL string) (*corev1.ConfigMap, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -228,7 +229,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	if err != nil {
 		return nil, fmt.Errorf("failed to get increase rules: %w", err)
 	}
-	burnrates, err := objective.Burnrates()
+	burnrates, err := objective.Burnrates(externalURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
@@ -286,7 +287,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}, nil
 }
 
-func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, writeAlertingRules bool) (*rulefmt.RuleGroup, error) {
+func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, writeAlertingRules bool, externalURL string) (*rulefmt.RuleGroup, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -298,7 +299,7 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	}
 	increasesMimirRules := prometheusRulesToMimirRules(increases.Rules, writeAlertingRules)
 
-	burnrates, err := objective.Burnrates()
+	burnrates, err := objective.Burnrates(externalURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
@@ -372,7 +373,7 @@ func prometheusRulesToMimirRules(promRules []monitoringv1.Rule, writeAlertingRul
 	return rules
 }
 
-func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*monitoringv1.PrometheusRule, error) {
+func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool, externalURL string) (*monitoringv1.PrometheusRule, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -382,7 +383,7 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	if err != nil {
 		return nil, fmt.Errorf("failed to get increase rules: %w", err)
 	}
-	burnrates, err := objective.Burnrates()
+	burnrates, err := objective.Burnrates(externalURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
