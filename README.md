@@ -124,7 +124,7 @@ operator. For the first deployment, start the binary with the `api` argument.
 
 When starting the binary with the `kubernetes` argument, the service will watch
 the apiserver for `ServiceLevelObjectives`. Once a new SLO is picked up,
-Pyrra will create [PrometheusRule](https://prometheus-operator.dev/docs/operator/design/#prometheusrule)
+Pyrra will create [PrometheusRule](https://prometheus-operator.dev/docs/developer/alerting/#deploying-prometheus-rules)
 objects that are automatically picked up by the [Prometheus Operator](https://prometheus-operator.dev).
 
 If you're unable to run the Prometheus Operator inside your cluster, you can add
