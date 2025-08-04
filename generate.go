@@ -14,21 +14,27 @@ limitations under the License.
 package main
 
 import (
+	"net/url"
 	"path/filepath"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 )
 
-func cmdGenerate(logger log.Logger, configFiles, prometheusFolder string, genericRules, operatorRule bool) int {
+func cmdGenerate(logger log.Logger, configFiles, prometheusFolder string, genericRules, operatorRule bool, externalURL *url.URL) int {
 	filenames, err := filepath.Glob(configFiles)
 	if err != nil {
 		level.Error(logger).Log("msg", "getting file names", "err", err)
 		return 1
 	}
 
+	externalURLStr := ""
+	if externalURL != nil {
+		externalURLStr = externalURL.String()
+	}
+
 	for _, file := range filenames {
-		err := writeRuleFile(logger, file, prometheusFolder, genericRules, operatorRule)
+		err := writeRuleFile(logger, file, prometheusFolder, genericRules, operatorRule, externalURLStr)
 		if err != nil {
 			level.Error(logger).Log("msg", "generating rule files", "err", err)
 			return 1
