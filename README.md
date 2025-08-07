@@ -195,6 +195,11 @@ When running `pyrra api`, you can configure various options:
 #### Prometheus Configuration
 - `--prometheus-url` - The URL to the Prometheus to query (default: `http://localhost:9090`)
 - `--prometheus-external-url` - The URL for the UI to redirect users to when opening Prometheus
+- `--prometheus-basic-auth-username` - The HTTP basic authentication username
+- `--prometheus-basic-auth-password` - The HTTP basic authentication password
+- `--prometheus-bearer-token-path` - Bearer token file path (useful for service account tokens)
+- `--tls-client-ca-file` - File containing the CA certificate for the client (for custom or self-signed certificates)
+- `--mimir-tenant-ids` - Mimir tenant IDs to query if multi-tenancy is enabled
 
 #### Grafana Integration
 As an alternative to redirecting to Prometheus, Pyrra can redirect to Grafana Explore for a richer query experience:
