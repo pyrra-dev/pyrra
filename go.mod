@@ -15,7 +15,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.84.1
 	github.com/prometheus/client_golang v1.23.0
 	github.com/prometheus/common v0.65.0
-	github.com/prometheus/prometheus v0.304.2
+	github.com/prometheus/prometheus v0.305.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6
 	golang.org/x/net v0.43.0
@@ -79,7 +79,7 @@ require (
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
-	golang.org/x/time v0.11.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
