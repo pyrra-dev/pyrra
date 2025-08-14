@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"syscall"
 	"time"
@@ -66,6 +67,7 @@ func cmdKubernetes(
 	certFile, privateKeyFile string,
 	mimirClient *mimir.Client,
 	mimirWriteAlertingRules bool,
+	pyrraExternalURL *url.URL,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -86,6 +88,11 @@ func cmdKubernetes(
 		os.Exit(1)
 	}
 
+	pyrraURL := ""
+	if pyrraExternalURL != nil {
+		pyrraURL = pyrraExternalURL.String()
+	}
+
 	reconciler := &controllers.ServiceLevelObjectiveReconciler{
 		Client:                  mgr.GetClient(),
 		Logger:                  log.With(logger, "controllers", "ServiceLevelObjective"),
@@ -93,6 +100,7 @@ func cmdKubernetes(
 		ConfigMapMode:           configMapMode,
 		MimirClient:             mimirClient,
 		MimirWriteAlertingRules: mimirWriteAlertingRules,
+		PyrraExternalURL:        pyrraURL,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceLevelObjective")
@@ -129,7 +137,8 @@ func cmdKubernetes(
 	{
 		router := http.NewServeMux()
 		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&KubernetesObjectiveServer{
-			client: mgr.GetClient(),
+			client:   mgr.GetClient(),
+			pyrraURL: pyrraURL,
 		}))
 
 		server := http.Server{
@@ -166,7 +175,8 @@ type KubernetesClient interface {
 }
 
 type KubernetesObjectiveServer struct {
-	client KubernetesClient
+	client   KubernetesClient
+	pyrraURL string
 }
 
 func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
@@ -206,19 +216,19 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 	}
 
 	objectives := make([]*objectivesv1alpha1.Objective, 0, len(list.Items))
-	for _, s := range list.Items {
+	for _, slo := range list.Items {
 		if nameMatcher != nil {
-			if !nameMatcher.Matches(s.GetName()) {
+			if !nameMatcher.Matches(slo.GetName()) {
 				continue
 			}
 		}
 		if namespaceMatcher != nil {
-			if !namespaceMatcher.Matches(s.GetNamespace()) {
+			if !namespaceMatcher.Matches(slo.GetNamespace()) {
 				continue
 			}
 		}
 
-		internal, err := s.Internal()
+		internal, err := slo.Internal()
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
