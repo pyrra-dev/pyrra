@@ -18,6 +18,7 @@ bin
 
 # editor and IDE paraphernalia
 .idea
+.vscode
 *.swp
 *.swo
 *~
@@ -30,3 +31,7 @@ bin
 # node
 node_modules
 package*.json
+
+# Local development environment
+/.dev
+.envrc
