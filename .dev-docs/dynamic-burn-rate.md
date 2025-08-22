@@ -103,19 +103,27 @@ make install
 make all
 ```
 
-3. **Run Pyrra:**
-```bash
-# Terminal 1 - API (adjust Prometheus URL as needed)
-./pyrra api --prometheus-url=http://monitoring-kube-prometheus-prometheus.monitoring:9090
+3. **Run Services** (each in its own terminal window):
 
-# Terminal 2 - Kubernetes backend
+Terminal 1 - Prometheus Port Forwarding:
+```bash
+# Keep this running in a dedicated terminal
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
+```
+
+Terminal 2 - Pyrra API Server:
+```bash
+# Keep this running in a dedicated terminal
+./pyrra api --prometheus-url=http://localhost:9090
+```
+
+Terminal 3 - Pyrra Kubernetes Backend:
+```bash
+# Keep this running in a dedicated terminal
 ./pyrra kubernetes
 ```
 
-4. **Access Services:**
-```bash
-# Port-forward Prometheus (http://localhost:9090)
-kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
+**Note:** These are long-running processes. Do not stop them with CTRL+C unless you want to shut down the services. Each should run in its own terminal window while you work on the feature.
 
 # Port-forward Grafana (http://localhost:3000, default credentials: admin/prom-operator)
 kubectl port-forward -n monitoring svc/monitoring-grafana 3000:3000
