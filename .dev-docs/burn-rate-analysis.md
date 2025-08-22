@@ -65,9 +65,38 @@ The current implementation differs from our dynamic burn rate approach in severa
 
 To implement dynamic burn rate alerting, we need to:
 
-1. Extend the SLO spec to support dynamic burn rate configuration
-2. Modify the alert rule generation to support dynamic thresholds
-3. Update the PromQL generation to calculate event ratios
-4. Ensure backward compatibility with existing static burn rates
+1. **API/Spec Changes**
+   - Extend the SLO spec to support dynamic burn rate configuration
+   - Modify the alert rule generation to support dynamic thresholds
+   - Update the PromQL generation to calculate event ratios
+   - Ensure backward compatibility with existing static burn rates
+
+2. **UI Changes**
+   - Update `BurnrateGraph.tsx`:
+     - Modify threshold visualization to show dynamic calculations
+     - Update tooltips to explain dynamic factor calculation
+     - Consider adding event count visualization
+   - Update `AlertsTable.tsx`:
+     - Show dynamic factor calculation instead of static factors
+     - Update tooltips for exhaustion time calculations
+   - Add UI controls for enabling/configuring dynamic burn rate
+   - Ensure proper error handling for dynamic calculations
+
+3. **Dashboard Updates**
+   - Modify Grafana dashboards:
+     - Update burn rate panels in `detail.json`
+     - Add event count visualization panels
+     - Consider adding comparison views (static vs dynamic)
+   - Update recording rules:
+     - Add rules for event counts if needed
+     - Ensure efficiency in dynamic calculations
+     - Keep backward compatibility for static burn rates
+   - Add documentation to dashboard JSON files
+   - Consider adding example queries to README.md
+
+4. **Documentation**
+   - Update user documentation to explain dynamic burn rate
+   - Add examples and best practices
+   - Document UI and dashboard changes
 
 _Last updated: 2025-08-22_
