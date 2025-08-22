@@ -103,7 +103,19 @@ make install
 make all
 ```
 
-3. **Run Services** (each in its own terminal window):
+3. **Generate and Install CRDs**
+
+```bash
+# Generate CRDs using controller-gen
+make generate
+
+# Install the ServiceLevelObjective CRD
+cat jsonnet/controller-gen/pyrra.dev_servicelevelobjectives.json | gojsontoyaml | kubectl apply -f -
+```
+
+Note: The CRDs are generated in JSON format in the `jsonnet/controller-gen` directory and need to be converted to YAML using `gojsontoyaml` before applying to the cluster.
+
+4. **Run Services** (each in its own terminal window):
 
 Terminal 1 - Prometheus Port Forwarding:
 ```bash
