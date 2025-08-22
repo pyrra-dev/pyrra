@@ -137,6 +137,39 @@ Terminal 3 - Pyrra Kubernetes Backend:
 
 **Note:** These are long-running processes. Do not stop them with CTRL+C unless you want to shut down the services. Each should run in its own terminal window while you work on the feature.
 
+5. **Verify Setup**
+
+Create a test SLO to verify everything is working:
+
+```yaml
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: test-slo
+  namespace: monitoring
+spec:
+  target: "0.99"
+  window: 30d
+  indicator:
+    ratio:
+      errors:
+        metric: prometheus_http_requests_total
+        filter: code=~"5.."
+      total:
+        metric: prometheus_http_requests_total
+```
+
+Apply and verify:
+```bash
+kubectl apply -f test-slo.yaml
+kubectl get slo -n monitoring
+```
+
+You should be able to see:
+- The SLO in Kubernetes (`kubectl get slo`)
+- Generated Prometheus rules (`kubectl get prometheusrules`)
+- The SLO in Pyrra's UI (http://localhost:9099)
+
 # Port-forward Grafana (http://localhost:3000, default credentials: admin/prom-operator)
 kubectl port-forward -n monitoring svc/monitoring-grafana 3000:3000
 ```
