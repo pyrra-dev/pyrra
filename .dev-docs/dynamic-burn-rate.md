@@ -147,21 +147,22 @@ kind: ServiceLevelObjective
 metadata:
   name: test-slo
   namespace: monitoring
+  labels:
+    release: monitoring  # Required for Prometheus to pick up the rules
 spec:
   target: "0.99"
   window: 30d
   indicator:
     ratio:
       errors:
-        metric: prometheus_http_requests_total
-        filter: code=~"5.."
+        metric: "prometheus_http_requests_total{code=~'5..'}"
       total:
         metric: prometheus_http_requests_total
 ```
 
-Apply and verify:
+The test SLO file is available in `.dev/test-slo.yaml`. Apply and verify:
 ```bash
-kubectl apply -f test-slo.yaml
+kubectl apply -f .dev/test-slo.yaml
 kubectl get slo -n monitoring
 ```
 
