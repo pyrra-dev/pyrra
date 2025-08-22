@@ -48,12 +48,18 @@ The current implementation differs from our dynamic burn rate approach in severa
    - Dynamic: Factor calculated from ratio of events in different windows
 
 2. **Window Pairs**
-   - Current: Uses pairs of windows (short+long) to reduce noise
-   - Dynamic: Uses single windows with dynamic thresholds
+   - Both approaches use pairs of windows (short+long) to reduce noise and alert flappiness
+   - The long window is used both for factor calculation and burn rate verification
+   - The SAME dynamic factor (calculated from the long window) is applied to both windows
 
-3. **Threshold Calculation**
-   - Current: `threshold = factor * (1-target)`
-   - Dynamic: `threshold = (N_slo/N_alert) * error_budget`
+3. **Factor (Burn Rate) Calculation**
+   - Current: Uses static predefined factors
+   - Dynamic: Factor is calculated as `(N_slo/N_long) * error_budget`
+   - This SAME factor is used for both windows in the alert expression:
+     ```
+     burn_rate_short > factor AND burn_rate_long > factor
+     ```
+   - Using the same factor ensures consistency in how we measure error budget burn rate across different time windows
 
 ## Next Steps
 
