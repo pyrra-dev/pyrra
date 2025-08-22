@@ -47,7 +47,13 @@ npm warn deprecated svgo@1.3.2: This SVGO version is no longer supported. Upgrad
 27 vulnerabilities (6 low, 7 moderate, 13 high, 1 critical)
 ```
 
-These issues are in the development dependencies and don't affect the production build. However, if you want to address them:
+These issues are in the development dependencies and don't affect the production build. We decided to proceed without fixing them because:
+- The vulnerabilities only affect development environment, not the production build
+- The deprecated SVGO package is only used for SVG optimization during development
+- Making dependency changes could create unnecessary differences with upstream
+- Focus should be on the dynamic burn rate feature implementation
+
+If needed later, these can be addressed with:
 1. Update npm: `npm install -g npm@11.5.2`
 2. Fix vulnerabilities: `cd ui && npm audit fix`
 3. For more aggressive fixes (may include breaking changes): `npm audit fix --force`
