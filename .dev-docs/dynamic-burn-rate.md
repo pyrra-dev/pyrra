@@ -39,6 +39,24 @@ An alert is triggered if the error rate in the alerting window exceeds this thre
 
 ### Known Issues and Resolutions
 
+#### Build Dependencies
+When running `make all`, you might need to install additional Go tools:
+```bash
+# Install required Go tools
+go install github.com/brancz/gojsontoyaml@latest
+go install mvdan.cc/gofumpt@latest
+go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+```
+
+#### TypeScript Version Notice
+There's a TypeScript version mismatch warning, but it doesn't affect the build:
+```
+WARNING: You are currently running a version of TypeScript which is not officially supported by @typescript-eslint/typescript-estree.
+SUPPORTED TYPESCRIPT VERSIONS: >=3.3.1 <4.5.0
+YOUR TYPESCRIPT VERSION: 4.8.4
+```
+This can be ignored for development purposes.
+
 #### NPM Dependencies
 When running `make install`, you might encounter the following:
 ```
