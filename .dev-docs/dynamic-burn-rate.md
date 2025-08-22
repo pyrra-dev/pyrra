@@ -131,7 +131,32 @@ kubectl port-forward -n monitoring svc/monitoring-grafana 3000:3000
 
 ## Development Notes
 
-[Development notes and progress will be added here as we proceed]
+### Syncing with Upstream
+
+When the upstream repository has new changes:
+
+1. Add upstream remote (first time only):
+   ```bash
+   git remote add upstream https://github.com/pyrra-dev/pyrra.git
+   ```
+
+2. Update from upstream:
+   ```bash
+   git fetch upstream
+   git rebase upstream/main
+   ```
+
+3. After rebasing, force push is required:
+   ```bash
+   git push --force-with-lease
+   ```
+
+4. Rebuild after updating:
+   ```bash
+   make all
+   ```
+
+[Additional development notes and progress will be added here as we proceed]
 
 ---
 
