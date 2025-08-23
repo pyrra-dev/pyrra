@@ -167,8 +167,9 @@ type Alerting struct {
 	AbsentName string `json:"absentName,omitempty"`
 
 	// +optional
-	// DynamicBurnRate configures dynamic burn rate alerting based on remaining error budget
-	DynamicBurnRate *DynamicBurnRate `json:"dynamicBurnRate,omitempty"`
+	// +kubebuilder:default:="static"
+	// BurnRateType defines whether to use static or dynamic burn rate alerting.
+	BurnRateType string `json:"burnRateType,omitempty"`
 }
 
 type RatioIndicator struct {
@@ -418,13 +419,11 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 		alerting.Absent = *in.Spec.Alerting.Absent
 	}
 
-	// Configure dynamic burn rates if enabled
-	if in.Spec.Alerting.DynamicBurnRate != nil && in.Spec.Alerting.DynamicBurnRate.Enabled != nil && *in.Spec.Alerting.DynamicBurnRate.Enabled {
-		alerting.DynamicBurnRate = &slo.DynamicBurnRate{
-			BaseFactor: in.Spec.Alerting.DynamicBurnRate.BaseFactor,
-			MinFactor:  in.Spec.Alerting.DynamicBurnRate.MinFactor,
-			MaxFactor:  in.Spec.Alerting.DynamicBurnRate.MaxFactor,
-		}
+	// Set burn rate type, defaulting to "static"
+	if in.Spec.Alerting.BurnRateType == "" {
+		alerting.BurnRateType = "static"
+	} else {
+		alerting.BurnRateType = in.Spec.Alerting.BurnRateType
 	}
 
 	if in.Spec.Alerting.Name != "" {

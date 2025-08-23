@@ -28,8 +28,55 @@ type MultiBurnRateAlert struct {
 	QueryLong  string
 }
 
+// dynamicBurnRateExpr returns the PromQL expression for calculating dynamic burn rate
+func (o Objective) dynamicBurnRateExpr(w Window) string {
+	// For dynamic burn rate we need:
+	// 1. Total events in SLO window
+	// 2. Total events in alert window
+	// 3. Error budget burn percent
+	var ebp float64
+	switch {
+	case w.Long == time.Hour:
+		ebp = 1.0 / 48 // 50% per day
+	case w.Long == 6*time.Hour:
+		ebp = 1.0 / 16 // 100% per 4 days
+	case w.Long == 24*time.Hour:
+		ebp = 1.0 / 14
+	case w.Long == 4*24*time.Hour:
+		ebp = 1.0 / 7
+	}
+
+	// We need to get the increase in events over both windows
+	var metric string
+	switch o.IndicatorType() {
+	case Ratio:
+		metric = o.Indicator.Ratio.Total.Name
+	case Latency:
+		metric = o.Indicator.Latency.Total.Name
+	case LatencyNative:
+		metric = o.Indicator.LatencyNative.Total.Name
+	case BoolGauge:
+		metric = o.Indicator.BoolGauge.Name
+	}
+
+	// Calculate as (total_in_slo_window / total_in_alert_window) * error_budget_percent
+	return fmt.Sprintf(
+		"(sum(increase(%s[%s])) / sum(increase(%s[%s]))) * %f",
+		metric,
+		model.Duration(o.Window).String(),
+		metric,
+		model.Duration(w.Long).String(),
+		ebp,
+	)
+}
+
 func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
-	ws := Windows(time.Duration(o.Window))
+	var ws []Window
+	if o.Alerting.BurnRateType == "dynamic" {
+		ws = o.DynamicWindows(time.Duration(o.Window))
+	} else {
+		ws = Windows(time.Duration(o.Window))
+	}
 
 	mbras := make([]MultiBurnRateAlert, len(ws))
 	for i, w := range ws {
@@ -1084,53 +1131,51 @@ type Window struct {
 	Factor   float64
 }
 
-// DynamicWindows returns the burn rate windows adjusted based on the remaining error budget
-func (o Objective) DynamicWindows(sloWindow time.Duration, remaining float64) []Window {
-	if o.Alerting.DynamicBurnRate == nil {
+// DynamicWindows returns the burn rate windows with error budget burn percentages
+func (o Objective) DynamicWindows(sloWindow time.Duration) []Window {
+	// If burn rate type is static, use static windows
+	if o.Alerting.BurnRateType != "dynamic" {
 		return Windows(sloWindow)
 	}
 
-	// Calculate dynamic factor based on remaining error budget
-	// remaining will be between 0 and 1
-	// We want factor to be:
-	// - higher when remaining = 1 (lots of error budget left)
-	// - lower when remaining = 0 (error budget nearly exhausted)
-	// - scale linearly between min and max based on remaining
-	dynamicFactor := func(baseFactor float64) float64 {
-		// Scale base factor by remaining error budget percentage
-		factor := baseFactor * remaining
-
-		// Constrain to min/max factors from config
-		if factor < o.Alerting.DynamicBurnRate.MinFactor {
-			return o.Alerting.DynamicBurnRate.MinFactor
-		}
-		if factor > o.Alerting.DynamicBurnRate.MaxFactor {
-			return o.Alerting.DynamicBurnRate.MaxFactor
-		}
-		return factor
-	}
-
-	// Get base windows
+	// Get base windows with their period configuration
 	baseWindows := Windows(sloWindow)
 
-	// Adjust factors based on remaining error budget
+	// For each window, set up the error budget burn percentages
 	windows := make([]Window, len(baseWindows))
 	for i, w := range baseWindows {
+		// Calculate error budget burn percent for this window
+		var errorBudgetBurnPercent float64
+		switch {
+		case w.Long == time.Hour:
+			// Want 50% per day = 1/48 per hour
+			errorBudgetBurnPercent = 1.0 / 48
+		case w.Long == 6*time.Hour:
+			// Want 100% per 4 days = 1/16 per 6 hours
+			errorBudgetBurnPercent = 1.0 / 16
+		case w.Long == 24*time.Hour:
+			// Want budget burn of 1/14 per day
+			errorBudgetBurnPercent = 1.0 / 14
+		case w.Long == 4*24*time.Hour:
+			// Want budget burn of 1/7 per 4 days
+			errorBudgetBurnPercent = 1.0 / 7
+		}
+
 		windows[i] = Window{
 			Severity: w.Severity,
 			For:      w.For,
 			Long:     w.Long,
 			Short:    w.Short,
-			Factor:   dynamicFactor(w.Factor), // Scale the base factor dynamically
+			Factor:   errorBudgetBurnPercent,
 		}
 	}
 
 	return windows
-} // Windows returns the burn rate windows for the given SLO window.
-func Windows(sloWindow time.Duration) []Window {
-	// TODO: I'm still not sure if For, Long, Short should really be based on the 28 days ratio...
+}
 
-	round := time.Minute // TODO: Change based on sloWindow
+func Windows(sloWindow time.Duration) []Window {
+	// TODO: Change based on sloWindow
+	var round time.Duration = time.Minute
 
 	// Base factors for static thresholds
 	baseFactors := []Window{
