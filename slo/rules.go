@@ -1084,37 +1084,86 @@ type Window struct {
 	Factor   float64
 }
 
+// DynamicWindows returns the burn rate windows adjusted based on the remaining error budget
+func (o Objective) DynamicWindows(sloWindow time.Duration, remaining float64) []Window {
+	if o.Alerting.DynamicBurnRate == nil {
+		return Windows(sloWindow)
+	}
+
+	// Calculate dynamic factor based on remaining error budget
+	// remaining will be between 0 and 1
+	// We want factor to be:
+	// - higher when remaining = 1 (lots of error budget left)
+	// - lower when remaining = 0 (error budget nearly exhausted)
+	// - scale linearly between min and max based on remaining
+	dynamicFactor := func(baseFactor float64) float64 {
+		// Scale base factor by remaining error budget percentage
+		factor := baseFactor * remaining
+		
+		// Constrain to min/max factors from config
+		if factor < o.Alerting.DynamicBurnRate.MinFactor {
+			return o.Alerting.DynamicBurnRate.MinFactor
+		}
+		if factor > o.Alerting.DynamicBurnRate.MaxFactor {
+			return o.Alerting.DynamicBurnRate.MaxFactor
+		}
+		return factor
+	}
+
+	// Get base windows
+	baseWindows := Windows(sloWindow)
+
+	// Adjust factors based on remaining error budget
+	windows := make([]Window, len(baseWindows))
+	for i, w := range baseWindows {
+		windows[i] = Window{
+			Severity: w.Severity,
+			For:      w.For,
+			Long:     w.Long,
+			Short:    w.Short,
+			Factor:   dynamicFactor(w.Factor), // Scale the base factor dynamically
+		}
+	}
+
+	return windows
+}// Windows returns the burn rate windows for the given SLO window.
 func Windows(sloWindow time.Duration) []Window {
 	// TODO: I'm still not sure if For, Long, Short should really be based on the 28 days ratio...
 
 	round := time.Minute // TODO: Change based on sloWindow
 
-	// long and short rates are calculated based on the ratio for 28 days.
-	return []Window{{
-		Severity: critical,
-		For:      (sloWindow / (28 * 24 * (60 / 2))).Round(round), // 2m for 28d - half short
-		Long:     (sloWindow / (28 * 24)).Round(round),            // 1h for 28d
-		Short:    (sloWindow / (28 * 24 * (60 / 5))).Round(round), // 5m for 28d
-		Factor:   14,                                              // error budget burn: 50% within a day
-	}, {
-		Severity: critical,
-		For:      (sloWindow / (28 * 24 * (60 / 15))).Round(round), // 15m for 28d - half short
-		Long:     (sloWindow / (28 * (24 / 6))).Round(round),       // 6h for 28d
-		Short:    (sloWindow / (28 * 24 * (60 / 30))).Round(round), // 30m for 28d
-		Factor:   7,                                                // error budget burn: 20% within a day / 100% within 5 days
-	}, {
-		Severity: warning,
-		For:      (sloWindow / (28 * 24)).Round(round),       // 1h for 28d - half short
-		Long:     (sloWindow / 28).Round(round),              // 1d for 28d
-		Short:    (sloWindow / (28 * (24 / 2))).Round(round), // 2h for 28d
-		Factor:   2,                                          // error budget burn: 10% within a day / 100% within 10 days
-	}, {
-		Severity: warning,
-		For:      (sloWindow / (28 * (24 / 3))).Round(round), // 3h for 28d - half short
-		Long:     (sloWindow / 7).Round(round),               // 4d for 28d
-		Short:    (sloWindow / (28 * (24 / 6))).Round(round), // 6h for 28d
-		Factor:   1,                                          // error budget burn: 100% until the end of sloWindow
-	}}
+	// Base factors for static thresholds
+	baseFactors := []Window{
+		{
+			Severity: critical,
+			For:      (sloWindow / (28 * 24 * (60 / 2))).Round(round), // 2m for 28d - half short
+			Long:     (sloWindow / (28 * 24)).Round(round),            // 1h for 28d
+			Short:    (sloWindow / (28 * 24 * (60 / 5))).Round(round), // 5m for 28d
+			Factor:   14,                                              // error budget burn: 50% within a day
+		},
+		{
+			Severity: critical,
+			For:      (sloWindow / (28 * 24 * (60 / 15))).Round(round), // 15m for 28d - half short
+			Long:     (sloWindow / (28 * (24 / 6))).Round(round),       // 6h for 28d
+			Short:    (sloWindow / (28 * 24 * (60 / 30))).Round(round), // 30m for 28d
+			Factor:   7,                                                // error budget burn: 20% within a day / 100% within 5 days
+		},
+		{
+			Severity: warning,
+			For:      (sloWindow / (28 * 24)).Round(round),       // 1h for 28d - half short
+			Long:     (sloWindow / 28).Round(round),              // 1d for 28d
+			Short:    (sloWindow / (28 * (24 / 2))).Round(round), // 2h for 28d
+			Factor:   2,                                          // error budget burn: 10% within a day / 100% within 10 days
+		},
+		{
+			Severity: warning,
+			For:      (sloWindow / (28 * (24 / 3))).Round(round), // 3h for 28d - half short
+			Long:     (sloWindow / 7).Round(round),               // 4d for 28d
+			Short:    (sloWindow / (28 * (24 / 6))).Round(round), // 6h for 28d
+			Factor:   1,                                          // error budget burn: 100% until the end of sloWindow
+		},
+	}
+	return baseFactors
 }
 
 func burnratesFromWindows(ws []Window) []time.Duration {
