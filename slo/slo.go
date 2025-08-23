@@ -57,9 +57,9 @@ func (o Objective) Exhausts(factor float64) model.Duration {
 
 // GetRemainingErrorBudget returns the fraction of error budget remaining (0-1)
 func (o Objective) GetRemainingErrorBudget(burnRate float64) float64 {
-	// Calculate how much error budget has been consumed 
+	// Calculate how much error budget has been consumed
 	consumed := burnRate * (1 - o.Target)
-	
+
 	// Return remaining fraction (1 = all remaining, 0 = none remaining)
 	remaining := 1 - consumed
 	if remaining < 0 {

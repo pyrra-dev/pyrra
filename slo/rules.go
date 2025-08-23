@@ -1099,7 +1099,7 @@ func (o Objective) DynamicWindows(sloWindow time.Duration, remaining float64) []
 	dynamicFactor := func(baseFactor float64) float64 {
 		// Scale base factor by remaining error budget percentage
 		factor := baseFactor * remaining
-		
+
 		// Constrain to min/max factors from config
 		if factor < o.Alerting.DynamicBurnRate.MinFactor {
 			return o.Alerting.DynamicBurnRate.MinFactor
@@ -1126,7 +1126,7 @@ func (o Objective) DynamicWindows(sloWindow time.Duration, remaining float64) []
 	}
 
 	return windows
-}// Windows returns the burn rate windows for the given SLO window.
+} // Windows returns the burn rate windows for the given SLO window.
 func Windows(sloWindow time.Duration) []Window {
 	// TODO: I'm still not sure if For, Long, Short should really be based on the 28 days ratio...
 
