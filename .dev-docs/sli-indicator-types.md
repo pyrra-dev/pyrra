@@ -38,7 +38,7 @@ indicator:
       metric: http_requests_total
 ```
 
-**Burn Rate Calculation**:
+**Error Rate Calculation**:
 ```promql
 sum(rate(errors_metric[window])) / sum(rate(total_metric[window]))
 ```
@@ -66,7 +66,7 @@ indicator:
       metric: http_request_duration_seconds_count
 ```
 
-**Burn Rate Calculation**:
+**Error Rate Calculation**:
 ```promql
 (
   sum(rate(total_metric[window]))
@@ -101,7 +101,7 @@ indicator:
     latency: "100ms"
 ```
 
-**Burn Rate Calculation**:
+**Error Rate Calculation**:
 ```promql
 1 - histogram_fraction(0, threshold_seconds, sum(rate(metric[window])))
 ```
@@ -128,7 +128,7 @@ indicator:
     metric: up{job="my-service"}
 ```
 
-**Burn Rate Calculation**:
+**Error Rate Calculation**:
 ```promql
 (
   sum(count_over_time(metric[window]))
