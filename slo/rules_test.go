@@ -2014,3 +2014,81 @@ func TestObjective_AlertNameMetricAbsent(t *testing.T) {
 		})
 	}
 }
+
+func TestObjective_DynamicBurnRate(t *testing.T) {
+	// Test dynamic vs static burn rate alert expression generation
+	obj := objectiveHTTPRatio()
+
+	// Test static mode (default)
+	obj.Alerting.BurnRateType = "static"
+	staticRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Test dynamic mode
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Both should generate the same number of rules
+	require.Equal(t, len(staticRules.Rules), len(dynamicRules.Rules))
+
+	// The alert expressions should be different for ratio indicators
+	// Find the alert rules (not recording rules)
+	var staticAlertFound, dynamicAlertFound bool
+	for _, rule := range staticRules.Rules {
+		if rule.Alert != "" {
+			staticAlertFound = true
+			// Static should use traditional burn rate format
+			require.Contains(t, rule.Expr.String(), "http_requests:burnrate")
+			break
+		}
+	}
+
+	for _, rule := range dynamicRules.Rules {
+		if rule.Alert != "" {
+			dynamicAlertFound = true
+			// Dynamic should use direct error rate calculation
+			require.Contains(t, rule.Expr.String(), "code=~\"5..\"")
+			// Should contain the dynamic calculation pattern
+			require.Contains(t, rule.Expr.String(), "increase(http_requests_total")
+			break
+		}
+	}
+
+	require.True(t, staticAlertFound, "Static alert rule should be found")
+	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
+}
+
+func TestObjective_buildAlertExpr(t *testing.T) {
+	obj := objectiveHTTPRatio()
+	window := Window{
+		Severity: "critical", // Use string instead of undefined constant
+		For:      2 * time.Minute,
+		Long:     time.Hour,
+		Short:    5 * time.Minute,
+		Factor:   14.4, // Use the actual static factor for 1 hour window
+	}
+	alertMatchersString := `job="thanos-receive-default",slo="monitoring-http-errors"`
+
+	// Test static expression
+	obj.Alerting.BurnRateType = "static"
+	staticExpr := obj.buildAlertExpr(window, alertMatchersString)
+	require.Contains(t, staticExpr, "http_requests:burnrate")
+	require.Contains(t, staticExpr, "14") // Static factor (formatted as 14, not 14.4)
+
+	// For dynamic test, use the dynamic factor
+	dynamicWindow := Window{
+		Severity: "critical",
+		For:      2 * time.Minute,
+		Long:     time.Hour,
+		Short:    5 * time.Minute,
+		Factor:   1.0 / 48, // E_budget_percent_threshold for 1 hour window
+	}
+
+	// Test dynamic expression
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicExpr := obj.buildAlertExpr(dynamicWindow, alertMatchersString)
+	require.Contains(t, dynamicExpr, "code=~\"5..\"")
+	require.Contains(t, dynamicExpr, "increase(http_requests_total")
+	require.Contains(t, dynamicExpr, "0.020833") // 1/48 formatted
+}
