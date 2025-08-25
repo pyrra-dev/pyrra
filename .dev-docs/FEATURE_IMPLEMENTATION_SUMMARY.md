@@ -4,6 +4,29 @@
 
 The dynamic burn rate feature introduces adaptive alerting to Pyrra that adjusts alert thresholds based on actual traffic patterns rather than using fixed static multipliers. This implementation is based on the method described in the "Error Budget is All You Need" blog series.
 
+## ✅ **COMPLETED: Priority 1 - Core Alert Logic Integration**
+
+### Recent Changes (Latest Commit: 02ff831)
+
+1. **Dynamic Alert Expression Generation**: 
+   - Added `buildAlertExpr()` method that routes between static and dynamic burn rate calculations
+   - Added `buildDynamicAlertExpr()` method implementing the full dynamic formula
+   - Integrated into `Burnrates()` method replacing hardcoded expressions
+
+2. **Traffic-Aware Thresholds**: 
+   - Dynamic calculation: `(N_SLO/N_alert) × E_budget_percent_threshold × (1-SLO_target)`
+   - Adapts to traffic volume with higher thresholds for high traffic, lower for low traffic
+
+3. **Comprehensive Testing**:
+   - Added `TestObjective_DynamicBurnRate()` validating different alert expressions
+   - Added `TestObjective_buildAlertExpr()` testing both static and dynamic modes
+   - Updated existing tests to expect "static" as default BurnRateType
+
+4. **Backward Compatibility**: 
+   - Static burn rate remains default behavior
+   - All existing functionality preserved
+   - Test fixes for default BurnRateType expectations
+
 ## Core Concept & Formula
 
 ### Dynamic Burn Rate Calculation
@@ -12,7 +35,7 @@ dynamic_burn_rate = (N_SLO / N_alert) × E_budget_percent_threshold
 ```
 
 Where:
-- **N_SLO** = Number of events in the SLO window (e.g., 28 days)
+- **N_SLO** = Number of events in the SLO window (e.g., 28 days) 
 - **N_alert** = Number of events in the alerting window (e.g., 1 hour, 6 hours)
 - **E_budget_percent_threshold** = Constant percentage of error budget consumption to alert on
 
@@ -31,22 +54,46 @@ These are **predefined constant values**, not calculated:
 
 | Window Period | E_budget_percent_threshold | Reasoning |
 |---------------|---------------------------|-----------|
-| 1 hour        | 1/48                     | 50% budget consumption per day |
-| 6 hours       | 1/16                     | 100% budget consumption per 4 days |
-| 1 day         | 1/14                     | Balanced daily threshold |
-| 4 days        | 1/7                      | Long-term budget management |
+| 1 hour        | 1/48 (≈0.020833)        | 50% budget consumption per day |
+| 6 hours       | 1/16 (≈0.0625)          | 100% budget consumption per 4 days |
+| 1 day         | 1/14 (≈0.071429)        | Balanced daily threshold |
+| 4 days        | 1/7 (≈0.142857)         | Long-term budget management |
 
 ## Implementation Status
 
 ### ✅ Completed Components
 
-#### 1. API & Type System (Complete)
+#### 1. **Core Alert Logic Integration (PRIORITY 1 - COMPLETE)**
+
+**Key Files Modified**:
+- `slo/rules.go`: Added `buildAlertExpr()` and `buildDynamicAlertExpr()` methods
+- `slo/rules_test.go`: Added comprehensive unit tests
+- `kubernetes/api/v1alpha1/servicelevelobjective_types_test.go`: Updated test expectations
+
+**Implementation Details**:
+- **Dynamic PromQL Generation**: Complex expressions using `increase()` functions and proper metric selectors
+- **Ratio Indicator Support**: Fully implemented with error/total metric handling
+- **Multi-Window Alerting**: Works with existing dual-window (fast/slow) alerting pattern
+- **Metric Selector Handling**: Proper label matcher construction avoiding duplicates while preserving regex operators
+
+**Example Generated PromQL** (Ratio Indicator):
+```promql
+(
+  (sum(rate(http_requests_total{code=~"5..",job="api"}[5m])) / sum(rate(http_requests_total{job="api"}[5m]))) > 
+  ((sum(increase(http_requests_total{job="api"}[7d])) / sum(increase(http_requests_total{job="api"}[5m]))) * 0.020833 * 0.01)
+) and (
+  (sum(rate(http_requests_total{code=~"5..",job="api"}[1h])) / sum(rate(http_requests_total{job="api"}[1h]))) >
+  ((sum(increase(http_requests_total{job="api"}[7d])) / sum(increase(http_requests_total{job="api"}[1h]))) * 0.020833 * 0.01)  
+)
+```
+
+#### 2. API & Type System (Complete)
 - **`BurnRateType` field** added to `Alerting` struct in `slo/slo.go`
 - **Kubernetes CRD support** in `servicelevelobjective_types.go`
 - **Backward compatibility** with default "static" behavior
 - **Type safety** with proper JSON marshaling
 
-#### 2. Core Algorithm Infrastructure (Complete)
+#### 3. Core Algorithm Infrastructure (Complete)
 - **`DynamicWindows()` method**: Assigns predefined E_budget_percent_threshold constants to window periods
 - **`dynamicBurnRateExpr()` method**: Generates PromQL expressions for dynamic calculations
 - **Window period integration**: Uses existing window structure with dynamic factors
@@ -57,70 +104,64 @@ These are **predefined constant values**, not calculated:
 - **Test configuration** available in `.dev/test-slo.yaml`
 - **Documentation** comprehensive in `.dev-docs/` folder
 
-### 🔧 Current Implementation Gap
+### � Remaining Work
 
-**Critical Issue**: The dynamic burn rate calculation logic exists but **is not integrated into actual alert rule generation**.
+#### **Priority 1 Remaining**: Extend to Other Indicator Types
+- **Latency Indicators**: Implement dynamic burn rate for histogram-based latency SLOs
+- **LatencyNative Indicators**: Support for native histogram dynamic burn rates  
+- **BoolGauge Indicators**: Dynamic burn rates for boolean gauge metrics
 
-**Root Cause**: The `Alerts()` method correctly calculates dynamic factors, but the generated alert rules still use `QueryBurnrate()` which applies traditional static burn rate logic instead of the dynamic threshold calculation.
+#### **Priority 2**: Testing & Validation
+- Integration tests with actual Prometheus setup
+- Edge case testing (zero traffic, traffic spikes)
+- Performance impact analysis
+- Traffic pattern validation
 
-## Next Steps - Prioritized Implementation Plan
+#### **Priority 3**: UI Integration
+- Update `BurnrateGraph.tsx` to show dynamic vs static mode
+- Update `AlertsTable.tsx` to display dynamic burn rate information
+- Add UI toggles for burn rate type selection
 
-### Priority 1: Core Alert Logic Integration 🚨
-**Goal**: Make dynamic burn rate calculations actually work in alert rules
+#### **Priority 4**: Documentation & Optimization
+- User documentation and examples
+- Performance optimization for PromQL expressions
+- Monitoring and observability improvements
 
-#### 1.1 Fix Alert Rule Generation Logic
-- **File**: `slo/rules.go`
-- **Task**: Modify alert rule generation to use dynamic expressions when `BurnRateType = "dynamic"`
-- **Specific Changes**:
-  - Update the `Alerts()` method to generate different PromQL for dynamic vs static
-  - Implement proper threshold calculation: `dynamic_burn_rate × (1 - SLO_target)`
-  - Ensure PromQL compares `error_rate` to the calculated threshold
+## Important Clarifications
 
-#### 1.2 Update PromQL Generation
-- **Task**: Modify PromQL templates to incorporate `(N_SLO / N_alert) × E_budget_percent_threshold` formula
-- **Integration**: Connect `dynamicBurnRateExpr()` output to actual alert conditions
-- **Validation**: Ensure generated PromQL is syntactically correct and logically sound
+### Formula Correction Notes
 
-#### 1.3 Test Dynamic vs Static Behavior
-- **Create test cases** comparing static vs dynamic alert generation
-- **Validate PromQL output** for both modes
-- **Verify threshold calculations** are mathematically correct
+**E_budget_percent_threshold Clarification**: These are **constant values**, not calculated values. They represent the percentage of error budget consumption we want to alert on, regardless of SLO period choices. The values (1/48, 1/16, etc.) should remain consistent across different SLO configurations.
 
-### Priority 2: Testing & Validation 🧪
-**Goal**: Ensure reliability and correctness
+**Formula Direction**: The correct formula is `(N_SLO / N_alert)` where:
+- N_SLO = Events in SLO window (7d, 28d, etc.)
+- N_alert = Events in alert window (1h, 6h, etc.)
 
-#### 2.1 Unit Tests
-- **Dynamic threshold calculation tests**
-- **E_budget_percent_threshold constant validation**
-- **PromQL generation tests** for both static and dynamic modes
-- **Edge case handling** (zero traffic, high traffic spikes)
+This ratio scales thresholds appropriately: more events in SLO window relative to alert window = higher threshold.
 
-#### 2.2 Integration Tests
-- **End-to-end SLO creation** with dynamic burn rates
-- **Alert rule deployment** to Kubernetes/Prometheus
-- **Alert firing verification** under different traffic conditions
+### Indicator Type Support Strategy
 
-#### 2.3 Traffic Pattern Testing
-- **Low traffic scenarios** (validate dynamic adaptation)
-- **High traffic scenarios** (ensure threshold scaling)
-- **Traffic spike handling** (alert responsiveness)
+**Current Priority**: Ratio indicators were implemented first because they:
+1. Are the most common SLI type in production
+2. Have the simplest metric structure (separate error and total metrics)
+3. Allow the dynamic formula to be applied most straightforwardly
 
-### Priority 3: User Experience Enhancement 🎨
-**Goal**: Make dynamic burn rates accessible and understandable
+**Extension Strategy**: Other indicator types (Latency, LatencyNative, BoolGauge) fall back to static behavior temporarily while we validate the core dynamic implementation with Ratio indicators.
 
-#### 3.1 UI Components
-- **`BurnrateGraph.tsx`**: Visualize dynamic vs static thresholds
-- **`AlertsTable.tsx`**: Display burn rate type and dynamic factors
-- **Configuration controls**: Allow users to select dynamic vs static mode
-- **Tooltips and help text**: Explain dynamic burn rate concepts
+## Current Capabilities
 
-#### 3.2 Documentation
-- **User guide**: When to use dynamic vs static burn rates
-- **Migration examples**: Converting existing SLOs
-- **Best practices**: Traffic volume considerations
-- **Troubleshooting**: Common issues and solutions
+### ✅ **Working Features**
+- **Ratio Indicators**: Full dynamic burn rate support
+- **Static Fallback**: Other indicator types fall back to static behavior
+- **Backward Compatibility**: Existing SLOs continue working unchanged
+- **Multi-Window Alerting**: Both short and long windows use dynamic thresholds
+- **Traffic Adaptation**: Higher traffic → higher thresholds, lower traffic → lower thresholds
 
-### Priority 4: Observability & Operations 📊
+### ❌ **Not Yet Supported**
+- **Dynamic Latency Indicators**: Falls back to static burn rate
+- **Dynamic LatencyNative Indicators**: Falls back to static burn rate  
+- **Dynamic BoolGauge Indicators**: Falls back to static burn rate
+- **UI Display**: Dynamic mode not shown in user interface
 **Goal**: Provide operational visibility into dynamic behavior
 
 #### 4.1 Grafana Dashboard Updates
