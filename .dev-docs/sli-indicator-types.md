@@ -146,16 +146,21 @@ sum(count_over_time(metric[window]))
 ### Current Implementation Status
 
 - ✅ **Ratio**: Fully implemented with dynamic burn rate support
-- ❌ **Latency**: Falls back to static burn rate (TODO)
+- ✅ **Latency**: Fully implemented with dynamic burn rate support ✨ **NEW**
 - ❌ **LatencyNative**: Falls back to static burn rate (TODO)  
 - ❌ **BoolGauge**: Falls back to static burn rate (TODO)
 
-### Why Ratio First?
+### Why Ratio First, Then Latency?
 
-Ratio indicators were implemented first because:
-1. They're the most common SLI type
-2. They have the simplest metric structure (two separate metrics)
-3. The dynamic formula is most straightforward to apply
+1. **Ratio indicators** were implemented first because:
+   - They're the most common SLI type
+   - They have the simplest metric structure (two separate metrics)
+   - The dynamic formula is most straightforward to apply
+
+2. **Latency indicators** were implemented second because:
+   - They're the second most common SLI type after Ratio
+   - They have a similar dual-metric structure (success bucket + total count)
+   - The error rate calculation `(total - success) / total` maps well to the dynamic formula
 
 ## Implementation Details
 
@@ -210,6 +215,17 @@ Each type will need dynamic expressions that:
 1. Calculate the ratio `(N_SLO / N_alert)` using the appropriate total metric
 2. Apply the error budget percentage threshold
 3. Compare the actual error rate to the dynamic threshold
+
+#### Completed Implementations:
+
+**Ratio Indicators**: 
+- Error rate: `errors / total`  
+- Dynamic threshold: `(N_slo_total / N_alert_total) * E_budget_percent * (1-SLO_target)`
+
+**Latency Indicators**: 
+- Error rate: `(total - success) / total` (requests slower than threshold)
+- Dynamic threshold: `(N_slo_total / N_alert_total) * E_budget_percent * (1-SLO_target)`
+- Uses histogram bucket (`le="threshold"`) for success and count metric for total
 
 ## References
 

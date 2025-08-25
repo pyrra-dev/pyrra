@@ -2047,8 +2047,8 @@ func TestObjective_DynamicBurnRate(t *testing.T) {
 	for _, rule := range dynamicRules.Rules {
 		if rule.Alert != "" {
 			dynamicAlertFound = true
-			// Dynamic should use direct error rate calculation
-			require.Contains(t, rule.Expr.String(), "code=~\"5..\"")
+			// Dynamic should use recording rules for efficiency (better than inline calculations)
+			require.Contains(t, rule.Expr.String(), "http_requests:burnrate") // Uses recording rules
 			// Should contain the dynamic calculation pattern
 			require.Contains(t, rule.Expr.String(), "increase(http_requests_total")
 			break
@@ -2059,7 +2059,52 @@ func TestObjective_DynamicBurnRate(t *testing.T) {
 	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
 }
 
+func TestObjective_DynamicBurnRate_Latency(t *testing.T) {
+	// Test dynamic vs static burn rate alert expression generation for Latency indicators
+	obj := objectiveHTTPLatency()
+
+	// Test static mode (default)
+	obj.Alerting.BurnRateType = "static"
+	staticRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Test dynamic mode
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Both should generate the same number of rules
+	require.Equal(t, len(staticRules.Rules), len(dynamicRules.Rules))
+
+	// The alert expressions should be different for latency indicators
+	// Find the alert rules (not recording rules)
+	var staticAlertFound, dynamicAlertFound bool
+	for _, rule := range staticRules.Rules {
+		if rule.Alert != "" {
+			staticAlertFound = true
+			// Static should use traditional burn rate format
+			require.Contains(t, rule.Expr.String(), "http_request_duration_seconds:burnrate")
+			break
+		}
+	}
+
+	for _, rule := range dynamicRules.Rules {
+		if rule.Alert != "" {
+			dynamicAlertFound = true
+			// Dynamic should use recording rules for efficiency (better than inline calculations)
+			require.Contains(t, rule.Expr.String(), "http_request_duration_seconds:burnrate") // Uses recording rules
+			// Should contain the dynamic calculation pattern
+			require.Contains(t, rule.Expr.String(), "increase(http_request_duration_seconds_count")
+			break
+		}
+	}
+
+	require.True(t, staticAlertFound, "Static alert rule should be found")
+	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
+}
+
 func TestObjective_buildAlertExpr(t *testing.T) {
+	// Test Ratio indicators
 	obj := objectiveHTTPRatio()
 	window := Window{
 		Severity: "critical", // Use string instead of undefined constant
@@ -2088,7 +2133,26 @@ func TestObjective_buildAlertExpr(t *testing.T) {
 	// Test dynamic expression
 	obj.Alerting.BurnRateType = "dynamic"
 	dynamicExpr := obj.buildAlertExpr(dynamicWindow, alertMatchersString)
-	require.Contains(t, dynamicExpr, "code=~\"5..\"")
-	require.Contains(t, dynamicExpr, "increase(http_requests_total")
-	require.Contains(t, dynamicExpr, "0.020833") // 1/48 formatted
+	// Dynamic mode now uses recording rules for efficiency (better than inline calculations)
+	require.Contains(t, dynamicExpr, "http_requests:burnrate")       // Uses recording rules
+	require.Contains(t, dynamicExpr, "increase(http_requests_total") // Dynamic threshold calculation
+	require.Contains(t, dynamicExpr, "0.020833")                     // 1/48 formatted
+
+	// Test Latency indicators
+	objLatency := objectiveHTTPLatency()
+	latencyAlertMatchersString := `job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"`
+
+	// Test static expression for latency
+	objLatency.Alerting.BurnRateType = "static"
+	staticLatencyExpr := objLatency.buildAlertExpr(window, latencyAlertMatchersString)
+	require.Contains(t, staticLatencyExpr, "http_request_duration_seconds:burnrate")
+	require.Contains(t, staticLatencyExpr, "14") // Static factor
+
+	// Test dynamic expression for latency
+	objLatency.Alerting.BurnRateType = "dynamic"
+	dynamicLatencyExpr := objLatency.buildAlertExpr(dynamicWindow, latencyAlertMatchersString)
+	// Should contain latency-specific dynamic patterns
+	require.Contains(t, dynamicLatencyExpr, "http_request_duration_seconds:burnrate")       // Uses recording rules
+	require.Contains(t, dynamicLatencyExpr, "increase(http_request_duration_seconds_count") // Dynamic threshold
+	require.Contains(t, dynamicLatencyExpr, "0.020833")                                     // E_budget_percent_threshold
 }

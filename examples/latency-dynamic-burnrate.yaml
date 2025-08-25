@@ -1,0 +1,57 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: http-latency-dynamic
+  namespace: monitoring
+  labels:
+    pyrra.dev/team: platform
+spec:
+  target: "99.5"  # 99.5% of requests should be faster than 100ms
+  window: 28d
+  alerting:
+    disabled: false
+    burnrates: true
+    absent: true
+    # Enable dynamic burn rate for traffic-aware alerting
+    burnRateType: dynamic
+  indicator:
+    latency:
+      success:
+        # Requests faster than 100ms (le="0.1")
+        metric: http_request_duration_seconds_bucket{job="api-server",le="0.1"}
+      total:
+        # Total number of requests
+        metric: http_request_duration_seconds_count{job="api-server"}
+      grouping:
+        - handler
+        - method
+
+---
+# Comparison: Same SLO with static burn rate (traditional approach)
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: http-latency-static
+  namespace: monitoring
+  labels:
+    pyrra.dev/team: platform
+spec:
+  target: "99.5"  # 99.5% of requests should be faster than 100ms
+  window: 28d
+  alerting:
+    disabled: false
+    burnrates: true
+    absent: true
+    # Use static burn rate (traditional approach)
+    burnRateType: static
+  indicator:
+    latency:
+      success:
+        # Requests faster than 100ms (le="0.1")
+        metric: http_request_duration_seconds_bucket{job="api-server",le="0.1"}
+      total:
+        # Total number of requests
+        metric: http_request_duration_seconds_count{job="api-server"}
+      grouping:
+        - handler
+        - method
