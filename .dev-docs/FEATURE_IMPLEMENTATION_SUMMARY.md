@@ -6,16 +6,19 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra that adjusts
 
 ## ✅ **COMPLETED: Priority 1 - Core Alert Logic Integration**
 
-### Recent Changes (Latest Commit: 02ff831)
+### Recent Changes (Latest Commit: d2e4959 + Recent Fixes)
 
 1. **Dynamic Alert Expression Generation**: 
    - Added `buildAlertExpr()` method that routes between static and dynamic burn rate calculations
    - Added `buildDynamicAlertExpr()` method implementing the full dynamic formula
    - Integrated into `Burnrates()` method replacing hardcoded expressions
+   - **🔧 FIXED**: Multi-window logic now correctly uses N_long for both windows
+   - **🔧 FIXED**: Removed unused `dynamicBurnRateExpr()` function
 
 2. **Traffic-Aware Thresholds**: 
-   - Dynamic calculation: `(N_SLO/N_alert) × E_budget_percent_threshold × (1-SLO_target)`
-   - Adapts to traffic volume with higher thresholds for high traffic, lower for low traffic
+   - Dynamic calculation: `(N_SLO/N_long) × E_budget_percent_threshold × (1-SLO_target)`
+   - Adapts to traffic volume with consistent burn rate measurement across time scales
+   - **🔧 FIXED**: Both short and long windows use N_long for traffic scaling consistency
 
 3. **Comprehensive Testing**:
    - Added `TestObjective_DynamicBurnRate()` validating different alert expressions
@@ -27,16 +30,21 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra that adjusts
    - All existing functionality preserved
    - Test fixes for default BurnRateType expectations
 
+5. **Window Period Scaling Integration**:
+   - **🔧 FIXED**: `DynamicWindows()` now properly uses scaled windows from `Windows(sloWindow)`
+   - E_budget_percent_thresholds mapped based on static factor hierarchy (14→1/48, 7→1/16, etc.)
+   - Maintains proportional window scaling for any SLO period
+
 ## Core Concept & Formula
 
 > **📚 For detailed explanations of terminology and mathematical concepts, see [CORE_CONCEPTS_AND_TERMINOLOGY.md](CORE_CONCEPTS_AND_TERMINOLOGY.md)**
 
 ### Quick Reference Formula
 ```
-dynamic_threshold = (N_SLO / N_alert) × E_budget_percent_threshold × (1 - SLO_target)
+dynamic_threshold = (N_SLO / N_long) × E_budget_percent_threshold × (1 - SLO_target)
 ```
 
-**Key Innovation**: The burn rate threshold itself is dynamic and adapts to traffic patterns, preventing false positives during low traffic and false negatives during high traffic.
+**Key Innovation**: The burn rate threshold itself is dynamic and adapts to traffic patterns. Both short and long windows use **N_long** for consistent traffic scaling, preventing false positives during low traffic and false negatives during high traffic.
 
 ### Error Budget Percent Thresholds (Constants)
 | Window Period | E_budget_percent_threshold | 
@@ -116,15 +124,25 @@ dynamic_threshold = (N_SLO / N_alert) × E_budget_percent_threshold × (1 - SLO_
 
 ## Important Clarifications
 
+### Recent Architectural Corrections (Session 2025-08-26)
+
+**🔧 Multi-Window Logic Fix**: Corrected implementation to use **N_long** (long window period) for both short and long window traffic scaling calculations. This ensures consistent burn rate measurement across different time scales, matching the behavior of static burn rates.
+
+**🔧 Window Period Scaling Integration**: Fixed `DynamicWindows()` to properly utilize the `Windows(sloWindow)` function for automatic period scaling. E_budget_percent_thresholds are now mapped based on static factor hierarchy rather than hardcoded time periods.
+
+**🔧 Removed Code Duplication**: Eliminated unused `dynamicBurnRateExpr()` function that duplicated E_budget_percent logic.
+
+**🔧 Window.Factor Semantic Clarity**: Clarified that `Window.Factor` serves dual purposes - static burn rate in static mode, E_budget_percent_threshold in dynamic mode.
+
 ### Formula Correction Notes
 
 **E_budget_percent_threshold Clarification**: These are **constant values**, not calculated values. They represent the percentage of error budget consumption we want to alert on, regardless of SLO period choices. The values (1/48, 1/16, etc.) should remain consistent across different SLO configurations.
 
-**Formula Direction**: The correct formula is `(N_SLO / N_alert)` where:
+**Formula Direction**: The correct formula is `(N_SLO / N_long)` where:
 - N_SLO = Events in SLO window (7d, 28d, etc.)
-- N_alert = Events in alert window (1h, 6h, etc.)
+- **N_long = Events in LONG alert window** (used for both short and long window calculations)
 
-This ratio scales thresholds appropriately: more events in SLO window relative to alert window = higher threshold.
+This ensures consistent traffic scaling: both windows measure against the same traffic baseline.
 
 ### Indicator Type Support Strategy
 
@@ -196,27 +214,33 @@ kubernetes/api/v1alpha1/
 
 ## Implementation Notes
 
-### Formula Implementation Details
+### Formula Implementation Details - CORRECTED
 ```go
-// In DynamicWindows() - these are CONSTANTS, not calculations
+// In DynamicWindows() - E_budget_percent_thresholds mapped by static factor hierarchy
 var errorBudgetBurnPercent float64
-switch {
-case w.Long == time.Hour:
+switch w.Factor { // w.Factor contains the static burn rate from Windows()
+case 14: // First critical window - 50% per day
     errorBudgetBurnPercent = 1.0 / 48  // E_budget_percent_threshold
-case w.Long == 6*time.Hour:
+case 7: // Second critical window - 100% per 4 days  
     errorBudgetBurnPercent = 1.0 / 16  // E_budget_percent_threshold
-case w.Long == 24*time.Hour:
+case 2: // First warning window
     errorBudgetBurnPercent = 1.0 / 14  // E_budget_percent_threshold
-case w.Long == 4*24*time.Hour:
+case 1: // Second warning window
     errorBudgetBurnPercent = 1.0 / 7   // E_budget_percent_threshold
 }
 ```
 
-### PromQL Integration Pattern
+### PromQL Integration Pattern - CORRECTED
 ```promql
-# Current (static): burn_rate > static_factor * (1 - slo_target)
-# Target (dynamic): error_rate > ((N_slo / N_alert) * E_budget_percent_threshold) * (1 - slo_target)
+# Static: burn_rate > static_factor * (1 - slo_target)
+# Dynamic: error_rate > ((N_slo / N_long) * E_budget_percent_threshold) * (1 - slo_target)
 ```
+
+### Key Design Insights
+1. **Window.Factor Dual Purpose**: Serves as static burn rate in static mode, E_budget_percent_threshold in dynamic mode
+2. **Consistent Traffic Scaling**: Both windows use N_long denominator for uniform burn rate measurement
+3. **Automatic Period Scaling**: Window periods scale with any SLO duration via `Windows(sloWindow)`
+4. **Constant E_budget_percent**: E_budget_percent_thresholds remain fixed regardless of SLO period choice
 
 ## Success Criteria
 

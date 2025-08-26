@@ -131,6 +131,30 @@ Where:
 - `N_SLO / N_alert` is calculated inline using `increase()` functions
 - The result is a traffic-adaptive alert threshold
 
+### Multi-Window Logic (Critical Detail)
+**Important**: Both short and long windows use **N_long** (long window period) in the denominator for traffic scaling:
+- Short window alert: `error_rate_short > (N_SLO / N_long) × E_budget_percent × (1 - SLO_target)`
+- Long window alert: `error_rate_long > (N_SLO / N_long) × E_budget_percent × (1 - SLO_target)`
+
+This ensures **consistent burn rate measurement** across different time scales, similar to how static burn rates use the same factor for both windows.
+
+### Window.Factor Dual Purpose Design
+The `Window.Factor` field serves different semantic purposes based on burn rate type:
+
+**Static Mode**: `Factor = Static burn rate multiplier`
+- Example values: 14, 7, 2, 1
+- Usage: `burnrate > factor × (1 - SLO_target)`
+
+**Dynamic Mode**: `Factor = E_budget_percent_threshold` 
+- Example values: 1/48, 1/16, 1/14, 1/7
+- Usage: `error_rate > ((N_SLO / N_alert) × factor × (1 - SLO_target))`
+
+### Window Period Scaling
+Window periods are **automatically scaled** based on the configured SLO period via the `Windows(sloWindow)` function:
+- **Base calculation**: `(sloWindow / 28days) × base_period`
+- **Example**: For 7-day SLO, 1-hour window becomes 15 minutes
+- **E_budget_percent_thresholds remain constant** regardless of SLO period scaling
+
 ---
 
 **Document Purpose**: Provide authoritative definitions for all dynamic burn rate discussions and implementations.

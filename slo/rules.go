@@ -28,48 +28,6 @@ type MultiBurnRateAlert struct {
 	QueryLong  string
 }
 
-// dynamicBurnRateExpr returns the PromQL expression for calculating dynamic burn rate
-func (o Objective) dynamicBurnRateExpr(w Window) string {
-	// For dynamic burn rate we need:
-	// 1. Total events in SLO window
-	// 2. Total events in alert window
-	// 3. Error budget burn percent
-	var ebp float64
-	switch {
-	case w.Long == time.Hour:
-		ebp = 1.0 / 48 // 50% per day
-	case w.Long == 6*time.Hour:
-		ebp = 1.0 / 16 // 100% per 4 days
-	case w.Long == 24*time.Hour:
-		ebp = 1.0 / 14
-	case w.Long == 4*24*time.Hour:
-		ebp = 1.0 / 7
-	}
-
-	// We need to get the increase in events over both windows
-	var metric string
-	switch o.IndicatorType() {
-	case Ratio:
-		metric = o.Indicator.Ratio.Total.Name
-	case Latency:
-		metric = o.Indicator.Latency.Total.Name
-	case LatencyNative:
-		metric = o.Indicator.LatencyNative.Total.Name
-	case BoolGauge:
-		metric = o.Indicator.BoolGauge.Name
-	}
-
-	// Calculate as (total_in_slo_window / total_in_alert_window) * error_budget_percent
-	return fmt.Sprintf(
-		"(sum(increase(%s[%s])) / sum(increase(%s[%s]))) * %f",
-		metric,
-		model.Duration(o.Window).String(),
-		metric,
-		model.Duration(w.Long).String(),
-		ebp,
-	)
-}
-
 // buildTotalSelector builds the label selector for total metrics in dynamic expressions
 func (o Objective) buildTotalSelector(alertMatchersString string) string {
 	totalParts := []string{}
@@ -120,7 +78,6 @@ func (o Objective) buildAlertExpr(w Window, alertMatchersString string) string {
 func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) string {
 	targetStr := strconv.FormatFloat(o.Target, 'f', -1, 64)
 	sloWindow := model.Duration(o.Window).String()
-	shortWindow := model.Duration(w.Short).String()
 	longWindow := model.Duration(w.Long).String()
 
 	// E_budget_percent_threshold (constant for this window)
@@ -138,15 +95,15 @@ func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) s
 				"%s{%s} > "+
 				"((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				")",
-			// Short window: use recording rule > dynamic threshold
+			// Short window: use recording rule > dynamic threshold calculated using N_long
 			o.BurnrateName(w.Short), alertMatchersString,
-			// Short window dynamic threshold calculation
+			// Short window dynamic threshold calculation: N_SLO / N_long (same as long window)
 			o.Indicator.Ratio.Total.Name, o.buildTotalSelector(alertMatchersString), sloWindow,
-			o.Indicator.Ratio.Total.Name, o.buildTotalSelector(alertMatchersString), shortWindow,
+			o.Indicator.Ratio.Total.Name, o.buildTotalSelector(alertMatchersString), longWindow,
 			eBudgetPercent, targetStr,
 			// Long window: use recording rule > dynamic threshold
 			o.BurnrateName(w.Long), alertMatchersString,
-			// Long window dynamic threshold calculation
+			// Long window dynamic threshold calculation: N_SLO / N_long
 			o.Indicator.Ratio.Total.Name, o.buildTotalSelector(alertMatchersString), sloWindow,
 			o.Indicator.Ratio.Total.Name, o.buildTotalSelector(alertMatchersString), longWindow,
 			eBudgetPercent, targetStr,
@@ -162,15 +119,15 @@ func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) s
 				"%s{%s} > "+
 				"((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				")",
-			// Short window: use recording rule > dynamic threshold
+			// Short window: use recording rule > dynamic threshold calculated using N_long
 			o.BurnrateName(w.Short), alertMatchersString,
-			// Short window dynamic threshold calculation
+			// Short window dynamic threshold calculation: N_SLO / N_long (same as long window)
 			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), sloWindow,
-			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), shortWindow,
+			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), longWindow,
 			eBudgetPercent, targetStr,
 			// Long window: use recording rule > dynamic threshold
 			o.BurnrateName(w.Long), alertMatchersString,
-			// Long window dynamic threshold calculation
+			// Long window dynamic threshold calculation: N_SLO / N_long
 			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), sloWindow,
 			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), longWindow,
 			eBudgetPercent, targetStr,
@@ -1264,24 +1221,24 @@ func (o Objective) DynamicWindows(sloWindow time.Duration) []Window {
 	// Get base windows with their period configuration
 	baseWindows := Windows(sloWindow)
 
-	// For each window, set up the error budget burn percentages
+	// For each window, map the scaled window periods to appropriate E_budget_percent_threshold values
 	windows := make([]Window, len(baseWindows))
 	for i, w := range baseWindows {
-		// Calculate error budget burn percent for this window
+		// Map the scaled window period to the appropriate E_budget_percent_threshold
+		// We determine this based on the window's position in the static factor hierarchy
 		var errorBudgetBurnPercent float64
-		switch {
-		case w.Long == time.Hour:
-			// Want 50% per day = 1/48 per hour
+		switch w.Factor {
+		case 14: // First critical window (originally 1h for 28d) - 50% per day
 			errorBudgetBurnPercent = 1.0 / 48
-		case w.Long == 6*time.Hour:
-			// Want 100% per 4 days = 1/16 per 6 hours
+		case 7: // Second critical window (originally 6h for 28d) - 100% per 4 days
 			errorBudgetBurnPercent = 1.0 / 16
-		case w.Long == 24*time.Hour:
-			// Want budget burn of 1/14 per day
+		case 2: // First warning window (originally 1d for 28d)
 			errorBudgetBurnPercent = 1.0 / 14
-		case w.Long == 4*24*time.Hour:
-			// Want budget burn of 1/7 per 4 days
+		case 1: // Second warning window (originally 4d for 28d)
 			errorBudgetBurnPercent = 1.0 / 7
+		default:
+			// Fallback to the most conservative threshold
+			errorBudgetBurnPercent = 1.0 / 48
 		}
 
 		windows[i] = Window{
@@ -1289,7 +1246,7 @@ func (o Objective) DynamicWindows(sloWindow time.Duration) []Window {
 			For:      w.For,
 			Long:     w.Long,
 			Short:    w.Short,
-			Factor:   errorBudgetBurnPercent,
+			Factor:   errorBudgetBurnPercent, // Store E_budget_percent_threshold in Factor for dynamic mode
 		}
 	}
 
