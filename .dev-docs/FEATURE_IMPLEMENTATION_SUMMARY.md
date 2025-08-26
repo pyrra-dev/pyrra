@@ -29,35 +29,22 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra that adjusts
 
 ## Core Concept & Formula
 
-### Dynamic Burn Rate Calculation
+> **📚 For detailed explanations of terminology and mathematical concepts, see [CORE_CONCEPTS_AND_TERMINOLOGY.md](CORE_CONCEPTS_AND_TERMINOLOGY.md)**
+
+### Quick Reference Formula
 ```
-dynamic_burn_rate = (N_SLO / N_alert) × E_budget_percent_threshold
+dynamic_threshold = (N_SLO / N_alert) × E_budget_percent_threshold × (1 - SLO_target)
 ```
 
-Where:
-- **N_SLO** = Number of events in the SLO window (e.g., 28 days) 
-- **N_alert** = Number of events in the alerting window (e.g., 1 hour, 6 hours)
-- **E_budget_percent_threshold** = Constant percentage of error budget consumption to alert on
-
-### Alert Threshold Calculation
-```
-alert_threshold = dynamic_burn_rate × (1 - SLO_target)
-```
-
-The PromQL comparison becomes:
-```
-error_rate > alert_threshold
-```
+**Key Innovation**: The burn rate threshold itself is dynamic and adapts to traffic patterns, preventing false positives during low traffic and false negatives during high traffic.
 
 ### Error Budget Percent Thresholds (Constants)
-These are **predefined constant values**, not calculated:
-
-| Window Period | E_budget_percent_threshold | Reasoning |
-|---------------|---------------------------|-----------|
-| 1 hour        | 1/48 (≈0.020833)        | 50% budget consumption per day |
-| 6 hours       | 1/16 (≈0.0625)          | 100% budget consumption per 4 days |
-| 1 day         | 1/14 (≈0.071429)        | Balanced daily threshold |
-| 4 days        | 1/7 (≈0.142857)         | Long-term budget management |
+| Window Period | E_budget_percent_threshold | 
+|---------------|---------------------------|
+| 1 hour        | 1/48 (≈0.020833)        | 
+| 6 hours       | 1/16 (≈0.0625)          | 
+| 1 day         | 1/14 (≈0.071429)        | 
+| 4 days        | 1/7 (≈0.142857)         |
 
 ## Implementation Status
 
