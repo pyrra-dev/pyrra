@@ -2103,6 +2103,94 @@ func TestObjective_DynamicBurnRate_Latency(t *testing.T) {
 	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
 }
 
+func TestObjective_DynamicBurnRate_LatencyNative(t *testing.T) {
+	// Test dynamic vs static burn rate alert expression generation for LatencyNative indicators
+	obj := objectiveHTTPNativeLatency()
+
+	// Test static mode (default)
+	obj.Alerting.BurnRateType = "static"
+	staticRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Test dynamic mode
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Both should generate the same number of rules
+	require.Equal(t, len(staticRules.Rules), len(dynamicRules.Rules))
+
+	// The alert expressions should be different for LatencyNative indicators
+	// Find the alert rules (not recording rules)
+	var staticAlertFound, dynamicAlertFound bool
+	for _, rule := range staticRules.Rules {
+		if rule.Alert != "" {
+			staticAlertFound = true
+			// Static should use traditional burn rate format
+			require.Contains(t, rule.Expr.String(), "http_request_duration_seconds:burnrate")
+			break
+		}
+	}
+
+	for _, rule := range dynamicRules.Rules {
+		if rule.Alert != "" {
+			dynamicAlertFound = true
+			// Dynamic should use recording rules for efficiency (better than inline calculations)
+			require.Contains(t, rule.Expr.String(), "http_request_duration_seconds:burnrate") // Uses recording rules
+			// Should contain the dynamic calculation pattern for native histograms
+			require.Contains(t, rule.Expr.String(), "histogram_count(sum(increase(http_request_duration_seconds")
+			break
+		}
+	}
+
+	require.True(t, staticAlertFound, "Static alert rule should be found")
+	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
+}
+
+func TestObjective_DynamicBurnRate_BoolGauge(t *testing.T) {
+	// Test dynamic vs static burn rate alert expression generation for BoolGauge indicators
+	obj := objectiveUpTargets()
+
+	// Test static mode (default)
+	obj.Alerting.BurnRateType = "static"
+	staticRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Test dynamic mode
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Both should generate the same number of rules
+	require.Equal(t, len(staticRules.Rules), len(dynamicRules.Rules))
+
+	// The alert expressions should be different for BoolGauge indicators
+	// Find the alert rules (not recording rules)
+	var staticAlertFound, dynamicAlertFound bool
+	for _, rule := range staticRules.Rules {
+		if rule.Alert != "" {
+			staticAlertFound = true
+			// Static should use traditional burn rate format
+			require.Contains(t, rule.Expr.String(), "up:burnrate")
+			break
+		}
+	}
+
+	for _, rule := range dynamicRules.Rules {
+		if rule.Alert != "" {
+			dynamicAlertFound = true
+			// Dynamic should use recording rules for efficiency (better than inline calculations)
+			require.Contains(t, rule.Expr.String(), "up:burnrate") // Uses recording rules
+			// Should contain the dynamic calculation pattern for boolean gauges
+			require.Contains(t, rule.Expr.String(), "count_over_time(up")
+			break
+		}
+	}
+
+	require.True(t, staticAlertFound, "Static alert rule should be found")
+	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
+}
+
 func TestObjective_buildAlertExpr(t *testing.T) {
 	// Test Ratio indicators
 	obj := objectiveHTTPRatio()

@@ -56,6 +56,34 @@ func (o Objective) buildLatencyTotalSelector(alertMatchersString string) string 
 	return strings.Join(totalParts, ",")
 }
 
+// buildLatencyNativeTotalSelector builds the label selector for native latency total metrics in dynamic expressions
+func (o Objective) buildLatencyNativeTotalSelector(alertMatchersString string) string {
+	totalParts := []string{}
+	for _, matcher := range o.Indicator.LatencyNative.Total.LabelMatchers {
+		if matcher.Name != labels.MetricName {
+			totalParts = append(totalParts, matcher.String())
+		}
+	}
+	if alertMatchersString != "" {
+		totalParts = append(totalParts, alertMatchersString)
+	}
+	return strings.Join(totalParts, ",")
+}
+
+// buildBoolGaugeSelector builds the label selector for boolean gauge metrics in dynamic expressions
+func (o Objective) buildBoolGaugeSelector(alertMatchersString string) string {
+	totalParts := []string{}
+	for _, matcher := range o.Indicator.BoolGauge.LabelMatchers {
+		if matcher.Name != labels.MetricName {
+			totalParts = append(totalParts, matcher.String())
+		}
+	}
+	if alertMatchersString != "" {
+		totalParts = append(totalParts, alertMatchersString)
+	}
+	return strings.Join(totalParts, ",")
+}
+
 // buildAlertExpr constructs the alert expression based on burn rate type (static vs dynamic)
 func (o Objective) buildAlertExpr(w Window, alertMatchersString string) string {
 	if o.Alerting.BurnRateType == "dynamic" {
@@ -132,9 +160,56 @@ func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) s
 			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), longWindow,
 			eBudgetPercent, targetStr,
 		)
-	case LatencyNative, BoolGauge:
-		// For now, fall back to static behavior for these types
-		// TODO: Implement dynamic expressions for LatencyNative and BoolGauge indicators
+	case LatencyNative:
+		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
+		// LatencyNative uses histogram_count for total and histogram_fraction for errors (slow requests)
+		return fmt.Sprintf(
+			"("+
+				"%s{%s} > "+
+				"((histogram_count(sum(increase(%s{%s}[%s]))) / histogram_count(sum(increase(%s{%s}[%s])))) * %f * (1-%s))"+
+				") and ("+
+				"%s{%s} > "+
+				"((histogram_count(sum(increase(%s{%s}[%s]))) / histogram_count(sum(increase(%s{%s}[%s])))) * %f * (1-%s))"+
+				")",
+			// Short window: use recording rule > dynamic threshold calculated using N_long
+			o.BurnrateName(w.Short), alertMatchersString,
+			// Short window dynamic threshold calculation using histogram_count for total requests
+			o.Indicator.LatencyNative.Total.Name, o.buildLatencyNativeTotalSelector(alertMatchersString), sloWindow,
+			o.Indicator.LatencyNative.Total.Name, o.buildLatencyNativeTotalSelector(alertMatchersString), longWindow,
+			eBudgetPercent, targetStr,
+			// Long window: use recording rule > dynamic threshold
+			o.BurnrateName(w.Long), alertMatchersString,
+			// Long window dynamic threshold calculation using histogram_count for total requests
+			o.Indicator.LatencyNative.Total.Name, o.buildLatencyNativeTotalSelector(alertMatchersString), sloWindow,
+			o.Indicator.LatencyNative.Total.Name, o.buildLatencyNativeTotalSelector(alertMatchersString), longWindow,
+			eBudgetPercent, targetStr,
+		)
+	case BoolGauge:
+		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
+		// BoolGauge uses count_over_time for total and (count_over_time - sum_over_time) for errors
+		return fmt.Sprintf(
+			"("+
+				"%s{%s} > "+
+				"((sum(count_over_time(%s{%s}[%s])) / sum(count_over_time(%s{%s}[%s]))) * %f * (1-%s))"+
+				") and ("+
+				"%s{%s} > "+
+				"((sum(count_over_time(%s{%s}[%s])) / sum(count_over_time(%s{%s}[%s]))) * %f * (1-%s))"+
+				")",
+			// Short window: use recording rule > dynamic threshold calculated using N_long
+			o.BurnrateName(w.Short), alertMatchersString,
+			// Short window dynamic threshold calculation using count_over_time for total observations
+			o.Indicator.BoolGauge.Name, o.buildBoolGaugeSelector(alertMatchersString), sloWindow,
+			o.Indicator.BoolGauge.Name, o.buildBoolGaugeSelector(alertMatchersString), longWindow,
+			eBudgetPercent, targetStr,
+			// Long window: use recording rule > dynamic threshold
+			o.BurnrateName(w.Long), alertMatchersString,
+			// Long window dynamic threshold calculation using count_over_time for total observations
+			o.Indicator.BoolGauge.Name, o.buildBoolGaugeSelector(alertMatchersString), sloWindow,
+			o.Indicator.BoolGauge.Name, o.buildBoolGaugeSelector(alertMatchersString), longWindow,
+			eBudgetPercent, targetStr,
+		)
+	default:
+		// Fallback to static for unknown indicator types
 		return fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
 			o.BurnrateName(w.Short),
 			alertMatchersString,
@@ -146,18 +221,6 @@ func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) s
 			targetStr,
 		)
 	}
-
-	// Fallback to static
-	return fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-		o.BurnrateName(w.Short),
-		alertMatchersString,
-		w.Factor,
-		strconv.FormatFloat(o.Target, 'f', -1, 64),
-		o.BurnrateName(w.Long),
-		alertMatchersString,
-		w.Factor,
-		strconv.FormatFloat(o.Target, 'f', -1, 64),
-	)
 }
 
 func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
@@ -402,6 +465,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}, nil
 		}
 
+		// Use dynamic windows if burn rate type is dynamic
+		if o.Alerting.BurnRateType == "dynamic" {
+			ws = o.DynamicWindows(time.Duration(o.Window))
+		}
+
 		var alertMatchers []string
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -437,18 +505,8 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
-				Alert: o.AlertName(),
-				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-					o.BurnrateName(w.Short),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-					o.BurnrateName(w.Long),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-				)),
+				Alert:       o.AlertName(),
+				Expr:        intstr.FromString(o.buildAlertExpr(w, alertMatchersString)),
 				For:         monitoringDuration(model.Duration(w.For).String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
@@ -490,6 +548,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}, nil
 		}
 
+		// Use dynamic windows if burn rate type is dynamic
+		if o.Alerting.BurnRateType == "dynamic" {
+			ws = o.DynamicWindows(time.Duration(o.Window))
+		}
+
 		var alertMatchers []string
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -525,18 +588,8 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
-				Alert: o.AlertName(),
-				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-					o.BurnrateName(w.Short),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-					o.BurnrateName(w.Long),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-				)),
+				Alert:       o.AlertName(),
+				Expr:        intstr.FromString(o.buildAlertExpr(w, alertMatchersString)),
 				For:         monitoringDuration(model.Duration(w.For).String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
