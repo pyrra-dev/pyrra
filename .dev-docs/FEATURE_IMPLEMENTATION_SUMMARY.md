@@ -139,9 +139,14 @@ and
 - Traffic pattern validation
 
 #### **Priority 3**: UI Integration
-- Update `BurnrateGraph.tsx` to show dynamic vs static mode
-- Update `AlertsTable.tsx` to display dynamic burn rate information
-- Add UI toggles for burn rate type selection
+- ✅ **Burn Rate Type Display**: Added burn rate indicators throughout the UI (List and Detail pages)
+- ✅ **Enhanced SLO List**: New "Burn Rate" column with color-coded badges and tooltips  
+- ✅ **Enhanced Detail Page**: Burn rate information prominently displayed with icons
+- ✅ **Visual Design System**: Green badges for Dynamic, Gray badges for Static with informative tooltips
+- ✅ **TypeScript Infrastructure**: Complete type system with mock detection logic until API integration
+- ✅ **User Experience**: Sortable columns, toggleable visibility, responsive design, accessibility features
+- 🔄 **API Integration Needed**: Replace mock detection with actual `burnRateType` field from backend
+- 🔄 **Alert Display Updates**: Update existing UI components to show dynamic burn rate calculations instead of static
 
 #### **Priority 4**: Documentation & Optimization
 - User documentation and examples
@@ -186,6 +191,7 @@ This ensures consistent traffic scaling: both windows measure against the same t
 - **Latency Indicators**: Full dynamic burn rate support with production readiness ✅
 - **LatencyNative Indicators**: Full dynamic burn rate support with native histogram optimization ✅ **NEW**
 - **BoolGauge Indicators**: Full dynamic burn rate support with boolean gauge optimization ✅ **NEW**
+- **UI Integration**: Burn rate type display system with badges, tooltips, and responsive design ✅ **NEW**
 - **Backward Compatibility**: Existing SLOs continue working unchanged ✅
 - **Multi-Window Alerting**: Both short and long windows use dynamic thresholds ✅
 - **Traffic Adaptation**: Higher traffic → higher thresholds, lower traffic → lower thresholds ✅
@@ -196,8 +202,9 @@ This ensures consistent traffic scaling: both windows measure against the same t
 **All Core Functionality Implemented**: Dynamic burn rate feature is now complete for all supported indicator types. The implementation provides traffic-aware alerting that adapts thresholds based on actual request volume.
 
 ### ❌ **Future Enhancements** (Optional)
-- **UI Display**: Dynamic mode not shown in user interface
-**Goal**: Provide operational visibility into dynamic behavior
+- **Protobuf API Integration**: Complete burnRateType field transmission via API
+- **Alert Display Updates**: Update existing UI components to show dynamic burn rate calculations
+**Goal**: Complete end-to-end dynamic burn rate visibility and eliminate mock detection logic
 
 #### 4.1 Grafana Dashboard Updates
 - **Dynamic threshold visualization** in burn rate panels

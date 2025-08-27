@@ -29,6 +29,8 @@ import {replaceInterval, usePrometheusQuery} from '../prometheus'
 import {useObjectivesList} from '../objectives'
 import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
+import {getBurnRateInfo, getBurnRateType, formatBurnRateDescription, BurnRateType} from '../burnrate'
+import {IconDynamic, IconStatic} from '../components/Icons'
 import ObjectiveTile from '../components/tiles/ObjectiveTile'
 import AvailabilityTile from '../components/tiles/AvailabilityTile'
 import ErrorBudgetTile from '../components/tiles/ErrorBudgetTile'
@@ -262,6 +264,35 @@ const Detail = () => {
             ) : (
               <></>
             )}
+            <Col
+              xs={12}
+              md={6}
+              style={{marginTop: labelBadges.length > 0 ? 12 : 0}}
+              className="col-xxxl-5 offset-xxxl-1">
+              {(() => {
+                const burnRateType = getBurnRateType(objective)
+                const info = getBurnRateInfo(burnRateType)
+                const Icon = burnRateType === BurnRateType.Dynamic ? IconDynamic : IconStatic
+                return (
+                  <div>
+                    <strong>Burn Rate Type: </strong>
+                    <OverlayTrigger
+                      overlay={
+                        <OverlayTooltip id="tooltip-detail-burnrate">
+                          <strong>{info.displayName} Burn Rate</strong>
+                          <br />
+                          {info.description}
+                        </OverlayTooltip>
+                      }>
+                      <Badge bg={info.badgeVariant} className="fw-normal d-flex align-items-center" style={{gap: '4px', display: 'inline-flex'}}>
+                        <Icon width={12} height={12} />
+                        {info.displayName}
+                      </Badge>
+                    </OverlayTrigger>
+                  </div>
+                )
+              })()}
+            </Col>
           </Row>
           <Row>
             <Col className="col-xxxl-10 offset-xxxl-1">

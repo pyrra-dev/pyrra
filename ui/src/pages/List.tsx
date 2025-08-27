@@ -48,10 +48,13 @@ import {
   IconMagnifyingGlass,
   IconTableColumns,
   IconWarning,
+  IconDynamic,
+  IconStatic,
 } from '../components/Icons'
 import AwesomeDebouncePromise from 'awesome-debounce-promise'
 import useConstant from 'use-constant'
 import {useAsync} from 'react-async-hook'
+import {BurnRateType, getBurnRateInfo, getBurnRateType} from '../burnrate'
 
 enum TableObjectiveState {
   Unknown,
@@ -251,6 +254,7 @@ interface row {
   availability: number | undefined
   budget: number | undefined | null
   alerts: string
+  burnRateType: BurnRateType
 }
 
 const columnHelper = createColumnHelper<row>()
@@ -277,6 +281,30 @@ const columns = [
   columnHelper.accessor('lset', {
     id: 'lset',
     header: 'Name',
+  }),
+  columnHelper.accessor('burnRateType', {
+    id: 'burnRateType',
+    header: 'Burn Rate',
+    cell: (props) => {
+      const burnRateType = props.getValue()
+      const info = getBurnRateInfo(burnRateType)
+      const Icon = burnRateType === BurnRateType.Dynamic ? IconDynamic : IconStatic
+      return (
+        <OverlayTrigger
+          overlay={
+            <OverlayTooltip id={`tooltip-burnrate-${props.cell.id}`}>
+              <strong>{info.displayName} Burn Rate</strong>
+              <br />
+              {info.description}
+            </OverlayTooltip>
+          }>
+          <Badge bg={info.badgeVariant} className="fw-normal d-flex align-items-center" style={{gap: '4px'}}>
+            <Icon width={12} height={12} />
+            {info.displayName}
+          </Badge>
+        </OverlayTrigger>
+      )
+    },
   }),
   columnHelper.accessor('window', {
     id: 'window',
@@ -513,6 +541,7 @@ const List = () => {
   // TODO: Persist the column visibility in the browser's state
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     lset: true,
+    burnRateType: true,
     window: true,
     objective: true,
     latency: true,
@@ -642,6 +671,7 @@ const List = () => {
             availability: o.availability?.percentage,
             budget: o.budget,
             alerts: o.severity !== null ? o.severity : '',
+            burnRateType: getBurnRateType(o.objective),
           }
           return r
         }) ?? null
