@@ -14,50 +14,19 @@ export interface BurnRateInfo {
 }
 
 /**
- * Mock function to determine burn rate type from objective
- * TODO: Replace with actual API field once protobuf is updated
+ * Get burn rate type from objective's alerting configuration
  */
 export const getBurnRateType = (objective: Objective): BurnRateType => {
-  // For now, we'll use heuristics to detect dynamic burn rates
-  // This is a temporary solution until the API provides the actual field
+  // Use the actual API field from the backend
+  const burnRateType = objective.alerting?.burnRateType
   
-  // eslint-disable-next-line @typescript-eslint/dot-notation
-  const name = objective.labels['__name__'] ?? ''
-  const description = objective.description ?? ''
-  const searchText = (name + ' ' + description).toLowerCase()
-  
-  // Look for keywords that might indicate dynamic burn rates
-  const dynamicKeywords = ['dynamic', 'traffic-aware', 'adaptive', 'auto', 'smart']
-  
-  const hasDynamicKeywords = dynamicKeywords.some(keyword => 
-    searchText.includes(keyword)
-  )
-  
-  if (hasDynamicKeywords) {
+  if (burnRateType === 'dynamic') {
     return BurnRateType.Dynamic
-  }
-  
-  // Explicitly check for "static" in name/description
-  if (searchText.includes('static')) {
+  } else if (burnRateType === 'static') {
     return BurnRateType.Static
   }
   
-  // For demo purposes, make some SLOs dynamic based on naming patterns
-  // In real implementation, this would come from the API
-  if (name.includes('latency') || name.includes('response_time')) {
-    return BurnRateType.Dynamic // Latency SLOs often benefit from dynamic burn rates
-  }
-  
-  if (name.includes('api') || name.includes('service') || name.includes('http')) {
-    // Use deterministic logic based on name to avoid random changes
-    const hash = name.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0)
-      return a & a
-    }, 0)
-    return Math.abs(hash) % 3 === 0 ? BurnRateType.Dynamic : BurnRateType.Static
-  }
-  
-  // Default to static for existing SLOs
+  // Default to static if no alerting info or unknown type
   return BurnRateType.Static
 }
 

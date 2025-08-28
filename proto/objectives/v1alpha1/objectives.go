@@ -101,13 +101,23 @@ func ToInternal(o *Objective) slo.Objective {
 		ls = append(ls, labels.Label{Name: name, Value: value})
 	}
 
+	// Convert protobuf Alerting to internal struct
+	alerting := slo.Alerting{}
+	if o.Alerting != nil {
+		alerting.Burnrates = o.Alerting.Burnrates
+		alerting.Absent = o.Alerting.Absent
+		alerting.Name = o.Alerting.Name
+		alerting.AbsentName = o.Alerting.AbsentName
+		alerting.BurnRateType = o.Alerting.BurnRateType
+	}
+
 	return slo.Objective{
 		Labels:      ls,
 		Description: o.Description,
 		Target:      o.Target,
 		Window:      model.Duration(o.Window.AsDuration()),
 		Config:      o.Config,
-		Alerting:    slo.Alerting{}, // TODO
+		Alerting:    alerting,
 		Indicator: slo.Indicator{
 			Ratio:         ratio,
 			Latency:       latency,
@@ -225,6 +235,13 @@ func FromInternal(o slo.Objective) *Objective {
 		Window:      durationpb.New(time.Duration(o.Window)),
 		Description: o.Description,
 		Config:      o.Config,
+		Alerting: &Alerting{
+			Burnrates:    o.Alerting.Burnrates,
+			Absent:       o.Alerting.Absent,
+			Name:         o.Alerting.Name,
+			AbsentName:   o.Alerting.AbsentName,
+			BurnRateType: o.Alerting.BurnRateType,
+		},
 	}
 	if ratio != nil {
 		objective.Indicator = &Indicator{

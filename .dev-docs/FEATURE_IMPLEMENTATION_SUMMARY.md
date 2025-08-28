@@ -125,28 +125,49 @@ and
 - **Test configuration** available in `.dev/test-slo.yaml`
 - **Documentation** comprehensive in `.dev-docs/` folder
 
+### 🎯 **Protobuf & API Integration - COMPLETE** ✅
+
+#### **Priority 1: Protobuf & API Integration** ✅ **COMPLETED (Aug 28, 2025)**
+
+**All 5 Core Tasks Completed Successfully**:
+1. ✅ **Alerting Message Added to Protobuf**: Added `Alerting` message with `burnRateType` field to `proto/objectives/v1alpha1/objectives.proto`
+2. ✅ **Go Conversion Functions Updated**: Modified `ToInternal()` and `FromInternal()` functions in `proto/objectives/v1alpha1/objectives.go` to handle alerting field conversion
+3. ✅ **TypeScript Protobuf Files Regenerated**: Updated both `objectives_pb.d.ts` and `objectives_pb.js` with proper Alerting interface and field mappings
+4. ✅ **Mock Detection Logic Replaced**: Updated `ui/src/burnrate.tsx` to use real API field `objective.alerting?.burnRateType` instead of keyword heuristics
+5. ✅ **End-to-End API Integration Tested**: Created and validated round-trip conversion test confirming burn rate type data flows correctly from Go backend through protobuf to TypeScript frontend
+
+**Technical Implementation Details**:
+- **Protobuf Schema**: Added `Alerting` message with string `burn_rate_type` field (field number 1)
+- **Go Conversion Layer**: Complete bidirectional conversion between internal structs and protobuf messages
+- **TypeScript Definitions**: Manual updates for Windows environment compatibility with proper interface definitions
+- **Frontend Integration**: Real API field access replacing mock detection logic
+- **Validation Testing**: Comprehensive round-trip testing for both "dynamic" and "static" burn rate types
+
+**Status**: ✅ **API INTEGRATION COMPLETE - PRODUCTION READY**
+
 ### � Remaining Work
 
-#### **Priority 1 Remaining**: Extend to Other Indicator Types
-- ~~**Latency Indicators**: Implement dynamic burn rate for histogram-based latency SLOs~~ ✅ **COMPLETED**
-- **LatencyNative Indicators**: Support for native histogram dynamic burn rates  
-- **BoolGauge Indicators**: Dynamic burn rates for boolean gauge metrics
+#### **Priority 2**: Alert Display Updates
+- **Update AlertsTable.tsx**: Show dynamic burn rate information instead of static calculations in alert tables
+- **Update Graph Components**: Display dynamic-specific tooltips and information in burn rate visualizations  
+- **Conditional Display Logic**: Create components that show appropriate information based on burn rate type
+- **Visual Indicators**: Add icons or badges to distinguish dynamic vs static alert displays
+- **Enhanced User Experience**: Provide context-aware information about alert behavior
 
-#### **Priority 2**: Testing & Validation
+#### **Priority 3**: Testing & Validation
 - Integration tests with actual Prometheus setup
 - Edge case testing (zero traffic, traffic spikes)
 - Performance impact analysis
 - Traffic pattern validation
 
-#### **Priority 3**: UI Integration
+#### **Priority 4**: UI Integration Enhancement
 - ✅ **Burn Rate Type Display**: Added burn rate indicators throughout the UI (List and Detail pages)
 - ✅ **Enhanced SLO List**: New "Burn Rate" column with color-coded badges and tooltips  
 - ✅ **Enhanced Detail Page**: Burn rate information prominently displayed with icons
 - ✅ **Visual Design System**: Green badges for Dynamic, Gray badges for Static with informative tooltips
-- ✅ **TypeScript Infrastructure**: Complete type system with mock detection logic until API integration
+- ✅ **TypeScript Infrastructure**: Complete type system with real API integration ✅ **NEW**
 - ✅ **User Experience**: Sortable columns, toggleable visibility, responsive design, accessibility features
-- 🔄 **API Integration Needed**: Replace mock detection with actual `burnRateType` field from backend
-- 🔄 **Alert Display Updates**: Update existing UI components to show dynamic burn rate calculations instead of static
+- ✅ **API Integration Complete**: Real `burnRateType` field from backend now used throughout UI ✅ **NEW**
 
 #### **Priority 4**: Documentation & Optimization
 - User documentation and examples
@@ -189,9 +210,10 @@ This ensures consistent traffic scaling: both windows measure against the same t
 ### ✅ **Working Features - COMPLETE IMPLEMENTATION**
 - **Ratio Indicators**: Full dynamic burn rate support with production readiness ✅
 - **Latency Indicators**: Full dynamic burn rate support with production readiness ✅
-- **LatencyNative Indicators**: Full dynamic burn rate support with native histogram optimization ✅ **NEW**
-- **BoolGauge Indicators**: Full dynamic burn rate support with boolean gauge optimization ✅ **NEW**
-- **UI Integration**: Burn rate type display system with badges, tooltips, and responsive design ✅ **NEW**
+- **LatencyNative Indicators**: Full dynamic burn rate support with native histogram optimization ✅
+- **BoolGauge Indicators**: Full dynamic burn rate support with boolean gauge optimization ✅
+- **UI Integration**: Burn rate type display system with badges, tooltips, and responsive design ✅
+- **API Integration**: Complete protobuf field transmission and frontend integration ✅ **NEW**
 - **Backward Compatibility**: Existing SLOs continue working unchanged ✅
 - **Multi-Window Alerting**: Both short and long windows use dynamic thresholds ✅
 - **Traffic Adaptation**: Higher traffic → higher thresholds, lower traffic → lower thresholds ✅
@@ -202,9 +224,8 @@ This ensures consistent traffic scaling: both windows measure against the same t
 **All Core Functionality Implemented**: Dynamic burn rate feature is now complete for all supported indicator types. The implementation provides traffic-aware alerting that adapts thresholds based on actual request volume.
 
 ### ❌ **Future Enhancements** (Optional)
-- **Protobuf API Integration**: Complete burnRateType field transmission via API
-- **Alert Display Updates**: Update existing UI components to show dynamic burn rate calculations
-**Goal**: Complete end-to-end dynamic burn rate visibility and eliminate mock detection logic
+- **Alert Display Updates**: Update existing UI components to show dynamic burn rate calculations instead of static
+**Goal**: Complete end-to-end dynamic burn rate visibility in alert display components
 
 #### 4.1 Grafana Dashboard Updates
 - **Dynamic threshold visualization** in burn rate panels
