@@ -1,6 +1,6 @@
 import {OverlayTrigger, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
 import React, {useEffect, useState} from 'react'
-import {IconChevron, IconExternal} from './Icons'
+import {IconChevron, IconExternal, IconDynamic} from './Icons'
 import {Labels, labelsString} from '../labels'
 import {
   Alert,
@@ -17,7 +17,8 @@ import {usePrometheusQueryRange} from '../prometheus'
 import {step} from './graphs/step'
 import {convertAlignedData} from './graphs/aligneddata'
 import {formatDuration} from '../duration'
-import {buildExternalHRef, externalName} from '../external';
+import {buildExternalHRef, externalName} from '../external'
+import {getBurnRateTooltip, getBurnRateDisplayText, getBurnRateType, BurnRateType} from '../burnrate'
 
 interface AlertsTableProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -159,8 +160,10 @@ const AlertsTable = ({
                       key={i}
                       overlay={
                         <OverlayTooltip id={`tooltip-${i}`}>
-                          If this alert is firing, the entire Error Budget can be burnt within that
-                          time frame.
+                          {getBurnRateType(objective) === BurnRateType.Dynamic 
+                            ? 'If this alert is firing, the entire Error Budget can be burnt within that time frame. Dynamic burn rate adapts this based on actual traffic patterns.'
+                            : 'If this alert is firing, the entire Error Budget can be burnt within that time frame.'
+                          }
                         </OverlayTooltip>
                       }>
                       <span>
@@ -173,10 +176,13 @@ const AlertsTable = ({
                       key={i}
                       overlay={
                         <OverlayTooltip id={`tooltip-${i}`}>
-                          {a.factor} * (1 - {objective.target})
+                          {getBurnRateTooltip(objective, a.factor)}
                         </OverlayTooltip>
                       }>
-                      <span>{(a.factor * (1 - objective?.target)).toFixed(3)}</span>
+                      <span className="d-flex align-items-center justify-content-end" style={{gap: '4px'}}>
+                        {getBurnRateDisplayText(objective, a.factor)}
+                        {getBurnRateType(objective) === BurnRateType.Dynamic && <IconDynamic width={12} height={12} />}
+                      </span>
                     </OverlayTrigger>
                   </td>
                   <td style={{textAlign: 'center'}}>
@@ -211,6 +217,7 @@ const AlertsTable = ({
                       <BurnrateGraph
                         client={promClient}
                         alert={a}
+                        objective={objective}
                         threshold={a.factor * (1 - objective.target)}
                         from={from}
                         to={to}

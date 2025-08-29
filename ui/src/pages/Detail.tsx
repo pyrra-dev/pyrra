@@ -29,13 +29,12 @@ import {replaceInterval, usePrometheusQuery} from '../prometheus'
 import {useObjectivesList} from '../objectives'
 import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
-import {getBurnRateInfo, getBurnRateType, formatBurnRateDescription, BurnRateType} from '../burnrate'
-import {IconDynamic, IconStatic} from '../components/Icons'
+import {getBurnRateInfo, getBurnRateType, BurnRateType} from '../burnrate'
+import {IconDynamic, IconStatic, IconChartArea, IconChartLine} from '../components/Icons'
 import ObjectiveTile from '../components/tiles/ObjectiveTile'
 import AvailabilityTile from '../components/tiles/AvailabilityTile'
 import ErrorBudgetTile from '../components/tiles/ErrorBudgetTile'
 import Tiles from '../components/tiles/Tiles'
-import {IconChartArea, IconChartLine} from '../components/Icons'
 
 const Detail = () => {
   const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH

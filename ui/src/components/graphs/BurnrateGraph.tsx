@@ -9,12 +9,14 @@ import {AlignedDataResponse, convertAlignedData, mergeAlignedData} from './align
 import {Spinner} from 'react-bootstrap'
 import {seriesGaps} from './gaps'
 import {blues, greys, reds} from './colors'
-import {Alert} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {Alert, Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../../duration'
+import {getThresholdDescription} from '../../burnrate'
 
 interface BurnrateGraphProps {
   client: PromiseClient<typeof PrometheusService>
   alert: Alert
+  objective: Objective
   threshold: number
   from: number
   to: number
@@ -26,6 +28,7 @@ interface BurnrateGraphProps {
 const BurnrateGraph = ({
   client,
   alert,
+  objective,
   threshold,
   from,
   to,
@@ -177,8 +180,10 @@ const BurnrateGraph = ({
     )
   }
 
-  const shortFormatted = formatDuration(Number(alert.short?.window?.seconds) * 1000 ?? 0)
-  const longFormatted = formatDuration(Number(alert.long?.window?.seconds) * 1000 ?? 0)
+  const shortSeconds = alert.short?.window?.seconds ?? 0
+  const longSeconds = alert.long?.window?.seconds ?? 0
+  const shortFormatted = formatDuration(Number(shortSeconds) * 1000)
+  const longFormatted = formatDuration(Number(longSeconds) * 1000)
   const pendingColor = 'rgb(244,163,42)'
   const pendingBackgroundColor = 'rgba(244,163,42,0.1)'
   const firingColor = 'rgb(244,99,99)'
@@ -189,8 +194,7 @@ const BurnrateGraph = ({
       <h5 className="graphs-headline">Burnrate</h5>
       <div className="graphs-description">
         <p>
-          The short ({shortFormatted}) and long ({longFormatted}) burn rates <strong>both</strong>{' '}
-          have to be over the {threshold.toFixed(2)}% threshold. <br />
+          {getThresholdDescription(objective, threshold, shortFormatted, longFormatted)} <br />
           First, the alert is <i style={{color: pendingColor}}>pending</i> for{' '}
           {formatDuration(Number(alert.for?.seconds) * 1000)} and then the alert will be{' '}
           <i style={{color: firingColor}}>firing</i>.

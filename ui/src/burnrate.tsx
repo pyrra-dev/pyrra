@@ -58,3 +58,50 @@ export const formatBurnRateDescription = (type: BurnRateType): string => {
   const info = getBurnRateInfo(type)
   return `${info.displayName}: ${info.description}`
 }
+
+/**
+ * Get tooltip content for burn rate thresholds based on objective type
+ */
+export const getBurnRateTooltip = (objective: Objective, factor?: number): string => {
+  const burnRateType = getBurnRateType(objective)
+  
+  if (burnRateType === BurnRateType.Dynamic) {
+    return 'Dynamic threshold adapts to traffic volume. Higher traffic = higher thresholds, lower traffic = lower thresholds. Formula: (N_SLO / N_long) × E_budget_percent × (1 - SLO_target)'
+  }
+  
+  if (factor !== undefined) {
+    return `Static threshold: ${factor} × (1 - ${objective.target}) = Fixed multiplier based on time window`
+  }
+  
+  return 'Static threshold using fixed multiplier based on time window'
+}
+
+/**
+ * Get display text for burn rate threshold information
+ */
+export const getBurnRateDisplayText = (objective: Objective, factor?: number): string => {
+  const burnRateType = getBurnRateType(objective)
+  
+  if (burnRateType === BurnRateType.Dynamic) {
+    return 'Traffic-Aware'
+  }
+  
+  if (factor !== undefined) {
+    return `${factor}×`
+  }
+  
+  return 'Static'
+}
+
+/**
+ * Get detailed threshold description for BurnrateGraph based on burn rate type
+ */
+export const getThresholdDescription = (objective: Objective, threshold: number, shortWindow: string, longWindow: string): string => {
+  const burnRateType = getBurnRateType(objective)
+  
+  if (burnRateType === BurnRateType.Dynamic) {
+    return `The short (${shortWindow}) and long (${longWindow}) burn rates both have to be over the traffic-aware threshold (currently ${threshold.toFixed(2)}%).`
+  }
+  
+  return `The short (${shortWindow}) and long (${longWindow}) burn rates both have to be over the ${threshold.toFixed(2)}% threshold.`
+}

@@ -27,7 +27,8 @@ spec:
       containers:
       - args:
         - kubernetes
-        image: ghcr.io/pyrra-dev/pyrra:v0.7.5
+        image: pyrra-with-burnrate:latest
+        imagePullPolicy: Never
         name: pyrra
         ports:
         - containerPort: 9099

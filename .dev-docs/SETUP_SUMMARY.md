@@ -71,16 +71,39 @@ To avoid manually sourcing the environment script in every new terminal, we auto
 
 4.  **Verification**: The setup is verified by running `docker ps` inside the project directory and confirming it lists the Kubernetes containers from Minikube, not from Docker Desktop.
 
-## 5. Installing Prometheus Backend
+## 5. Installing kube-prometheus-stack Backend
 
-With the environment configured, we installed Prometheus using Helm to serve as the monitoring backend for Pyrra.
+With the environment configured, we need to install the complete kube-prometheus-stack (not just Prometheus) using Helm to serve as the monitoring backend for Pyrra. This provides Prometheus, Grafana, and AlertManager together.
 
 1.  **Add Helm Repo**: Added the official Prometheus community chart repository.
     ```bash
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    helm repo update
     ```
 
-2.  **Install Chart**: Installed the `prometheus` chart into the `default` namespace for simplicity in our local development context.
+2.  **Install Complete Stack**: Installed the `kube-prometheus-stack` chart into a dedicated `monitoring` namespace with proper service exposure for local development.
     ```bash
-    helm install prometheus prometheus-community/prometheus
+    helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+      --namespace monitoring --create-namespace \
+      --set prometheus.service.type=NodePort \
+      --set grafana.service.type=NodePort \
+      --set alertmanager.service.type=NodePort
     ```
+
+This complete stack provides:
+- **Prometheus**: Metrics collection and querying
+- **Grafana**: Visualization and dashboards  
+- **AlertManager**: Alert routing and notification
+- **Various Exporters**: Node exporter, kube-state-metrics, etc.
+
+For accessing services locally, use port-forwarding:
+```bash
+# Prometheus
+kubectl port-forward svc/kube-prometheus-stack-prometheus 9090:9090 -n monitoring
+
+# Grafana (admin/prom-operator)  
+kubectl port-forward svc/kube-prometheus-stack-grafana 3000:80 -n monitoring
+
+# AlertManager
+kubectl port-forward svc/kube-prometheus-stack-alertmanager 9093:9093 -n monitoring
+```
