@@ -27,11 +27,17 @@ spec:
       containers:
       - args:
         - kubernetes
-        image: pyrra-with-burnrate:latest
-        imagePullPolicy: Never
+        image: ghcr.io/pyrra-dev/pyrra:v0.7.5
         name: pyrra
         ports:
         - containerPort: 9099
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
