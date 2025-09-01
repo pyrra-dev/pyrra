@@ -97,6 +97,68 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
    - **✅ Integration Testing**: All main application tests passing
    - **✅ Build Verification**: No compilation issues found
 
+## 🚨 **IMPORTANT: PR Preparation Guidelines**
+
+### **Kubernetes Manifest Changes - DO NOT INCLUDE IN PR**
+
+**Current Testing Configuration Changes** (✅ **OK for local testing**, ❌ **DO NOT commit to PR**):
+- Modified `examples/kubernetes/manifests/pyrra-apiDeployment.yaml`: 
+  - Changed image from `ghcr.io/pyrra-dev/pyrra:v0.7.5` to `pyrra-with-burnrate:latest` with `imagePullPolicy: Never`
+  - Updated Prometheus URL from `http://prometheus-k8s.monitoring.svc.cluster.local:9090` to `http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090`
+- Modified `examples/kubernetes/manifests/pyrra-kubernetesDeployment.yaml`: Changed image to `pyrra-with-burnrate:latest` with `imagePullPolicy: Never`
+- Created `Dockerfile.custom`: Multi-stage build for testing (may be excluded from PR unless it's a permanent addition)
+
+### **Before Creating Pull Request - MANDATORY STEPS**
+
+1. **⚠️ REVERT TESTING CHANGES**:
+   ```bash
+   # Revert manifest changes to upstream-compatible versions
+   git checkout examples/kubernetes/manifests/pyrra-apiDeployment.yaml
+   git checkout examples/kubernetes/manifests/pyrra-kubernetesDeployment.yaml
+   
+   # Consider excluding Dockerfile.custom unless it's a permanent feature
+   git rm Dockerfile.custom  # (if not needed in upstream)
+   ```
+
+2. **✅ WHAT TO INCLUDE IN PR**:
+   - ✅ All UI code changes (`burnrate.tsx`, `AlertsTable.tsx`, `BurnrateGraph.tsx`, etc.)
+   - ✅ All backend API changes (protobuf definitions, Go conversion functions)
+   - ✅ All dynamic burn rate logic (`slo/rules.go`, test files, etc.)
+   - ✅ Documentation updates and examples
+   - ✅ Test cases and validation code
+
+3. **❌ WHAT NOT TO INCLUDE IN PR**:
+   - ❌ **Manifest changes** with custom image names (`pyrra-with-burnrate:latest`)
+   - ❌ **Local testing configurations** (`imagePullPolicy: Never`)
+   - ❌ **Development Docker files** (unless permanent feature)
+   - ❌ **Environment-specific settings** or paths
+
+4. **📋 PR TESTING DOCUMENTATION**:
+   Include in PR description how you tested the changes:
+   ```markdown
+   ## Testing Methodology
+   - Built custom Docker image using `docker build -f Dockerfile.custom -t pyrra-test:latest .`
+   - Updated local Kubernetes manifests to use custom image for deployment testing
+   - Deployed to minikube with kube-prometheus-stack for end-to-end validation
+   - Verified dynamic burn rate UI changes work correctly with real backend integration
+   - Tested both static and dynamic SLO configurations
+   - Confirmed backward compatibility with existing SLO configurations
+   ```
+
+### **Clean PR Commit Strategy**
+
+1. **Separate functional commits**: Keep UI changes, backend changes, and testing infrastructure separate
+2. **Use descriptive commit messages**: Focus on the feature functionality, not testing setup
+3. **Maintain upstream compatibility**: All committed manifests should work with official images
+4. **Document testing approach**: Explain testing methodology in PR description, not in code changes
+
+### **Why This Approach**
+
+- **Upstream Compatibility**: Official manifests continue working with official images
+- **Testing Transparency**: PR reviewers see how changes were validated without config pollution  
+- **Easy Integration**: Upstream maintainers can merge without worrying about local testing artifacts
+- **Future Development**: Next developers can set up testing without inheriting hardcoded configurations
+
 ## Core Concept & Formula
 
 > **📚 For detailed explanations of terminology and mathematical concepts, see [CORE_CONCEPTS_AND_TERMINOLOGY.md](CORE_CONCEPTS_AND_TERMINOLOGY.md)**

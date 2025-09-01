@@ -44,7 +44,7 @@ export const getBurnRateInfo = (type: BurnRateType): BurnRateInfo => {
       return {
         type: BurnRateType.Static,
         displayName: 'Static',
-        description: 'Fixed burn rate thresholds - consistent and predictable alerting behavior',
+        description: 'Traditional fixed multiplier approach - not traffic-aware, can lead to inconsistent error budget consumption rates',
         color: '#6c757d',
         badgeVariant: 'secondary',
       }
@@ -70,7 +70,14 @@ export const getBurnRateTooltip = (objective: Objective, factor?: number): strin
   }
   
   if (factor !== undefined) {
-    return `Static threshold: ${factor} × (1 - ${objective.target}) = Fixed multiplier based on time window`
+    // Target is already a decimal (0.99 for 99%)
+    const targetDecimal = objective.target
+    const threshold = factor * (1 - targetDecimal)
+    
+    // Format target decimal to avoid floating point precision issues
+    const targetFormatted = Number(targetDecimal.toPrecision(6))
+    
+    return `Static threshold calculation: ${factor} × (1 - ${targetFormatted}) = ${threshold.toFixed(4)}`
   }
   
   return 'Static threshold using fixed multiplier based on time window'
@@ -87,7 +94,18 @@ export const getBurnRateDisplayText = (objective: Objective, factor?: number): s
   }
   
   if (factor !== undefined) {
-    return `${factor}×`
+    // Target is already a decimal (0.99 for 99%)
+    const targetDecimal = objective.target
+    const threshold = factor * (1 - targetDecimal)
+    
+    // Use dynamic precision to avoid truncation of small numbers
+    if (threshold < 0.001) {
+      return threshold.toExponential(2) // For very small numbers like 1.40e-4
+    } else if (threshold < 0.01) {
+      return threshold.toFixed(4) // Show 4 decimals for small numbers like 0.0014
+    } else {
+      return threshold.toFixed(3) // Show 3 decimals for larger numbers like 0.140
+    }
   }
   
   return 'Static'
