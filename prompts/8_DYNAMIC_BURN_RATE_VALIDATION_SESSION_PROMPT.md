@@ -1,13 +1,21 @@
 # Dynamic Burn Rate Validation Session Prompt
 
 ## Session Context
-Previous session successfully completed **basic UI functionality testing** for dynamic burn rate feature, confirming visual elements (badges, tooltips, sorting) work correctly. However, **critical data validation and real-world functionality issues** were identified that need comprehensive investigation and resolution.
+Previous sessions successfully completed **basic UI functionality testing** and resolved **critical production deployment issues** for the dynamic burn rate feature. Static threshold display now works correctly in embedded UI (production). However, **critical data validation and real-world functionality issues** remain that need comprehensive investigation and resolution.
 
 ## ✅ Previous Session Achievements
 - **UI Components Working**: Green/gray badges, tooltips, sorting, navigation all functional
 - **API Integration**: burnRateType field transmission confirmed
-- **Mixed Environment**: 15 SLOs (14 static + 1 dynamic test-slo) environment established
+- **Mixed Environment**: 7 SLOs (2 dynamic + 5 static) environment established
 - **Windows Compatibility**: API architecture documented, CRD generation workarounds identified
+- **🎉 PRODUCTION ISSUE RESOLVED**: Static SLO threshold display fixed in embedded UI (port 9099)
+- **Critical Documentation Added**: Complete UI build workflow documented for future developers
+
+## ✅ Major Production Issue Resolved (September 4, 2025)
+**Issue**: Static SLOs showed "14x, 7x, 2x, 1x" in embedded UI while development UI showed correct calculated thresholds
+**Solution**: Implemented complete UI build workflow (`npm run build` → `make build` → restart)
+**Result**: Embedded UI now displays correct calculated thresholds (e.g., "0.700, 0.350, 0.100, 0.050" for 95% SLO)
+**Documentation**: Added workflow guidance to CONTRIBUTING.md, ui/README.md, and FEATURE_IMPLEMENTATION_SUMMARY.md
 
 ## 🚨 Critical Issues Identified Requiring Investigation
 
@@ -31,7 +39,7 @@ Previous session successfully completed **basic UI functionality testing** for d
   - Verify short/long window burn rates are calculated properly
   - Test threshold adaptation based on traffic volume changes
 
-### **Issue 3: Lazy Static Threshold Display**
+### **Issue 3: Real-Time Dynamic Threshold Display Enhancement**
 **Problem**: Dynamic SLOs show generic "Traffic-Aware" text instead of real-time calculated threshold values
 - **Root Cause**: Implementation uses placeholder text rather than actual calculated values
 - **Impact**: Users cannot see actual threshold values, reducing observability and debugging capability
@@ -163,8 +171,9 @@ Previous session successfully completed **basic UI functionality testing** for d
 
 ### **Testing Environment**
 - Kubernetes cluster with kube-prometheus-stack
-- Mixed SLO environment (14 static + 1 dynamic)
+- Mixed SLO environment (2 dynamic + 5 static SLOs currently applied)
 - Local development services running
+- **Production UI deployment validated** (embedded UI working correctly)
 
 ## 🎯 Next Actions Sequence
 
