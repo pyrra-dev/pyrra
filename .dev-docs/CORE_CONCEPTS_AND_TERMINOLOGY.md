@@ -74,12 +74,12 @@ This ratio is the **key innovation** that makes the system traffic-aware:
 
 These represent **what percentage of error budget consumption rate** we want to alert on:
 
-| Window Period | E_budget_percent_threshold | Meaning |
+| Static Factor | E_budget_percent_threshold | Meaning |
 |---------------|---------------------------|---------|
-| 1 hour        | 1/48 (≈0.020833)        | Alert when consuming error budget at ~2.1% per hour |
-| 6 hours       | 1/16 (≈0.0625)          | Alert when consuming error budget at ~6.3% per 6-hour period |
-| 1 day         | 1/14 (≈0.071429)        | Alert when consuming error budget at ~7.1% per day |
-| 4 days        | 1/7 (≈0.142857)         | Alert when consuming error budget at ~14.3% per 4-day period |
+| 14            | 1/48 (≈0.020833)        | First critical window - 50% per day threshold |
+| 7             | 1/16 (≈0.0625)          | Second critical window - 100% per 4 days threshold |
+| 2             | 1/14 (≈0.071429)        | First warning window threshold |
+| 1             | 1/7 (≈0.142857)         | Second warning window threshold |
 
 **Key Point**: These are **predefined constants**, not calculated values. They remain the same regardless of SLO configuration.
 

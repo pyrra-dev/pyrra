@@ -324,44 +324,52 @@ Based on code analysis and API data validation:
 
 **Status**: ✅ **PRODUCTION THRESHOLD DISPLAY ISSUE RESOLVED - READY FOR DATA VALIDATION**
 
-## 🔍 **Data Validation Session - September 3, 2025 - IN PROGRESS** 
+## 🎯 **CURRENT STATUS: Final UI Verification Session Required - September 5, 2025**
 
-### **Dynamic Burn Rate Data Validation - PARTIAL PROGRESS ⚠️**
+### **September 5, 2025 - Comprehensive Data Validation Session Complete**
 
-Following successful UI integration, we began comprehensive **mathematical and data infrastructure validation** of the dynamic burn rate feature. Initial findings show both successes and **critical outstanding issues**:
+**✅ CRITICAL BREAKTHROUGH: Complete Dynamic Burn Rate Validation** 
+- **✅ Tests 1-8 Complete**: Data infrastructure, metric switching, mathematical correctness all validated
+- **✅ Real Data Integration**: Successfully switched to `apiserver_request_total` metrics with actual error data
+- **✅ Mathematical Validation**: Confirmed dynamic threshold formula working correctly (~0.00885 vs 0.7 static)
+- **✅ Test 9 Implementation**: `BurnRateThresholdDisplay` component created, built, and integrated successfully
 
-#### **✅ Environment Setup Complete**
-- **✅ Migration to kube-prometheus**: Successfully migrated from kube-prometheus-stack to upstream kube-prometheus (jsonnet) for full compatibility
-- **✅ Local Development Workflow**: Following CONTRIBUTING.md guidelines with ./pyrra kubernetes and ./pyrra api services running smoothly  
-- **✅ Windows Compatibility**: Documented controller-gen command including both CRDs and RBAC generation for Windows developers
+**🎯 REMAINING: Test 9 UI Verification**
+- **Implementation Status**: ✅ **COMPLETE** - Component architecture, TypeScript fixes, build successful
+- **Testing Status**: 🚧 **PENDING** - Requires fresh session for actual UI verification
+- **Next Session**: `9_DYNAMIC_BURN_RATE_UI_VERIFICATION_SESSION_PROMPT.md` created for final testing
 
-#### **✅ PrometheusRule Generation Validated**
-Successfully confirmed PrometheusRule `test-slo` generates with proper dynamic expressions:
+#### **Technical Achievement Summary**:
+1. **🎉 Data Infrastructure Resolution**: 
+   - **Root Cause Found**: Test SLOs used metrics with no error data (`prometheus_http_requests_total` had 0 errors)
+   - **Solution Applied**: Switched to `apiserver_request_total` with rich error data (71 series, multiple error codes)
+   - **Result**: SLOs now show real availability/budget data instead of "No data"
 
-**Volume Adjustment Factor Formula**:
-```promql
-(sum(increase(prometheus_http_requests_total{slo="test-slo"}[30d])) / sum(increase(prometheus_http_requests_total{slo="test-slo"}[1h4m]))) * 0.020833 * (1-0.99)
+2. **🎉 Mathematical Correctness Confirmed**:
+   - **Formula Validated**: `(N_SLO/N_long) × E_budget_percent × (1-SLO_target)` working correctly in Prometheus rules
+   - **Live Data Testing**: Dynamic threshold ~0.00885 (0.885% error rate) vs Static 0.7 (70% error rate)
+   - **Practical Impact**: Dynamic thresholds provide meaningful alerting sensitivity, static essentially non-functional
+
+3. **🎉 Real-Time UI Component Built**:
+   - **Architecture**: `BurnRateThresholdDisplay` component handles both static and dynamic SLOs
+   - **Static Logic**: `factor * (1 - target)` - maintains existing calculated threshold display
+   - **Dynamic Logic**: Real-time Prometheus queries using `usePrometheusQuery` hook
+   - **Integration**: Component integrated in AlertsTable.tsx, TypeScript compilation successful
+
+#### **Test 9 Implementation Details**:
+```typescript
+// Component handles both static and dynamic cases
+if (burnRateType === BurnRateType.Static && factor !== undefined) {
+  const threshold = factor * (1 - targetDecimal)
+  return <span>{threshold.toFixed(5)}</span>
+}
+
+if (burnRateType === BurnRateType.Dynamic) {
+  return <DynamicThresholdValue objective={objective} promClient={promClient} />
+}
 ```
 
-**Key Dynamic Components Generated**:
-- **✅ Volume Ratio Structure**: `sum(increase(...[30d])) / sum(increase(...[1h4m]))` - formula structure correct
-- **✅ Burn Rate Multiplier**: `0.020833` (1/48 for 5m window) - mathematically correct constants
-- **✅ Error Budget Factor**: `(1-0.99) = 0.01` - proper SLO target integration
-- **✅ Multi-window expressions**: 7 recording rules + 4 alerting rules properly generated
-
-#### **⚠️ CRITICAL ISSUES IDENTIFIED - VALIDATION INCOMPLETE**
-
-**🚨 Issue 1: Missing Availability/Budget Data**
-- **Problem**: All SLOs show "No data" in Availability and Budget columns despite PrometheusRule generation
-- **Root Cause**: Unknown - need to investigate if GetStatus API returns data or if recording rules actually evaluate
-- **Impact**: Cannot validate real-world SLO calculations or threshold behavior
-- **Status**: **NOT RESOLVED** - Requires investigation
-
-**🚨 Issue 2: Mathematical Correctness Unvalidated** 
-- **Problem**: No validation that dynamic threshold calculations produce correct results with real data
-- **Root Cause**: PrometheusRule exists but we haven't confirmed it evaluates or produces meaningful thresholds
-- **Impact**: Cannot confirm dynamic thresholds actually adapt to traffic patterns
-- **Status**: **NOT STARTED** - Requires data-driven testing
+**Status**: ✅ **IMPLEMENTATION COMPLETE - UI VERIFICATION NEEDED**
 
 **🚨 Issue 3: Real-Time Threshold Display Missing**
 - **Problem**: Dynamic SLOs show generic "Traffic-Aware" text instead of actual calculated threshold values
@@ -698,12 +706,12 @@ dynamic_threshold = (N_SLO / N_long) × E_budget_percent_threshold × (1 - SLO_t
 **Key Innovation**: The burn rate threshold itself is dynamic and adapts to traffic patterns. Both short and long windows use **N_long** for consistent traffic scaling, preventing false positives during low traffic and false negatives during high traffic.
 
 ### Error Budget Percent Thresholds (Constants)
-| Window Period | E_budget_percent_threshold | 
+| Static Factor | E_budget_percent_threshold | 
 |---------------|---------------------------|
-| 1 hour        | 1/48 (≈0.020833)        | 
-| 6 hours       | 1/16 (≈0.0625)          | 
-| 1 day         | 1/14 (≈0.071429)        | 
-| 4 days        | 1/7 (≈0.142857)         |
+| 14            | 1/48 (≈0.020833)        | 
+| 7             | 1/16 (≈0.0625)          | 
+| 2             | 1/14 (≈0.071429)        | 
+| 1             | 1/7 (≈0.142857)         |
 
 ## Implementation Status
 
@@ -860,6 +868,12 @@ This ensures consistent traffic scaling: both windows measure against the same t
 
 ### ❌ **Future Enhancements** (Optional)
 - **Alert Display Updates**: Update existing UI components to show dynamic burn rate calculations instead of static
+- **🎯 NEW: Dynamic Burn Rate Graph**: Add dedicated burn rate graph to dynamic SLO detail pages showing:
+  - Real-time burn rate values over time
+  - Dynamic threshold calculation overlaid on graph  
+  - Traffic volume correlation to show threshold adaptation
+  - Visual comparison of actual burn rate vs dynamic threshold
+  - Enhanced observability for debugging dynamic alerting behavior
 **Goal**: Complete end-to-end dynamic burn rate visibility in alert display components
 
 #### 4.1 Grafana Dashboard Updates

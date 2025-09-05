@@ -1,0 +1,25 @@
+# Test Static Burn Rate SLO for Comparison
+# Uses same apiserver_request_total metric but with static thresholds
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: test-static-apiserver
+  namespace: monitoring
+  labels:
+    app: static-testing
+    component: apiserver
+spec:
+  target: "95"
+  window: 30d
+  description: "Static burn rate test SLO using apiserver requests - LIST operations"
+  indicator:
+    ratio:
+      errors:
+        metric: apiserver_request_total{verb="LIST",code=~"4..|5.."}
+      total:
+        metric: apiserver_request_total{verb="LIST"}
+  alerting:
+    name: TestStaticApiserver
+    burnRateType: static   # Traditional static burn rates
+    burnrates: true
+    absent: true

@@ -84,34 +84,6 @@ export const getBurnRateTooltip = (objective: Objective, factor?: number): strin
 }
 
 /**
- * Get display text for burn rate threshold information
- */
-export const getBurnRateDisplayText = (objective: Objective, factor?: number): string => {
-  const burnRateType = getBurnRateType(objective)
-  
-  if (burnRateType === BurnRateType.Dynamic) {
-    return 'Traffic-Aware'
-  }
-  
-  if (factor !== undefined) {
-    // Target is already a decimal (0.99 for 99%)
-    const targetDecimal = objective.target
-    const threshold = factor * (1 - targetDecimal)
-    
-    // Use dynamic precision to avoid truncation of small numbers
-    if (threshold < 0.001) {
-      return threshold.toExponential(2) // For very small numbers like 1.40e-4
-    } else if (threshold < 0.01) {
-      return threshold.toFixed(4) // Show 4 decimals for small numbers like 0.0014
-    } else {
-      return threshold.toFixed(3) // Show 3 decimals for larger numbers like 0.140
-    }
-  }
-  
-  return 'Static'
-}
-
-/**
  * Get detailed threshold description for BurnrateGraph based on burn rate type
  */
 export const getThresholdDescription = (objective: Objective, threshold: number, shortWindow: string, longWindow: string): string => {

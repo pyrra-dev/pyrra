@@ -18,7 +18,8 @@ import {step} from './graphs/step'
 import {convertAlignedData} from './graphs/aligneddata'
 import {formatDuration} from '../duration'
 import {buildExternalHRef, externalName} from '../external'
-import {getBurnRateTooltip, getBurnRateDisplayText, getBurnRateType, BurnRateType} from '../burnrate'
+import {getBurnRateTooltip, getBurnRateType, BurnRateType} from '../burnrate'
+import BurnRateThresholdDisplay from './BurnRateThresholdDisplay'
 
 interface AlertsTableProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -180,7 +181,11 @@ const AlertsTable = ({
                         </OverlayTooltip>
                       }>
                       <span className="d-flex align-items-center justify-content-end" style={{gap: '4px'}}>
-                        {getBurnRateDisplayText(objective, a.factor)}
+                        <BurnRateThresholdDisplay 
+                          objective={objective} 
+                          factor={a.factor} 
+                          promClient={promClient} 
+                        />
                         {getBurnRateType(objective) === BurnRateType.Dynamic && <IconDynamic width={12} height={12} />}
                       </span>
                     </OverlayTrigger>
