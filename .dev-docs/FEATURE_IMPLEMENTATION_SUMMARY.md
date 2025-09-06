@@ -369,6 +369,37 @@ if (burnRateType === BurnRateType.Dynamic) {
 }
 ```
 
+#### **✅ Architectural Validation: Pyrra-Consistent Implementation**
+**Investigation Confirmed**: The `BurnRateThresholdDisplay` component implementation follows **exact same patterns** used throughout Pyrra's existing codebase:
+
+**✅ React Hooks Pattern (Matches Pyrra Standard)**:
+- **usePrometheusQuery Hook**: Same as Detail.tsx availability/budget calculations
+- **Conditional Execution**: Uses `{enabled: boolean}` option like RequestsGraph.tsx
+- **Component Architecture**: PromiseClient passed as props (standard pattern)
+- **Error Handling**: Graceful fallbacks matching existing components
+
+**Evidence from Pyrra Codebase**:
+```typescript
+// Detail.tsx (existing Pyrra code)
+const {response: totalResponse, status: totalStatus} = usePrometheusQuery(
+  promClient, objective?.queries?.countTotal ?? '', to / 1000,
+  {enabled: objectiveStatus === 'success' && objective?.queries?.countTotal !== undefined}
+)
+
+// BurnRateThresholdDisplay.tsx (our implementation)
+const {response: shortResponse} = usePrometheusQuery(
+  promClient, shortQuery, currentTime, {enabled: shouldQuery}
+)
+```
+
+**✅ Architectural Consistency Confirmed**:
+- **Hook Usage**: `usePrometheusQuery` is standard for instant queries across all Pyrra components
+- **Props Pattern**: `promClient` passed down from parent components (AlertsTable → BurnRateThresholdDisplay)
+- **Conditional Queries**: `enabled` option used throughout codebase for query control
+- **Component Integration**: Seamless fit with existing Pyrra UI architecture
+
+**Result**: Implementation will integrate seamlessly and behave consistently with other real-time Pyrra UI components.
+
 **Status**: ✅ **IMPLEMENTATION COMPLETE - UI VERIFICATION NEEDED**
 
 **🚨 Issue 3: Real-Time Threshold Display Missing**
