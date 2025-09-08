@@ -160,8 +160,8 @@ github.com/polarsignals/connect-go-prometheus v0.0.0-20221209115647-3601eea3d0d0
 github.com/polarsignals/connect-go-prometheus v0.0.0-20221209115647-3601eea3d0d0/go.mod h1:sSI7kLoXZJRaxAofkQvoPRh9d2FU/GCFgIMj7HlptFo=
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.85.0 h1:oY+F5FZFmCjCyzkHWPjVQpzvnvEB/0FP+iyzDUUlqFc=
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.85.0/go.mod h1:VB7wtBmDT6W2RJHzsvPZlBId+EnmeQA0d33fFTXvraM=
-github.com/prometheus/client_golang v1.23.1 h1:w6gXMLQGgd0jXXlote9lRHMe0nG01EbnJT+C0EJru2Y=
-github.com/prometheus/client_golang v1.23.1/go.mod h1:br8j//v2eg2K5Vvna5klK8Ku5pcU5r4ll73v6ik5dIQ=
+github.com/prometheus/client_golang v1.23.2 h1:Je96obch5RDVy3FDMndoUsjAhG5Edi49h0RJWRi/o0o=
+github.com/prometheus/client_golang v1.23.2/go.mod h1:Tb1a6LWHB3/SPIzCoaDXI4I8UHKeFTEQ1YCr+0Gyqmg=
 github.com/prometheus/client_model v0.6.2 h1:oBsgwpGs7iVziMvrGhE53c/GrLUsZdHnqNwqPLxwZyk=
 github.com/prometheus/client_model v0.6.2/go.mod h1:y3m2F6Gdpfy6Ut/GBsUqTWZqCUvMVzSfMLjcu6wAwpE=
 github.com/prometheus/common v0.66.1 h1:h5E0h5/Y8niHc5DlaLlWLArTQI7tMrsfQjHV+d9ZoGs=
