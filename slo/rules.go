@@ -44,10 +44,28 @@ func (o Objective) buildTotalSelector(alertMatchersString string) string {
 
 // buildLatencyTotalSelector builds the label selector for latency total metrics in dynamic expressions
 func (o Objective) buildLatencyTotalSelector(alertMatchersString string) string {
+	// Parse existing alert matchers to avoid duplicates
+	alertMatchersMap := make(map[string]string)
+	if alertMatchersString != "" {
+		for _, part := range strings.Split(alertMatchersString, ",") {
+			if strings.Contains(part, "=") {
+				kv := strings.SplitN(part, "=", 2)
+				if len(kv) == 2 {
+					key := kv[0]
+					value := strings.Trim(kv[1], `"`)
+					alertMatchersMap[key] = value
+				}
+			}
+		}
+	}
+
 	totalParts := []string{}
 	for _, matcher := range o.Indicator.Latency.Total.LabelMatchers {
 		if matcher.Name != labels.MetricName {
-			totalParts = append(totalParts, matcher.String())
+			// Skip if already present in alertMatchers
+			if _, exists := alertMatchersMap[matcher.Name]; !exists {
+				totalParts = append(totalParts, matcher.String())
+			}
 		}
 	}
 	if alertMatchersString != "" {
@@ -58,10 +76,28 @@ func (o Objective) buildLatencyTotalSelector(alertMatchersString string) string 
 
 // buildLatencyNativeTotalSelector builds the label selector for native latency total metrics in dynamic expressions
 func (o Objective) buildLatencyNativeTotalSelector(alertMatchersString string) string {
+	// Parse existing alert matchers to avoid duplicates
+	alertMatchersMap := make(map[string]string)
+	if alertMatchersString != "" {
+		for _, part := range strings.Split(alertMatchersString, ",") {
+			if strings.Contains(part, "=") {
+				kv := strings.SplitN(part, "=", 2)
+				if len(kv) == 2 {
+					key := kv[0]
+					value := strings.Trim(kv[1], `"`)
+					alertMatchersMap[key] = value
+				}
+			}
+		}
+	}
+
 	totalParts := []string{}
 	for _, matcher := range o.Indicator.LatencyNative.Total.LabelMatchers {
 		if matcher.Name != labels.MetricName {
-			totalParts = append(totalParts, matcher.String())
+			// Skip if already present in alertMatchers
+			if _, exists := alertMatchersMap[matcher.Name]; !exists {
+				totalParts = append(totalParts, matcher.String())
+			}
 		}
 	}
 	if alertMatchersString != "" {
@@ -987,41 +1023,25 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			window:   time.Duration(o.Window),
 		}.replace(expr)
 
+		// Add le="" label for total recording rule to differentiate from success bucket
+		ruleLabelsTotal := make(map[string]string, len(ruleLabels)+1)
+		for k, v := range ruleLabels {
+			ruleLabelsTotal[k] = v
+		}
+		ruleLabelsTotal["le"] = ""
+
 		rules = append(rules, monitoringv1.Rule{
 			Record: increaseName(o.Indicator.Latency.Total.Name, o.Window),
 			Expr:   intstr.FromString(expr.String()),
-			Labels: ruleLabels,
+			Labels: ruleLabelsTotal,
 		})
 
-		expr, err = increaseExpr()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
-		}
-
-		objectiveReplacer{
-			metric:   o.Indicator.Latency.Success.Name,
-			matchers: o.Indicator.Latency.Success.LabelMatchers,
-			grouping: grouping,
-			window:   time.Duration(o.Window),
-		}.replace(expr)
-
-		var le string
-		for _, m := range o.Indicator.Latency.Success.LabelMatchers {
-			if m.Name == "le" {
-				le = m.Value
-				break
-			}
-		}
-		ruleLabelsLe := map[string]string{"le": le}
+		alertLabels := make(map[string]string, len(ruleLabels)+1)
 		for k, v := range ruleLabels {
-			ruleLabelsLe[k] = v
+			alertLabels[k] = v
 		}
-
-		rules = append(rules, monitoringv1.Rule{
-			Record: increaseName(o.Indicator.Latency.Success.Name, o.Window),
-			Expr:   intstr.FromString(expr.String()),
-			Labels: ruleLabelsLe,
-		})
+		// Add severity label for alerts
+		alertLabels["severity"] = string(critical)
 
 		// add the absent alert if configured
 		if o.Alerting.Absent {
@@ -1035,13 +1055,6 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				matchers: o.Indicator.Latency.Total.LabelMatchers,
 			}.replace(expr)
 
-			alertLabels := make(map[string]string, len(ruleLabels)+1)
-			for k, v := range ruleLabels {
-				alertLabels[k] = v
-			}
-			// Add severity label for alerts
-			alertLabels["severity"] = string(critical)
-
 			rules = append(rules, monitoringv1.Rule{
 				Alert:       o.AlertNameAbsent(),
 				Expr:        intstr.FromString(expr.String()),
@@ -1049,8 +1062,11 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				Labels:      alertLabels,
 				Annotations: o.commonRuleAnnotations(),
 			})
+		}
 
-			expr, err = absentExpr()
+		// Create success bucket recording rule (required for QueryErrorBudget)
+		if o.Indicator.Latency.Total.Name != o.Indicator.Latency.Success.Name {
+			expr, err := increaseExpr()
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1058,22 +1074,50 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   o.Indicator.Latency.Success.Name,
 				matchers: o.Indicator.Latency.Success.LabelMatchers,
+				grouping: grouping,
+				window:   time.Duration(o.Window),
 			}.replace(expr)
 
-			alertLabelsLe := make(map[string]string, len(ruleLabelsLe)+1)
-			for k, v := range ruleLabelsLe {
-				alertLabelsLe[k] = v
+			// Extract le label from success bucket matchers
+			var le string
+			for _, m := range o.Indicator.Latency.Success.LabelMatchers {
+				if m.Name == "le" {
+					le = m.Value
+					break
+				}
 			}
-			// Add severity label for alerts
-			alertLabelsLe["severity"] = string(critical)
+			ruleLabelsLe := make(map[string]string, len(ruleLabels)+1)
+			for k, v := range ruleLabels {
+				ruleLabelsLe[k] = v
+			}
+			ruleLabelsLe["le"] = le
 
 			rules = append(rules, monitoringv1.Rule{
-				Alert:       o.AlertNameAbsent(),
-				Expr:        intstr.FromString(expr.String()),
-				For:         monitoringDuration(o.AbsentDuration().String()),
-				Labels:      alertLabelsLe,
-				Annotations: o.commonRuleAnnotations(),
+				Record: increaseName(o.Indicator.Latency.Success.Name, o.Window),
+				Expr:   intstr.FromString(expr.String()),
+				Labels: ruleLabelsLe,
 			})
+
+			// add the absent alert if configured for success bucket
+			if o.Alerting.Absent {
+				expr, err = absentExpr()
+				if err != nil {
+					return monitoringv1.RuleGroup{}, err
+				}
+
+				objectiveReplacer{
+					metric:   o.Indicator.Latency.Success.Name,
+					matchers: o.Indicator.Latency.Success.LabelMatchers,
+				}.replace(expr)
+
+				rules = append(rules, monitoringv1.Rule{
+					Alert:       o.AlertNameAbsent(),
+					Expr:        intstr.FromString(expr.String()),
+					For:         monitoringDuration(o.AbsentDuration().String()),
+					Labels:      alertLabels,
+					Annotations: o.commonRuleAnnotations(),
+				})
+			}
 		}
 	case LatencyNative:
 		ruleLabels := o.commonRuleLabels(sloName)

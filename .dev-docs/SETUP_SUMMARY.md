@@ -71,39 +71,53 @@ To avoid manually sourcing the environment script in every new terminal, we auto
 
 4.  **Verification**: The setup is verified by running `docker ps` inside the project directory and confirming it lists the Kubernetes containers from Minikube, not from Docker Desktop.
 
-## 5. Installing kube-prometheus-stack Backend
+## 5. Installing kube-prometheus Backend
 
-With the environment configured, we need to install the complete kube-prometheus-stack (not just Prometheus) using Helm to serve as the monitoring backend for Pyrra. This provides Prometheus, Grafana, and AlertManager together.
+With the environment configured, we need to install the complete monitoring stack using `kube-prometheus` (jsonnet-based) to serve as the monitoring backend for Pyrra. This provides better integration with Pyrra than the Helm-based `kube-prometheus-stack`.
 
-1.  **Add Helm Repo**: Added the official Prometheus community chart repository.
+**Note**: After initial development with `kube-prometheus-stack` (Helm), we migrated to `kube-prometheus` (jsonnet) based on Pyrra's official recommendations for better compatibility and integration.
+
+1.  **Clone kube-prometheus**: Get the official jsonnet-based monitoring stack.
     ```bash
-    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-    helm repo update
+    git clone https://github.com/prometheus-operator/kube-prometheus.git
+    cd kube-prometheus
     ```
 
-2.  **Install Complete Stack**: Installed the `kube-prometheus-stack` chart into a dedicated `monitoring` namespace with proper service exposure for local development.
+2.  **Deploy the monitoring stack**: Install CRDs first, then the complete stack.
     ```bash
-    helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-      --namespace monitoring --create-namespace \
-      --set prometheus.service.type=NodePort \
-      --set grafana.service.type=NodePort \
-      --set alertmanager.service.type=NodePort
+    # Deploy the CRDs and the Prometheus Operator
+    kubectl apply -f ./manifests/setup
+    
+    # Deploy all resources like Prometheus, StatefulSets, and Deployments
+    kubectl apply -f ./manifests/
+    ```
+
+3.  **Verify deployment**: Check that all pods are running in the monitoring namespace.
+    ```bash
+    kubectl get pods -n monitoring
     ```
 
 This complete stack provides:
-- **Prometheus**: Metrics collection and querying
+- **Prometheus**: Metrics collection and querying with proper label selectors
 - **Grafana**: Visualization and dashboards  
 - **AlertManager**: Alert routing and notification
 - **Various Exporters**: Node exporter, kube-state-metrics, etc.
+- **Proper Integration**: Native support for Pyrra's PrometheusRule generation
+
+**Advantages over kube-prometheus-stack**:
+- ✅ Native Pyrra integration with matching label selectors
+- ✅ Upstream-recommended setup for Pyrra deployments
+- ✅ Better PrometheusRule discovery and processing
+- ✅ Consistent with official Pyrra documentation and examples
 
 For accessing services locally, use port-forwarding:
 ```bash
-# Prometheus
-kubectl port-forward svc/kube-prometheus-stack-prometheus 9090:9090 -n monitoring
+# Prometheus (note the different service name)
+kubectl port-forward svc/prometheus-k8s 9090:9090 -n monitoring
 
-# Grafana (admin/prom-operator)  
-kubectl port-forward svc/kube-prometheus-stack-grafana 3000:80 -n monitoring
+# Grafana (admin/admin)  
+kubectl port-forward svc/grafana 3000:3000 -n monitoring
 
 # AlertManager
-kubectl port-forward svc/kube-prometheus-stack-alertmanager 9093:9093 -n monitoring
+kubectl port-forward svc/alertmanager-main 9093:9093 -n monitoring
 ```
