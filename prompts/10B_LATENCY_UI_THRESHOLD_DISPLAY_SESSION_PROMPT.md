@@ -177,7 +177,7 @@ if (isLatencyIndicator) {
 
 ### **Documentation Updates**:
 - [ ] Update `DYNAMIC_BURN_RATE_TESTING_SESSION.md` with Session 10B results
-- [ ] Document any new architectural patterns or lessons learned
+- [ ] Document any new architectural patterns or lessons learned in `FEATURE_IMPLEMENTATION_SUMMARY.md`
 - [ ] Note completion of latency indicator validation
 
 ## 🚀 Session Completion Criteria

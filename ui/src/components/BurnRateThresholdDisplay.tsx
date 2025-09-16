@@ -54,6 +54,10 @@ const DynamicThresholdValue: React.FC<{
   const sloName = objective.labels?.__name__ ?? 'unknown'
   const target = objective.target
   
+  // Check if this is a latency or ratio indicator
+  const isLatencyIndicator = objective.indicator?.options?.case === 'latency'
+  const isRatioIndicator = objective.indicator?.options?.case === 'ratio'
+  
   // Map factor to E_budget_percent_threshold (from backend DynamicWindows function)
   const getThresholdConstant = (factor: number): number => {
     switch (factor) {
@@ -90,10 +94,10 @@ const DynamicThresholdValue: React.FC<{
     promClient,
     trafficQuery,
     currentTime,
-    {enabled: trafficQuery !== '' && sloName !== 'unknown' && factor !== undefined}
+    {enabled: trafficQuery !== '' && sloName !== 'unknown' && factor !== undefined && (isLatencyIndicator || isRatioIndicator)}
   )
   
-  if (sloName === 'unknown' || factor === undefined) {
+  if (sloName === 'unknown' || factor === undefined || (!isLatencyIndicator && !isRatioIndicator)) {
     return <span>Traffic-Aware</span>
   }
   
@@ -105,8 +109,11 @@ const DynamicThresholdValue: React.FC<{
     const trafficRatio = response.options.value.samples[0].value
     const dynamicThreshold = trafficRatio * thresholdConstant
     
+    const indicatorType = isLatencyIndicator ? 'latency' : 'ratio'
+    const tooltipDetails = `${indicatorType} indicator - Traffic ratio: ${trafficRatio.toFixed(6)}, Threshold constant: ${thresholdConstant.toFixed(6)}, Dynamic threshold: ${dynamicThreshold.toFixed(6)}`
+    
     return (
-      <span title={`Traffic ratio: ${trafficRatio.toFixed(6)}, Threshold constant: ${thresholdConstant.toFixed(6)}, Dynamic threshold: ${dynamicThreshold.toFixed(6)}`}>
+      <span title={tooltipDetails}>
         {dynamicThreshold.toFixed(5)}
       </span>
     )
@@ -116,8 +123,11 @@ const DynamicThresholdValue: React.FC<{
     const trafficRatio = response.options.value.value
     const dynamicThreshold = trafficRatio * thresholdConstant
     
+    const indicatorType = isLatencyIndicator ? 'latency' : 'ratio'
+    const tooltipDetails = `${indicatorType} indicator - Traffic ratio: ${trafficRatio.toFixed(6)}, Threshold constant: ${thresholdConstant.toFixed(6)}, Dynamic threshold: ${dynamicThreshold.toFixed(6)}`
+    
     return (
-      <span title={`Traffic ratio: ${trafficRatio.toFixed(6)}, Threshold constant: ${thresholdConstant.toFixed(6)}, Dynamic threshold: ${dynamicThreshold.toFixed(6)}`}>
+      <span title={tooltipDetails}>
         {dynamicThreshold.toFixed(5)}
       </span>
     )
@@ -130,12 +140,19 @@ const DynamicThresholdValue: React.FC<{
 /**
  * Extract base metric selector from objective - following existing Pyrra patterns
  * This should match how the backend generates alert rule queries
+ * Extended to support both ratio and latency indicators
  */
 function getBaseMetricSelector(objective: Objective): string {
-  // This is a simplified version - in reality we should extract from the objective's
-  // indicator configuration, similar to how the backend builds alert expressions
-  
+  // Handle ratio indicators
   if (objective.indicator?.options?.case === 'ratio') {
+    const totalMetric = objective.indicator.options.value.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      return totalMetric
+    }
+  }
+  
+  // Handle latency indicators - use the total (count) metric for traffic calculation
+  if (objective.indicator?.options?.case === 'latency') {
     const totalMetric = objective.indicator.options.value.total?.metric
     if (totalMetric !== undefined && totalMetric !== '') {
       return totalMetric
