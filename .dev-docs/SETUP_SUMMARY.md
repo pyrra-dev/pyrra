@@ -87,6 +87,9 @@ With the environment configured, we need to install the complete monitoring stac
     ```bash
     # Deploy the CRDs and the Prometheus Operator
     kubectl apply -f ./manifests/setup
+
+    # If you get "metadata.annotations: Too long" errors then run:
+    kubectl apply --server-side=true -f manifests/setup/
     
     # Deploy all resources like Prometheus, StatefulSets, and Deployments
     kubectl apply -f ./manifests/
