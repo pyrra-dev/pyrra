@@ -66,7 +66,9 @@ export const getBurnRateTooltip = (objective: Objective, factor?: number): strin
   const burnRateType = getBurnRateType(objective)
   
   if (burnRateType === BurnRateType.Dynamic) {
-    return 'Dynamic threshold adapts to traffic volume. Higher traffic = higher thresholds, lower traffic = lower thresholds. Formula: (N_SLO / N_long) × E_budget_percent × (1 - SLO_target)'
+    // For dynamic SLOs, we need to return a placeholder that will be replaced
+    // The AlertsTable should use a different approach for dynamic tooltips
+    return 'DYNAMIC_TOOLTIP_PLACEHOLDER'
   }
   
   if (factor !== undefined) {

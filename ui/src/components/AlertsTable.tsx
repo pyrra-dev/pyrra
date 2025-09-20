@@ -13,7 +13,7 @@ import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
 import BurnrateGraph from './graphs/BurnrateGraph'
 import uPlot, {AlignedData} from 'uplot'
 import {PrometheusService} from '../proto/prometheus/v1/prometheus_connect'
-import {usePrometheusQueryRange} from '../prometheus'
+import {usePrometheusQueryRange, usePrometheusQuery} from '../prometheus'
 import {step} from './graphs/step'
 import {convertAlignedData} from './graphs/aligneddata'
 import {formatDuration} from '../duration'
@@ -176,8 +176,18 @@ const AlertsTable = ({
                     <OverlayTrigger
                       key={i}
                       overlay={
-                        <OverlayTooltip id={`tooltip-${i}`}>
-                          {getBurnRateTooltip(objective, a.factor)}
+                        <OverlayTooltip 
+                          id={`tooltip-${i}`} 
+                          style={{maxWidth: '450px', width: 'max-content'}}
+                          className="wide-tooltip"
+                        >
+                          <div style={{maxWidth: '450px', whiteSpace: 'normal'}}>
+                            {getBurnRateType(objective) === BurnRateType.Dynamic ? (
+                              <DynamicBurnRateTooltip objective={objective} factor={a.factor} promClient={promClient} />
+                            ) : (
+                              getBurnRateTooltip(objective, a.factor)
+                            )}
+                          </div>
                         </OverlayTooltip>
                       }>
                       <span className="d-flex align-items-center justify-content-end" style={{gap: '4px'}}>
@@ -242,6 +252,128 @@ const AlertsTable = ({
       </Table>
     </div>
   )
+}
+
+/**
+ * Dynamic tooltip component that provides enhanced tooltip content for dynamic burn rate thresholds
+ */
+const DynamicBurnRateTooltip: React.FC<{
+  objective: Objective
+  factor?: number
+  promClient: PromiseClient<typeof PrometheusService>
+}> = ({objective, promClient, factor}) => {
+  const currentTime = Math.floor(Date.now() / 1000)
+  const target = objective.target
+  const isLatencyIndicator = objective.indicator?.options?.case === 'latency'
+  const isRatioIndicator = objective.indicator?.options?.case === 'ratio'
+  
+  // Get traffic ratio query (same logic as BurnRateThresholdDisplay)
+  const getTrafficRatioQuery = (factor: number): string => {
+    const windowMap = {
+      14: { slo: '30d', long: '1h4m' },
+      7:  { slo: '30d', long: '6h26m' },
+      2:  { slo: '30d', long: '1d1h43m' },
+      1:  { slo: '30d', long: '4d6h51m' }
+    }
+    
+    const windows = windowMap[factor as keyof typeof windowMap]
+    if (windows === undefined) return ''
+    
+    const baseSelector = getBaseMetricSelector(objective)
+    return `sum(increase(${baseSelector}[${windows.slo}])) / sum(increase(${baseSelector}[${windows.long}]))`
+  }
+  
+  const getThresholdConstant = (factor: number): number => {
+    switch (factor) {
+      case 14: return 1/48
+      case 7:  return 1/16
+      case 2:  return 1/14
+      case 1:  return 1/7
+      default: return 1/48
+    }
+  }
+  
+  const trafficQuery = factor !== undefined ? getTrafficRatioQuery(factor) : ''
+  
+  const {response: trafficResponse, status} = usePrometheusQuery(
+    promClient,
+    trafficQuery,
+    currentTime,
+    {enabled: trafficQuery !== '' && factor !== undefined && (isLatencyIndicator || isRatioIndicator)}
+  )
+  
+  // Generate enhanced tooltip content
+  if (status === 'loading') {
+    return <>Dynamic threshold adapts to traffic volume. Calculating...</>
+  }
+  
+  if (status === 'error' || trafficResponse === null) {
+    return <>Dynamic threshold adapts to traffic volume. Unable to load current calculation.</>
+  }
+  
+  // Extract traffic ratio
+  let trafficRatio: number | undefined
+  if (trafficResponse.options?.case === 'vector' && trafficResponse.options.value.samples.length > 0) {
+    trafficRatio = trafficResponse.options.value.samples[0].value
+  } else if (trafficResponse.options?.case === 'scalar') {
+    trafficRatio = trafficResponse.options.value.value
+  }
+  
+  if (trafficRatio === undefined || !isFinite(trafficRatio) || trafficRatio <= 0) {
+    return <>Dynamic threshold adapts to traffic volume. No traffic data available.</>
+  }
+  
+  // Calculate thresholds
+  const thresholdConstant = factor !== undefined ? getThresholdConstant(factor) * (1 - target) : 0
+  const dynamicThreshold = trafficRatio * thresholdConstant
+  const staticThreshold = factor !== undefined ? factor * (1 - target) : 0
+  
+  const thresholdRatio = staticThreshold > 0 ? dynamicThreshold / staticThreshold : 1
+  
+  let trafficContext = ''
+  if (thresholdRatio > 1.1) {
+    trafficContext = ` (${thresholdRatio.toFixed(1)}x higher due to lower traffic than average for this window)`
+  } else if (thresholdRatio < 0.9) {
+    trafficContext = ` (${(1/thresholdRatio).toFixed(1)}x smaller due to higher traffic than average for this window)`
+  }
+  
+  return (
+    <div style={{minWidth: '350px', maxWidth: '450px'}}>
+      <style>{`
+        .wide-tooltip .tooltip-inner {
+          max-width: 450px !important;
+          width: max-content !important;
+          white-space: normal !important;
+        }
+      `}</style>
+      Dynamic threshold adapts to traffic volume.<br/>
+      Traffic ratio: {trafficRatio.toFixed(2)}x<br/>
+      Dynamic threshold: {dynamicThreshold.toFixed(6)} vs Static threshold: {staticThreshold.toFixed(6)}{trafficContext}<br/>
+      Formula: (N_SLO / N_alert) × E_budget_percent × (1 - SLO_target)
+    </div>
+  )
+}
+
+// Helper function for base metric selector (same as BurnRateThresholdDisplay)
+function getBaseMetricSelector(objective: Objective): string {
+  if (objective.indicator?.options?.case === 'ratio') {
+    const totalMetric = objective.indicator.options.value.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      return totalMetric
+    }
+  }
+  
+  if (objective.indicator?.options?.case === 'latency') {
+    const totalMetric = objective.indicator.options.value.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      if (totalMetric.includes('_bucket')) {
+        return totalMetric.replace('_bucket', '_count')
+      }
+      return totalMetric
+    }
+  }
+  
+  return 'unknown_metric'
 }
 
 export default AlertsTable

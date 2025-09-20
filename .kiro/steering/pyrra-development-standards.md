@@ -27,13 +27,6 @@ Where:
 - E_budget_percent_threshold = Constant percentage (1/48, 1/16, 1/14, 1/7)
 - (1 - SLO_target) = Error budget (e.g., 0.01 for 99% SLO)
 
-### Implementation Status
-
-- ✅ **Backend**: Complete for all indicator types (Ratio, Latency, LatencyNative, BoolGauge)
-- ✅ **API Integration**: Complete with protobuf transmission
-- ✅ **UI Foundation**: Complete with badge system and basic threshold display
-- 🚧 **Comprehensive Validation**: ~30% complete (ratio and basic latency working)
-
 ## Development Standards
 
 ### Code Quality Requirements
@@ -72,6 +65,39 @@ Pyrra uses **two different UI serving methods**:
 
 ### Testing Standards
 
+#### Development Environment Setup
+
+The testing environment consists of:
+
+- **Kubernetes Cluster**: Minikube with Hyper-V on Windows 10
+- **Monitoring Stack**: kube-prometheus (jsonnet-based) providing Prometheus, Grafana, AlertManager
+- **Pyrra Services**: Local binaries (`./pyrra api` on port 9099, `./pyrra kubernetes` on port 9444)
+- **Development UI**: `npm start` in ui/ folder (port 3000) for live development
+- **Test SLOs**: Both static and dynamic SLOs from examples/ and .dev/ folders
+
+#### Testing Approach Methodology
+
+**Two-Tier Testing Strategy:**
+
+1. **Terminal-Based Tests**: AI performs direct commands for faster iteration
+
+   - Prometheus API queries via curl
+   - Kubernetes API validation
+   - Mathematical calculations and cross-validation
+   - Performance measurements and logging analysis
+
+2. **UI-Based Tests**: Interactive human-guided validation
+   - Human operator performs queries in Prometheus UI (port 9090)
+   - Human operator tests functionality in Pyrra UI (port 3000 for development)
+   - AI guides specific test scenarios and interprets feedback
+   - Visual validation of tooltips, error states, and user experience
+
+**Development Workflow:**
+
+- Primary development uses `cd ui && npm start` (port 3000) for live reload
+- Production UI testing (`npm run build` + embedded UI) only for final validation
+- Multiple terminals for different services (API, backend, UI) managed by human operator
+
 #### Comprehensive Validation Requirements
 
 1. **Indicator Type Coverage**: Test all SLO types (ratio, latency, latency_native, bool_gauge)
@@ -86,6 +112,7 @@ Pyrra uses **two different UI serving methods**:
 - Test with real Prometheus data, not just synthetic scenarios
 - Verify traffic scaling behavior in high/low traffic conditions
 - Confirm alert sensitivity matches expected behavior
+- Use terminal commands for mathematical verification (no LLM calculations)
 
 ### File References for Implementation
 
@@ -106,8 +133,21 @@ Pyrra uses **two different UI serving methods**:
 
 #### Test Configuration
 
-- `.dev/test-slo.yaml` - Test SLO for development
-- `.dev/test-dynamic-slo.yaml` - Dynamic burn rate test configuration
+**Static SLOs:**
+
+- `.dev/test-slo.yaml` - Basic static SLO for development
+- `.dev/test-static-slo.yaml` - Static burn rate test configuration
+- `examples/` - Original Pyrra project examples (mostly static)
+
+**Dynamic SLOs:**
+
+- `.dev/test-dynamic-slo.yaml` - Dynamic burn rate ratio indicator
+- `.dev/test-latency-dynamic.yaml` - Dynamic burn rate latency indicator
+
+**Environment Setup:**
+
+- `.dev/minikube-env.sh` - Docker environment variables for Minikube integration
+- `.envrc` - direnv configuration for automatic environment loading
 
 ## Windows Development Considerations
 
@@ -130,17 +170,34 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 
 ### Task Completion Process
 
-1. **Pre-Completion Confirmation**: Always ask user before declaring task completion
-2. **Git Status Review**: Run `git status` after completion to identify:
+1. **Implementation Testing**: ALWAYS test the changes made within the task before asking for approval:
+
+   - **Interactive Testing Approach**: Guide user through small, focused test steps rather than long test lists
+   - Test in development UI first: Use existing `npm start` on port 3000 for immediate feedback
+   - Guide one small test step at a time: "Please do X and tell me what you see"
+   - Wait for user feedback before proceeding to next test step
+   - Check browser console for errors or warnings
+   - Test edge cases and error scenarios when applicable
+   - Validate performance impact if performance-related changes were made
+   - Only if development testing passes, then optionally test embedded UI: `npm run build && make build && ./pyrra api`
+
+2. **MANDATORY Documentation Updates**: BEFORE asking for approval, ALWAYS update relevant documentation:
+
+   - **Steering documents** (`.kiro/steering/`) if workflow or standards change
+   - **Spec documents** (`.kiro/specs/`) if requirements or design evolve
+   - **Feature documentation** (`.dev-docs/`) for internal implementation details
+   - **Original Pyrra documentation** if user-facing features are added
+   - **NEVER skip this step** - documentation updates are required before approval
+
+3. **Pre-Completion Confirmation**: Only after successful testing AND documentation updates, ask user before declaring task completion
+
+4. **Git Status Review**: Run `git status` after completion to identify:
+
    - Files that need to be committed
    - Files that should be discarded
    - Ask user if uncertain about any changes
-3. **Version Control**: Execute `git commit` and `git push` after user confirmation
-4. **Documentation Updates**: Before completing each task, check and update:
-   - Steering documents (`.kiro/steering/`) if workflow or standards change
-   - Spec documents (`.kiro/specs/`) if requirements or design evolve
-   - Feature documentation (`.dev-docs/`) for internal implementation details
-   - Original Pyrra documentation if user-facing features are added
+
+5. **Version Control**: Execute `git commit` and `git push` after user confirmation
 
 ### Implementation Guidelines
 
