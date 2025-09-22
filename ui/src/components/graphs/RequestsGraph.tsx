@@ -1,19 +1,21 @@
 import React, {useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
-import uPlot from 'uplot'
+import uPlot, {AlignedData} from 'uplot'
 import {ObjectiveType} from '../../App'
 import {IconExternal} from '../Icons'
 import {blues, greens, reds, yellows} from './colors'
 import {seriesGaps} from './gaps'
 import {PromiseClient} from '@connectrpc/connect'
-import {usePrometheusQueryRange} from '../../prometheus'
+import {usePrometheusQueryRange, usePrometheusQuery} from '../../prometheus'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
 import {Labels, labelValues} from '../../labels'
-import {buildExternalHRef, externalName} from '../../external';
+import {buildExternalHRef, externalName} from '../../external'
+import {Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {getBurnRateType, BurnRateType} from '../../burnrate'
 
 interface RequestsGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -24,6 +26,7 @@ interface RequestsGraphProps {
   type: ObjectiveType
   updateTimeRange: (min: number, max: number, absolute: boolean) => void
   absolute: boolean
+  objective?: Objective  // Optional objective for dynamic burn rate enhancements
 }
 
 const RequestsGraph = ({
@@ -35,6 +38,7 @@ const RequestsGraph = ({
   type,
   updateTimeRange,
   absolute = false,
+  objective,
 }: RequestsGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -57,6 +61,30 @@ const RequestsGraph = ({
     from / 1000,
     to / 1000,
     step(from, to),
+  )
+
+  // Traffic baseline calculation for dynamic burn rate SLOs
+  const isDynamicSLO = objective != null && getBurnRateType(objective) === BurnRateType.Dynamic
+  const currentTime = Math.floor(Date.now() / 1000)
+  
+  // Calculate average traffic baseline using longest alert window (similar to BurnRateThresholdDisplay)
+  const getTrafficBaselineQuery = (): string => {
+    if (objective == null || !isDynamicSLO) return ''
+    
+    // Use the longest alert window (factor 1) for baseline calculation
+    const baseSelector = getBaseMetricSelector(objective)
+    if (baseSelector === 'unknown_metric') return ''
+    
+    // Use 4d6h51m window (longest alert window) for baseline calculation
+    return `sum(rate(${baseSelector}[4d6h51m]))`
+  }
+
+  const baselineQuery = getTrafficBaselineQuery()
+  const {response: baselineResponse, status: baselineStatus} = usePrometheusQuery(
+    client,
+    baselineQuery,
+    currentTime,
+    {enabled: isDynamicSLO && baselineQuery !== ''}
   )
 
   if (status === 'loading' || status === 'idle') {
@@ -89,6 +117,16 @@ const RequestsGraph = ({
   }
 
   const {labels, data} = convertAlignedData(response)
+
+  // Calculate baseline value for dynamic SLOs
+  let baselineValue: number | null = null
+  
+  if (isDynamicSLO && baselineStatus === 'success' && baselineResponse?.options?.case === 'vector') {
+    const samples = baselineResponse.options.value.samples
+    if (samples.length > 0) {
+      baselineValue = samples[0].value
+    }
+  }
 
   // small state used while picking colors to reuse as little as possible
   const pickedColors = {
@@ -138,9 +176,33 @@ const RequestsGraph = ({
                     label: value,
                     stroke: `#${labelColor(pickedColors, value)}`,
                     gaps: seriesGaps(from / 1000, to / 1000),
-                    value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
+                    value: (u, v, _seriesIdx, _dataIdx) => {
+                      if (v == null) return '-'
+                      
+                      // Enhanced tooltip for dynamic SLOs with traffic context
+                      if (isDynamicSLO && baselineValue !== null) {
+                        // Calculate dynamic traffic ratio for this specific data point
+                        const currentTrafficRatio = baselineValue > 0 ? v / baselineValue : null
+                        if (currentTrafficRatio !== null) {
+                          const ratioText = currentTrafficRatio > 1.5 ? `${currentTrafficRatio.toFixed(1)}x above average` :
+                                           currentTrafficRatio < 0.5 ? `${currentTrafficRatio.toFixed(1)}x below average` :
+                                           `${currentTrafficRatio.toFixed(1)}x average`
+                          return `${v.toFixed(2)}req/s (${ratioText})`
+                        }
+                      }
+                      
+                      return `${v.toFixed(2)}req/s`
+                    },
                   }
                 }),
+                // Add baseline series for dynamic SLOs
+                ...(isDynamicSLO && baselineValue !== null ? [{
+                  label: 'Average Traffic',
+                  stroke: '#6c757d',
+                  dash: [5, 5],
+                  width: 2,
+                  value: (u: uPlot, v: number | null) => v == null ? '-' : `${v.toFixed(2)}req/s (baseline)`,
+                }] : []),
               ],
               scales: {
                 x: {min: from / 1000, max: to / 1000},
@@ -155,7 +217,14 @@ const RequestsGraph = ({
                 setSelect: [selectTimeRange(updateTimeRange)],
               },
             }}
-            data={data}
+            data={isDynamicSLO && baselineValue !== null ? 
+              (() => {
+                const baselineData = data[0].map(() => baselineValue as number)
+                const result: AlignedData = [data[0], ...data.slice(1), baselineData]
+                return result
+              })() : 
+              data
+            }
           />
         ) : (
           <UplotReact
@@ -209,6 +278,37 @@ const labelColor = (picked: {[color: string]: number}, label: string): string =>
     picked.reds++
   }
   return color
+}
+
+/**
+ * Extract base metric selector from objective - following BurnRateThresholdDisplay patterns
+ * This should match how the backend generates alert rule queries
+ */
+function getBaseMetricSelector(objective: Objective): string {
+  // Handle ratio indicators
+  if (objective.indicator?.options?.case === 'ratio') {
+    const ratioIndicator = objective.indicator.options.value
+    const totalMetric = ratioIndicator.total?.metric
+    if (totalMetric != null && totalMetric !== '') {
+      return totalMetric
+    }
+  }
+  
+  // Handle latency indicators - use the total (count) metric for traffic calculation
+  if (objective.indicator?.options?.case === 'latency') {
+    const latencyIndicator = objective.indicator.options.value
+    const totalMetric = latencyIndicator.total?.metric
+    if (totalMetric != null && totalMetric !== '') {
+      // For histogram metrics, ensure we're using the _count metric for traffic calculations
+      if (totalMetric.includes('_bucket')) {
+        return totalMetric.replace('_bucket', '_count')
+      }
+      return totalMetric
+    }
+  }
+  
+  // Fallback - this shouldn't happen in practice
+  return 'unknown_metric'
 }
 
 export default RequestsGraph

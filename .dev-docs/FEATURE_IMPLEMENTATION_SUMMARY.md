@@ -20,6 +20,24 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
 
 **Status**: ✅ **UI INTEGRATION COMPLETE - PRODUCTION READY**
 
+### ✅ **COMPLETED: Task 2 - RequestsGraph Traffic Baseline Visualization** ✅
+
+#### **Task 2**: RequestsGraph Traffic Baseline Enhancement ✅ **COMPLETED (Dec 22, 2024)**
+- ✅ **Traffic Baseline Visualization**: Added dashed horizontal line showing average traffic baseline for dynamic SLOs
+- ✅ **Dynamic Traffic Ratio Tooltips**: Real-time calculation showing "X.Xx above/below average" for each data point
+- ✅ **Enhanced Burn Rate Badge Tooltip**: Direct wording showing traffic impact on alert sensitivity
+- ✅ **Conditional Enhancement**: Features only apply to dynamic SLOs, static SLOs unchanged
+- ✅ **TypeScript Implementation**: Proper AlignedData handling and error-free compilation
+- ✅ **Comprehensive Testing**: Validated with both static and dynamic SLO configurations
+
+**Technical Implementation Details**:
+- **RequestsGraph.tsx**: Enhanced with optional objective prop, baseline calculation, and dynamic tooltips
+- **Detail.tsx**: Enhanced burn rate badge with EnhancedBurnRateTooltip component for dynamic SLOs
+- **Traffic Context Logic**: Uses 4d6h51m window for baseline, 1h window for current traffic comparison
+- **User Experience**: Clear, direct tooltip language explaining alert sensitivity impact
+
+**Status**: ✅ **TRAFFIC VISUALIZATION COMPLETE - PRODUCTION READY**
+
 ### 🎯 Remaining Workjusts alert thresholds based on actual traffic patterns rather than using fixed static multipliers. This implementation is based on the method described in the "Error Budget is All You Need" blog series.
 
 ## ✅ **COMPLETED: UI Alert Display Integration - Production Ready**

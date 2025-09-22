@@ -17,11 +17,13 @@ Dynamic burn rate alerting adapts **alert thresholds** based on actual traffic p
 **CRITICAL UNDERSTANDING**: Dynamic burn rates only affect alert threshold calculations. Error budget calculations remain identical between static and dynamic burn rates.
 
 **Error Budget Formula (Same for Both Static and Dynamic)**:
+
 ```
 error_budget_remaining = ((1 - SLO_target) - (1 - success/total)) / (1 - SLO_target)
 ```
 
 **Dynamic Alert Threshold Formula**:
+
 ```
 dynamic_threshold = (N_SLO / N_alert) × E_budget_percent_threshold × (1 - SLO_target)
 ```
@@ -59,15 +61,15 @@ Pyrra uses **two different UI serving methods**:
 1. **Development UI (Port 3000)**: `npm start` - live source files with hot reload
 2. **Embedded UI (Port 9099)**: `./pyrra api` - compiled files via Go embed
 
-**CRITICAL**: UI changes require complete rebuild workflow:
+**Development UI Workflow**:
 
 ```bash
 # 1. Make changes in ui/src/
-# 2. Test in development: npm start → http://localhost:3000
-# 3. Build for production: npm run build (creates ui/build/)
-# 4. Rebuild Go binary: make build (embeds ui/build/)
-# 5. Restart service and test embedded UI at http://localhost:9099
+# 2. Test in development: npm start → http://localhost:3000 (sufficient for most development)
+# 3. Optional production validation: npm run build + make build + ./pyrra api → http://localhost:9099
 ```
+
+**Note**: Port 3000 development UI is sufficient for most development work. Complete rebuild workflow only needed for final validation.
 
 #### Backend Implementation Patterns
 
@@ -107,8 +109,8 @@ The testing environment consists of:
 
 **Development Workflow:**
 
-- Primary development uses `cd ui && npm start` (port 3000) for live reload
-- Production UI testing (`npm run build` + embedded UI) only for final validation
+- **Primary development**: `cd ui && npm start` (port 3000) for live reload - sufficient for most development
+- **Production UI testing**: `npm run build` + embedded UI only for final validation when needed
 - Multiple terminals for different services (API, backend, UI) managed by human operator
 
 #### Comprehensive Validation Requirements
@@ -186,13 +188,13 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 1. **Implementation Testing**: ALWAYS test the changes made within the task before asking for approval:
 
    - **Interactive Testing Approach**: Guide user through small, focused test steps rather than long test lists
-   - Test in development UI first: Use existing `npm start` on port 3000 for immediate feedback
+   - **Primary testing**: Use development UI (`npm start` on port 3000) - sufficient for most validation
    - Guide one small test step at a time: "Please do X and tell me what you see"
    - Wait for user feedback before proceeding to next test step
    - Check browser console for errors or warnings
    - Test edge cases and error scenarios when applicable
    - Validate performance impact if performance-related changes were made
-   - Only if development testing passes, then optionally test embedded UI: `npm run build && make build && ./pyrra api`
+   - **Optional final validation**: Test embedded UI (`npm run build && make build && ./pyrra api`) only when specifically needed
 
 2. **MANDATORY Documentation Updates**: BEFORE asking for approval, ALWAYS update relevant documentation:
 
