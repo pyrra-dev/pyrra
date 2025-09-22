@@ -33,6 +33,27 @@ interface AlertsTableProps {
 
 const alertStateString = ['inactive', 'pending', 'firing']
 
+/**
+ * Get the error budget percentage or factor value for display in the new column
+ */
+const getErrorBudgetDisplayValue = (objective: Objective, factor: number): string => {
+  const burnRateType = getBurnRateType(objective)
+  
+  if (burnRateType === BurnRateType.Dynamic) {
+    // For dynamic SLOs: Show error budget percentage values
+    switch (factor) {
+      case 14: return '2.08%'  // 1/48 = 0.020833
+      case 7:  return '6.25%'  // 1/16 = 0.0625
+      case 2:  return '7.14%'  // 1/14 = 0.071429
+      case 1:  return '14.29%' // 1/7 = 0.142857
+      default: return '2.08%'  // Conservative fallback
+    }
+  } else {
+    // For static SLOs: Show factor values
+    return factor.toString()
+  }
+}
+
 const AlertsTable = ({
   client,
   promClient,
@@ -87,13 +108,16 @@ const AlertsTable = ({
             <th style={{width: '10%'}}>State</th>
             <th style={{width: '10%'}}>Severity</th>
             <th style={{width: '10%', textAlign: 'right'}}>Exhaustion</th>
+            <th style={{width: '10%', textAlign: 'right'}}>
+              {getBurnRateType(objective) === BurnRateType.Dynamic ? 'Error Budget Consumption' : 'Factor'}
+            </th>
             <th style={{width: '12%', textAlign: 'right'}}>Threshold</th>
             <th style={{width: '5%'}} />
             <th style={{width: '10%', textAlign: 'left'}}>Short Burn</th>
             <th style={{width: '5%'}} />
             <th style={{width: '10%', textAlign: 'left'}}>Long Burn</th>
             <th style={{width: '5%', textAlign: 'right'}}>For</th>
-            <th style={{width: '10%', textAlign: 'left'}}>{externalName()}</th>
+            <th style={{width: '8%', textAlign: 'left'}}>{externalName()}</th>
           </tr>
         </thead>
         <tbody>
@@ -176,6 +200,22 @@ const AlertsTable = ({
                     <OverlayTrigger
                       key={i}
                       overlay={
+                        <OverlayTooltip id={`tooltip-error-budget-${i}`}>
+                          {getBurnRateType(objective) === BurnRateType.Dynamic 
+                            ? `This alert fires when ${getErrorBudgetDisplayValue(objective, a.factor)} of the error budget is consumed over the long alert window.`
+                            : `Static factor multiplier for this alert window. Threshold = ${a.factor} × (1 - SLO target).`
+                          }
+                        </OverlayTooltip>
+                      }>
+                      <span>
+                        {getErrorBudgetDisplayValue(objective, a.factor)}
+                      </span>
+                    </OverlayTrigger>
+                  </td>
+                  <td style={{textAlign: 'right'}}>
+                    <OverlayTrigger
+                      key={i}
+                      overlay={
                         <OverlayTooltip 
                           id={`tooltip-${i}`} 
                           style={{maxWidth: '450px', width: 'max-content'}}
@@ -228,7 +268,7 @@ const AlertsTable = ({
                 </tr>
                 {a.short !== undefined && a.long !== undefined && showBurnrate[i] ? (
                   <tr key={i + 10} className="burnrate">
-                    <td colSpan={11}>
+                    <td colSpan={12}>
                       <BurnrateGraph
                         client={promClient}
                         alert={a}

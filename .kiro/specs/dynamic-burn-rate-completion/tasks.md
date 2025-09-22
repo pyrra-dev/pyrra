@@ -41,7 +41,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 2. Enhance RequestsGraph component with traffic baseline visualization for dynamic SLOs
 
-
   - Add average traffic baseline calculation using same time window as longest alert window
   - Implement horizontal dashed line overlay showing average traffic rate
   - Add legend distinguishing "Current Traffic" (solid line) vs "Average Traffic" (dashed line)
@@ -66,7 +65,8 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 ## Task Group 3: Alerts Table Column Enhancement
 
-- [ ] 3. Add new "Error Budget %" column to AlertsTable for dynamic burn rates
+- [x] 3. Add new "Error Budget %" column to AlertsTable for dynamic burn rates
+
 
   - Add new table column between existing columns to show error budget percentage constants
   - For dynamic SLOs: Show error budget percentage values (2.08%, 6.25%, 7.14%, 14.29%) corresponding to (1/48, 1/16, 1/14, 1/7)
@@ -75,7 +75,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Update table layout to accommodate the additional column without breaking responsive design
   - _Requirements: 2.4_
 
-- [ ] 3.1 Validate BurnRateThresholdDisplay component integration with AlertsTable
+- [x] 3.1 Validate BurnRateThresholdDisplay component integration with AlertsTable
 
   - Verify BurnRateThresholdDisplay correctly shows calculated threshold values for all indicator types
   - Test error handling for missing metrics and edge cases in alerts table context
@@ -83,7 +83,8 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Validate performance impact of real-time threshold calculations in table rows
   - _Requirements: 1.1, 1.2, 2.1_
 
-- [ ] 3.2 Enhance AlertsTable tooltip system for dynamic burn rates
+- [x] 3.2 Enhance AlertsTable tooltip system for dynamic burn rates
+
   - Extract current traffic ratio from BurnRateThresholdDisplay calculations
   - Calculate average traffic for alert window comparison
   - Generate static threshold equivalent for comparison context
