@@ -5,6 +5,7 @@
 The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COMPLETED: Alert Display Updates - COMPLETE** ✅
 
 #### **Priority 2**: Alert Display Updates ✅ **COMPLETED (Aug 29, 2025)**
+
 - ✅ **Updated AlertsTable.tsx**: Shows dynamic burn rate information with enhanced tooltips and dynamic-aware display logic
 - ✅ **Updated BurnrateGraph.tsx**: Displays context-aware threshold descriptions based on burn rate type
 - ✅ **Enhanced Helper Functions**: Created comprehensive burnrate.tsx with getBurnRateTooltip(), getBurnRateDisplayText(), getThresholdDescription() utilities
@@ -13,6 +14,7 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
 - ✅ **TypeScript Integration**: All components properly integrated with existing type system and API data
 
 **Technical Implementation Details**:
+
 - **burnrate.tsx**: New helper functions for burn rate type detection and display logic
 - **AlertsTable.tsx**: Enhanced tooltips showing "Traffic-aware dynamic thresholds" vs "Fixed static thresholds" with detailed explanations
 - **BurnrateGraph.tsx**: Context-aware threshold descriptions that explain behavior based on burn rate type
@@ -23,6 +25,7 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
 ### ✅ **COMPLETED: Task 2 - RequestsGraph Traffic Baseline Visualization** ✅
 
 #### **Task 2**: RequestsGraph Traffic Baseline Enhancement ✅ **COMPLETED (Dec 22, 2024)**
+
 - ✅ **Traffic Baseline Visualization**: Added dashed horizontal line showing average traffic baseline for dynamic SLOs
 - ✅ **Dynamic Traffic Ratio Tooltips**: Real-time calculation showing "X.Xx above/below average" for each data point
 - ✅ **Enhanced Burn Rate Badge Tooltip**: Direct wording showing traffic impact on alert sensitivity
@@ -31,6 +34,7 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
 - ✅ **Comprehensive Testing**: Validated with both static and dynamic SLO configurations
 
 **Technical Implementation Details**:
+
 - **RequestsGraph.tsx**: Enhanced with optional objective prop, baseline calculation, and dynamic tooltips
 - **Detail.tsx**: Enhanced burn rate badge with EnhancedBurnRateTooltip component for dynamic SLOs
 - **Traffic Context Logic**: Uses 4d6h51m window for baseline, 1h window for current traffic comparison
@@ -44,19 +48,22 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
 
 ### Latest Changes (Aug 29, 2025 - UI Integration Session Complete)
 
-1. **Complete UI Alert Display Integration**: 
+1. **Complete UI Alert Display Integration**:
+
    - ✅ **AlertsTable.tsx**: Enhanced with dynamic-aware tooltips showing "Traffic-aware dynamic thresholds" vs "Fixed static thresholds"
    - ✅ **BurnrateGraph.tsx**: Updated with context-aware threshold descriptions based on burn rate type
    - ✅ **burnrate.tsx**: New comprehensive helper functions for burn rate type detection and display logic
    - ✅ **TypeScript Compilation**: All components compile cleanly without errors
 
 2. **Enhanced User Experience Implementations**:
+
    - **Dynamic Tooltip System**: Context-aware tooltips explaining threshold behavior
    - **Threshold Description Logic**: Graph components now show appropriate descriptions based on burn rate type
    - **Visual Consistency**: All UI components properly handle both static and dynamic burn rate types
    - **Helper Function Architecture**: Centralized logic in burnrate.tsx for consistent behavior across components
 
 3. **Custom Docker Build Process**:
+
    - **Dockerfile.custom**: Multi-stage build process for deployment with UI changes
    - **Build Optimization**: Go 1.24.0-alpine with embedded UI build process
    - **Ready for Kubernetes**: Custom image prepared for cluster deployment and testing
@@ -70,73 +77,83 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
 
 ### Latest Changes (Latest Session - Complete Implementation)
 
-1. **Complete Dynamic Alert Expression Generation**: 
+1. **Complete Dynamic Alert Expression Generation**:
+
    - ✅ **Ratio Indicators**: Full implementation with optimized recording rules
    - ✅ **Latency Indicators**: Full implementation with optimized recording rules
    - ✅ **LatencyNative Indicators**: Full implementation with native histogram support
    - ✅ **BoolGauge Indicators**: Full implementation with boolean gauge support
 
 2. **Advanced Implementations Completed**:
+
    - **LatencyNative Dynamic Expressions**: Uses `histogram_count(sum(increase(...)))` for accurate traffic calculation
    - **BoolGauge Dynamic Expressions**: Uses `count_over_time(...)` for accurate observation counting
    - **Universal Dynamic Window Logic**: All indicator types now use dynamic windows when configured
-   - **Unified Alert Expression Building**: All types use the centralized `buildAlertExpr()` method 
+   - **Unified Alert Expression Building**: All types use the centralized `buildAlertExpr()` method
    - Added `buildAlertExpr()` method that routes between static and dynamic burn rate calculations
    - Added `buildDynamicAlertExpr()` method implementing the full dynamic formula
    - Integrated into `Burnrates()` method replacing hardcoded expressions
    - **🔧 FIXED**: Multi-window logic now correctly uses N_long for both windows
    - **🔧 FIXED**: Removed unused `dynamicBurnRateExpr()` function
 
-2. **Traffic-Aware Thresholds**: 
+3. **Traffic-Aware Thresholds**:
+
    - Dynamic calculation: `(N_SLO/N_long) × E_budget_percent_threshold × (1-SLO_target)`
    - Adapts to traffic volume with consistent burn rate measurement across time scales
    - **🔧 FIXED**: Both short and long windows use N_long for traffic scaling consistency
 
-3. **Comprehensive Testing**:
+4. **Comprehensive Testing**:
+
    - Added `TestObjective_DynamicBurnRate()` validating different alert expressions
    - Added `TestObjective_DynamicBurnRate_Latency()` for latency indicator validation
    - Added `TestObjective_buildAlertExpr()` testing both static and dynamic modes
    - Updated existing tests to expect "static" as default BurnRateType
 
-4. **Backward Compatibility**: 
+5. **Backward Compatibility**:
+
    - Static burn rate remains default behavior
    - All existing functionality preserved
    - Test fixes for default BurnRateType expectations
 
-5. **Window Period Scaling Integration**:
+6. **Window Period Scaling Integration**:
+
    - **🔧 FIXED**: `DynamicWindows()` now properly uses scaled windows from `Windows(sloWindow)`
    - E_budget_percent_thresholds mapped based on static factor hierarchy (14→1/48, 7→1/16, etc.)
    - Maintains proportional window scaling for any SLO period
 
-6. **📋 Code Review & Validation Complete**:
+7. **📋 Code Review & Validation Complete**:
    - **✅ PRODUCTION READY**: Comprehensive code review completed (Aug 26, 2025)
    - **✅ Mathematical Correctness**: Formula implementation verified
    - **✅ Edge Case Handling**: Conservative fallbacks validated (1.0/48 for unknown factors)
    - **✅ Integration Testing**: All main application tests passing
    - **✅ Build Verification**: No compilation issues found
 
-## 🎉 **LATEST SUCCESS: Local Development Testing Complete** 
+## 🎉 **LATEST SUCCESS: Local Development Testing Complete**
 
 ### **September 2, 2025 - Local Development Session Results**
 
 **✅ CRD Generation Issue Resolved**:
+
 - **Root Cause Identified**: The `make generate` command in Makefile uses `paths="./..."` which doesn't properly find/process the Kubernetes API types
 - **Working Solution Found**: Using `controller-gen crd paths="./kubernetes/api/v1alpha1" output:crd:artifacts:config=jsonnet/controller-gen` generates CRDs correctly with `burnRateType` field
 - **Makefile Issue Confirmed**: The current Makefile generates empty `jsonnet/controller-gen/` directory instead of proper CRD files
 
 **✅ Dynamic SLO Creation Successful**:
-- **CRD Updated**: Applied correctly generated CRD with `burnRateType` field support  
+
+- **CRD Updated**: Applied correctly generated CRD with `burnRateType` field support
 - **Dynamic SLO Created**: Successfully applied `test-slo.yaml` with `burnRateType: dynamic`
 - **API Integration Verified**: Dynamic SLO appears in API response with `"burnRateType":"dynamic"`
 - **Mixed Environment Ready**: 14 static SLOs + 1 dynamic SLO perfect for UI testing
 
 **✅ Local Development Workflow Validated**:
+
 - **Backend Running**: Kubernetes backend successfully processing all SLOs (static + dynamic)
 - **API Server Running**: Serving on localhost:9099 with embedded UI
 - **No CRD Schema Errors**: Dynamic SLOs accepted by Kubernetes with updated CRD
 - **Production-Ready Data Flow**: Full end-to-end validation from CRD → Backend → API → UI ready
 
-**🔧 Makefile Windows Compatibility Issue Identified**: 
+**🔧 Makefile Windows Compatibility Issue Identified**:
+
 - **Root Cause**: `paths="./..."` in `make generate` has Windows/Git Bash compatibility issues
 - **Evidence**: controller-gen fails to find Go files on Windows despite them being present
 - **Cross-Platform Issue**: Works on Linux/macOS (where maintainers develop) but fails on Windows
@@ -145,60 +162,68 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
 - **Solution Status**: Documented for future upstream contribution/Windows developer guidance
 
 **🔧 Technical Details of Windows Issue**:
+
 - **Path Globbing**: Git Bash on Windows doesn't handle `./...` Go-style path patterns correctly
-- **Silent Failures**: controller-gen reports "no Go files found" despite files existing  
+- **Silent Failures**: controller-gen reports "no Go files found" despite files existing
 - **Parser Issues**: Windows paths with colons confuse controller-gen's argument parser
 - **Makefile Impact**: `make generate` produces empty `jsonnet/controller-gen/` directory on Windows
 - **Developer Impact**: Windows contributors need workaround for CRD regeneration
 
 **🎯 Next Phase Ready**: UI functionality testing with real dynamic/static SLO mix
 
-## 🔌 **API Architecture and Endpoints - DOCUMENTED** 
+## 🔌 **API Architecture and Endpoints - DOCUMENTED**
 
 ### **Local Development API Structure**
 
 Based on investigation during UI testing session, the Pyrra local development setup uses **two separate services** with different API endpoints:
 
 #### **Service Architecture**
-1. **API Service** (`./pyrra api`): 
+
+1. **API Service** (`./pyrra api`):
+
    - **Port**: 9099
    - **Purpose**: Full-featured API server with embedded UI
    - **Endpoint**: `/objectives.v1alpha1.ObjectiveService/List`
-   - **Features**: Complete ObjectiveService with List, GetStatus, GetAlerts, Graph* methods
+   - **Features**: Complete ObjectiveService with List, GetStatus, GetAlerts, Graph\* methods
    - **Use Case**: Production API server with UI integration
 
 2. **Kubernetes Backend Service** (`./pyrra kubernetes`):
-   - **Port**: 9444  
+   - **Port**: 9444
    - **Purpose**: Lightweight backend that connects to Kubernetes cluster
    - **Endpoint**: `/objectives.v1alpha1.ObjectiveBackendService/List`
    - **Features**: Limited ObjectiveBackendService with only List method
    - **Use Case**: Kubernetes operator backend
 
 #### **Connect/gRPC-Web Protocol**
+
 - **Protocol**: Connect protocol (gRPC-Web compatible)
 - **Content-Type**: `application/json`
 - **Method**: POST requests to service endpoints
 - **Request Body**: JSON payload (e.g., `{}` for List requests)
 
 #### **Correct API Testing Commands**
+
 ```bash
 # Test Kubernetes Backend Service (port 9444)
 curl -X POST -H "Content-Type: application/json" -d '{}' \
   "http://localhost:9444/objectives.v1alpha1.ObjectiveBackendService/List"
 
-# Test Full API Service (port 9099)  
+# Test Full API Service (port 9099)
 curl -X POST -H "Content-Type: application/json" -d '{}' \
   "http://localhost:9099/objectives.v1alpha1.ObjectiveService/List"
 ```
 
 #### **UI Integration Details**
+
 - **Embedded UI**: Available at `http://localhost:9099` when running `./pyrra api`
 - **API_BASEPATH**: UI defaults to `http://localhost:9099` for API calls
 - **Transport**: Uses `@bufbuild/connect-web` with `createConnectTransport`
 - **Service**: UI connects to `ObjectiveService` (not ObjectiveBackendService)
 
 #### **Dynamic SLO Validation Confirmed**
+
 Both API endpoints successfully return SLO data with `burnRateType` field:
+
 - **Static SLOs**: `"burnRateType":"static"` (14 SLOs in test environment)
 - **Dynamic SLO**: `"burnRateType":"dynamic"` (1 test-slo in monitoring namespace)
 - **API Integration**: Complete end-to-end data flow confirmed working
@@ -208,92 +233,108 @@ Both API endpoints successfully return SLO data with `burnRateType` field:
 ## 🎯 **UI Testing Results - September 2, 2025**
 
 ### **Test Environment Validated** ✅
+
 - **Mixed SLO Environment**: 15 total SLOs (1 dynamic + 14 static)
 - **Dynamic SLO**: `test-slo` with `burnRateType: dynamic` confirmed via API
 - **Static SLOs**: 14 monitoring namespace SLOs with `burnRateType: static`
 - **API Data Flow**: Complete end-to-end validation from Kubernetes → Backend → API → UI
 
 ### **UI Testing Session - Local Development Workflow**
+
 **Date**: September 2, 2025  
 **Method**: Embedded UI at http://localhost:9099 with local development services  
 **Services**: `./pyrra kubernetes` (port 9444) + `./pyrra api` (port 9099)
 
 #### **✅ Phase 1: Basic UI Functionality Confirmed**
+
 - **UI Accessibility**: ✅ Embedded UI loads successfully at http://localhost:9099
-- **Service Integration**: ✅ UI connects to ObjectiveService API endpoint  
+- **Service Integration**: ✅ UI connects to ObjectiveService API endpoint
 - **Data Loading**: ✅ SLO list populates with mixed static/dynamic environment
 - **API Communication**: ✅ Connect/gRPC-Web protocol working correctly
 
 #### **✅ Phase 2: Dynamic Burn Rate UI Integration Verified**
+
 Based on code analysis and API data validation:
+
 - **Burn Rate Column**: ✅ UI code includes burnRateType column in List.tsx
 - **Badge System**: ✅ Dynamic SLOs show green "Dynamic" badges, Static show gray "Static" badges
 - **Tooltip System**: ✅ Context-aware tooltips explain burn rate behavior
 - **Icon Integration**: ✅ IconDynamic and IconStatic components implemented
 - **Type Detection**: ✅ getBurnRateType() function reads real API data instead of mock detection
 
-#### **✅ Phase 3: API Data Integration Confirmed**  
+#### **✅ Phase 3: API Data Integration Confirmed**
+
 - **burnRateType Field**: ✅ API responses include correct burn rate type for all SLOs
-- **Dynamic SLO**: ✅ test-slo returns `"burnRateType":"dynamic"` 
+- **Dynamic SLO**: ✅ test-slo returns `"burnRateType":"dynamic"`
 - **Static SLOs**: ✅ All 14 monitoring SLOs return `"burnRateType":"static"`
 - **UI Processing**: ✅ burnrate.tsx helper functions process API data correctly
 
 #### **🎯 Phase 4: Interactive UI Testing Completed - ALL TESTS PASSED** ✅
+
 **Test Session**: September 2, 2025 - Interactive validation with user
 
 **Test 1: Basic UI Functionality** ✅
+
 - ✅ SLO list loads with "Service Level Objectives" title
 - ✅ Burn Rate column present and visible
 - ✅ Gray badges for static SLOs, green badges for dynamic SLOs
 
-**Test 2: Badge Content and Visual Design** ✅  
+**Test 2: Badge Content and Visual Design** ✅
+
 - ✅ "Static" text with lock icons in gray badges
 - ✅ "Dynamic" text with eye icons in green badges
 - ✅ All 15 SLOs displaying (14 static + 1 dynamic)
 - ✅ Visual styling and icons rendering correctly
 
 **Test 3: Interactive Tooltips** ✅
+
 - ✅ Tooltips appear/disappear smoothly on hover
 - ✅ Dynamic SLO tooltip: Shows traffic-aware description
 - ✅ Static SLO tooltip: Shows description (older version but functional)
 - ⚠️ **Minor**: Static tooltip shows older description, may indicate cached UI files
 
 **Test 4: Column Sorting** ✅
-- ✅ Burn Rate column header clickable 
+
+- ✅ Burn Rate column header clickable
 - ✅ Table re-sorts when clicked
 - ✅ Sorting arrow indicator appears
 - ✅ Integration with react-table sorting system working
 
 **Test 5: Column Visibility Toggle** ✅
+
 - ✅ "Columns" dropdown button present and functional
 - ✅ "Burn Rate" checkbox in dropdown
 - ✅ Column hides when unchecked, shows when checked
 - ✅ State management working correctly
 
 **Test 6: SLO Detail Navigation** ✅
+
 - ✅ Clicking test-slo navigates to detail page successfully
 - ✅ Detail page shows dynamic burn rate indication
 - ✅ No loading errors or UI issues
 - ✅ End-to-end navigation flow working
 
-### **Success Criteria Assessment** 
+### **Success Criteria Assessment**
 
 #### **✅ Minimum Success Achieved** (Local Development Validation)
-- ✅ Local backends run without errors  
+
+- ✅ Local backends run without errors
 - ✅ Existing SLOs display correctly with improved tooltips
 - ✅ API serves burnRateType information properly
 - ✅ UI code structured to show appropriate badges based on burn rate detection
 
 #### **✅ Full Success Achieved** (Dynamic Feature Demonstration)
+
 - ✅ Dynamic SLO created and validated via local backend
-- ✅ **CONFIRMED VISUALLY**: Green "Dynamic" badges display correctly for dynamic SLOs  
+- ✅ **CONFIRMED VISUALLY**: Green "Dynamic" badges display correctly for dynamic SLOs
 - ✅ **CONFIRMED VISUALLY**: Tooltip system shows context-aware descriptions for dynamic burn rates
 - ✅ **CONFIRMED VISUALLY**: All UI improvements from burnrate.tsx changes integrated and functional
 - ✅ **CONFIRMED VISUALLY**: Column sorting, visibility toggles, and navigation all working perfectly
 
 #### **✅ Production Readiness Validated**
+
 - ✅ Complete end-to-end data flow confirmed working (Kubernetes → API → UI)
-- ✅ **INTERACTIVE TESTING COMPLETE**: All 6 UI test scenarios passed successfully  
+- ✅ **INTERACTIVE TESTING COMPLETE**: All 6 UI test scenarios passed successfully
 - ✅ Windows development workflow documented with workarounds
 - ✅ API architecture fully understood and documented
 - ✅ Mixed SLO environment perfect for validating UI behavior
@@ -303,38 +344,43 @@ Based on code analysis and API data validation:
 **Summary**: The dynamic burn rate feature has been **successfully implemented, tested, and validated** through comprehensive local development testing. All major UI components are working correctly:
 
 - **Visual Design**: ✅ Green/gray badges with appropriate icons
-- **Interactive Features**: ✅ Sorting, column visibility, navigation  
+- **Interactive Features**: ✅ Sorting, column visibility, navigation
 - **Data Integration**: ✅ Real API data flowing through entire system
 - **User Experience**: ✅ Tooltips, responsive design, error-free operation
 - **End-to-End Flow**: ✅ Kubernetes CRDs → Backend → API → UI components
 
 **Ready for Production**: The feature is now ready for upstream contribution after following PR preparation guidelines.
 
-## 🎉 **LATEST SUCCESS: Static Threshold Display Production Issue Resolved** 
+## 🎉 **LATEST SUCCESS: Static Threshold Display Production Issue Resolved**
 
 ### **September 4, 2025 - Embedded UI Production Deployment Session Results**
 
 **✅ CRITICAL PRODUCTION ISSUE RESOLVED**: Static SLO threshold display now working correctly in embedded UI (production deployment)
 
 #### **🚨 Issue Discovered**: Embedded UI vs Development UI Mismatch
+
 - **Problem**: Static SLOs showed "14x, 7x, 2x, 1x" in embedded UI (port 9099) while development UI (port 3000) showed correct calculated thresholds
 - **Root Cause**: UI changes made to `ui/src/burnrate.tsx` were not reflected in embedded UI build
 - **Production Impact**: Real users only see embedded UI, making development UI success meaningless for production
 
 #### **✅ Solution Implemented**: Complete UI Build Workflow
+
 **Required Steps for UI Changes**:
+
 1. ✅ **UI Source Changes**: Modified `ui/src/burnrate.tsx` with threshold calculation logic
-2. ✅ **Production Build**: `npm run build` to create `ui/build/` directory  
+2. ✅ **Production Build**: `npm run build` to create `ui/build/` directory
 3. ✅ **Binary Rebuild**: `make build` to embed updated UI build into Go binary
 4. ✅ **Service Restart**: Restart `./pyrra api` with new binary
 5. ✅ **Production Validation**: Verified embedded UI shows calculated thresholds
 
 #### **✅ Critical Documentation Added**
+
 - **UI README.md**: Added Pyrra-specific development workflow section explaining two UI architectures
 - **FEATURE_IMPLEMENTATION_SUMMARY.md**: Documented complete embedded UI build process with warnings about common mistakes
 - **Developer Education**: Clear explanation of why development UI success ≠ production UI success
 
 #### **✅ Production Validation Confirmed**
+
 - **Static SLOs**: Now show proper calculated thresholds (e.g., "0.700, 0.350, 0.100, 0.050" for 95% SLO) instead of "14x, 7x, 2x, 1x"
 - **Dynamic SLOs**: Continue to show "Traffic-Aware" as expected
 - **End-to-End**: Complete production deployment workflow validated
@@ -342,37 +388,42 @@ Based on code analysis and API data validation:
 
 **Status**: ✅ **PRODUCTION THRESHOLD DISPLAY ISSUE RESOLVED - READY FOR DATA VALIDATION**
 
-## 🎯 **CURRENT STATUS: Task 1 Complete - Enhanced BurnRateThresholdDisplay for Latency Indicators** 
+## 🎯 **CURRENT STATUS: Task 1 Complete - Enhanced BurnRateThresholdDisplay for Latency Indicators**
 
 ### **September 19, 2025 - Task 1 Implementation Session Results**
 
 **✅ COMPLETE SUCCESS: Enhanced BurnRateThresholdDisplay Component for Comprehensive Latency Indicator Support**
 
 #### **✅ Task 1.1 Complete**: Enhanced Tooltip System for Latency Indicators
+
 - **Traffic Context**: Tooltips now show actual traffic ratios and above/below average status
 - **Static vs Dynamic Comparison**: Real-time comparison between dynamic and static thresholds
 - **Traffic-Aware Explanations**: Context explains why thresholds are higher/lower based on traffic patterns
 - **Formula Display**: Shows mathematical formula for transparency
 
 #### **✅ Task 1.2 Complete**: Performance Monitoring and Comparison Framework
+
 - **Query Execution Tracking**: Measures Prometheus query execution time for histogram vs ratio indicators
 - **Component Render Tracking**: Monitors React component render performance
 - **Performance Logging**: Configurable logging system (only when explicitly enabled via localStorage)
 - **Baseline Comparison**: Shows performance ratios (e.g., "2.3x baseline") for latency indicators
 
 #### **✅ Task 1.3 Complete**: Comprehensive Error Handling for Latency Indicators
+
 - **Missing Metrics Validation**: Graceful degradation when histogram `_count` or `_bucket` metrics missing
 - **Query Failure Handling**: Proper error messages and fallback displays for Prometheus query timeouts
 - **Mathematical Edge Cases**: Validation and sanitization of traffic ratios (handles division by zero, extreme values)
 - **Console Debugging**: Meaningful error messages in browser console for debugging
 
 #### **✅ Enhanced User Experience Delivered**:
+
 - **Single Bootstrap Tooltip**: Removed dual tooltips, now uses better-looking Bootstrap styling with 400px max width
 - **Dynamic Content**: Tooltips show real calculated values instead of static placeholder text
 - **Traffic Context Integration**: Shows traffic status relative to average for the time window
 - **Error Recovery**: Graceful handling of missing data with appropriate user feedback
 
 #### **✅ Production Validation Completed**:
+
 - **Interactive Testing**: Step-by-step validation with user feedback
 - **Error Scenario Testing**: Tested with broken SLO (nonexistent metrics) showing proper "No data available" fallback
 - **Performance Monitoring**: Confirmed latency indicators perform within 2-3x baseline (acceptable limits)
@@ -380,25 +431,28 @@ Based on code analysis and API data validation:
 
 **Status**: ✅ **TASK 1 COMPLETE - ENHANCED LATENCY INDICATOR SUPPORT PRODUCTION READY**
 
-## 🎯 **CURRENT STATUS: Task 3 Complete - Enhanced AlertsTable with Error Budget Consumption Column** 
+## 🎯 **CURRENT STATUS: Task 3 Complete - Enhanced AlertsTable with Error Budget Consumption Column**
 
 ### **December 22, 2024 - Task 3 Implementation Session Results**
 
 **✅ COMPLETE SUCCESS: Enhanced AlertsTable with New Error Budget Consumption Column**
 
 #### **✅ Task 3.1 Complete**: BurnRateThresholdDisplay Component Integration Validated
+
 - **Threshold Display**: Verified BurnRateThresholdDisplay correctly shows calculated threshold values for all indicator types
 - **Error Handling**: Confirmed graceful handling of missing metrics and edge cases in alerts table context
 - **Indicator Consistency**: Validated consistent threshold display between ratio and latency indicators
 - **Performance Impact**: Confirmed acceptable performance of real-time threshold calculations in table rows
 
 #### **✅ Task 3.2 Complete**: Enhanced AlertsTable Tooltip System for Dynamic Burn Rates
+
 - **Traffic Context**: DynamicBurnRateTooltip extracts current traffic ratio from BurnRateThresholdDisplay calculations
 - **Average Traffic Comparison**: Calculates average traffic for alert window comparison using same logic as threshold display
 - **Static Comparison**: Generates static threshold equivalent for comparison context showing traffic impact
 - **Formula Explanation**: Enhanced tooltip shows traffic context, static comparison, and mathematical formula
 
 #### **✅ Main Task 3 Complete**: New Error Budget Consumption Column Added
+
 - **Column Header**: Dynamic column header shows "Error Budget Consumption" for dynamic SLOs, "Factor" for static SLOs
 - **Dynamic Values**: Shows error budget percentage values (2.08%, 6.25%, 7.14%, 14.29%) for dynamic SLOs corresponding to (1/48, 1/16, 1/14, 1/7)
 - **Static Values**: Shows factor values (14, 7, 2, 1) for static SLOs in the new column
@@ -407,6 +461,7 @@ Based on code analysis and API data validation:
 - **Enhanced Tooltips**: New column includes context-aware tooltips explaining error budget consumption vs static factors
 
 #### **✅ Production Validation Completed**:
+
 - **Interactive Testing**: Validated new column appears correctly for both dynamic and static SLOs
 - **Tooltip Accuracy**: Confirmed tooltip wording: "This alert fires when X% of the error budget is consumed over the long alert window"
 - **Layout Integrity**: Verified table layout accommodates new column without breaking responsive design
@@ -414,6 +469,7 @@ Based on code analysis and API data validation:
 - **Browser Console**: No errors found during testing
 
 #### **✅ Additional Quality Improvement**: Duration Precision Fix
+
 - **Issue Identified**: AlertsTable duration display was truncated due to formatDuration default precision of 2
 - **Problem**: Long windows showed "1d1h" instead of actual "1d1h43m" from Prometheus rules
 - **Solution Implemented**: Increased formatDuration precision to 4 for all alert window displays
@@ -425,81 +481,97 @@ Based on code analysis and API data validation:
 ## 📋 **COMPREHENSIVE TESTING ROADMAP - REMAINING WORK**
 
 ### **Phase 1: Indicator Type Validation** 🚧 **PENDING**
+
 **Objective**: Validate dynamic burn rate works across all SLO indicator types
 
 #### **Test 10: Latency Indicator Testing**
+
 - **Create Test SLO**: Deploy latency-based dynamic SLO
 - **Validate Queries**: Confirm histogram-based traffic calculations work
 - **UI Testing**: Verify threshold display for latency indicators
 - **Expected Challenge**: Different metric patterns may require query adjustments
 
-#### **Test 11: Latency Native Indicator Testing**  
+#### **Test 11: Latency Native Indicator Testing**
+
 - **Create Test SLO**: Deploy latency_native dynamic SLO
 - **Validate Expressions**: Confirm `histogram_count(sum(increase(...)))` patterns work
 - **Mathematical Validation**: Verify threshold calculations with histogram data
 - **Expected Challenge**: More complex query patterns for native latency
 
 #### **Test 12: Bool Gauge Indicator Testing**
-- **Create Test SLO**: Deploy bool gauge dynamic SLO  
+
+- **Create Test SLO**: Deploy bool gauge dynamic SLO
 - **Validate Logic**: Confirm boolean gauge traffic calculations
 - **UI Integration**: Test threshold display for gauge-based SLOs
 - **Expected Challenge**: Different metric aggregation patterns
 
 ### **Phase 2: Resilience and Error Handling** 🚧 **PENDING**
+
 **Objective**: Validate graceful behavior when metrics are missing or insufficient
 
 #### **Test 13: Missing Metrics Handling**
+
 - **Scenario 1**: Deploy SLO with non-existent base metrics
 - **Scenario 2**: Deploy SLO where metrics exist but have no data
 - **Validation**: Confirm both static and dynamic SLOs handle gracefully
 - **UI Testing**: Verify appropriate fallback display (not crashes)
 
 #### **Test 14: Insufficient Data Testing**
+
 - **Short-lived Environment**: Test with minimal metric history
-- **Window Coverage**: Validate behavior when long windows have insufficient data  
+- **Window Coverage**: Validate behavior when long windows have insufficient data
 - **Mathematical Edge Cases**: Test division by zero and similar edge cases
 - **UI Fallbacks**: Confirm graceful degradation to generic displays
 
-### **Phase 3: Alert Firing Validation** 🚧 **PENDING**  
+### **Phase 3: Alert Firing Validation** 🚧 **PENDING**
+
 **Objective**: Prove alerts actually fire when dynamic thresholds are exceeded
 
 #### **Test 15: Alert Firing Test Design**
+
 - **Synthetic Metrics**: Use Prometheus client to create controlled error conditions
 - **Threshold Crossing**: Generate traffic patterns that exceed calculated thresholds
 - **Alert Manager**: Validate alerts appear in AlertManager UI
 - **Timing Validation**: Confirm alerts fire at expected sensitivity levels
 
 #### **Test 16: Dynamic vs Static Alert Comparison**
+
 - **Parallel SLOs**: Create identical SLOs with static vs dynamic burn rates
 - **Controlled Conditions**: Generate same error patterns for both
 - **Alert Behavior**: Compare when/how alerts fire for each type
 - **Sensitivity Analysis**: Validate dynamic provides better alerting behavior
 
 ### **Phase 4: UI Polish and User Experience** 🚧 **PENDING**
+
 **Objective**: Complete user experience with detailed tooltip information
 
 #### **Test 17: Enhanced Tooltip Implementation**
-- **Current Issue**: Dynamic tooltips show generic "Traffic-aware dynamic thresholds"  
+
+- **Current Issue**: Dynamic tooltips show generic "Traffic-aware dynamic thresholds"
 - **Required Fix**: Show actual calculated values like static case
 - **Format Needed**: "Traffic ratio: 1.876, Threshold constant: 0.003125, Result: 0.005864"
 - **Integration**: Use same data from BurnRateThresholdDisplay calculations
 
 #### **Test 18: Performance and Usability Testing**
+
 - **Multiple SLOs**: Test with many dynamic SLOs on single page
 - **Query Performance**: Validate Prometheus query load is acceptable
 - **Error States**: Test network failures, Prometheus unavailability
 - **Loading States**: Ensure proper loading indicators during calculations
 
 ### **Phase 5: End-to-End Production Validation** 🚧 **PENDING**
+
 **Objective**: Comprehensive production readiness validation
 
 #### **Test 19: Mixed Environment Stress Testing**
+
 - **Scale Testing**: Large numbers of mixed static/dynamic SLOs
 - **Real Workloads**: Test with actual production-like metric patterns
 - **Long-term Stability**: Multi-day testing for memory leaks, performance
 - **Cross-browser**: Validate UI works across different browsers
 
 #### **Test 20: Documentation and Deployment Validation**
+
 - **Installation Guide**: Validate complete deployment instructions
 - **Troubleshooting**: Document common issues and solutions
 - **Migration Guide**: Instructions for converting static to dynamic SLOs
@@ -521,12 +593,14 @@ Based on code analysis and API data validation:
 The dynamic burn rate feature is now **fully implemented and production ready** with comprehensive testing validation:
 
 #### **✅ Backend Implementation (Previously Complete)**:
+
 - **Dynamic Alert Generation**: Traffic-aware threshold expressions in Prometheus rules
 - **Mathematical Formula**: `(N_SLO/N_long) × E_budget_percent × (1-SLO_target)` correctly implemented
 - **All Indicator Types**: Ratio, BoolGauge, LatencyNative all supported
 - **Backward Compatibility**: Static burn rate remains default, no breaking changes
 
 #### **✅ UI Integration (Complete as of September 6, 2025)**:
+
 - **Badge System**: Green "Dynamic" vs Gray "Static" badges with appropriate icons
 - **Tooltip System**: Context-aware descriptions explaining threshold behavior
 - **Column Management**: Sortable burn rate column with visibility toggles
@@ -534,12 +608,14 @@ The dynamic burn rate feature is now **fully implemented and production ready** 
 - **Detail Page Integration**: Complete threshold display with traffic-aware calculations
 
 #### **✅ Comprehensive Testing Validation**:
+
 - **Tests 1-6**: Data infrastructure, metric selection, mathematical correctness all validated
 - **Test 7**: Dynamic vs static comparison confirmed working correctly
 - **Test 8**: Mathematical validation with real Prometheus data
 - **Test 9**: UI implementation and real-time threshold display working
 
 #### **✅ Production Deployment Ready**:
+
 - **Embedded UI Build**: Complete workflow validated (npm build → make build → service restart)
 - **API Integration**: Complete end-to-end data flow from Kubernetes → Backend → API → UI
 - **Error Handling**: Graceful fallbacks and proper error states
@@ -552,6 +628,7 @@ The dynamic burn rate feature is now **fully implemented and production ready** 
 **Current Status**: ✅ **PRODUCTION READY - COMPLETE**
 
 **Core Capabilities Delivered**:
+
 1. **Traffic-Aware Alerting**: Thresholds adapt based on actual traffic patterns
 2. **Mathematical Accuracy**: Proven correct calculations with real-world data
 3. **UI Integration**: Complete visual differentiation and real-time threshold display
@@ -563,12 +640,15 @@ The dynamic burn rate feature is now **fully implemented and production ready** 
 **Status**: 🏆 **FEATURE IMPLEMENTATION COMPLETE AND PRODUCTION VALIDATED** 🏆
 
 #### **Technical Achievement Summary**:
-1. **🎉 Data Infrastructure Resolution**: 
+
+1. **🎉 Data Infrastructure Resolution**:
+
    - **Root Cause Found**: Test SLOs used metrics with no error data (`prometheus_http_requests_total` had 0 errors)
    - **Solution Applied**: Switched to `apiserver_request_total` with rich error data (71 series, multiple error codes)
    - **Result**: SLOs now show real availability/budget data instead of "No data"
 
 2. **🎉 Mathematical Correctness Confirmed**:
+
    - **Formula Validated**: `(N_SLO/N_long) × E_budget_percent × (1-SLO_target)` working correctly in Prometheus rules
    - **Live Data Testing**: Dynamic threshold ~0.00885 (0.885% error rate) vs Static 0.7 (70% error rate)
    - **Practical Impact**: Dynamic thresholds provide meaningful alerting sensitivity, static essentially non-functional
@@ -580,42 +660,58 @@ The dynamic burn rate feature is now **fully implemented and production ready** 
    - **Integration**: Component integrated in AlertsTable.tsx, TypeScript compilation successful
 
 #### **Test 9 Implementation Details**:
+
 ```typescript
 // Component handles both static and dynamic cases
 if (burnRateType === BurnRateType.Static && factor !== undefined) {
-  const threshold = factor * (1 - targetDecimal)
-  return <span>{threshold.toFixed(5)}</span>
+  const threshold = factor * (1 - targetDecimal);
+  return <span>{threshold.toFixed(5)}</span>;
 }
 
 if (burnRateType === BurnRateType.Dynamic) {
-  return <DynamicThresholdValue objective={objective} promClient={promClient} />
+  return (
+    <DynamicThresholdValue objective={objective} promClient={promClient} />
+  );
 }
 ```
 
 #### **✅ Architectural Validation: Pyrra-Consistent Implementation**
+
 **Investigation Confirmed**: The `BurnRateThresholdDisplay` component implementation follows **exact same patterns** used throughout Pyrra's existing codebase:
 
 **✅ React Hooks Pattern (Matches Pyrra Standard)**:
+
 - **usePrometheusQuery Hook**: Same as Detail.tsx availability/budget calculations
 - **Conditional Execution**: Uses `{enabled: boolean}` option like RequestsGraph.tsx
 - **Component Architecture**: PromiseClient passed as props (standard pattern)
 - **Error Handling**: Graceful fallbacks matching existing components
 
 **Evidence from Pyrra Codebase**:
+
 ```typescript
 // Detail.tsx (existing Pyrra code)
-const {response: totalResponse, status: totalStatus} = usePrometheusQuery(
-  promClient, objective?.queries?.countTotal ?? '', to / 1000,
-  {enabled: objectiveStatus === 'success' && objective?.queries?.countTotal !== undefined}
-)
+const { response: totalResponse, status: totalStatus } = usePrometheusQuery(
+  promClient,
+  objective?.queries?.countTotal ?? "",
+  to / 1000,
+  {
+    enabled:
+      objectiveStatus === "success" &&
+      objective?.queries?.countTotal !== undefined,
+  }
+);
 
 // BurnRateThresholdDisplay.tsx (our implementation)
-const {response: shortResponse} = usePrometheusQuery(
-  promClient, shortQuery, currentTime, {enabled: shouldQuery}
-)
+const { response: shortResponse } = usePrometheusQuery(
+  promClient,
+  shortQuery,
+  currentTime,
+  { enabled: shouldQuery }
+);
 ```
 
 **✅ Architectural Consistency Confirmed**:
+
 - **Hook Usage**: `usePrometheusQuery` is standard for instant queries across all Pyrra components
 - **Props Pattern**: `promClient` passed down from parent components (AlertsTable → BurnRateThresholdDisplay)
 - **Conditional Queries**: `enabled` option used throughout codebase for query control
@@ -624,12 +720,14 @@ const {response: shortResponse} = usePrometheusQuery(
 **Result**: Implementation will integrate seamlessly and behave consistently with other real-time Pyrra UI components.
 
 **🚨 CRITICAL RULE: NO LLM MATH CALCULATIONS**
+
 - **Established**: September 5, 2025 testing session
 - **Rationale**: LLMs are unreliable for mathematical calculations and can introduce errors
 - **Required Method**: Use `python -c "..."` commands for all arithmetic operations
 - **Application**: All mathematical validations, threshold calculations, and numerical comparisons
 
 **🚨 CRITICAL RULE: LEVERAGE EXISTING INFRASTRUCTURE**
+
 - **Established**: September 6, 2025 architectural review
 - **Rationale**: Over-engineering creates maintenance burden and ignores robust existing patterns
 - **Required Method**: Study existing components (AlertsTable.tsx, Detail.tsx) before implementing new features
@@ -639,12 +737,14 @@ const {response: shortResponse} = usePrometheusQuery(
 **Status**: ✅ **IMPLEMENTATION COMPLETE - UI VERIFICATION NEEDED**
 
 **🚨 Issue 3: Real-Time Threshold Display Missing**
+
 - **Problem**: Dynamic SLOs show generic "Traffic-Aware" text instead of actual calculated threshold values
 - **Root Cause**: UI implementation uses placeholder text rather than real calculations
 - **Impact**: Users cannot see actual dynamic threshold values, reducing observability
 - **Status**: **NOT IMPLEMENTED** - Requires UI enhancement with real calculations
 
 **🚨 Issue 4: Data Flow Validation Incomplete**
+
 - **Problem**: Recording rules may not be evaluating properly or base metrics may lack data
 - **Root Cause**: Base `prometheus_http_requests_total` metrics may not have meaningful data for testing
 - **Impact**: Cannot validate end-to-end data flow from metrics → recording rules → API → UI
@@ -653,15 +753,17 @@ const {response: shortResponse} = usePrometheusQuery(
 #### **📊 Current Status: PrometheusRule Generation ≠ Functional Validation**
 
 **What We've Confirmed**:
+
 - ✅ ServiceLevelObjective CRD accepts `burnRateType: dynamic`
-- ✅ Pyrra controller generates PrometheusRules with dynamic expressions  
+- ✅ Pyrra controller generates PrometheusRules with dynamic expressions
 - ✅ PrometheusRule resources load into Prometheus operator
 - ✅ Base metrics `prometheus_http_requests_total` exist with real data
 
 **What Still Needs Validation**:
+
 - ❌ Recording rules actually evaluate and produce data
 - ❌ Dynamic threshold calculations produce correct values
-- ❌ GetStatus API returns meaningful SLO data 
+- ❌ GetStatus API returns meaningful SLO data
 - ❌ Dynamic vs static behavior comparison
 - ❌ Real-time threshold value display
 - ❌ End-to-end functional testing with realistic scenarios
@@ -669,6 +771,7 @@ const {response: shortResponse} = usePrometheusQuery(
 ### **🎯 Next Phase Required: Comprehensive Data Validation**
 
 Following the **Dynamic Burn Rate Validation Session Prompt** requirements:
+
 1. **Data Infrastructure Investigation**: Check metric data flow and API responses
 2. **Mathematical Correctness Validation**: Test dynamic threshold calculations with real data
 3. **Real-Time Display Implementation**: Replace placeholders with actual calculated values
@@ -679,13 +782,14 @@ Following the **Dynamic Burn Rate Validation Session Prompt** requirements:
 **Infrastructure Ready**: Environment setup and rule generation working  
 **Critical Gap**: No validation that the feature actually works with real data or produces correct calculations
 
-## 🔍 **Critical Issues Identified and Resolved - September 3, 2025**  
+## 🔍 **Critical Issues Identified and Resolved - September 3, 2025**
 
 ### **Data Validation Session Analysis - September 3, 2025**
 
 Following the UI integration testing success, we conducted comprehensive data validation and discovered the root cause of missing SLO data and rules:
 
 #### **🎯 RESOLVED: Prometheus Rules Not Loading Issue**
+
 - **Root Cause Identified**: Missing `ruleSelector` configuration in Prometheus custom resource
 - **Environment Issue**: Using `kube-prometheus-stack` (Helm) instead of upstream-recommended `kube-prometheus` (jsonnet)
 - **Technical Problem**: Prometheus operator was configured without proper `ruleSelector` to match PrometheusRule resources
@@ -698,9 +802,10 @@ Following the UI integration testing success, we conducted comprehensive data va
 While the UI integration testing was successful, several **critical data validation and real-world functionality issues** were identified that require comprehensive investigation:
 
 #### **🚨 Issue 1: Missing Availability/Budget Data - ROOT CAUSE FOUND**
+
 - **Problem**: All SLOs show "No data" in Availability and Budget columns
 - **Root Cause Identified**: Prometheus rules not loading due to missing `ruleSelector` configuration
-- **Technical Analysis**: 
+- **Technical Analysis**:
   - ✅ PrometheusRule resources exist and contain correct dynamic expressions
   - ✅ Dynamic burn rate PromQL generation working correctly
   - ❌ Prometheus not loading any rules due to operator configuration issue
@@ -708,6 +813,7 @@ While the UI integration testing was successful, several **critical data validat
 - **Status**: Partially resolved - rule loading fixed, metric selection needs addressing
 
 #### **🚨 Issue 2: Environment Compatibility Challenge**
+
 - **Problem**: `kube-prometheus-stack` (Helm) vs `kube-prometheus` (jsonnet) integration mismatch
 - **Root Cause**: Pyrra documentation recommends kube-prometheus (jsonnet) for full compatibility
 - **Impact**: Manual configuration required for label selectors, rule matching, and SLO integration
@@ -718,11 +824,12 @@ While the UI integration testing was successful, several **critical data validat
 - **Resolution Path**: Migrate to kube-prometheus (jsonnet) for upstream compatibility
 
 #### **✅ Major Discovery: Dynamic Burn Rate Rules ARE Generated Correctly**
+
 - **Validation Confirmed**: PrometheusRule resources contain proper dynamic burn rate expressions
 - **Mathematical Verification**: Generated PromQL expressions match expected dynamic formula:
   ```promql
-  (prometheus_http_requests:burnrate5m{slo="test-slo"} > 
-   ((sum(increase(prometheus_http_requests_total{slo="test-slo"}[30d])) / 
+  (prometheus_http_requests:burnrate5m{slo="test-slo"} >
+   ((sum(increase(prometheus_http_requests_total{slo="test-slo"}[30d])) /
      sum(increase(prometheus_http_requests_total{slo="test-slo"}[1h4m]))) * 0.020833 * (1-0.99)))
   ```
 - **Formula Implementation**: `(N_SLO/N_long) × E_budget_percent × (1-SLO_target)` correctly implemented
@@ -732,24 +839,28 @@ While the UI integration testing was successful, several **critical data validat
 ### **Environment Migration Recommendation**
 
 Based on findings, migrating from `kube-prometheus-stack` to `kube-prometheus` (jsonnet) is recommended for:
+
 - **Full Pyrra Compatibility**: Upstream-tested and documented integration
-- **Simplified Configuration**: No manual label selector adjustments required  
+- **Simplified Configuration**: No manual label selector adjustments required
 - **Better Support**: Community support and troubleshooting resources available
 - **Future Maintenance**: Aligned with Pyrra development and testing environment
 
 #### **🚨 Issue 3: Static Threshold Display Implementation**
+
 - **Problem**: Dynamic SLOs show generic "Traffic-Aware" text instead of real-time calculated values
-- **Root Cause**: Implementation uses placeholder text rather than actual calculations  
+- **Root Cause**: Implementation uses placeholder text rather than actual calculations
 - **Impact**: Reduced observability and debugging capability for users
 - **Next Steps**: Display actual calculated thresholds: `(N_SLO/N_long) × E_budget_percent × (1-SLO_target)`
 
 #### **🚨 Issue 4: Prometheus Rules Generation Validation Needed**
+
 - **Problem**: Need to verify Prometheus rules are generated with correct dynamic expressions
 - **Root Cause**: Previous session may have resolved this but not documented in .dev-docs
 - **Impact**: Cannot confirm dynamic burn rate expressions are used by Prometheus
 - **Next Steps**: Examine generated PromQL, validate rule loading in Prometheus UI
 
 ### **📋 Next Session Requirements**
+
 **Prompt Created**: `prompts/DYNAMIC_BURN_RATE_VALIDATION_SESSION_PROMPT.md`  
 **Focus**: Data validation, mathematical correctness, real-world functionality testing  
 **Methodology**: Data-driven approach with comparative static vs dynamic analysis
@@ -759,23 +870,27 @@ Based on findings, migrating from `kube-prometheus-stack` to `kube-prometheus` (
 ### **Key UI Components Verified**
 
 #### **Enhanced List Page** (`ui/src/pages/List.tsx`)
+
 - **Burn Rate Column**: Displays badges with proper icons and tooltips
 - **Dynamic Detection**: Uses real `objective.alerting?.burnRateType` API field
-- **Visual Design**: Green badges for Dynamic, Gray badges for Static  
+- **Visual Design**: Green badges for Dynamic, Gray badges for Static
 - **Interactive Features**: Sortable column, toggleable visibility, hover tooltips
 
 #### **Burn Rate Utilities** (`ui/src/burnrate.tsx`)
+
 - **Type Detection**: `getBurnRateType()` reads actual API data
 - **Badge Information**: `getBurnRateInfo()` provides display metadata
 - **Tooltip Content**: Context-aware descriptions for different burn rate types
 - **Threshold Calculations**: Dynamic vs static threshold display logic
 
 #### **Icon System** (`ui/src/components/Icons.tsx`)
+
 - **IconDynamic**: Eye icon representing traffic-aware behavior
 - **IconStatic**: Lock icon representing fixed behavior
 - **Scalable SVG**: Proper sizing and accessibility attributes
 
 ### **Next Steps Ready**
+
 - **Visual Verification**: UI is ready for visual inspection of dynamic vs static badges
 - **Interactive Testing**: All components ready for user interaction testing
 - **Production Deployment**: Code ready for upstream contribution after PR preparation
@@ -789,6 +904,7 @@ Based on findings, migrating from `kube-prometheus-stack` to `kube-prometheus` (
 **Critical Discovery**: Pyrra uses **two different UI serving methods** with different update workflows:
 
 #### **Development UI (Port 3000)**
+
 - **Command**: `npm start` in `ui/` directory
 - **Source**: Uses live source files from `ui/src/`
 - **Updates**: Real-time hot reload on file changes
@@ -796,6 +912,7 @@ Based on findings, migrating from `kube-prometheus-stack` to `kube-prometheus` (
 - **API Connection**: Configured via `ui/public/index.html` with `window.API_BASEPATH`
 
 #### **Embedded UI (Port 9099) - PRODUCTION**
+
 - **Command**: `./pyrra api` (Go binary)
 - **Source**: Uses compiled files from `ui/build/` via `//go:embed`
 - **Updates**: Requires complete rebuild workflow
@@ -807,6 +924,7 @@ Based on findings, migrating from `kube-prometheus-stack` to `kube-prometheus` (
 **❌ Common Mistake**: Testing only in development UI (port 3000) and assuming embedded UI (port 9099) will work
 
 **✅ Required Workflow for UI Changes**:
+
 1. **Make UI changes** in `ui/src/` files
 2. **Test in development**: `npm start` → http://localhost:3000
 3. **Build for production**: `npm run build` (creates `ui/build/`)
@@ -815,19 +933,23 @@ Based on findings, migrating from `kube-prometheus-stack` to `kube-prometheus` (
 6. **Test in production**: Verify at http://localhost:9099
 
 **Why This Matters**:
+
 - Development UI success ≠ Production UI success
 - Go embed happens at compile time, not runtime
 - Production users only see embedded UI (port 9099)
 - Missing step 3 or 4 = production UI shows old behavior
 
 ### **Real-World Impact Discovered**:
+
 During threshold display validation, we found:
+
 - ✅ Development UI (port 3000): Showed correct calculated thresholds
 - ❌ Embedded UI (port 9099): Showed "14x, 7x, 2x, 1x" instead of calculated values
 - **Root Cause**: UI changes not built into production build
 - **Solution**: Complete rebuild workflow resolved the issue
 
 ### **Documentation for Future Developers**:
+
 ```bash
 # COMPLETE UI change workflow
 cd ui/
@@ -852,16 +974,18 @@ make build
 
 ## 🪟 **Windows Development Environment Notes**
 
-### **CRD Regeneration on Windows** 
+### **CRD Regeneration on Windows**
 
 **Issue**: The standard `make generate` command fails on Windows due to Git Bash path globbing incompatibilities.
 
-**Root Cause**: 
-- Original Makefile uses `paths="./..."` which works on Linux/macOS  
+**Root Cause**:
+
+- Original Makefile uses `paths="./..."` which works on Linux/macOS
 - Windows + Git Bash + controller-gen has path parsing issues with Go-style patterns
 - Results in empty `jsonnet/controller-gen/` directory instead of generated CRDs
 
 **Working Workaround for Windows Developers**:
+
 ```bash
 # Instead of: make generate
 # Use this for COMPLETE CRD and RBAC generation:
@@ -872,22 +996,26 @@ controller-gen crd paths="./kubernetes/api/v1alpha1" output:crd:artifacts:config
 ```
 
 **Components Generated**:
+
 - **CRD Generation**: From `./kubernetes/api/v1alpha1` - ServiceLevelObjective type definitions
 - **RBAC Generation**: From `./kubernetes/controllers/` - `+kubebuilder:rbac` annotations for proper permissions
 - **Both Required**: Controller needs both CRD and RBAC for full functionality
 
 **Missing Components in Workaround**:
+
 - **RBAC Generation**: Requires `./kubernetes/controllers/` path for `+kubebuilder:rbac` annotations
-- **Webhook Generation**: May require additional paths for webhook configurations  
+- **Webhook Generation**: May require additional paths for webhook configurations
 - **Complete Solution**: Future upstream fix needed for cross-platform compatibility
 
 **Windows Developer Workflow**:
+
 1. Use workaround command for CRD generation during development
 2. Apply generated CRDs: `kubectl apply -f jsonnet/controller-gen/pyrra.dev_servicelevelobjectives.yaml`
 3. Test dynamic SLO functionality with updated CRDs
 4. For production PR: Ensure changes work with standard `make generate` on Linux CI
 
 **Upstream Contribution Opportunity**:
+
 - Document Windows compatibility issue
 - Propose cross-platform Makefile solution
 - Provide alternative path specifications that work on both platforms
@@ -897,7 +1025,8 @@ controller-gen crd paths="./kubernetes/api/v1alpha1" output:crd:artifacts:config
 ### **Kubernetes Manifest Changes - DO NOT INCLUDE IN PR**
 
 **Current Testing Configuration Changes** (✅ **OK for local testing**, ❌ **DO NOT commit to PR**):
-- Modified `examples/kubernetes/manifests/pyrra-apiDeployment.yaml`: 
+
+- Modified `examples/kubernetes/manifests/pyrra-apiDeployment.yaml`:
   - Changed image from `ghcr.io/pyrra-dev/pyrra:v0.7.5` to `pyrra-with-burnrate:latest` with `imagePullPolicy: Never`
   - Updated Prometheus URL from `http://prometheus-k8s.monitoring.svc.cluster.local:9090` to `http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090`
 - Modified `examples/kubernetes/manifests/pyrra-kubernetesDeployment.yaml`: Changed image to `pyrra-with-burnrate:latest` with `imagePullPolicy: Never`
@@ -906,16 +1035,18 @@ controller-gen crd paths="./kubernetes/api/v1alpha1" output:crd:artifacts:config
 ### **Before Creating Pull Request - MANDATORY STEPS**
 
 1. **⚠️ REVERT TESTING CHANGES**:
+
    ```bash
    # Revert manifest changes to upstream-compatible versions
    git checkout examples/kubernetes/manifests/pyrra-apiDeployment.yaml
    git checkout examples/kubernetes/manifests/pyrra-kubernetesDeployment.yaml
-   
+
    # Consider excluding Dockerfile.custom unless it's a permanent feature
    git rm Dockerfile.custom  # (if not needed in upstream)
    ```
 
 2. **🪟 WINDOWS DEVELOPMENT NOTE**:
+
    ```bash
    # If developed on Windows, ensure CRD changes are compatible
    # Test that 'make generate' works on Linux CI (or ask maintainers to verify)
@@ -923,22 +1054,26 @@ controller-gen crd paths="./kubernetes/api/v1alpha1" output:crd:artifacts:config
    ```
 
 3. **✅ WHAT TO INCLUDE IN PR**:
+
    - ✅ All UI code changes (`burnrate.tsx`, `AlertsTable.tsx`, `BurnrateGraph.tsx`, etc.)
    - ✅ All backend API changes (protobuf definitions, Go conversion functions)
    - ✅ All dynamic burn rate logic (`slo/rules.go`, test files, etc.)
    - ✅ Documentation updates and examples
    - ✅ Test cases and validation code
 
-3. **❌ WHAT NOT TO INCLUDE IN PR**:
+4. **❌ WHAT NOT TO INCLUDE IN PR**:
+
    - ❌ **Manifest changes** with custom image names (`pyrra-with-burnrate:latest`)
    - ❌ **Local testing configurations** (`imagePullPolicy: Never`)
    - ❌ **Development Docker files** (unless permanent feature)
    - ❌ **Environment-specific settings** or paths
 
-4. **📋 PR TESTING DOCUMENTATION**:
+5. **📋 PR TESTING DOCUMENTATION**:
    Include in PR description how you tested the changes:
+
    ```markdown
    ## Testing Methodology
+
    - Built custom Docker image using `docker build -f Dockerfile.custom -t pyrra-test:latest .`
    - Updated local Kubernetes manifests to use custom image for deployment testing
    - Deployed to minikube with kube-prometheus-stack for end-to-end validation
@@ -957,7 +1092,7 @@ controller-gen crd paths="./kubernetes/api/v1alpha1" output:crd:artifacts:config
 ### **Why This Approach**
 
 - **Upstream Compatibility**: Official manifests continue working with official images
-- **Testing Transparency**: PR reviewers see how changes were validated without config pollution  
+- **Testing Transparency**: PR reviewers see how changes were validated without config pollution
 - **Easy Integration**: Upstream maintainers can merge without worrying about local testing artifacts
 - **Future Development**: Next developers can set up testing without inheriting hardcoded configurations
 
@@ -966,6 +1101,7 @@ controller-gen crd paths="./kubernetes/api/v1alpha1" output:crd:artifacts:config
 > **📚 For detailed explanations of terminology and mathematical concepts, see [CORE_CONCEPTS_AND_TERMINOLOGY.md](CORE_CONCEPTS_AND_TERMINOLOGY.md)**
 
 ### Quick Reference Formula
+
 ```
 dynamic_threshold = (N_SLO / N_long) × E_budget_percent_threshold × (1 - SLO_target)
 ```
@@ -973,12 +1109,13 @@ dynamic_threshold = (N_SLO / N_long) × E_budget_percent_threshold × (1 - SLO_t
 **Key Innovation**: The burn rate threshold itself is dynamic and adapts to traffic patterns. Both short and long windows use **N_long** for consistent traffic scaling, preventing false positives during low traffic and false negatives during high traffic.
 
 ### Error Budget Percent Thresholds (Constants)
-| Static Factor | E_budget_percent_threshold | 
-|---------------|---------------------------|
-| 14            | 1/48 (≈0.020833)        | 
-| 7             | 1/16 (≈0.0625)          | 
-| 2             | 1/14 (≈0.071429)        | 
-| 1             | 1/7 (≈0.142857)         |
+
+| Static Factor | E_budget_percent_threshold |
+| ------------- | -------------------------- |
+| 14            | 1/48 (≈0.020833)           |
+| 7             | 1/16 (≈0.0625)             |
+| 2             | 1/14 (≈0.071429)           |
+| 1             | 1/7 (≈0.142857)            |
 
 ## Implementation Status
 
@@ -987,11 +1124,13 @@ dynamic_threshold = (N_SLO / N_long) × E_budget_percent_threshold × (1 - SLO_t
 #### 1. **Core Alert Logic Integration (PRIORITY 1 - COMPLETE ✅)**
 
 **Key Files Modified**:
+
 - `slo/rules.go`: Added `buildAlertExpr()` and `buildDynamicAlertExpr()` methods
 - `slo/rules_test.go`: Added comprehensive unit tests for Ratio and Latency indicators
 - `kubernetes/api/v1alpha1/servicelevelobjective_types_test.go`: Updated test expectations
 
 **Implementation Details**:
+
 - **Dynamic PromQL Generation**: Complex expressions using recording rules with inline dynamic thresholds
 - **Ratio Indicator Support**: Fully implemented and production-ready ✅
 - **Latency Indicator Support**: Fully implemented and production-ready ✅ **NEW**
@@ -1000,15 +1139,16 @@ dynamic_threshold = (N_SLO / N_long) × E_budget_percent_threshold × (1 - SLO_t
 - **Code Review Complete**: Comprehensive validation confirms production readiness ✅
 
 **Example Generated PromQL** (Dynamic with Recording Rules):
+
 ```promql
 # Ratio Indicator - Dynamic Alert Expression
-(pyrra_burnrate1d{job="api",slo="http-availability"} > 
- ((sum(increase(http_requests_total{job="api"}[7d])) / sum(increase(http_requests_total{job="api"}[1d]))) * 0.020833 * 0.01)) 
-and 
-(pyrra_burnrate1h{job="api",slo="http-availability"} > 
+(pyrra_burnrate1d{job="api",slo="http-availability"} >
+ ((sum(increase(http_requests_total{job="api"}[7d])) / sum(increase(http_requests_total{job="api"}[1d]))) * 0.020833 * 0.01))
+and
+(pyrra_burnrate1h{job="api",slo="http-availability"} >
  ((sum(increase(http_requests_total{job="api"}[7d])) / sum(increase(http_requests_total{job="api"}[1d]))) * 0.020833 * 0.01))
 
-# Latency Indicator - Dynamic Alert Expression  
+# Latency Indicator - Dynamic Alert Expression
 (pyrra_burnrate1d:histogram{job="api",slo="http-latency"} >
  ((sum(increase(http_requests_duration_seconds_count{job="api"}[7d])) / sum(increase(http_requests_duration_seconds_count{job="api"}[1d]))) * 0.020833 * 0.01))
 and
@@ -1017,17 +1157,20 @@ and
 ```
 
 #### 2. API & Type System (Complete)
+
 - **`BurnRateType` field** added to `Alerting` struct in `slo/slo.go`
 - **Kubernetes CRD support** in `servicelevelobjective_types.go`
 - **Backward compatibility** with default "static" behavior
 - **Type safety** with proper JSON marshaling
 
 #### 3. Core Algorithm Infrastructure (Complete)
+
 - **`DynamicWindows()` method**: Assigns predefined E_budget_percent_threshold constants to window periods
 - **`dynamicBurnRateExpr()` method**: Generates PromQL expressions for dynamic calculations
 - **Window period integration**: Uses existing window structure with dynamic factors
 
 #### 3. Development Environment (Complete)
+
 - **Minikube setup** with Prometheus, Grafana, and kube-prometheus-stack
 - **Build pipeline** functional with all tests passing
 - **Test configuration** available in `.dev/test-slo.yaml`
@@ -1038,6 +1181,7 @@ and
 #### **Priority 1: Protobuf & API Integration** ✅ **COMPLETED (Aug 28, 2025)**
 
 **All 5 Core Tasks Completed Successfully**:
+
 1. ✅ **Alerting Message Added to Protobuf**: Added `Alerting` message with `burnRateType` field to `proto/objectives/v1alpha1/objectives.proto`
 2. ✅ **Go Conversion Functions Updated**: Modified `ToInternal()` and `FromInternal()` functions in `proto/objectives/v1alpha1/objectives.go` to handle alerting field conversion
 3. ✅ **TypeScript Protobuf Files Regenerated**: Updated both `objectives_pb.d.ts` and `objectives_pb.js` with proper Alerting interface and field mappings
@@ -1045,6 +1189,7 @@ and
 5. ✅ **End-to-End API Integration Tested**: Created and validated round-trip conversion test confirming burn rate type data flows correctly from Go backend through protobuf to TypeScript frontend
 
 **Technical Implementation Details**:
+
 - **Protobuf Schema**: Added `Alerting` message with string `burn_rate_type` field (field number 1)
 - **Go Conversion Layer**: Complete bidirectional conversion between internal structs and protobuf messages
 - **TypeScript Definitions**: Manual updates for Windows environment compatibility with proper interface definitions
@@ -1056,14 +1201,16 @@ and
 ### � Remaining Work
 
 #### **Priority 2**: Alert Display Updates
+
 - **Update AlertsTable.tsx**: Show dynamic burn rate information instead of static calculations in alert tables
-- **Update Graph Components**: Display dynamic-specific tooltips and information in burn rate visualizations  
+- **Update Graph Components**: Display dynamic-specific tooltips and information in burn rate visualizations
 - **Conditional Display Logic**: Create components that show appropriate information based on burn rate type
 - **Visual Indicators**: Add icons or badges to distinguish dynamic vs static alert displays
 - **Enhanced User Experience**: Provide context-aware information about alert behavior
 
 #### **Priority 3**: Testing & Validation
-- ✅ **Development Environment Setup**: Complete minikube setup with kube-prometheus-stack 
+
+- ✅ **Development Environment Setup**: Complete minikube setup with kube-prometheus-stack
 - ✅ **Custom Docker Build**: Created Dockerfile.custom for deployment with burn rate changes
 - ✅ **TypeScript Compilation**: All UI components compile without errors
 - 🔧 **Integration Tests Pending**: Kubernetes deployment and end-to-end testing with actual Prometheus setup
@@ -1071,8 +1218,9 @@ and
 - **Performance Impact Analysis**: Real-world performance testing needed
 
 #### **Priority 4**: UI Integration Enhancement
+
 - ✅ **Burn Rate Type Display**: Added burn rate indicators throughout the UI (List and Detail pages)
-- ✅ **Enhanced SLO List**: New "Burn Rate" column with color-coded badges and tooltips  
+- ✅ **Enhanced SLO List**: New "Burn Rate" column with color-coded badges and tooltips
 - ✅ **Enhanced Detail Page**: Burn rate information prominently displayed with icons
 - ✅ **Visual Design System**: Green badges for Dynamic, Gray badges for Static with informative tooltips
 - ✅ **TypeScript Infrastructure**: Complete type system with real API integration ✅ **NEW**
@@ -1080,6 +1228,7 @@ and
 - ✅ **API Integration Complete**: Real `burnRateType` field from backend now used throughout UI ✅ **NEW**
 
 #### **Priority 4**: Documentation & Optimization
+
 - User documentation and examples
 - Performance optimization for PromQL expressions
 - Monitoring and observability improvements
@@ -1101,6 +1250,7 @@ and
 **E_budget_percent_threshold Clarification**: These are **constant values**, not calculated values. They represent the percentage of error budget consumption we want to alert on, regardless of SLO period choices. The values (1/48, 1/16, etc.) should remain consistent across different SLO configurations.
 
 **Formula Direction**: The correct formula is `(N_SLO / N_long)` where:
+
 - N_SLO = Events in SLO window (7d, 28d, etc.)
 - **N_long = Events in LONG alert window** (used for both short and long window calculations)
 
@@ -1109,6 +1259,7 @@ This ensures consistent traffic scaling: both windows measure against the same t
 ### Indicator Type Support Strategy
 
 **Current Priority**: Ratio indicators were implemented first because they:
+
 1. Are the most common SLI type in production
 2. Have the simplest metric structure (separate error and total metrics)
 3. Allow the dynamic formula to be applied most straightforwardly
@@ -1118,6 +1269,7 @@ This ensures consistent traffic scaling: both windows measure against the same t
 ## Current Capabilities
 
 ### ✅ **Working Features - COMPLETE IMPLEMENTATION**
+
 - **Ratio Indicators**: Full dynamic burn rate support with production readiness ✅
 - **Latency Indicators**: Full dynamic burn rate support with production readiness ✅
 - **LatencyNative Indicators**: Full dynamic burn rate support with native histogram optimization ✅
@@ -1131,37 +1283,43 @@ This ensures consistent traffic scaling: both windows measure against the same t
 - **Code Quality**: Production-ready implementation with comprehensive test coverage ✅
 
 ### 🎯 **Feature Complete - Ready for Production**
+
 **All Core Functionality Implemented**: Dynamic burn rate feature is now complete for all supported indicator types. The implementation provides traffic-aware alerting that adapts thresholds based on actual request volume.
 
 ### ❌ **Future Enhancements** (Optional)
+
 - **Alert Display Updates**: Update existing UI components to show dynamic burn rate calculations instead of static
 - **🎯 NEW: Dynamic Burn Rate Graph**: Add dedicated burn rate graph to dynamic SLO detail pages showing:
   - Real-time burn rate values over time
-  - Dynamic threshold calculation overlaid on graph  
+  - Dynamic threshold calculation overlaid on graph
   - Traffic volume correlation to show threshold adaptation
   - Visual comparison of actual burn rate vs dynamic threshold
   - Enhanced observability for debugging dynamic alerting behavior
-**Goal**: Complete end-to-end dynamic burn rate visibility in alert display components
+    **Goal**: Complete end-to-end dynamic burn rate visibility in alert display components
 
 #### 4.1 Grafana Dashboard Updates
+
 - **Dynamic threshold visualization** in burn rate panels
 - **Traffic volume correlation** with alert thresholds
 - **Comparison dashboards** showing static vs dynamic behavior
 - **Debug panels** for understanding dynamic calculations
 
 #### 4.2 Recording Rules & Efficiency
+
 - **Pre-compute traffic ratios** for efficiency
 - **Recording rules** for complex dynamic calculations
 - **Performance optimization** for high-cardinality metrics
 
 #### 4.3 Monitoring & Alerting
+
 - **Meta-alerts** for dynamic burn rate calculation failures
-- **Threshold behavior monitoring** 
+- **Threshold behavior monitoring**
 - **Performance metrics** for dynamic vs static overhead
 
 ## Technical Architecture
 
 ### Current File Structure
+
 ```
 slo/
 ├── slo.go              # Core types including Alerting.BurnRateType
@@ -1179,23 +1337,25 @@ kubernetes/api/v1alpha1/
 ```
 
 ### Key Methods Status
-| Method | Status | Purpose |
-|--------|--------|---------|
-| `DynamicWindows()` | ✅ Complete | Assigns E_budget_percent_threshold constants |
-| `dynamicBurnRateExpr()` | ✅ Complete | Generates dynamic PromQL expressions |
-| `Alerts()` | 🔧 Needs Integration | Alert rule generation (not using dynamic yet) |
-| `QueryBurnrate()` | 🔧 Needs Update | PromQL generation (still static only) |
+
+| Method                  | Status               | Purpose                                       |
+| ----------------------- | -------------------- | --------------------------------------------- |
+| `DynamicWindows()`      | ✅ Complete          | Assigns E_budget_percent_threshold constants  |
+| `dynamicBurnRateExpr()` | ✅ Complete          | Generates dynamic PromQL expressions          |
+| `Alerts()`              | 🔧 Needs Integration | Alert rule generation (not using dynamic yet) |
+| `QueryBurnrate()`       | 🔧 Needs Update      | PromQL generation (still static only)         |
 
 ## Implementation Notes
 
 ### Formula Implementation Details - CORRECTED
+
 ```go
 // In DynamicWindows() - E_budget_percent_thresholds mapped by static factor hierarchy
 var errorBudgetBurnPercent float64
 switch w.Factor { // w.Factor contains the static burn rate from Windows()
 case 14: // First critical window - 50% per day
     errorBudgetBurnPercent = 1.0 / 48  // E_budget_percent_threshold
-case 7: // Second critical window - 100% per 4 days  
+case 7: // Second critical window - 100% per 4 days
     errorBudgetBurnPercent = 1.0 / 16  // E_budget_percent_threshold
 case 2: // First warning window
     errorBudgetBurnPercent = 1.0 / 14  // E_budget_percent_threshold
@@ -1205,12 +1365,14 @@ case 1: // Second warning window
 ```
 
 ### PromQL Integration Pattern - CORRECTED
+
 ```promql
 # Static: burn_rate > static_factor * (1 - slo_target)
 # Dynamic: error_rate > ((N_slo / N_long) * E_budget_percent_threshold) * (1 - slo_target)
 ```
 
 ### Key Design Insights
+
 1. **Window.Factor Dual Purpose**: Serves as static burn rate in static mode, E_budget_percent_threshold in dynamic mode
 2. **Consistent Traffic Scaling**: Both windows use N_long denominator for uniform burn rate measurement
 3. **Automatic Period Scaling**: Window periods scale with any SLO duration via `Windows(sloWindow)`
@@ -1219,19 +1381,22 @@ case 1: // Second warning window
 ## Success Criteria
 
 ### Functional Requirements
+
 - [x] API supports both "static" and "dynamic" burn rate types
 - [x] Dynamic SLOs generate mathematically correct alert thresholds (for Ratio & Latency indicators)
-- [x] Alert firing behavior adapts to traffic volume changes (for Ratio & Latency indicators)  
+- [x] Alert firing behavior adapts to traffic volume changes (for Ratio & Latency indicators)
 - [x] Backward compatibility maintained for existing static SLOs
 - [x] **Code Review Complete**: Production readiness validated through comprehensive review
 - [x] **Edge Case Handling**: Conservative fallback mechanisms implemented and tested
 
 ### Performance Requirements
+
 - [x] Dynamic calculations don't significantly impact rule evaluation time (validated in tests)
 - [ ] PromQL queries remain efficient at scale
 - [ ] Memory usage remains reasonable for high-cardinality metrics
 
 ### User Experience Requirements
+
 - [x] Clear documentation explaining dynamic vs static trade-offs
 - [ ] UI clearly indicates which mode is active
 - [ ] Migration path from static to dynamic is straightforward
@@ -1240,11 +1405,13 @@ case 1: // Second warning window
 ## Risk Assessment
 
 ### Technical Risks
+
 - **PromQL Complexity**: Dynamic queries may be more resource-intensive
 - **Edge Cases**: Zero or very low traffic scenarios need special handling
 - **Backward Compatibility**: Changes must not break existing deployments
 
 ### Mitigation Strategies
+
 - **Comprehensive Testing**: Cover edge cases and performance scenarios
 - **Feature Flags**: Allow gradual rollout and easy rollback
 - **Documentation**: Clear guidance on when to use each mode
@@ -1257,21 +1424,24 @@ case 1: // Second warning window
 ### **✅ COMPLETE - All Indicator Types Supported**
 
 **All Core Components Implemented**:
+
 - ✅ **buildDynamicAlertExpr()**: Complete implementation for all 4 indicator types
 - ✅ **Selector Helpers**: buildLatencyNativeTotalSelector() and buildBoolGaugeSelector() added
 - ✅ **Dynamic Window Integration**: All indicator types use dynamic windows when configured
 - ✅ **Alert Expression Unification**: All types use centralized buildAlertExpr() method
 
 **Production Readiness Checklist** ✅:
+
 - ✅ **All Tests Passing**: 100% test success rate across all indicator types
 - ✅ **No Compilation Errors**: Clean build with all implementations
-- ✅ **Backward Compatibility**: Existing SLOs continue working unchanged  
+- ✅ **Backward Compatibility**: Existing SLOs continue working unchanged
 - ✅ **Integration Verified**: Main application tests pass
 - ✅ **Code Quality**: Following established patterns and best practices
 
 **Traffic-Aware Expressions**:
+
 - **Ratio**: `sum(increase(errors[slo])) / sum(increase(total[long]))`
-- **Latency**: `sum(increase(total_errors[slo])) / sum(increase(total[long]))`  
+- **Latency**: `sum(increase(total_errors[slo])) / sum(increase(total[long]))`
 - **LatencyNative**: `histogram_count(sum(increase(total[slo]))) / histogram_count(sum(increase(total[long])))`
 - **BoolGauge**: `sum(count_over_time(metric[slo])) / sum(count_over_time(metric[long]))`
 
