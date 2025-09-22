@@ -37,45 +37,54 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Add meaningful error messages in browser console for debugging
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-## Task Group 2: SLO Detail Page Comprehensive Enhancement
+## Task Group 2: RequestsGraph Traffic Baseline Enhancement (HIGH PRIORITY)
 
-- [ ] 2. Enhance SLO Detail page components for dynamic burn rate support
+- [ ] 2. Enhance RequestsGraph component with traffic baseline visualization for dynamic SLOs
 
-  - Update availability and error budget tiles to handle missing metrics gracefully
-  - Implement consistent "No data available" vs "100%" fallback behavior across all components
-  - Add dynamic burn rate context to error budget calculations and displays
-  - Ensure all detail page components show appropriate loading states and error handling
-  - _Requirements: 2.1, 3.1, 3.4_
-
-- [ ] 2.1 Implement dynamic burn rate indicators in SLO summary tiles
-
-  - Add visual indicators (badges/icons) to show burn rate type in summary tiles
-  - Update error budget tile calculations to reflect dynamic vs static methodology
-  - Implement traffic-aware context in availability displays when using dynamic burn rates
-  - Add tooltips explaining dynamic burn rate impact on error budget consumption
+  - Add average traffic baseline calculation using same time window as longest alert window
+  - Implement horizontal dashed line overlay showing average traffic rate
+  - Add legend distinguishing "Current Traffic" (solid line) vs "Average Traffic" (dashed line)
+  - Include traffic ratio tooltip when hovering over current traffic points
   - _Requirements: 2.1, 2.4_
 
-- [ ] 2.2 Create consistent error handling across detail page components
+- [ ] 2.1 Implement traffic context indicators in RequestsGraph
 
-  - Standardize missing metrics handling across availability, error budget, and threshold displays
-  - Implement unified loading states for all dynamic calculations on detail page
-  - Add comprehensive error recovery when metrics become available
-  - Ensure consistent user experience between static and dynamic SLO detail pages
-  - _Requirements: 3.1, 3.2, 3.4_
+  - Calculate traffic ratio using existing BurnRateThresholdDisplay patterns
+  - Add visual indicators when current traffic is significantly above/below average (>1.5x or <0.5x)
+  - Implement tooltip showing traffic ratio context: "Current: 2.3x above average"
+  - Ensure enhancement only applies to dynamic burn rate SLOs
+  - _Requirements: 2.1, 2.4_
 
-## Task Group 3: Alerts Table Enhancement
+- [ ] 2.2 Enhance burn rate type badge tooltip with traffic context
 
-- [ ] 3. Update AlertsTable component with dynamic burn rate column support
+  - Extract current traffic ratio from RequestsGraph calculations
+  - Update existing burn rate type badge tooltip to include traffic context
+  - Show impact on alert sensitivity: "Current traffic makes alerts 2.3x more sensitive"
+  - Maintain existing tooltip structure while adding dynamic context
+  - _Requirements: 2.1, 2.4_
 
-  - Modify table column header to show "Factor" for static SLOs and "Error Budget %" for dynamic SLOs
-  - Implement conditional column content display based on burn rate type
-  - Add error budget percentage values (1/48, 1/16, 1/14, 1/7) for dynamic SLOs
-  - Maintain existing factor values (14, 7, 2, 1) for static SLOs
+## Task Group 3: Alerts Table Column Enhancement
+
+- [ ] 3. Add new "Error Budget %" column to AlertsTable for dynamic burn rates
+
+  - Add new table column between existing columns to show error budget percentage constants
+  - For dynamic SLOs: Show error budget percentage values (2.08%, 6.25%, 7.14%, 14.29%) corresponding to (1/48, 1/16, 1/14, 1/7)
+  - For static SLOs: Show factor values (14, 7, 2, 1) in the new column
+  - Keep existing "Threshold" column unchanged - it shows calculated threshold values via BurnRateThresholdDisplay
+  - Update table layout to accommodate the additional column without breaking responsive design
   - _Requirements: 2.4_
 
-- [ ] 3.1 Enhance tooltip system in AlertsTable for dynamic burn rates
+- [ ] 3.1 Validate BurnRateThresholdDisplay component integration with AlertsTable
+
+  - Verify BurnRateThresholdDisplay correctly shows calculated threshold values for all indicator types
+  - Test error handling for missing metrics and edge cases in alerts table context
+  - Ensure consistent threshold display between ratio and latency indicators
+  - Validate performance impact of real-time threshold calculations in table rows
+  - _Requirements: 1.1, 1.2, 2.1_
+
+- [ ] 3.2 Enhance AlertsTable tooltip system for dynamic burn rates
   - Extract current traffic ratio from BurnRateThresholdDisplay calculations
-  - Calculate average traffic for alert window comparison
+  - Calculate average traffic for alert window comparison  
   - Generate static threshold equivalent for comparison context
   - Update tooltip to show traffic context, static comparison, and formula explanation
   - _Requirements: 2.1, 2.4_

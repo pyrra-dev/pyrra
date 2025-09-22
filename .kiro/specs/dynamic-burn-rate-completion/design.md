@@ -4,6 +4,8 @@
 
 This design document outlines the completion of the dynamic burn rate feature for Pyrra, focusing on comprehensive validation across all indicator types, enhanced user experience, and production readiness. The feature is approximately 30% complete with backend implementation finished and basic UI functionality working for ratio indicators.
 
+**Critical Architectural Understanding**: Dynamic burn rates modify **alert threshold calculations only**. Error budget calculations remain identical between static and dynamic burn rates using the standard SLO formula: `((1-SLO_target)-(1-success/total))/(1-SLO_target)`. The innovation is in traffic-aware alert sensitivity, not error budget computation.
+
 The design leverages the comprehensive testing framework and quality standards already established in the project, organizing the remaining work into focused implementation tasks.
 
 ## Architecture
@@ -74,29 +76,140 @@ graph LR
 
 ## Components and Interfaces
 
+### Current Pyrra Detail Page Analysis
+
+#### Existing UI Structure (Detail.tsx)
+The detail page consists of several key sections that need analysis for dynamic burn rate enhancements:
+
+**1. Header Section**
+- **SLO Name and Labels**: Currently displays name and label badges
+- **Description**: Optional SLO description text
+- **Burn Rate Type Badge**: ✅ Already implemented with dynamic/static indicator and tooltip
+
+**2. Summary Tiles (3 tiles in a row)**
+- **ObjectiveTile**: Shows SLO target percentage and window (e.g., "99.500% in 30d")
+- **AvailabilityTile**: Shows current availability percentage with error/total counts
+- **ErrorBudgetTile**: Shows remaining error budget percentage
+
+**3. Time Range Controls**
+- **Time Range Buttons**: 4w, 1w, 1d, 12h, 1h selection
+- **Auto-reload Toggle**: Automatic refresh with interval display
+- **Chart Scale Toggle**: Absolute vs Relative scale for graphs
+
+**4. Graphs Section (3 graphs)**
+- **ErrorBudgetGraph**: Full-width error budget consumption over time
+- **RequestsGraph**: Request rate over time (left column or full-width for latency)
+- **ErrorsGraph**: Error rate over time (right column or full-width for latency)
+- **DurationGraph**: Latency percentiles (only for latency indicators)
+
+**5. Multi Burn Rate Alerts Table**
+- **Threshold Column**: ✅ Currently shows calculated thresholds with BurnRateThresholdDisplay component
+- **Alert States**: Shows firing/pending/inactive status for each alert window
+- **Burn Rate Graphs**: Expandable burn rate visualizations per alert
+
+**6. Config Section**
+- **Raw YAML**: Shows the complete SLO configuration
+
+#### Dynamic Burn Rate Enhancement Analysis
+
+**Components That Should Stay As-Is** ✅
+1. **ObjectiveTile**: SLO target and window are identical for static/dynamic
+2. **AvailabilityTile**: Availability calculation is identical (uses same error budget formula)
+3. **ErrorBudgetTile**: Error budget calculation is identical (uses same formula)
+4. **Burn Rate Type Badge**: Already implemented and working correctly
+5. **Time Range Controls**: No changes needed
+6. **Config Section**: No changes needed
+
+**Components That Need Enhancement** 🔧
+1. **RequestsGraph**: Should show average traffic baseline for dynamic SLOs
+2. **Multi Burn Rate Alerts Table**: 
+   - ✅ BurnRateThresholdDisplay component integrated and working
+   - 🔧 Column header needs conditional display ("Factor" vs "Error Budget %")
+   - 🔧 Error budget percentage constants should be shown alongside calculated values
+3. **Tooltips**: Enhanced context for dynamic vs static behavior
+
+**Components That Could Be Enhanced (Optional)** 💡
+1. **ErrorBudgetGraph**: Could show traffic-aware context
+2. **New Traffic Context Tile**: Could replace one of the existing tiles or be added
+
+### Detailed Enhancement Design
+
+#### 1. RequestsGraph Enhancement (HIGH VALUE)
+**Current State**: Shows request rate over time as line graph
+**Enhancement**: Add average traffic baseline for dynamic SLOs
+
+```typescript
+// Enhancement Design
+interface RequestsGraphProps {
+  // ... existing props
+  showTrafficBaseline?: boolean  // Enable for dynamic SLOs
+  baselineQuery?: string         // Query for average traffic calculation
+}
+
+// Visual Enhancement
+- Add horizontal dashed line showing average traffic for the alert window
+- Add legend: "Current Traffic" (solid line) vs "Average Traffic" (dashed line)
+- Add tooltip showing traffic ratio when hovering over current traffic
+```
+
+**Implementation Approach**:
+- Calculate average traffic using same time window as longest alert window
+- Use existing Prometheus query patterns from BurnRateThresholdDisplay
+- Add visual indicator when current traffic is significantly above/below average
+
+#### 2. Enhanced Tooltips (MEDIUM VALUE)
+**Current State**: Basic tooltips for burn rate type badge and alert thresholds
+**Enhancement**: Add traffic context to existing tooltips
+
+**Burn Rate Type Badge Tooltip Enhancement**:
+```typescript
+// Current: Generic description of dynamic vs static
+// Enhanced: Include current traffic context
+"Dynamic Burn Rate: Adapts thresholds based on traffic patterns.
+Current traffic: 2.3x above average for 1h window
+This makes alerts 2.3x more sensitive than static thresholds."
+```
+
+**Alert Threshold Tooltip Enhancement**: ✅ Already implemented in BurnRateThresholdDisplay
+
+#### 3. Optional: Traffic Context Tile (LOW PRIORITY)
+**Rationale**: Could replace ObjectiveTile or be added as 4th tile
+**Content**: 
+- Current traffic rate
+- Average traffic rate for comparison
+- Traffic ratio indicator (above/below average)
+
+**Decision**: Not recommended - would clutter UI without significant value
+
+### UI Enhancement Priority Matrix
+
+| Component | Enhancement | Value | Complexity | Priority |
+|-----------|-------------|-------|------------|----------|
+| RequestsGraph | Traffic baseline | High | Medium | **HIGH** |
+| Burn Rate Badge Tooltip | Traffic context | Medium | Low | **MEDIUM** |
+| ErrorBudgetGraph | Traffic context | Low | Medium | **LOW** |
+| New Traffic Tile | Traffic summary | Low | High | **SKIP** |
+
 ### Task-Based Development Framework
 
-#### Task Group 1: Latency UI Completion (HIGH PRIORITY)
-**Purpose**: Complete comprehensive validation of latency indicators
-**Dependencies**: Basic latency threshold display working
+#### Task Group 1: RequestsGraph Traffic Baseline (HIGH PRIORITY)
+**Purpose**: Add visual traffic context to the most relevant graph
+**Dependencies**: BurnRateThresholdDisplay component (already working)
 **Deliverables**: 
-- Enhanced tooltips with histogram-specific information
-- Performance assessment vs ratio indicators
-- Comprehensive error handling validation
-- Production readiness documentation
+- Average traffic baseline visualization in RequestsGraph
+- Traffic ratio indicators and tooltips
+- Enhanced user understanding of dynamic threshold behavior
 
-#### Task Group 2: Resilience Testing (ALTERNATIVE PRIORITY)
-**Purpose**: Validate edge case handling and missing metrics scenarios
-**Dependencies**: None (can start immediately)
+#### Task Group 2: Enhanced Tooltip Context (MEDIUM PRIORITY)  
+**Purpose**: Improve existing tooltips with traffic-aware information
+**Dependencies**: RequestsGraph enhancement recommended
 **Deliverables**:
-- Missing metrics handling validation
-- Mathematical edge case testing
-- Error recovery behavior documentation
-- Graceful degradation validation
+- Enhanced burn rate type badge tooltip with current traffic context
+- Consistent traffic-aware messaging across UI components
 
-#### Task Group 3: Additional Indicator Types
+#### Task Group 3: Additional Indicator Types (EXISTING PRIORITY)
 **Purpose**: Validate LatencyNative and BoolGauge indicators
-**Dependencies**: Latency UI completion recommended
+**Dependencies**: Core UI enhancements complete
 **Deliverables**:
 - Complete indicator type coverage
 - UI component support for all types
@@ -126,9 +239,44 @@ interface BurnRateThresholdDisplayProps {
 
 #### Alerts Table Enhancement
 
-**Table Column Updates**:
-- **Static Case**: Keep existing "Factor" column showing values (14, 7, 2, 1)
-- **Dynamic Case**: Rename column to "Error Budget %" showing values (1/48, 1/16, 1/14, 1/7)
+**Current Implementation Status**:
+- ✅ **BurnRateThresholdDisplay Component**: Integrated and shows calculated threshold values
+- ✅ **Dynamic Threshold Calculation**: Working for ratio and latency indicators  
+- ✅ **Threshold Column**: Working correctly, shows calculated values
+- 🔧 **Missing Error Budget % Column**: Need to add new column showing constants (1/48, 1/16, 1/14, 1/7)
+
+**Table Column Updates Required**:
+- **Add New Column**: Insert "Error Budget %" column between existing columns
+- **Keep Existing**: "Threshold" column remains unchanged, shows calculated values via BurnRateThresholdDisplay
+- **Column Content**: New column shows the constant part of the dynamic threshold calculation
+
+**New Column Content Format**:
+```typescript
+// For Dynamic SLOs: Show error budget percentage constants
+"2.08%"  // For factor 14 (1/48 = 2.08%)
+"6.25%"  // For factor 7 (1/16 = 6.25%)  
+"7.14%"  // For factor 2 (1/14 = 7.14%)
+"14.29%" // For factor 1 (1/7 = 14.29%)
+
+// For Static SLOs: Show factor values
+"14"     // Factor 14
+"7"      // Factor 7
+"2"      // Factor 2  
+"1"      // Factor 1
+```
+
+**Table Layout**:
+```
+| State | Severity | Exhaustion | Error Budget % | Threshold | Short Burn | Long Burn | For | External |
+|-------|----------|------------|----------------|-----------|------------|-----------|-----|----------|
+| firing| critical | 2d         | 2.08%         | 0.00885   | 0.123      | 0.456     | 1h  | Link     |
+```
+
+**Implementation Approach**:
+1. **Add New Column**: Insert between "Exhaustion" and "Threshold" columns
+2. **Conditional Content**: Use `getBurnRateType(objective)` and `factor` to determine display value
+3. **Responsive Design**: Adjust column widths to accommodate new column
+4. **Keep Existing Logic**: No changes to BurnRateThresholdDisplay component needed
 
 **Tooltip Enhancement**:
 ```typescript
@@ -138,6 +286,7 @@ lower traffic = lower thresholds. Formula: (N_SLO / N_long) × E_budget_percent 
 
 // Target: Enhanced with traffic context and static comparison
 "Dynamic threshold adapts to traffic volume. 
+Error Budget %: 2.08% (burns 2.08% of budget per alert window)
 Traffic ratio: 12.14x (5x above average for this window)
 Dynamic threshold: 0.0024 vs Static threshold: 0.012 (5x smaller due to high traffic)
 Formula: (N_SLO / N_long) × E_budget_percent × (1 - SLO_target)"
@@ -147,9 +296,10 @@ Formula: (N_SLO / N_long) × E_budget_percent × (1 - SLO_target)"
 ```
 
 **Enhancement Details**:
-1. **Traffic Context**: Show if current traffic is above/below average for the alert window
-2. **Static Comparison**: Display what the static threshold would be for comparison
-3. **Ratio Explanation**: Help users understand why dynamic threshold differs from static
+1. **Error Budget Context**: Show what percentage of error budget the alert window represents
+2. **Traffic Context**: Show if current traffic is above/below average for the alert window
+3. **Static Comparison**: Display what the static threshold would be for comparison
+4. **Ratio Explanation**: Help users understand why dynamic threshold differs from static
 
 ### Backend Integration Points
 

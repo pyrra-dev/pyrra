@@ -2,7 +2,9 @@
 
 ## Introduction
 
-This specification covers the completion of the dynamic burn rate feature for Pyrra, a Service Level Objective (SLO) management tool. The feature introduces traffic-aware alerting that adapts thresholds based on actual traffic patterns, preventing false positives during low traffic and false negatives during high traffic periods.
+This specification covers the completion of the dynamic burn rate feature for Pyrra, a Service Level Objective (SLO) management tool. The feature introduces traffic-aware **alert thresholds** that adapt based on actual traffic patterns, preventing false positives during low traffic and false negatives during high traffic periods.
+
+**Critical Understanding**: Dynamic burn rates only affect **alert threshold calculations**. Error budget calculations remain identical between static and dynamic burn rates, using the standard formula: `((1-SLO_target)-(1-success/total))/(1-SLO_target)`.
 
 The core implementation is complete (~30%), with backend logic, API integration, and basic UI functionality working for ratio indicators. This spec focuses on comprehensive validation across all indicator types, edge case handling, and production readiness.
 
@@ -20,17 +22,17 @@ The core implementation is complete (~30%), with backend logic, API integration,
 4. WHEN any indicator type encounters missing metrics THEN the system SHALL gracefully degrade to appropriate fallback behavior
 5. WHEN switching between static and dynamic SLOs of different indicator types THEN the UI SHALL maintain consistent user experience and performance
 
-### Requirement 2: Enhanced User Experience and Tooltips
+### Requirement 2: Enhanced User Experience with Traffic Context
 
-**User Story:** As an SRE using the Pyrra UI, I want detailed information about dynamic burn rate calculations, so that I can understand why specific thresholds were chosen and validate the system's behavior.
+**User Story:** As an SRE using the Pyrra UI, I want visual context about traffic patterns and their impact on dynamic burn rate calculations, so that I can understand why thresholds adapt and validate the system's traffic-aware behavior.
 
 #### Acceptance Criteria
 
-1. WHEN hovering over dynamic burn rate thresholds THEN tooltips SHALL show actual calculated values with traffic ratio breakdown
-2. WHEN viewing dynamic burn rate thresholds THEN tooltips SHALL focus specifically on dynamic burn rate methodology without adding general histogram explanations
-3. WHEN encountering error states THEN the UI SHALL display helpful error messages in developer console for debugging purposes
-4. WHEN comparing static vs dynamic SLOs THEN the UI SHALL clearly differentiate calculation methods and expected behaviors
-5. WHEN threshold calculations are loading THEN appropriate loading indicators SHALL be displayed without blocking other UI functionality
+1. WHEN viewing RequestsGraph for dynamic SLOs THEN the graph SHALL show average traffic baseline as visual reference
+2. WHEN current traffic differs significantly from average THEN visual indicators SHALL highlight above/below average traffic patterns
+3. WHEN hovering over traffic data THEN tooltips SHALL show traffic ratio context and impact on alert sensitivity
+4. WHEN comparing static vs dynamic SLOs THEN the UI SHALL clearly show how traffic patterns affect threshold calculations
+5. WHEN viewing burn rate type badges THEN tooltips SHALL include current traffic context and sensitivity impact
 
 ### Requirement 3: Resilience and Error Handling
 

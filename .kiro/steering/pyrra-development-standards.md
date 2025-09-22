@@ -12,10 +12,16 @@ Pyrra is a Service Level Objective (SLO) management tool for Kubernetes environm
 
 ### Core Innovation
 
-Dynamic burn rate alerting adapts alert thresholds based on actual traffic patterns rather than using fixed static multipliers. This prevents false positives during low traffic and false negatives during high traffic periods.
+Dynamic burn rate alerting adapts **alert thresholds** based on actual traffic patterns rather than using fixed static multipliers. This prevents false positives during low traffic and false negatives during high traffic periods.
 
-**Mathematical Foundation:**
+**CRITICAL UNDERSTANDING**: Dynamic burn rates only affect alert threshold calculations. Error budget calculations remain identical between static and dynamic burn rates.
 
+**Error Budget Formula (Same for Both Static and Dynamic)**:
+```
+error_budget_remaining = ((1 - SLO_target) - (1 - success/total)) / (1 - SLO_target)
+```
+
+**Dynamic Alert Threshold Formula**:
 ```
 dynamic_threshold = (N_SLO / N_alert) × E_budget_percent_threshold × (1 - SLO_target)
 ```
@@ -27,6 +33,12 @@ Where:
 - E_budget_percent_threshold = Constant percentage (1/48, 1/16, 1/14, 1/7)
 - (1 - SLO_target) = Error budget (e.g., 0.01 for 99% SLO)
 
+### Key Distinction: Alert Thresholds vs Error Budget
+
+- **Static Burn Rate**: Fixed alert thresholds (e.g., `burn_rate > 14 × (1 - SLO_target)`)
+- **Dynamic Burn Rate**: Traffic-aware alert thresholds (formula above)
+- **Error Budget**: Identical calculation for both approaches using success/total ratio
+
 ## Development Standards
 
 ### Code Quality Requirements
@@ -36,6 +48,7 @@ Where:
 3. **Question Everything**: Understand purpose of every component, explain deviations, identify gaps
 4. **Test Before Success**: Syntax validation, functional testing, edge cases, performance impact
 5. **Document Issues**: Categorize severity, provide context, suggest concrete fixes
+6. **Knowledge-Based Task Creation**: Tasks and specifications must be created only based on concrete knowledge after validation. Never formulate tasks based on assumptions about system behavior, mathematical formulas, or architectural patterns without first verifying the actual implementation.
 
 ### Architecture Patterns
 
