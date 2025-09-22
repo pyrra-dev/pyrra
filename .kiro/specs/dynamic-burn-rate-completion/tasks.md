@@ -67,12 +67,13 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 3. Add new "Error Budget %" column to AlertsTable for dynamic burn rates
 
-
   - Add new table column between existing columns to show error budget percentage constants
   - For dynamic SLOs: Show error budget percentage values (2.08%, 6.25%, 7.14%, 14.29%) corresponding to (1/48, 1/16, 1/14, 1/7)
   - For static SLOs: Show factor values (14, 7, 2, 1) in the new column
   - Keep existing "Threshold" column unchanged - it shows calculated threshold values via BurnRateThresholdDisplay
   - Update table layout to accommodate the additional column without breaking responsive design
+  - **COMPLETED**: New "Error Budget Consumption" column added with dynamic/static values and enhanced tooltips
+  - **BONUS**: Fixed duration precision issue - now shows complete window durations (e.g., "1d1h43m" instead of "1d1h")
   - _Requirements: 2.4_
 
 - [x] 3.1 Validate BurnRateThresholdDisplay component integration with AlertsTable
@@ -89,6 +90,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Calculate average traffic for alert window comparison
   - Generate static threshold equivalent for comparison context
   - Update tooltip to show traffic context, static comparison, and formula explanation
+  - **COMPLETED**: Enhanced tooltips with proper wording and DynamicBurnRateTooltip integration
   - _Requirements: 2.1, 2.4_
 
 ## Task Group 4: Additional Indicator Type Support

@@ -413,7 +413,14 @@ Based on code analysis and API data validation:
 - **Performance**: Confirmed no performance impact from additional column
 - **Browser Console**: No errors found during testing
 
-**Status**: ✅ **TASK 3 COMPLETE - ENHANCED ALERTSTABLE WITH ERROR BUDGET CONSUMPTION COLUMN PRODUCTION READY**
+#### **✅ Additional Quality Improvement**: Duration Precision Fix
+- **Issue Identified**: AlertsTable duration display was truncated due to formatDuration default precision of 2
+- **Problem**: Long windows showed "1d1h" instead of actual "1d1h43m" from Prometheus rules
+- **Solution Implemented**: Increased formatDuration precision to 4 for all alert window displays
+- **Impact**: Users now see complete, accurate window durations matching Prometheus rule definitions
+- **Scope**: Fixed Short Burn, Long Burn, and For duration columns plus series matching logic
+
+**Status**: ✅ **TASK 3 COMPLETE - ENHANCED ALERTSTABLE WITH ERROR BUDGET CONSUMPTION COLUMN + DURATION PRECISION FIX PRODUCTION READY**
 
 ## 📋 **COMPREHENSIVE TESTING ROADMAP - REMAINING WORK**
 

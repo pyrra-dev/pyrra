@@ -142,15 +142,15 @@ const AlertsTable = ({
 
             const seriesFiringIndex = alertsLabels.findIndex((al: Labels): boolean => {
               return (
-                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000) &&
-                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000) &&
+                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000, 4) &&
+                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000, 4) &&
                 al.alertstate === 'firing'
               )
             })
             const seriesPendingIndex = alertsLabels.findIndex((al: Labels): boolean => {
               return (
-                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000) &&
-                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000) &&
+                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000, 4) &&
+                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000, 4) &&
                 al.alertstate === 'pending'
               )
             })
@@ -244,16 +244,16 @@ const AlertsTable = ({
                     <small style={{opacity: 0.5}}>&gt;</small>
                   </td>
                   <td style={{textAlign: 'left'}}>
-                    {shortCurrent} ({formatDuration(Number(a.short?.window?.seconds) * 1000)})
+                    {shortCurrent} ({formatDuration(Number(a.short?.window?.seconds) * 1000, 4)})
                   </td>
                   <td style={{textAlign: 'left'}}>
                     <small style={{opacity: 0.5}}>and</small>
                   </td>
                   <td style={{textAlign: 'left'}}>
-                    {longCurrent} ({formatDuration(Number(a.long?.window?.seconds) * 1000)})
+                    {longCurrent} ({formatDuration(Number(a.long?.window?.seconds) * 1000, 4)})
                   </td>
                   <td style={{textAlign: 'right'}}>
-                    {formatDuration(Number(a.for?.seconds) * 1000)}
+                    {formatDuration(Number(a.for?.seconds) * 1000, 4)}
                   </td>
                   <td>
                     <a
