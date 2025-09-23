@@ -97,13 +97,27 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [ ] 4. Extend BurnRateThresholdDisplay for LatencyNative indicators
 
+
+
+
+
+
+
+
+
+
+
+
+
   - Add LatencyNative indicator detection logic in component
   - Implement native histogram metric extraction (`histogram_count`, `histogram_sum`)
   - Generate appropriate Prometheus queries for native histogram traffic calculations
   - Add LatencyNative-specific error handling and fallback behavior
   - _Requirements: 1.2_
 
-- [ ] 4.1 Extend BurnRateThresholdDisplay for BoolGauge indicators
+- [x] 4.1 Extend BurnRateThresholdDisplay for BoolGauge indicators
+
+
 
   - Add BoolGauge indicator detection logic in component
   - Implement boolean gauge metric extraction and query generation
@@ -111,7 +125,9 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Add BoolGauge-specific error handling and tooltip content
   - _Requirements: 1.3_
 
-- [ ] 4.2 Create comprehensive indicator type test suite
+- [x] 4.2 Create comprehensive indicator type test suite
+
+
   - Write unit tests for all indicator types (Ratio, Latency, LatencyNative, BoolGauge)
   - Test metric extraction functions for each indicator type
   - Validate query generation produces correct PromQL for each type

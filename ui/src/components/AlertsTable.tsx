@@ -305,7 +305,9 @@ const DynamicBurnRateTooltip: React.FC<{
   const currentTime = Math.floor(Date.now() / 1000)
   const target = objective.target
   const isLatencyIndicator = objective.indicator?.options?.case === 'latency'
+  const isLatencyNativeIndicator = objective.indicator?.options?.case === 'latencyNative'
   const isRatioIndicator = objective.indicator?.options?.case === 'ratio'
+  const isBoolGaugeIndicator = objective.indicator?.options?.case === 'boolGauge'
   
   // Get traffic ratio query (same logic as BurnRateThresholdDisplay)
   const getTrafficRatioQuery = (factor: number): string => {
@@ -320,7 +322,18 @@ const DynamicBurnRateTooltip: React.FC<{
     if (windows === undefined) return ''
     
     const baseSelector = getBaseMetricSelector(objective)
-    return `sum(increase(${baseSelector}[${windows.slo}])) / sum(increase(${baseSelector}[${windows.long}]))`
+    
+    // Handle different indicator types with appropriate query patterns
+    if (isLatencyNativeIndicator) {
+      // LatencyNative uses histogram_count() for native histograms
+      return `sum(histogram_count(increase(${baseSelector}[${windows.slo}]))) / sum(histogram_count(increase(${baseSelector}[${windows.long}])))`
+    } else if (isBoolGaugeIndicator) {
+      // BoolGauge uses count_over_time() aggregation for traffic calculation
+      return `sum(count_over_time(${baseSelector}[${windows.slo}])) / sum(count_over_time(${baseSelector}[${windows.long}]))`
+    } else {
+      // Ratio and Latency indicators use standard increase() pattern
+      return `sum(increase(${baseSelector}[${windows.slo}])) / sum(increase(${baseSelector}[${windows.long}]))`
+    }
   }
   
   const getThresholdConstant = (factor: number): number => {
@@ -339,7 +352,7 @@ const DynamicBurnRateTooltip: React.FC<{
     promClient,
     trafficQuery,
     currentTime,
-    {enabled: trafficQuery !== '' && factor !== undefined && (isLatencyIndicator || isRatioIndicator)}
+    {enabled: trafficQuery !== '' && factor !== undefined && (isLatencyIndicator || isLatencyNativeIndicator || isRatioIndicator || isBoolGaugeIndicator)}
   )
   
   // Generate enhanced tooltip content
@@ -396,20 +409,44 @@ const DynamicBurnRateTooltip: React.FC<{
 
 // Helper function for base metric selector (same as BurnRateThresholdDisplay)
 function getBaseMetricSelector(objective: Objective): string {
+  // Handle ratio indicators
   if (objective.indicator?.options?.case === 'ratio') {
-    const totalMetric = objective.indicator.options.value.total?.metric
+    const ratioIndicator = objective.indicator.options.value
+    const totalMetric = ratioIndicator.total?.metric
     if (totalMetric !== undefined && totalMetric !== '') {
       return totalMetric
     }
   }
   
+  // Handle latency indicators - use the total (count) metric for traffic calculation
   if (objective.indicator?.options?.case === 'latency') {
-    const totalMetric = objective.indicator.options.value.total?.metric
+    const latencyIndicator = objective.indicator.options.value
+    const totalMetric = latencyIndicator.total?.metric
     if (totalMetric !== undefined && totalMetric !== '') {
+      // For histogram metrics, ensure we're using the _count metric for traffic calculations
       if (totalMetric.includes('_bucket')) {
         return totalMetric.replace('_bucket', '_count')
       }
       return totalMetric
+    }
+  }
+  
+  // Handle latencyNative indicators - use the total metric with histogram_count() function
+  if (objective.indicator?.options?.case === 'latencyNative') {
+    const latencyNativeIndicator = objective.indicator.options.value
+    const totalMetric = latencyNativeIndicator.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      // Native histograms use histogram_count() function, not _count suffix
+      return totalMetric
+    }
+  }
+  
+  // Handle boolGauge indicators - use the boolGauge metric for traffic calculation
+  if (objective.indicator?.options?.case === 'boolGauge') {
+    const boolGaugeIndicator = objective.indicator.options.value
+    const boolGaugeMetric = boolGaugeIndicator.boolGauge?.metric
+    if (boolGaugeMetric !== undefined && boolGaugeMetric !== '') {
+      return boolGaugeMetric
     }
   }
   

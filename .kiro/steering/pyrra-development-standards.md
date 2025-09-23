@@ -185,7 +185,14 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 
 ### Task Completion Process
 
-1. **Implementation Testing**: ALWAYS test the changes made within the task before asking for approval:
+1. **Code Quality Validation**: ALWAYS check for compilation and syntax errors before proceeding:
+
+   - **Kiro IDE Problems Tab**: Check the Problems tab in Kiro IDE for TypeScript errors, syntax issues, and other compilation problems
+   - **Ask User for Problem Report**: If unable to resolve compilation errors, ask user to check Problems tab and report specific errors with file names, line numbers, and error messages
+   - **Fix Before Proceeding**: All compilation errors must be resolved before moving to testing phase
+   - **Example Request**: "Please check the Problems tab in Kiro IDE and let me know if there are any TypeScript errors or compilation issues in the files I modified"
+
+2. **Implementation Testing**: ALWAYS test the changes made within the task before asking for approval:
 
    - **Interactive Testing Approach**: Guide user through small, focused test steps rather than long test lists
    - **Primary testing**: Use development UI (`npm start` on port 3000) - sufficient for most validation
@@ -196,7 +203,7 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
    - Validate performance impact if performance-related changes were made
    - **Optional final validation**: Test embedded UI (`npm run build && make build && ./pyrra api`) only when specifically needed
 
-2. **MANDATORY Documentation Updates**: BEFORE asking for approval, ALWAYS update relevant documentation:
+3. **MANDATORY Documentation Updates**: BEFORE asking for approval, ALWAYS update relevant documentation:
 
    - **Steering documents** (`.kiro/steering/`) if workflow or standards change
    - **Spec documents** (`.kiro/specs/`) if requirements or design evolve
@@ -204,15 +211,50 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
    - **Original Pyrra documentation** if user-facing features are added
    - **NEVER skip this step** - documentation updates are required before approval
 
-3. **Pre-Completion Confirmation**: Only after successful testing AND documentation updates, ask user before declaring task completion
+4. **Pre-Completion Confirmation**: Only after successful code validation, testing AND documentation updates, ask user before declaring task completion
 
-4. **Git Status Review**: Run `git status` after completion to identify:
+5. **Git Status Review**: Run `git status` after completion to identify:
 
    - Files that need to be committed
    - Files that should be discarded
    - Ask user if uncertain about any changes
 
-5. **Version Control**: Execute `git commit` and `git push` after user confirmation
+6. **Version Control**: Execute `git commit` and `git push` after user confirmation
+
+### IDE Integration and Problem Resolution
+
+#### Kiro IDE Problems Tab Workflow
+
+**MANDATORY**: Always check and resolve IDE problems before task completion:
+
+1. **Problem Detection**: Ask user to check Problems tab in Kiro IDE after making code changes
+2. **Problem Reporting**: Request specific error details including:
+   - File path and name
+   - Line and column numbers
+   - Error codes (e.g., TS1128, TS2345)
+   - Complete error messages
+3. **Problem Resolution**: Fix all TypeScript errors, syntax issues, and compilation problems
+4. **Verification**: Confirm with user that Problems tab is clear before proceeding
+
+**Example Problem Report Format**:
+```json
+[{
+  "resource": "/path/to/file.tsx",
+  "owner": "typescript", 
+  "code": "1128",
+  "severity": 8,
+  "message": "Declaration or statement expected.",
+  "startLineNumber": 850,
+  "startColumn": 1
+}]
+```
+
+#### Common Problem Categories
+
+- **TypeScript Errors**: Type mismatches, missing imports, interface violations
+- **Syntax Errors**: Missing brackets, semicolons, malformed statements
+- **Import/Export Issues**: Incorrect module references, circular dependencies
+- **Test File Problems**: Mock configuration, type definitions, test structure
 
 ### Implementation Guidelines
 
@@ -220,6 +262,7 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 - **Minimal File Creation**: Avoid creating unnecessary files - think before implementing
 - **Incremental Approach**: Build on existing patterns and infrastructure
 - **Quality Gates**: Follow systematic comparison and comprehensive validation standards
+- **IDE-First Development**: Use Kiro IDE Problems tab as primary quality gate
 
 ### Task-Based Development Approach
 

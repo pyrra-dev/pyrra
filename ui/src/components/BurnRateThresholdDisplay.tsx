@@ -93,10 +93,15 @@ const DynamicThresholdValue: React.FC<{
   const sloName = objective.labels?.__name__ ?? 'unknown'
   const target = objective.target
   
-  // Check if this is a latency or ratio indicator
+  // Check indicator type
   const isLatencyIndicator = objective.indicator?.options?.case === 'latency'
+  const isLatencyNativeIndicator = objective.indicator?.options?.case === 'latencyNative'
   const isRatioIndicator = objective.indicator?.options?.case === 'ratio'
-  const indicatorType: string = isLatencyIndicator ? 'latency' : isRatioIndicator ? 'ratio' : 'unknown'
+  const isBoolGaugeIndicator = objective.indicator?.options?.case === 'boolGauge'
+  const indicatorType: string = isLatencyIndicator ? 'latency' : 
+                                isLatencyNativeIndicator ? 'latencyNative' : 
+                                isRatioIndicator ? 'ratio' :
+                                isBoolGaugeIndicator ? 'boolGauge' : 'unknown'
   
   // Map factor to E_budget_percent_threshold (from backend DynamicWindows function)
   const getThresholdConstant = (factor: number): number => {
@@ -122,9 +127,21 @@ const DynamicThresholdValue: React.FC<{
     const windows = windowMap[factor as keyof typeof windowMap]
     if (windows === undefined) return ''
     
-    // Use the same pattern as the alert rules we found
     const baseSelector = getBaseMetricSelector(objective)
-    return `sum(increase(${baseSelector}[${windows.slo}])) / sum(increase(${baseSelector}[${windows.long}]))`
+    
+    // Handle different indicator types with appropriate query patterns
+    if (isLatencyNativeIndicator) {
+      // LatencyNative uses histogram_count() for native histograms
+      // Based on backend implementation in rules.go
+      return `sum(histogram_count(increase(${baseSelector}[${windows.slo}]))) / sum(histogram_count(increase(${baseSelector}[${windows.long}])))`
+    } else if (isBoolGaugeIndicator) {
+      // BoolGauge uses count_over_time() aggregation for traffic calculation
+      // Based on backend implementation patterns
+      return `sum(count_over_time(${baseSelector}[${windows.slo}])) / sum(count_over_time(${baseSelector}[${windows.long}]))`
+    } else {
+      // Ratio and Latency indicators use standard increase() pattern
+      return `sum(increase(${baseSelector}[${windows.slo}])) / sum(increase(${baseSelector}[${windows.long}]))`
+    }
   }
   
 
@@ -143,7 +160,7 @@ const DynamicThresholdValue: React.FC<{
     promClient,
     trafficQuery,
     currentTime,
-    {enabled: trafficQuery !== '' && sloName !== 'unknown' && factor !== undefined && (isLatencyIndicator || isRatioIndicator)}
+    {enabled: trafficQuery !== '' && sloName !== 'unknown' && factor !== undefined && (isLatencyIndicator || isLatencyNativeIndicator || isRatioIndicator || isBoolGaugeIndicator)}
   )
   
 
@@ -183,7 +200,7 @@ const DynamicThresholdValue: React.FC<{
     return <span title="No alert factor provided">Traffic-Aware</span>
   }
   
-  if (!isLatencyIndicator && !isRatioIndicator) {
+  if (!isLatencyIndicator && !isLatencyNativeIndicator && !isRatioIndicator && !isBoolGaugeIndicator) {
     const unsupportedType = objective.indicator?.options?.case ?? 'unknown'
     console.warn(`[BurnRateThresholdDisplay] Unsupported indicator type: ${unsupportedType}`)
     return <span title={`Unsupported indicator type: ${unsupportedType}`}>Traffic-Aware</span>
@@ -201,6 +218,31 @@ const DynamicThresholdValue: React.FC<{
     // Check if the metric looks like a histogram count metric
     if (!totalMetric.includes('_count') && !totalMetric.includes('_total')) {
       console.warn(`[BurnRateThresholdDisplay] Latency total metric may not be a histogram count: ${totalMetric}`)
+    }
+  }
+  
+  // Validate that we have the necessary metrics for latency native indicators
+  if (isLatencyNativeIndicator && objective.indicator?.options?.case === 'latencyNative') {
+    const latencyNativeIndicator = objective.indicator.options.value
+    const totalMetric = latencyNativeIndicator.total?.metric
+    if (totalMetric === undefined || totalMetric === '') {
+      console.error('[BurnRateThresholdDisplay] LatencyNative indicator missing total metric (native histogram)')
+      return <span title="Missing native histogram metric for latency calculation">Unable to calculate (see console)</span>
+    }
+    
+    // Native histograms don't have _count suffix - they use histogram_count() function
+    if (totalMetric.includes('_count') || totalMetric.includes('_bucket')) {
+      console.warn(`[BurnRateThresholdDisplay] LatencyNative total metric should be native histogram (no _count suffix): ${totalMetric}`)
+    }
+  }
+  
+  // Validate that we have the necessary metrics for bool gauge indicators
+  if (isBoolGaugeIndicator && objective.indicator?.options?.case === 'boolGauge') {
+    const boolGaugeIndicator = objective.indicator.options.value
+    const boolGaugeMetric = boolGaugeIndicator.boolGauge?.metric
+    if (boolGaugeMetric === undefined || boolGaugeMetric === '') {
+      console.error('[BurnRateThresholdDisplay] BoolGauge indicator missing boolGauge metric')
+      return <span title="Missing boolean gauge metric for calculation">Unable to calculate (see console)</span>
     }
   }
   
@@ -310,7 +352,7 @@ const DynamicThresholdValue: React.FC<{
 /**
  * Extract base metric selector from objective - following existing Pyrra patterns
  * This should match how the backend generates alert rule queries
- * Extended to support both ratio and latency indicators with proper histogram handling
+ * Extended to support ratio, latency, and latencyNative indicators with proper histogram handling
  */
 function getBaseMetricSelector(objective: Objective): string {
   // Handle ratio indicators
@@ -334,6 +376,25 @@ function getBaseMetricSelector(objective: Objective): string {
         return totalMetric.replace('_bucket', '_count')
       }
       return totalMetric
+    }
+  }
+  
+  // Handle latencyNative indicators - use the total metric with histogram_count() function
+  if (objective.indicator?.options?.case === 'latencyNative') {
+    const latencyNativeIndicator = objective.indicator.options.value
+    const totalMetric = latencyNativeIndicator.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      // Native histograms use histogram_count() function, not _count suffix
+      return totalMetric
+    }
+  }
+  
+  // Handle boolGauge indicators - use the boolGauge metric for traffic calculation
+  if (objective.indicator?.options?.case === 'boolGauge') {
+    const boolGaugeIndicator = objective.indicator.options.value
+    const boolGaugeMetric = boolGaugeIndicator.boolGauge?.metric
+    if (boolGaugeMetric !== undefined && boolGaugeMetric !== '') {
+      return boolGaugeMetric
     }
   }
   

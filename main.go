@@ -319,6 +319,42 @@ func cmdAPI(
 
 	prometheusInterceptor := connectprometheus.NewInterceptor(reg)
 
+	// Add custom duration histogram for native histogram support
+	durationHistogram := prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "connect_server_requests_duration_seconds",
+			Help: "Duration of connect server requests in seconds",
+			// Use only native histogram (no classic buckets)
+			NativeHistogramBucketFactor:     1.1,
+			NativeHistogramMaxBucketNumber:  100,
+			NativeHistogramMinResetDuration: time.Hour,
+		},
+		[]string{"service", "method", "code"},
+	)
+	reg.MustRegister(durationHistogram)
+
+	// Create custom duration interceptor
+	durationInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return connect.UnaryFunc(func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			start := time.Now()
+			resp, err := next(ctx, req)
+			duration := time.Since(start).Seconds()
+
+			// Extract labels
+			service := req.Spec().Procedure
+			method := req.Spec().Procedure
+			code := "ok"
+			if err != nil {
+				code = "error"
+			}
+
+			// Record duration
+			durationHistogram.WithLabelValues(service, method, code).Observe(duration)
+
+			return resp, err
+		})
+	})
+
 	r.Route(routePrefix, func(r chi.Router) {
 		clientConfig := promconfig.HTTPClientConfig{
 			TLSConfig: promconfig.TLSConfig{
@@ -343,14 +379,14 @@ func cmdAPI(
 				objectivesv1alpha1connect.NewObjectiveBackendServiceClient(
 					client,
 					apiURL.String(),
-					connect.WithInterceptors(prometheusInterceptor),
+					connect.WithInterceptors(prometheusInterceptor, durationInterceptor),
 				),
 			),
 		}
 
 		objectivePath, objectiveHandler := objectivesv1alpha1connect.NewObjectiveServiceHandler(
 			objectiveService,
-			connect.WithInterceptors(prometheusInterceptor),
+			connect.WithInterceptors(prometheusInterceptor, durationInterceptor),
 		)
 
 		prometheusService := &prometheusServer{

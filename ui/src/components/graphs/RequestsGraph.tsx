@@ -75,8 +75,20 @@ const RequestsGraph = ({
     const baseSelector = getBaseMetricSelector(objective)
     if (baseSelector === 'unknown_metric') return ''
     
-    // Use 4d6h51m window (longest alert window) for baseline calculation
-    return `sum(rate(${baseSelector}[4d6h51m]))`
+    // Handle different indicator types with appropriate query patterns
+    const isLatencyNativeIndicator = objective.indicator?.options?.case === 'latencyNative'
+    const isBoolGaugeIndicator = objective.indicator?.options?.case === 'boolGauge'
+    
+    if (isLatencyNativeIndicator) {
+      // LatencyNative uses histogram_count() for native histograms
+      return `sum(histogram_count(rate(${baseSelector}[4d6h51m])))`
+    } else if (isBoolGaugeIndicator) {
+      // BoolGauge uses count_over_time() aggregation for traffic calculation
+      return `sum(count_over_time(${baseSelector}[4d6h51m])) / (4*24*60*60 + 6*60*60 + 51*60)` // Convert to per-second rate
+    } else {
+      // Ratio and Latency indicators use standard rate() pattern
+      return `sum(rate(${baseSelector}[4d6h51m]))`
+    }
   }
 
   const baselineQuery = getTrafficBaselineQuery()
@@ -304,6 +316,25 @@ function getBaseMetricSelector(objective: Objective): string {
         return totalMetric.replace('_bucket', '_count')
       }
       return totalMetric
+    }
+  }
+  
+  // Handle latencyNative indicators - use the total metric with histogram_count() function
+  if (objective.indicator?.options?.case === 'latencyNative') {
+    const latencyNativeIndicator = objective.indicator.options.value
+    const totalMetric = latencyNativeIndicator.total?.metric
+    if (totalMetric != null && totalMetric !== '') {
+      // Native histograms use histogram_count() function, not _count suffix
+      return totalMetric
+    }
+  }
+  
+  // Handle boolGauge indicators - use the boolGauge metric for traffic calculation
+  if (objective.indicator?.options?.case === 'boolGauge') {
+    const boolGaugeIndicator = objective.indicator.options.value
+    const boolGaugeMetric = boolGaugeIndicator.boolGauge?.metric
+    if (boolGaugeMetric != null && boolGaugeMetric !== '') {
+      return boolGaugeMetric
     }
   }
   

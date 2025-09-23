@@ -24,6 +24,7 @@ bin
 *~
 
 /pyrra
+pyrra-*
 
 # dist folder
 /dist
