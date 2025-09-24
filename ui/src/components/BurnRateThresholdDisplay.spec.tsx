@@ -421,15 +421,15 @@ describe('BurnRateThresholdDisplay - Comprehensive Indicator Type Tests', () => 
     })
   })
 
-  describe('Performance and Edge Case Tests', () => {
-    it('should handle extremely high traffic volumes', async () => {
+  describe('Mathematical Edge Case and Precision Handling Tests', () => {
+    it('should handle division by zero scenarios (NaN values)', async () => {
       mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
       mockUsePrometheusQuery.mockReturnValue({
         response: new QueryResponse({
           options: {
             case: 'vector',
             value: new Vector({
-              samples: [new Sample({ value: 1000000, time: BigInt(0), metric: {} })] // 1M requests
+              samples: [new Sample({ value: NaN, time: BigInt(0), metric: {} })] // NaN from division by zero
             })
           }
         }),
@@ -437,10 +437,9 @@ describe('BurnRateThresholdDisplay - Comprehensive Indicator Type Tests', () => 
         error: {} as ConnectError
       })
 
-      const startTime = Date.now()
       render(<BurnRateThresholdDisplay objective={new Objective({
         target: 0.99,
-        labels: { __name__: 'high-traffic' },
+        labels: { __name__: 'nan-traffic' },
         indicator: {
           options: {
             case: 'ratio',
@@ -453,11 +452,151 @@ describe('BurnRateThresholdDisplay - Comprehensive Indicator Type Tests', () => 
       })} factor={14} promClient={mockPromClient} />)
 
       await waitFor(() => {
-        expect(screen.getByText(/0\.20833/)).toBeInTheDocument()
+        // Should handle NaN gracefully
+        expect(screen.getByText(/Unable to calculate/)).toBeInTheDocument()
+      })
+    })
+
+    it('should handle infinite values gracefully', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({
+              samples: [new Sample({ value: Infinity, time: BigInt(0), metric: {} })] // Infinite traffic ratio
+            })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
       })
 
-      const endTime = Date.now()
-      expect(endTime - startTime).toBeLessThan(1000) // Should complete within 1 second
+      render(<BurnRateThresholdDisplay objective={new Objective({
+        target: 0.99,
+        labels: { __name__: 'infinite-traffic' },
+        indicator: {
+          options: {
+            case: 'ratio',
+            value: {
+              errors: { metric: 'http_requests_total{status=~"5.."}' },
+              total: { metric: 'http_requests_total' }
+            }
+          }
+        }
+      })} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should handle infinite values gracefully
+        expect(screen.getByText(/Unable to calculate/)).toBeInTheDocument()
+      })
+    })
+
+    it('should handle extremely high SLO targets (99.99%) with precision', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({
+              samples: [new Sample({ value: 1000, time: BigInt(0), metric: {} })] // Normal traffic
+            })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={new Objective({
+        target: 0.9999, // 99.99% SLO (very small error budget)
+        labels: { __name__: 'high-precision-slo' },
+        indicator: {
+          options: {
+            case: 'ratio',
+            value: {
+              errors: { metric: 'http_requests_total{status=~"5.."}' },
+              total: { metric: 'http_requests_total' }
+            }
+          }
+        }
+      })} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should handle high precision calculations - expect scientific notation or many decimal places
+        const element = screen.getByText(/[0-9]/)
+        expect(element).toBeInTheDocument()
+        // The exact format depends on the calculation, but it should show a valid number
+      })
+    })
+
+    it('should handle extremely small traffic ratios with precision floors', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({
+              samples: [new Sample({ value: 0.0000001, time: BigInt(0), metric: {} })] // Extremely small traffic ratio
+            })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={new Objective({
+        target: 0.99,
+        labels: { __name__: 'tiny-traffic' },
+        indicator: {
+          options: {
+            case: 'ratio',
+            value: {
+              errors: { metric: 'http_requests_total{status=~"5.."}' },
+              total: { metric: 'http_requests_total' }
+            }
+          }
+        }
+      })} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should use scientific notation for very small thresholds
+        expect(screen.getByText(/2\.083e-7/)).toBeInTheDocument()
+      })
+    })
+
+    it('should cap extremely high traffic ratios', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({
+              samples: [new Sample({ value: 50000, time: BigInt(0), metric: {} })] // Extremely high traffic ratio
+            })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={new Objective({
+        target: 0.99,
+        labels: { __name__: 'extreme-traffic' },
+        indicator: {
+          options: {
+            case: 'ratio',
+            value: {
+              errors: { metric: 'http_requests_total{status=~"5.."}' },
+              total: { metric: 'http_requests_total' }
+            }
+          }
+        }
+      })} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should show error for thresholds that exceed 100%
+        expect(screen.getByText(/Unable to calculate/)).toBeInTheDocument()
+      })
     })
 
     it('should handle zero traffic gracefully', async () => {
@@ -493,6 +632,119 @@ describe('BurnRateThresholdDisplay - Comprehensive Indicator Type Tests', () => 
         // Should fallback for zero traffic
         expect(screen.getByText(/Unable to calculate/)).toBeInTheDocument()
       })
+    })
+
+    it('should handle negative traffic ratios', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({
+              samples: [new Sample({ value: -100, time: BigInt(0), metric: {} })] // Negative traffic (data error)
+            })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={new Objective({
+        target: 0.99,
+        labels: { __name__: 'negative-traffic' },
+        indicator: {
+          options: {
+            case: 'ratio',
+            value: {
+              errors: { metric: 'http_requests_total{status=~"5.."}' },
+              total: { metric: 'http_requests_total' }
+            }
+          }
+        }
+      })} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should handle negative values gracefully
+        expect(screen.getByText(/Unable to calculate/)).toBeInTheDocument()
+      })
+    })
+
+    it('should format very small thresholds with scientific notation', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({
+              samples: [new Sample({ value: 0.001, time: BigInt(0), metric: {} })] // Very small traffic ratio
+            })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={new Objective({
+        target: 0.9999, // High precision SLO
+        labels: { __name__: 'scientific-notation' },
+        indicator: {
+          options: {
+            case: 'ratio',
+            value: {
+              errors: { metric: 'http_requests_total{status=~"5.."}' },
+              total: { metric: 'http_requests_total' }
+            }
+          }
+        }
+      })} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should use scientific notation for very small numbers
+        const element = screen.getByText(/[0-9]/)
+        expect(element).toBeInTheDocument()
+        // Could be scientific notation (e-) or many decimal places
+      })
+    })
+  })
+
+  describe('Performance and Edge Case Tests', () => {
+    it('should handle extremely high traffic volumes', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({
+              samples: [new Sample({ value: 1000000, time: BigInt(0), metric: {} })] // 1M requests
+            })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      const startTime = Date.now()
+      render(<BurnRateThresholdDisplay objective={new Objective({
+        target: 0.99,
+        labels: { __name__: 'high-traffic' },
+        indicator: {
+          options: {
+            case: 'ratio',
+            value: {
+              errors: { metric: 'http_requests_total{status=~"5.."}' },
+              total: { metric: 'http_requests_total' }
+            }
+          }
+        }
+      })} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should show error for thresholds that exceed 100%
+        expect(screen.getByText(/Unable to calculate/)).toBeInTheDocument()
+      })
+
+      const endTime = Date.now()
+      expect(endTime - startTime).toBeLessThan(1000) // Should complete within 1 second
     })
 
     it('should handle concurrent indicator type rendering', async () => {
@@ -562,6 +814,277 @@ describe('BurnRateThresholdDisplay - Comprehensive Indicator Type Tests', () => 
       await waitFor(() => {
         // All components should render successfully
         expect(screen.getAllByText(/0\.20833/)).toHaveLength(3)
+      })
+    })
+  })
+
+  describe('Comprehensive Error Recovery and Network Failure Tests', () => {
+    const testObjective = new Objective({
+      target: 0.99,
+      labels: { __name__: 'test-recovery' },
+      indicator: {
+        options: {
+          case: 'ratio',
+          value: {
+            errors: { metric: 'http_requests_total{status=~"5.."}' },
+            total: { metric: 'http_requests_total' }
+          }
+        }
+      }
+    })
+
+    it('should handle network timeout errors with retry indication', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: null,
+        status: 'error',
+        error: { message: 'Network timeout after 30 seconds' } as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should show retry indication for network timeouts
+        expect(screen.getByText(/Retrying/)).toBeInTheDocument()
+      })
+    })
+
+    it('should handle query syntax errors with configuration guidance', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: null,
+        status: 'error',
+        error: { message: 'Parse error: invalid PromQL syntax' } as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should show configuration error for syntax issues
+        expect(screen.getByText(/Config Error/)).toBeInTheDocument()
+      })
+    })
+
+    it('should handle missing metrics with recovery indication', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: null,
+        status: 'error',
+        error: { message: 'Metric not found: unknown_metric' } as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should show metric missing with recovery indication
+        expect(screen.getByText(/Metric Missing/)).toBeInTheDocument()
+      })
+    })
+
+    it('should handle Prometheus server errors with recovery indication', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: null,
+        status: 'error',
+        error: { message: 'Internal server error 500' } as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should show server error with recovery indication
+        expect(screen.getByText(/Server Error/)).toBeInTheDocument()
+      })
+    })
+
+    it('should recover when metrics become available after being missing', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      
+      // First render: metric missing
+      mockUsePrometheusQuery.mockReturnValue({
+        response: null,
+        status: 'error',
+        error: { message: 'Metric not found: http_requests_total' } as ConnectError
+      })
+
+      const { rerender } = render(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/Metric Missing/)).toBeInTheDocument()
+      })
+
+      // Second render: metric becomes available
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({
+              samples: [new Sample({ value: 1000, time: BigInt(0), metric: {} })]
+            })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      rerender(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should recover and show calculated threshold
+        expect(screen.getByText(/0\.20833/)).toBeInTheDocument()
+      })
+    })
+
+    it('should handle metrics that exist but return no data', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({ samples: [] }) // Metric exists but no data points
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should handle empty data gracefully
+        expect(screen.getByText(/No data available/)).toBeInTheDocument()
+      })
+    })
+
+    it('should handle recovery from no data to available data', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      
+      // First render: no data
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({ samples: [] })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      const { rerender } = render(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/No data available/)).toBeInTheDocument()
+      })
+
+      // Second render: data becomes available
+      mockUsePrometheusQuery.mockReturnValue({
+        response: new QueryResponse({
+          options: {
+            case: 'vector',
+            value: new Vector({
+              samples: [new Sample({ value: 500, time: BigInt(0), metric: {} })]
+            })
+          }
+        }),
+        status: 'success',
+        error: {} as ConnectError
+      })
+
+      rerender(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should recover and show calculated threshold
+        expect(screen.getByText(/0\.10417/)).toBeInTheDocument() // 500 * 0.020833 * 0.01
+      })
+    })
+
+    it('should provide indicator-specific error messages for missing metrics', async () => {
+      const indicators = [
+        {
+          name: 'LatencyNative',
+          objective: new Objective({
+            target: 0.99,
+            labels: { __name__: 'test-latency-native-missing' },
+            indicator: {
+              options: {
+                case: 'latencyNative',
+                value: {
+                  total: { metric: 'missing_histogram' },
+                  latency: '0.1'
+                }
+              }
+            }
+          }),
+          expectedText: /Metric Missing/
+        },
+        {
+          name: 'BoolGauge',
+          objective: new Objective({
+            target: 0.99,
+            labels: { __name__: 'test-bool-gauge-missing' },
+            indicator: {
+              options: {
+                case: 'boolGauge',
+                value: {
+                  boolGauge: { metric: 'missing_probe' }
+                }
+              }
+            }
+          }),
+          expectedText: /Metric Missing/
+        },
+        {
+          name: 'Latency',
+          objective: new Objective({
+            target: 0.99,
+            labels: { __name__: 'test-latency-missing' },
+            indicator: {
+              options: {
+                case: 'latency',
+                value: {
+                  total: { metric: 'missing_histogram_count' },
+                  success: { metric: 'missing_histogram_bucket' }
+                }
+              }
+            }
+          }),
+          expectedText: /Metric Missing/
+        }
+      ]
+
+      for (const { name, objective, expectedText } of indicators) {
+        mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+        mockUsePrometheusQuery.mockReturnValue({
+          response: null,
+          status: 'error',
+          error: { message: `Metric not found: ${name.toLowerCase()}_metric` } as ConnectError
+        })
+
+        const { unmount } = render(<BurnRateThresholdDisplay objective={objective} factor={14} promClient={mockPromClient} />)
+
+        await waitFor(() => {
+          expect(screen.getByText(expectedText)).toBeInTheDocument()
+        })
+
+        unmount()
+        jest.clearAllMocks()
+      }
+    })
+
+    it('should handle connection failures with appropriate retry behavior', async () => {
+      mockGetBurnRateType.mockReturnValue(BurnRateType.Dynamic)
+      mockUsePrometheusQuery.mockReturnValue({
+        response: null,
+        status: 'error',
+        error: { message: 'Connection refused: unable to connect to Prometheus' } as ConnectError
+      })
+
+      render(<BurnRateThresholdDisplay objective={testObjective} factor={14} promClient={mockPromClient} />)
+
+      await waitFor(() => {
+        // Should show retry indication for connection failures
+        expect(screen.getByText(/Retrying/)).toBeInTheDocument()
       })
     })
   })

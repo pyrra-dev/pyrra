@@ -129,6 +129,40 @@ The testing environment consists of:
 - Confirm alert sensitivity matches expected behavior
 - Use terminal commands for mathematical verification (no LLM calculations)
 
+#### API Testing Commands
+
+**Local Development API Structure**: Pyrra uses **two separate services** with different API endpoints:
+
+1. **API Service** (`./pyrra api`):
+   - **Port**: 9099
+   - **Purpose**: Full-featured API server with embedded UI
+   - **Endpoint**: `/objectives.v1alpha1.ObjectiveService/List`
+   - **Features**: Complete ObjectiveService with List, GetStatus, GetAlerts, Graph* methods
+
+2. **Kubernetes Backend Service** (`./pyrra kubernetes`):
+   - **Port**: 9444
+   - **Purpose**: Lightweight backend that connects to Kubernetes cluster
+   - **Endpoint**: `/objectives.v1alpha1.ObjectiveBackendService/List`
+   - **Features**: Limited ObjectiveBackendService with only List method
+
+**Correct API Testing Commands**:
+
+```bash
+# Test Kubernetes Backend Service (port 9444)
+curl -X POST -H "Content-Type: application/json" -d '{}' \
+  "http://localhost:9444/objectives.v1alpha1.ObjectiveBackendService/List"
+
+# Test Full API Service (port 9099)
+curl -X POST -H "Content-Type: application/json" -d '{}' \
+  "http://localhost:9099/objectives.v1alpha1.ObjectiveService/List"
+```
+
+**Protocol Details**:
+- **Protocol**: Connect protocol (gRPC-Web compatible)
+- **Content-Type**: `application/json`
+- **Method**: POST requests to service endpoints
+- **Request Body**: JSON payload (e.g., `{}` for List requests)
+
 ### File References for Implementation
 
 #### Core Implementation Files

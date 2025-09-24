@@ -206,6 +206,8 @@ const DynamicThresholdValue: React.FC<{
     return <span title={`Unsupported indicator type: ${unsupportedType}`}>Traffic-Aware</span>
   }
   
+
+  
   // Validate that we have the necessary metrics for latency indicators
   if (isLatencyIndicator && objective.indicator?.options?.case === 'latency') {
     const latencyIndicator = objective.indicator.options.value
@@ -277,17 +279,61 @@ const DynamicThresholdValue: React.FC<{
     }
   }
   
-  // Handle query errors with detailed logging and indicator-specific fallback
+  // Enhanced error handling with retry logic and recovery mechanisms
   if (trafficStatus === 'error') {
     if (trafficError !== undefined) {
       console.error('[BurnRateThresholdDisplay] Traffic query failed:', {
         query: trafficQuery,
         error: trafficError.message,
         indicatorType,
-        sloName
+        sloName,
+        timestamp: new Date().toISOString()
       })
       
-      // Provide indicator-specific error guidance
+      // Categorize error types for better recovery strategies
+      const errorMessage = trafficError.message.toLowerCase()
+      
+      // Network/timeout errors - suggest retry
+      if (errorMessage.includes('timeout') || errorMessage.includes('network') || errorMessage.includes('connection')) {
+        console.warn('[BurnRateThresholdDisplay] Network/timeout error detected - component will retry on next render')
+        return <span title="Network timeout. Retrying... Fallback to static thresholds if persistent.">Retrying...</span>
+      }
+      
+      // Query syntax errors - likely configuration issue
+      if (errorMessage.includes('parse') || errorMessage.includes('syntax') || errorMessage.includes('invalid')) {
+        console.error('[BurnRateThresholdDisplay] Query syntax error - check metric configuration')
+        return <span title="Query syntax error. Check SLO metric configuration. Fallback to static thresholds.">Config Error</span>
+      }
+      
+      // Missing metrics - provide recovery guidance
+      if (errorMessage.includes('not found') || errorMessage.includes('no data') || errorMessage.includes('unknown metric')) {
+        console.warn('[BurnRateThresholdDisplay] Metric not found - may recover when metrics become available')
+        
+        // Provide indicator-specific guidance for missing metrics
+        if (isLatencyNativeIndicator) {
+          console.error('[BurnRateThresholdDisplay] LatencyNative metric not found - check if native histograms are enabled and metric exists')
+          return <span title="LatencyNative: Metric not found. Check native histogram support and metric name. Will recover when available.">Metric Missing</span>
+        } else if (isBoolGaugeIndicator) {
+          console.error('[BurnRateThresholdDisplay] BoolGauge metric not found - check if boolean gauge metric exists')
+          return <span title="BoolGauge: Metric not found. Check if probe/gauge metric exists. Will recover when available.">Metric Missing</span>
+        } else if (isLatencyIndicator) {
+          console.error('[BurnRateThresholdDisplay] Latency histogram metric not found - check if histogram _count metric exists')
+          return <span title="Latency: Histogram metric not found. Check if _count metric exists. Will recover when available.">Metric Missing</span>
+        } else if (isRatioIndicator) {
+          console.error('[BurnRateThresholdDisplay] Ratio metric not found - check if counter metric exists')
+          return <span title="Ratio: Counter metric not found. Check if metric exists. Will recover when available.">Metric Missing</span>
+        }
+        
+        return <span title="Metric not found. Will recover when metric becomes available.">Metric Missing</span>
+      }
+      
+      // Prometheus server errors - may be temporary
+      if (errorMessage.includes('server') || errorMessage.includes('internal') || errorMessage.includes('unavailable')) {
+        console.warn('[BurnRateThresholdDisplay] Prometheus server error - may recover automatically')
+        return <span title="Prometheus server error. May recover automatically. Fallback to static thresholds if persistent.">Server Error</span>
+      }
+      
+      // Provide indicator-specific error guidance for unknown errors
       if (isLatencyNativeIndicator) {
         console.error('[BurnRateThresholdDisplay] LatencyNative query failed - check if native histograms are enabled in Prometheus')
         return <span title="LatencyNative: Query failed. Check native histogram support. Fallback to static thresholds.">Static Thresholds</span>
@@ -305,32 +351,114 @@ const DynamicThresholdValue: React.FC<{
     return <span title="Calculating dynamic threshold...">Calculating...</span>
   }
   
-  // Calculate the base threshold constant (this part doesn't change with traffic)
-  const thresholdConstant = getThresholdConstant(factor) * (1 - target)
-  
-  // Helper function to validate and sanitize traffic ratio values
-  const validateTrafficRatio = (trafficRatio: number): { isValid: boolean; sanitizedValue: number; errorMessage?: string } => {
-    // Check for mathematical edge cases
-    if (!isFinite(trafficRatio)) {
-      console.error('[BurnRateThresholdDisplay] Traffic ratio is not finite:', trafficRatio)
-      return { isValid: false, sanitizedValue: 1, errorMessage: 'Invalid traffic ratio (not finite)' }
+  // Helper function to validate and calculate threshold constant with edge case handling
+  const calculateThresholdConstant = (factor: number, target: number): { constant: number; isValid: boolean; errorMessage?: string } => {
+    // Validate target value
+    if (isNaN(target) || !isFinite(target)) {
+      console.error('[BurnRateThresholdDisplay] Invalid SLO target:', target)
+      return { constant: 0.01, isValid: false, errorMessage: 'Invalid SLO target' }
     }
     
+    if (target < 0 || target > 1) {
+      console.error('[BurnRateThresholdDisplay] SLO target out of range [0,1]:', target)
+      return { constant: 0.01, isValid: false, errorMessage: 'SLO target out of valid range' }
+    }
+    
+    // Calculate error budget (1 - target)
+    const errorBudget = 1 - target
+    
+    // Check for extremely high SLO targets (very small error budgets)
+    if (errorBudget < 0.0001) { // Less than 0.01% error budget (99.99% SLO)
+      console.warn('[BurnRateThresholdDisplay] Very high SLO target detected (>99.99%):', target)
+      // Use higher precision for very small error budgets
+      const preciseErrorBudget = Number((1 - target).toPrecision(10))
+      const thresholdPercent = getThresholdConstant(factor)
+      const constant = thresholdPercent * preciseErrorBudget
+      
+      // Ensure we don't get zero or negative constants
+      if (constant <= 0 || !isFinite(constant)) {
+        console.error('[BurnRateThresholdDisplay] Calculated threshold constant is invalid:', constant)
+        return { constant: Number.EPSILON, isValid: false, errorMessage: 'Threshold constant too small for precision' }
+      }
+      
+      return { constant, isValid: true, errorMessage: 'High precision calculation for very high SLO target' }
+    }
+    
+    // Standard calculation for normal SLO targets
+    const thresholdPercent = getThresholdConstant(factor)
+    const constant = thresholdPercent * errorBudget
+    
+    // Validate the calculated constant
+    if (!isFinite(constant) || constant <= 0) {
+      console.error('[BurnRateThresholdDisplay] Invalid threshold constant calculated:', constant)
+      return { constant: 0.01, isValid: false, errorMessage: 'Invalid threshold constant calculation' }
+    }
+    
+    return { constant, isValid: true }
+  }
+  
+  // Calculate the base threshold constant with validation
+  const thresholdResult = calculateThresholdConstant(factor, target)
+  const thresholdConstant = thresholdResult.constant
+  
+  // Check for threshold constant calculation errors early
+  if (!thresholdResult.isValid) {
+    console.error('[BurnRateThresholdDisplay] Threshold constant calculation failed:', thresholdResult.errorMessage)
+    return <span title={`Threshold calculation error: ${thresholdResult.errorMessage ?? 'Unknown error'}`}>Unable to calculate (see console)</span>
+  }
+  
+  // Helper function to validate and sanitize traffic ratio values with comprehensive edge case handling
+  const validateTrafficRatio = (trafficRatio: number): { isValid: boolean; sanitizedValue: number; errorMessage?: string } => {
+    // Check for NaN values (division by zero or invalid calculations)
+    if (isNaN(trafficRatio)) {
+      console.error('[BurnRateThresholdDisplay] Traffic ratio is NaN (possible division by zero):', trafficRatio)
+      return { isValid: false, sanitizedValue: 1, errorMessage: 'Invalid calculation (NaN)' }
+    }
+    
+    // Check for infinite values (division by zero)
+    if (!isFinite(trafficRatio)) {
+      console.error('[BurnRateThresholdDisplay] Traffic ratio is not finite:', trafficRatio)
+      return { isValid: false, sanitizedValue: 1, errorMessage: 'Invalid traffic ratio (infinite)' }
+    }
+    
+    // Check for zero or negative values (no traffic or invalid data)
     if (trafficRatio <= 0) {
       console.warn('[BurnRateThresholdDisplay] Traffic ratio is zero or negative:', trafficRatio)
       return { isValid: false, sanitizedValue: 1, errorMessage: 'No traffic data available' }
     }
     
-    // Check for extremely high ratios that might indicate data issues
+    // Check for extremely small values that might indicate precision issues
+    if (trafficRatio < Number.EPSILON) {
+      console.warn('[BurnRateThresholdDisplay] Traffic ratio below machine epsilon:', trafficRatio)
+      return { isValid: false, sanitizedValue: 0.001, errorMessage: 'Traffic ratio too small (precision limit)' }
+    }
+    
+    // Check for extremely high ratios that might indicate data issues or calculation errors
+    if (trafficRatio > 10000) {
+      console.warn('[BurnRateThresholdDisplay] Extremely high traffic ratio detected (>10000x):', trafficRatio)
+      return { isValid: true, sanitizedValue: 10000, errorMessage: 'Traffic ratio capped at 10000x (data anomaly protection)' }
+    }
+    
+    // Check for very high ratios that might indicate unusual traffic patterns
     if (trafficRatio > 1000) {
-      console.warn('[BurnRateThresholdDisplay] Extremely high traffic ratio detected:', trafficRatio)
+      console.warn('[BurnRateThresholdDisplay] Very high traffic ratio detected (>1000x):', trafficRatio)
       return { isValid: true, sanitizedValue: Math.min(trafficRatio, 1000), errorMessage: 'Traffic ratio capped at 1000x' }
     }
     
-    // Check for very small ratios that might indicate insufficient data
+    // Check for very small ratios that might indicate insufficient data or unusual patterns
     if (trafficRatio < 0.001) {
-      console.warn('[BurnRateThresholdDisplay] Very low traffic ratio detected:', trafficRatio)
+      console.warn('[BurnRateThresholdDisplay] Very low traffic ratio detected (<0.001x):', trafficRatio)
       return { isValid: true, sanitizedValue: Math.max(trafficRatio, 0.001), errorMessage: 'Traffic ratio floored at 0.001x' }
+    }
+    
+    // Check for precision issues with very small numbers (high SLO targets like 99.99%)
+    if (trafficRatio > 0 && trafficRatio < 0.01) {
+      // For very small ratios, ensure we maintain sufficient precision
+      const precisionCheck = Number(trafficRatio.toPrecision(6))
+      if (Math.abs(precisionCheck - trafficRatio) / trafficRatio > 0.01) {
+        console.warn('[BurnRateThresholdDisplay] Precision loss detected for small traffic ratio:', trafficRatio)
+        return { isValid: true, sanitizedValue: precisionCheck, errorMessage: 'Precision adjusted for small values' }
+      }
     }
     
     return { isValid: true, sanitizedValue: trafficRatio }
@@ -350,13 +478,62 @@ const DynamicThresholdValue: React.FC<{
     }
     
     const trafficRatio = validation.sanitizedValue
-    const dynamicThreshold = trafficRatio * thresholdConstant
     
-    return (
-      <span>
-        {dynamicThreshold.toFixed(5)}
-      </span>
-    )
+    // Calculate dynamic threshold with additional validation
+    const rawDynamicThreshold = trafficRatio * thresholdConstant
+    
+    // Validate the final threshold calculation
+    if (!isFinite(rawDynamicThreshold) || isNaN(rawDynamicThreshold)) {
+      console.error('[BurnRateThresholdDisplay] Invalid dynamic threshold calculation:', {
+        trafficRatio,
+        thresholdConstant,
+        result: rawDynamicThreshold
+      })
+      return <span title="Calculation error in dynamic threshold">Unable to calculate (see console)</span>
+    }
+    
+    // Handle extremely small thresholds (precision issues)
+    if (rawDynamicThreshold < Number.EPSILON) {
+      console.warn('[BurnRateThresholdDisplay] Dynamic threshold below machine epsilon:', rawDynamicThreshold)
+      const fallbackThreshold = Number.EPSILON
+      return (
+        <span title="Threshold adjusted for precision limits">
+          {fallbackThreshold.toExponential(3)}
+        </span>
+      )
+    }
+    
+    // Handle extremely large thresholds (likely calculation error)
+    if (rawDynamicThreshold > 1) {
+      console.error('[BurnRateThresholdDisplay] Dynamic threshold exceeds 100%:', rawDynamicThreshold)
+      return <span title="Threshold calculation error (>100%)">Unable to calculate (see console)</span>
+    }
+    
+    const dynamicThreshold = rawDynamicThreshold
+    
+    // Choose appropriate formatting based on threshold magnitude
+    if (dynamicThreshold < 0.00001) {
+      // Use scientific notation for very small numbers
+      return (
+        <span title={`Very small threshold: ${dynamicThreshold.toExponential(3)}`}>
+          {dynamicThreshold.toExponential(3)}
+        </span>
+      )
+    } else if (dynamicThreshold < 0.001) {
+      // Use more decimal places for small numbers
+      return (
+        <span>
+          {dynamicThreshold.toFixed(8)}
+        </span>
+      )
+    } else {
+      // Standard formatting for normal thresholds
+      return (
+        <span>
+          {dynamicThreshold.toFixed(5)}
+        </span>
+      )
+    }
   }
   
   if (trafficResponse?.options?.case === 'scalar') {
@@ -369,13 +546,62 @@ const DynamicThresholdValue: React.FC<{
     }
     
     const trafficRatio = validation.sanitizedValue
-    const dynamicThreshold = trafficRatio * thresholdConstant
     
-    return (
-      <span>
-        {dynamicThreshold.toFixed(5)}
-      </span>
-    )
+    // Calculate dynamic threshold with additional validation
+    const rawDynamicThreshold = trafficRatio * thresholdConstant
+    
+    // Validate the final threshold calculation
+    if (!isFinite(rawDynamicThreshold) || isNaN(rawDynamicThreshold)) {
+      console.error('[BurnRateThresholdDisplay] Invalid dynamic threshold calculation:', {
+        trafficRatio,
+        thresholdConstant,
+        result: rawDynamicThreshold
+      })
+      return <span title="Calculation error in dynamic threshold">Unable to calculate (see console)</span>
+    }
+    
+    // Handle extremely small thresholds (precision issues)
+    if (rawDynamicThreshold < Number.EPSILON) {
+      console.warn('[BurnRateThresholdDisplay] Dynamic threshold below machine epsilon:', rawDynamicThreshold)
+      const fallbackThreshold = Number.EPSILON
+      return (
+        <span title="Threshold adjusted for precision limits">
+          {fallbackThreshold.toExponential(3)}
+        </span>
+      )
+    }
+    
+    // Handle extremely large thresholds (likely calculation error)
+    if (rawDynamicThreshold > 1) {
+      console.error('[BurnRateThresholdDisplay] Dynamic threshold exceeds 100%:', rawDynamicThreshold)
+      return <span title="Threshold calculation error (>100%)">Unable to calculate (see console)</span>
+    }
+    
+    const dynamicThreshold = rawDynamicThreshold
+    
+    // Choose appropriate formatting based on threshold magnitude
+    if (dynamicThreshold < 0.00001) {
+      // Use scientific notation for very small numbers
+      return (
+        <span title={`Very small threshold: ${dynamicThreshold.toExponential(3)}`}>
+          {dynamicThreshold.toExponential(3)}
+        </span>
+      )
+    } else if (dynamicThreshold < 0.001) {
+      // Use more decimal places for small numbers
+      return (
+        <span>
+          {dynamicThreshold.toFixed(8)}
+        </span>
+      )
+    } else {
+      // Standard formatting for normal thresholds
+      return (
+        <span>
+          {dynamicThreshold.toFixed(5)}
+        </span>
+      )
+    }
   }
   
   // Handle case where query succeeded but returned no data
