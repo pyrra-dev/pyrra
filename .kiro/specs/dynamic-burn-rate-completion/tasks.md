@@ -95,7 +95,10 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 ## Task Group 4: Additional Indicator Type Support
 
-- [ ] 4. Extend BurnRateThresholdDisplay for LatencyNative indicators
+- [x] 4. Extend BurnRateThresholdDisplay for LatencyNative indicators
+
+
+
 
 
 

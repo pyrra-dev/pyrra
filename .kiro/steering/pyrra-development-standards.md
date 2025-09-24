@@ -185,25 +185,37 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 
 ### Task Completion Process
 
-1. **Code Quality Validation**: ALWAYS check for compilation and syntax errors before proceeding:
+1. **MANDATORY Pre-Development Type Research**: ALWAYS understand types and APIs before writing code:
+
+   **A. Check Actual Type Definitions First:**
+
+   - **Read .d.ts files** for protobuf messages, React components, and external libraries
+   - **Never assume API structure** - always verify actual type definitions
+   - **Example**: Before using `Objective`, read `ui/src/proto/objectives/v1alpha1/objectives_pb.d.ts`
+   - **Check constructor signatures** and required vs optional properties
+
+   **B. Follow Existing Patterns:**
+
+   - **Always examine working examples** before writing new code
+   - **Look at existing test files** to see how types are used correctly
+   - **Copy proven patterns** rather than inventing new approaches
+   - **Example**: Check `ui/src/components/BurnRateThresholdDisplay.spec.tsx` before writing new tests
+
+   **C. Understand API Surface Before Implementation:**
+
+   - **Read component interfaces** and prop types
+   - **Check import statements** in existing files to understand correct imports
+   - **Verify mock patterns** used in existing tests
+   - **Test small pieces first** rather than writing large files
+
+2. **Code Quality Validation**: ALWAYS check for compilation and syntax errors before proceeding:
 
    - **Kiro IDE Problems Tab**: Check the Problems tab in Kiro IDE for TypeScript errors, syntax issues, and other compilation problems
    - **Ask User for Problem Report**: If unable to resolve compilation errors, ask user to check Problems tab and report specific errors with file names, line numbers, and error messages
    - **Fix Before Proceeding**: All compilation errors must be resolved before moving to testing phase
    - **Example Request**: "Please check the Problems tab in Kiro IDE and let me know if there are any TypeScript errors or compilation issues in the files I modified"
 
-2. **Implementation Testing**: ALWAYS test the changes made within the task before asking for approval:
-
-   - **Interactive Testing Approach**: Guide user through small, focused test steps rather than long test lists
-   - **Primary testing**: Use development UI (`npm start` on port 3000) - sufficient for most validation
-   - Guide one small test step at a time: "Please do X and tell me what you see"
-   - Wait for user feedback before proceeding to next test step
-   - Check browser console for errors or warnings
-   - Test edge cases and error scenarios when applicable
-   - Validate performance impact if performance-related changes were made
-   - **Optional final validation**: Test embedded UI (`npm run build && make build && ./pyrra api`) only when specifically needed
-
-3. **MANDATORY Documentation Updates**: BEFORE asking for approval, ALWAYS update relevant documentation:
+3. **Implementation Testing**: ALWAYS test the changes made within the task before asking for approval:
 
    - **Steering documents** (`.kiro/steering/`) if workflow or standards change
    - **Spec documents** (`.kiro/specs/`) if requirements or design evolve
@@ -211,15 +223,29 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
    - **Original Pyrra documentation** if user-facing features are added
    - **NEVER skip this step** - documentation updates are required before approval
 
-4. **Pre-Completion Confirmation**: Only after successful code validation, testing AND documentation updates, ask user before declaring task completion
+4. **MANDATORY Documentation Updates**: BEFORE asking for approval, ALWAYS update relevant documentation:
 
-5. **Git Status Review**: Run `git status` after completion to identify:
+   - **Steering documents** (`.kiro/steering/`) if workflow or standards change
+   - **Spec documents** (`.kiro/specs/`) if requirements or design evolve
+   - **Feature documentation** (`.dev-docs/`) for internal implementation details
+   - **Original Pyrra documentation** if user-facing features are added
+   - **NEVER skip this step** - documentation updates are required before approval
+
+5. **Pre-Completion Confirmation**: MANDATORY - Only after successful type research, code validation, testing AND documentation updates, ask user for explicit approval before declaring task completion
+
+   - **NEVER declare task completion without user approval**
+   - **ALL sub-tasks must be completed and tested**
+   - **Ask explicitly**: "Are you ready for me to mark this task as complete?"
+   - **Wait for explicit approval** (e.g., "yes", "approved", "complete it")
+   - **If user identifies missing work, continue implementation**
+
+6. **Git Status Review**: Run `git status` after completion to identify:
 
    - Files that need to be committed
    - Files that should be discarded
    - Ask user if uncertain about any changes
 
-6. **Version Control**: Execute `git commit` and `git push` after user confirmation
+7. **Version Control**: Execute `git commit` and `git push` after user confirmation
 
 ### IDE Integration and Problem Resolution
 
@@ -237,16 +263,19 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 4. **Verification**: Confirm with user that Problems tab is clear before proceeding
 
 **Example Problem Report Format**:
+
 ```json
-[{
-  "resource": "/path/to/file.tsx",
-  "owner": "typescript", 
-  "code": "1128",
-  "severity": 8,
-  "message": "Declaration or statement expected.",
-  "startLineNumber": 850,
-  "startColumn": 1
-}]
+[
+  {
+    "resource": "/path/to/file.tsx",
+    "owner": "typescript",
+    "code": "1128",
+    "severity": 8,
+    "message": "Declaration or statement expected.",
+    "startLineNumber": 850,
+    "startColumn": 1
+  }
+]
 ```
 
 #### Common Problem Categories
@@ -255,6 +284,65 @@ go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 - **Syntax Errors**: Missing brackets, semicolons, malformed statements
 - **Import/Export Issues**: Incorrect module references, circular dependencies
 - **Test File Problems**: Mock configuration, type definitions, test structure
+
+#### TypeScript Test File Development Standards
+
+**MANDATORY Pre-Writing Checklist for .spec.tsx files:**
+
+1. **Type Definition Research (REQUIRED):**
+
+   ```bash
+   # Always check these before writing tests:
+   - Read component .d.ts files for protobuf messages
+   - Check existing .spec.tsx files for proven patterns
+   - Verify import statements and mock structures
+   - Understand constructor signatures and required properties
+   ```
+
+2. **Proven Pattern Copying (REQUIRED):**
+
+   ```typescript
+   // GOOD: Copy from working test file
+   import { ConnectError } from '@connectrpc/connect'
+   error: { message: 'Error text' } as ConnectError
+
+   // BAD: Assume constructor exists
+   error: new ConnectError('Error text', 'CODE')
+   ```
+
+3. **Protobuf Message Construction (REQUIRED):**
+
+   ```typescript
+   // GOOD: Check .d.ts file first, use direct properties
+   new Objective({
+     target: 0.99,
+     labels: { __name__: 'test' },
+     indicator: { value: { ratio: { ... } } }
+   })
+
+   // BAD: Assume nested spec property exists
+   new Objective({
+     spec: { target: '99', indicator: { ... } }
+   })
+   ```
+
+4. **Mock Pattern Verification (REQUIRED):**
+
+   ```typescript
+   // GOOD: Copy exact mock pattern from working tests
+   jest.mock("../prometheus", () => ({
+     usePrometheusQuery: jest.fn(),
+   }));
+
+   // BAD: Invent new mock patterns
+   ```
+
+**Test File Error Prevention Rules:**
+
+- **NEVER write test files without reading existing working examples first**
+- **ALWAYS verify type definitions in .d.ts files before using types**
+- **ALWAYS ask user to check Problems tab immediately after creating test files**
+- **ALWAYS fix ALL TypeScript errors before proceeding with test execution**
 
 ### Implementation Guidelines
 

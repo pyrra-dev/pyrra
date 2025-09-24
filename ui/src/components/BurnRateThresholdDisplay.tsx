@@ -221,32 +221,63 @@ const DynamicThresholdValue: React.FC<{
     }
   }
   
-  // Validate that we have the necessary metrics for latency native indicators
+  // Enhanced validation for LatencyNative indicators with specific error handling
   if (isLatencyNativeIndicator && objective.indicator?.options?.case === 'latencyNative') {
     const latencyNativeIndicator = objective.indicator.options.value
     const totalMetric = latencyNativeIndicator.total?.metric
+    const latencyThreshold = latencyNativeIndicator.latency
+    
+    // Check for missing total metric
     if (totalMetric === undefined || totalMetric === '') {
       console.error('[BurnRateThresholdDisplay] LatencyNative indicator missing total metric (native histogram)')
-      return <span title="Missing native histogram metric for latency calculation">Unable to calculate (see console)</span>
+      return <span title="LatencyNative: Missing native histogram metric. Fallback to static thresholds.">Static Thresholds</span>
     }
     
-    // Native histograms don't have _count suffix - they use histogram_count() function
+    // Check for missing latency threshold
+    if (latencyThreshold === undefined || latencyThreshold === '') {
+      console.error('[BurnRateThresholdDisplay] LatencyNative indicator missing latency threshold')
+      return <span title="LatencyNative: Missing latency threshold. Fallback to static thresholds.">Static Thresholds</span>
+    }
+    
+    // Validate native histogram metric format
     if (totalMetric.includes('_count') || totalMetric.includes('_bucket')) {
-      console.warn(`[BurnRateThresholdDisplay] LatencyNative total metric should be native histogram (no _count suffix): ${totalMetric}`)
+      console.warn(`[BurnRateThresholdDisplay] LatencyNative metric appears to be traditional histogram, not native: ${totalMetric}`)
+      return <span title="LatencyNative: Traditional histogram detected, use Latency indicator instead. Fallback to static thresholds.">Static Thresholds</span>
+    }
+    
+    // Check for common native histogram patterns
+    if (!totalMetric.includes('duration') && !totalMetric.includes('latency') && !totalMetric.includes('time')) {
+      console.warn(`[BurnRateThresholdDisplay] LatencyNative metric may not be a duration metric: ${totalMetric}`)
     }
   }
   
-  // Validate that we have the necessary metrics for bool gauge indicators
+  // Enhanced validation for BoolGauge indicators with specific error handling
   if (isBoolGaugeIndicator && objective.indicator?.options?.case === 'boolGauge') {
     const boolGaugeIndicator = objective.indicator.options.value
     const boolGaugeMetric = boolGaugeIndicator.boolGauge?.metric
+    
+    // Check for missing boolean gauge metric
     if (boolGaugeMetric === undefined || boolGaugeMetric === '') {
       console.error('[BurnRateThresholdDisplay] BoolGauge indicator missing boolGauge metric')
-      return <span title="Missing boolean gauge metric for calculation">Unable to calculate (see console)</span>
+      return <span title="BoolGauge: Missing boolean gauge metric (e.g., up, probe_success). Fallback to static thresholds.">Static Thresholds</span>
+    }
+    
+    // Validate boolean gauge metric patterns
+    const commonBoolGaugePatterns = ['up', 'probe_success', 'probe_http_status_code', 'healthy', 'available']
+    const hasCommonPattern = commonBoolGaugePatterns.some(pattern => boolGaugeMetric.includes(pattern))
+    
+    if (!hasCommonPattern) {
+      console.warn(`[BurnRateThresholdDisplay] BoolGauge metric may not be a typical boolean gauge: ${boolGaugeMetric}`)
+    }
+    
+    // Check for potential misuse of ratio metrics as boolean gauges
+    if (boolGaugeMetric.includes('_total') || boolGaugeMetric.includes('_count')) {
+      console.warn(`[BurnRateThresholdDisplay] BoolGauge metric appears to be a counter, consider using Ratio indicator: ${boolGaugeMetric}`)
+      return <span title="BoolGauge: Counter metric detected, use Ratio indicator instead. Fallback to static thresholds.">Static Thresholds</span>
     }
   }
   
-  // Handle query errors with detailed logging and graceful fallback
+  // Handle query errors with detailed logging and indicator-specific fallback
   if (trafficStatus === 'error') {
     if (trafficError !== undefined) {
       console.error('[BurnRateThresholdDisplay] Traffic query failed:', {
@@ -255,9 +286,18 @@ const DynamicThresholdValue: React.FC<{
         indicatorType,
         sloName
       })
+      
+      // Provide indicator-specific error guidance
+      if (isLatencyNativeIndicator) {
+        console.error('[BurnRateThresholdDisplay] LatencyNative query failed - check if native histograms are enabled in Prometheus')
+        return <span title="LatencyNative: Query failed. Check native histogram support. Fallback to static thresholds.">Static Thresholds</span>
+      } else if (isBoolGaugeIndicator) {
+        console.error('[BurnRateThresholdDisplay] BoolGauge query failed - check if boolean gauge metric exists')
+        return <span title="BoolGauge: Query failed. Check if metric exists and returns boolean values. Fallback to static thresholds.">Static Thresholds</span>
+      }
     }
     
-    return <span title={`Query failed: ${trafficError?.message ?? 'Unknown error'}`}>Unable to calculate (see console)</span>
+    return <span title={`Query failed: ${trafficError?.message ?? 'Unknown error'}. Fallback to static thresholds.`}>Static Thresholds</span>
   }
   
   // Show loading state while queries are in progress
