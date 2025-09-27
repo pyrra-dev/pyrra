@@ -396,3 +396,64 @@ The feature uses focused task-based development with specific implementation gro
 - **Task Groups 3, 5-8**: Additional indicator types, alert firing, production polish
 
 Each task should follow the quality standards checklist and update documentation with results.
+
+## Task 6 Development Lessons Learned
+
+### Over-Engineering Anti-Pattern
+
+**Issue**: Created multiple CLI tools without validating each component works individually.
+
+**Example**: Built `validate-alerts`, `alert-test`, `test-alert-firing`, `precision-recall-test` tools in parallel, but only `run-synthetic-test` actually worked.
+
+**Root Cause**: Violated "Test Before Success" principle by building theoretical frameworks instead of validating working solutions.
+
+**Solution**: 
+- Build ONE working tool first
+- Enhance it incrementally with testing at each step
+- Don't create parallel implementations until the first one is proven
+
+### Requirements Misinterpretation Pattern
+
+**Issue**: Interpreted "synthetic metric generation for alert testing" as needing multiple specialized tools.
+
+**Reality**: Task needed ONE tool that generates synthetic metrics AND validates alerts fire.
+
+**Lesson**: Focus on actual requirements, not theoretical completeness. Ask clarifying questions before building complex solutions.
+
+### Working Solution Abandonment Anti-Pattern
+
+**Issue**: Instead of enhancing working `run-synthetic-test` tool, created new parallel tools.
+
+**Impact**: Wasted effort on broken implementations while working solution remained incomplete.
+
+**Solution**: Always build on proven success rather than starting over. Enhance working solutions incrementally.
+
+### Key Development Principles Reinforced
+
+1. **Simplicity First**: Make it work, then make it better
+2. **Test Continuously**: Validate each component as you build it  
+3. **Build on Success**: Enhance working solutions rather than creating parallel ones
+4. **Understand Requirements**: Focus on actual needs, not theoretical completeness
+5. **Follow Steering Guidelines**: The development standards exist to prevent these exact issues
+## Tes
+ting Environment Reference
+
+For comprehensive testing environment setup and configuration details, see:
+- **`.dev-docs/TESTING_ENVIRONMENT_REFERENCE.md`** - Complete service architecture, URLs, ports, and timing expectations for alert testing
+
+This document provides the definitive reference for:
+- Service endpoints and port configurations
+- Alert timing expectations (30s Prometheus evaluation interval)
+- Required service dependencies and startup order
+- Pre-test validation checklist
+- Common troubleshooting scenarios
+
+All testing code must reference this document to ensure correct service URLs and timing expectations.
+## Addi
+tional Development Documentation
+
+### Task 6 Development Lessons
+- **`.dev-docs/TASK_6_LESSONS_LEARNED.md`** - Lessons learned from task 6 development process issues
+
+### Testing Environment Reference  
+- **`.dev-docs/TESTING_ENVIRONMENT_REFERENCE.md`** - Complete testing environment setup and configuration reference

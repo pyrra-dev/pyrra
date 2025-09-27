@@ -30,22 +30,9 @@ type MultiBurnRateAlert struct {
 
 // buildTotalSelector builds the label selector for total metrics in dynamic expressions
 func (o Objective) buildTotalSelector(alertMatchersString string) string {
-	totalParts := []string{}
-	for _, matcher := range o.Indicator.Ratio.Total.LabelMatchers {
-		if matcher.Name != labels.MetricName {
-			totalParts = append(totalParts, matcher.String())
-		}
-	}
-	if alertMatchersString != "" {
-		totalParts = append(totalParts, alertMatchersString)
-	}
-	return strings.Join(totalParts, ",")
-}
-
-// buildLatencyTotalSelector builds the label selector for latency total metrics in dynamic expressions
-func (o Objective) buildLatencyTotalSelector(alertMatchersString string) string {
-	// Parse existing alert matchers to avoid duplicates
+	// Parse existing alert matchers to avoid duplicates and filter out slo label
 	alertMatchersMap := make(map[string]string)
+	filteredAlertMatchers := []string{}
 	if alertMatchersString != "" {
 		for _, part := range strings.Split(alertMatchersString, ",") {
 			if strings.Contains(part, "=") {
@@ -54,6 +41,47 @@ func (o Objective) buildLatencyTotalSelector(alertMatchersString string) string 
 					key := kv[0]
 					value := strings.Trim(kv[1], `"`)
 					alertMatchersMap[key] = value
+					// Exclude 'slo' label as it doesn't exist on raw metrics
+					if key != "slo" {
+						filteredAlertMatchers = append(filteredAlertMatchers, part)
+					}
+				}
+			}
+		}
+	}
+
+	totalParts := []string{}
+	for _, matcher := range o.Indicator.Ratio.Total.LabelMatchers {
+		if matcher.Name != labels.MetricName {
+			// Skip if already present in alertMatchers
+			if _, exists := alertMatchersMap[matcher.Name]; !exists {
+				totalParts = append(totalParts, matcher.String())
+			}
+		}
+	}
+
+	// Add filtered alert matchers (without slo label)
+	totalParts = append(totalParts, filteredAlertMatchers...)
+	return strings.Join(totalParts, ",")
+}
+
+// buildLatencyTotalSelector builds the label selector for latency total metrics in dynamic expressions
+func (o Objective) buildLatencyTotalSelector(alertMatchersString string) string {
+	// Parse existing alert matchers to avoid duplicates and filter out slo label
+	alertMatchersMap := make(map[string]string)
+	filteredAlertMatchers := []string{}
+	if alertMatchersString != "" {
+		for _, part := range strings.Split(alertMatchersString, ",") {
+			if strings.Contains(part, "=") {
+				kv := strings.SplitN(part, "=", 2)
+				if len(kv) == 2 {
+					key := kv[0]
+					value := strings.Trim(kv[1], `"`)
+					alertMatchersMap[key] = value
+					// Exclude 'slo' label as it doesn't exist on raw metrics
+					if key != "slo" {
+						filteredAlertMatchers = append(filteredAlertMatchers, part)
+					}
 				}
 			}
 		}
@@ -68,16 +96,17 @@ func (o Objective) buildLatencyTotalSelector(alertMatchersString string) string 
 			}
 		}
 	}
-	if alertMatchersString != "" {
-		totalParts = append(totalParts, alertMatchersString)
-	}
+
+	// Add filtered alert matchers (without slo label)
+	totalParts = append(totalParts, filteredAlertMatchers...)
 	return strings.Join(totalParts, ",")
 }
 
 // buildLatencyNativeTotalSelector builds the label selector for native latency total metrics in dynamic expressions
 func (o Objective) buildLatencyNativeTotalSelector(alertMatchersString string) string {
-	// Parse existing alert matchers to avoid duplicates
+	// Parse existing alert matchers to avoid duplicates and filter out slo label
 	alertMatchersMap := make(map[string]string)
+	filteredAlertMatchers := []string{}
 	if alertMatchersString != "" {
 		for _, part := range strings.Split(alertMatchersString, ",") {
 			if strings.Contains(part, "=") {
@@ -86,6 +115,10 @@ func (o Objective) buildLatencyNativeTotalSelector(alertMatchersString string) s
 					key := kv[0]
 					value := strings.Trim(kv[1], `"`)
 					alertMatchersMap[key] = value
+					// Exclude 'slo' label as it doesn't exist on raw metrics
+					if key != "slo" {
+						filteredAlertMatchers = append(filteredAlertMatchers, part)
+					}
 				}
 			}
 		}
@@ -100,23 +133,46 @@ func (o Objective) buildLatencyNativeTotalSelector(alertMatchersString string) s
 			}
 		}
 	}
-	if alertMatchersString != "" {
-		totalParts = append(totalParts, alertMatchersString)
-	}
+
+	// Add filtered alert matchers (without slo label)
+	totalParts = append(totalParts, filteredAlertMatchers...)
 	return strings.Join(totalParts, ",")
 }
 
 // buildBoolGaugeSelector builds the label selector for boolean gauge metrics in dynamic expressions
 func (o Objective) buildBoolGaugeSelector(alertMatchersString string) string {
+	// Parse existing alert matchers to avoid duplicates and filter out slo label
+	alertMatchersMap := make(map[string]string)
+	filteredAlertMatchers := []string{}
+	if alertMatchersString != "" {
+		for _, part := range strings.Split(alertMatchersString, ",") {
+			if strings.Contains(part, "=") {
+				kv := strings.SplitN(part, "=", 2)
+				if len(kv) == 2 {
+					key := kv[0]
+					value := strings.Trim(kv[1], `"`)
+					alertMatchersMap[key] = value
+					// Exclude 'slo' label as it doesn't exist on raw metrics
+					if key != "slo" {
+						filteredAlertMatchers = append(filteredAlertMatchers, part)
+					}
+				}
+			}
+		}
+	}
+
 	totalParts := []string{}
 	for _, matcher := range o.Indicator.BoolGauge.LabelMatchers {
 		if matcher.Name != labels.MetricName {
-			totalParts = append(totalParts, matcher.String())
+			// Skip if already present in alertMatchers
+			if _, exists := alertMatchersMap[matcher.Name]; !exists {
+				totalParts = append(totalParts, matcher.String())
+			}
 		}
 	}
-	if alertMatchersString != "" {
-		totalParts = append(totalParts, alertMatchersString)
-	}
+
+	// Add filtered alert matchers (without slo label)
+	totalParts = append(totalParts, filteredAlertMatchers...)
 	return strings.Join(totalParts, ",")
 }
 
@@ -151,97 +207,117 @@ func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) s
 	case Ratio:
 		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
 		// This is much more efficient than calculating everything inline
+		// Build selector for recording rules (includes slo label)
+		recordingRuleSelector := alertMatchersString
+		// Build selector for raw metrics (excludes slo label)
+		rawMetricSelector := o.buildTotalSelector(alertMatchersString)
+
 		return fmt.Sprintf(
 			"("+
 				"%s{%s} > "+
-				"((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				") and ("+
 				"%s{%s} > "+
-				"((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				")",
 			// Short window: use recording rule > dynamic threshold calculated using N_long
-			o.BurnrateName(w.Short), alertMatchersString,
+			o.BurnrateName(w.Short), recordingRuleSelector,
 			// Short window dynamic threshold calculation: N_SLO / N_long (same as long window)
-			o.Indicator.Ratio.Total.Name, o.buildTotalSelector(alertMatchersString), sloWindow,
-			o.Indicator.Ratio.Total.Name, o.buildTotalSelector(alertMatchersString), longWindow,
+			o.Indicator.Ratio.Total.Name, rawMetricSelector, sloWindow,
+			o.Indicator.Ratio.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 			// Long window: use recording rule > dynamic threshold
-			o.BurnrateName(w.Long), alertMatchersString,
+			o.BurnrateName(w.Long), recordingRuleSelector,
 			// Long window dynamic threshold calculation: N_SLO / N_long
-			o.Indicator.Ratio.Total.Name, o.buildTotalSelector(alertMatchersString), sloWindow,
-			o.Indicator.Ratio.Total.Name, o.buildTotalSelector(alertMatchersString), longWindow,
+			o.Indicator.Ratio.Total.Name, rawMetricSelector, sloWindow,
+			o.Indicator.Ratio.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 		)
 	case Latency:
+		// Build selector for recording rules (includes slo label)
+		recordingRuleSelector := alertMatchersString
+		// Build selector for raw metrics (excludes slo label)
+		rawMetricSelector := o.buildLatencyTotalSelector(alertMatchersString)
+
 		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
 		// This is much more efficient than calculating everything inline
 		return fmt.Sprintf(
 			"("+
 				"%s{%s} > "+
-				"((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				") and ("+
 				"%s{%s} > "+
-				"((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				")",
 			// Short window: use recording rule > dynamic threshold calculated using N_long
-			o.BurnrateName(w.Short), alertMatchersString,
+			o.BurnrateName(w.Short), recordingRuleSelector,
 			// Short window dynamic threshold calculation: N_SLO / N_long (same as long window)
-			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), sloWindow,
-			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), longWindow,
+			o.Indicator.Latency.Total.Name, rawMetricSelector, sloWindow,
+			o.Indicator.Latency.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 			// Long window: use recording rule > dynamic threshold
-			o.BurnrateName(w.Long), alertMatchersString,
+			o.BurnrateName(w.Long), recordingRuleSelector,
 			// Long window dynamic threshold calculation: N_SLO / N_long
-			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), sloWindow,
-			o.Indicator.Latency.Total.Name, o.buildLatencyTotalSelector(alertMatchersString), longWindow,
+			o.Indicator.Latency.Total.Name, rawMetricSelector, sloWindow,
+			o.Indicator.Latency.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 		)
 	case LatencyNative:
+		// Build selector for recording rules (includes slo label)
+		recordingRuleSelector := alertMatchersString
+		// Build selector for raw metrics (excludes slo label)
+		rawMetricSelector := o.buildLatencyNativeTotalSelector(alertMatchersString)
+
 		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
 		// LatencyNative uses histogram_count for total and histogram_fraction for errors (slow requests)
 		return fmt.Sprintf(
 			"("+
 				"%s{%s} > "+
-				"((histogram_count(sum(increase(%s{%s}[%s]))) / histogram_count(sum(increase(%s{%s}[%s])))) * %f * (1-%s))"+
+				"scalar((histogram_count(sum(increase(%s{%s}[%s]))) / histogram_count(sum(increase(%s{%s}[%s])))) * %f * (1-%s))"+
 				") and ("+
 				"%s{%s} > "+
-				"((histogram_count(sum(increase(%s{%s}[%s]))) / histogram_count(sum(increase(%s{%s}[%s])))) * %f * (1-%s))"+
+				"scalar((histogram_count(sum(increase(%s{%s}[%s]))) / histogram_count(sum(increase(%s{%s}[%s])))) * %f * (1-%s))"+
 				")",
 			// Short window: use recording rule > dynamic threshold calculated using N_long
-			o.BurnrateName(w.Short), alertMatchersString,
+			o.BurnrateName(w.Short), recordingRuleSelector,
 			// Short window dynamic threshold calculation using histogram_count for total requests
-			o.Indicator.LatencyNative.Total.Name, o.buildLatencyNativeTotalSelector(alertMatchersString), sloWindow,
-			o.Indicator.LatencyNative.Total.Name, o.buildLatencyNativeTotalSelector(alertMatchersString), longWindow,
+			o.Indicator.LatencyNative.Total.Name, rawMetricSelector, sloWindow,
+			o.Indicator.LatencyNative.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 			// Long window: use recording rule > dynamic threshold
-			o.BurnrateName(w.Long), alertMatchersString,
+			o.BurnrateName(w.Long), recordingRuleSelector,
 			// Long window dynamic threshold calculation using histogram_count for total requests
-			o.Indicator.LatencyNative.Total.Name, o.buildLatencyNativeTotalSelector(alertMatchersString), sloWindow,
-			o.Indicator.LatencyNative.Total.Name, o.buildLatencyNativeTotalSelector(alertMatchersString), longWindow,
+			o.Indicator.LatencyNative.Total.Name, rawMetricSelector, sloWindow,
+			o.Indicator.LatencyNative.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 		)
 	case BoolGauge:
+		// Build selector for recording rules (includes slo label)
+		recordingRuleSelector := alertMatchersString
+		// Build selector for raw metrics (excludes slo label)
+		rawMetricSelector := o.buildBoolGaugeSelector(alertMatchersString)
+
 		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
 		// BoolGauge uses count_over_time for total and (count_over_time - sum_over_time) for errors
 		return fmt.Sprintf(
 			"("+
 				"%s{%s} > "+
-				"((sum(count_over_time(%s{%s}[%s])) / sum(count_over_time(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(count_over_time(%s{%s}[%s])) / sum(count_over_time(%s{%s}[%s]))) * %f * (1-%s))"+
 				") and ("+
 				"%s{%s} > "+
-				"((sum(count_over_time(%s{%s}[%s])) / sum(count_over_time(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(count_over_time(%s{%s}[%s])) / sum(count_over_time(%s{%s}[%s]))) * %f * (1-%s))"+
 				")",
 			// Short window: use recording rule > dynamic threshold calculated using N_long
-			o.BurnrateName(w.Short), alertMatchersString,
+			o.BurnrateName(w.Short), recordingRuleSelector,
 			// Short window dynamic threshold calculation using count_over_time for total observations
-			o.Indicator.BoolGauge.Name, o.buildBoolGaugeSelector(alertMatchersString), sloWindow,
-			o.Indicator.BoolGauge.Name, o.buildBoolGaugeSelector(alertMatchersString), longWindow,
+			o.Indicator.BoolGauge.Name, rawMetricSelector, sloWindow,
+			o.Indicator.BoolGauge.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 			// Long window: use recording rule > dynamic threshold
-			o.BurnrateName(w.Long), alertMatchersString,
+			o.BurnrateName(w.Long), recordingRuleSelector,
 			// Long window dynamic threshold calculation using count_over_time for total observations
-			o.Indicator.BoolGauge.Name, o.buildBoolGaugeSelector(alertMatchersString), sloWindow,
-			o.Indicator.BoolGauge.Name, o.buildBoolGaugeSelector(alertMatchersString), longWindow,
+			o.Indicator.BoolGauge.Name, rawMetricSelector, sloWindow,
+			o.Indicator.BoolGauge.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 		)
 	default:

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: additional-scrape-configs
+  namespace: monitoring
+stringData:
+  prometheus-additional.yaml: |
+    - job_name: 'pushgateway'
+      static_configs:
+        - targets: ['172.24.13.124:9091']
+      scrape_interval: 15s
+      metrics_path: /metrics
+      honor_labels: true
