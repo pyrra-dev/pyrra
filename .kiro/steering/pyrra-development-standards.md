@@ -43,6 +43,17 @@ Where:
 
 ## Development Standards
 
+### Upstream Comparison and Regression Testing
+
+**Upstream Comparison Branch**: The `upstream-comparison` branch tracks the original Pyrra repository (`upstream/main`) and serves as a baseline for ongoing regression testing. This allows periodic comparison of our feature branch behavior against the original Pyrra implementation to ensure no regressions are introduced.
+
+**Usage**:
+
+- Compare behavior between our feature branch and `upstream-comparison` branch
+- Validate that existing static SLO functionality remains unchanged
+- Test that our dynamic burn rate feature doesn't break core Pyrra functionality
+- Use for regression testing throughout development process
+
 ### Code Quality Requirements
 
 1. **Systematic Comparison**: Always compare with working examples, never analyze in isolation
@@ -134,10 +145,11 @@ The testing environment consists of:
 **Local Development API Structure**: Pyrra uses **two separate services** with different API endpoints:
 
 1. **API Service** (`./pyrra api`):
+
    - **Port**: 9099
    - **Purpose**: Full-featured API server with embedded UI
    - **Endpoint**: `/objectives.v1alpha1.ObjectiveService/List`
-   - **Features**: Complete ObjectiveService with List, GetStatus, GetAlerts, Graph* methods
+   - **Features**: Complete ObjectiveService with List, GetStatus, GetAlerts, Graph\* methods
 
 2. **Kubernetes Backend Service** (`./pyrra kubernetes`):
    - **Port**: 9444
@@ -158,6 +170,7 @@ curl -X POST -H "Content-Type: application/json" -d '{}' \
 ```
 
 **Protocol Details**:
+
 - **Protocol**: Connect protocol (gRPC-Web compatible)
 - **Content-Type**: `application/json`
 - **Method**: POST requests to service endpoints
@@ -407,7 +420,8 @@ Each task should follow the quality standards checklist and update documentation
 
 **Root Cause**: Violated "Test Before Success" principle by building theoretical frameworks instead of validating working solutions.
 
-**Solution**: 
+**Solution**:
+
 - Build ONE working tool first
 - Enhance it incrementally with testing at each step
 - Don't create parallel implementations until the first one is proven
@@ -431,17 +445,21 @@ Each task should follow the quality standards checklist and update documentation
 ### Key Development Principles Reinforced
 
 1. **Simplicity First**: Make it work, then make it better
-2. **Test Continuously**: Validate each component as you build it  
+2. **Test Continuously**: Validate each component as you build it
 3. **Build on Success**: Enhance working solutions rather than creating parallel ones
 4. **Understand Requirements**: Focus on actual needs, not theoretical completeness
 5. **Follow Steering Guidelines**: The development standards exist to prevent these exact issues
+
 ## Tes
+
 ting Environment Reference
 
 For comprehensive testing environment setup and configuration details, see:
+
 - **`.dev-docs/TESTING_ENVIRONMENT_REFERENCE.md`** - Complete service architecture, URLs, ports, and timing expectations for alert testing
 
 This document provides the definitive reference for:
+
 - Service endpoints and port configurations
 - Alert timing expectations (30s Prometheus evaluation interval)
 - Required service dependencies and startup order
@@ -449,11 +467,15 @@ This document provides the definitive reference for:
 - Common troubleshooting scenarios
 
 All testing code must reference this document to ensure correct service URLs and timing expectations.
+
 ## Addi
+
 tional Development Documentation
 
 ### Task 6 Development Lessons
+
 - **`.dev-docs/TASK_6_LESSONS_LEARNED.md`** - Lessons learned from task 6 development process issues
 
-### Testing Environment Reference  
+### Testing Environment Reference
+
 - **`.dev-docs/TESTING_ENVIRONMENT_REFERENCE.md`** - Complete testing environment setup and configuration reference

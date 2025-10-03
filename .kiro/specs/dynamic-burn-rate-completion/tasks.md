@@ -158,6 +158,8 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 
 
+
+
   - Create Prometheus client integration for generating controlled error conditions
   - Implement traffic pattern generation that exceeds calculated dynamic thresholds
   - Add metric cleanup and reset functionality for test isolation
@@ -178,6 +180,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 
 
+
 - [x] 6.2 Implement alert precision and recall testing framework
 
   - Create controlled scenarios where alerts should fire (recall testing)
@@ -186,42 +189,65 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Document alert behavior characteristics and thresholds
   - _Requirements: 4.2, 4.3_
 
-## Task Group 7: Performance Optimization and Production Readiness
+## Task Group 7: Recording Rules, Alert Rules, and Query Validation and Optimization
 
-- [ ] 7. Implement query performance optimization
+- [ ] 7. Validate and optimize recording rules, alert rules, and UI queries for all indicator types
 
-  - Optimize histogram queries using existing recording rules where possible
-  - Add query result caching for threshold calculations
-  - Implement efficient batch querying for multiple SLOs
-  - Monitor and optimize Prometheus query load impact
+- [ ] 7.1 Validate recording rules generation for all indicator types
+  - Test recording rules creation for ratio, latency, latencyNative, and boolGauge indicators
+  - Verify recording rules produce correct metrics for both static and dynamic SLOs
+  - Validate recording rule queries use efficient aggregations and proper label handling
+  - Test recording rules work correctly across different time windows and SLO targets
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.1 Create production deployment validation
+- [ ] 7.2 Validate alert rules generation for all indicator types
+  - Test alert rules creation for ratio, latency, latencyNative, and boolGauge indicators
+  - Verify alert rules reference correct recording rules (not raw metrics) when available
+  - Validate alert rule expressions produce correct threshold calculations
+  - Test alert rules fire correctly under controlled error conditions using existing `cmd/run-synthetic-test/main.go`
+  - _Requirements: 5.1, 5.3_
 
+- [ ] 7.3 Optimize UI component queries for all indicator types
+  - Validate BurnRateThresholdDisplay uses recording rules when available instead of raw metrics
+  - Optimize histogram queries for latency indicators to use efficient aggregations
+  - Ensure UI queries use proper label aggregation to avoid cardinality issues
+  - Test query performance across different indicator types and compare with static equivalents
+  - _Requirements: 5.1, 5.3_
+
+- [ ] 7.4 Validate end-to-end query efficiency and correctness
+  - Test complete query chain: raw metrics → recording rules → alert rules → UI queries
+  - Verify no duplicate calculations between recording rules and UI components
+  - Validate query results match expected mathematical formulas for all indicator types
+  - Compare query performance between static and dynamic SLOs for each indicator type
+  - _Requirements: 5.1, 5.3_
+
+- [ ] 7.5 Production readiness validation
   - Test feature with large numbers of mixed static/dynamic SLOs
   - Validate memory usage and performance scaling characteristics
   - Test cross-browser compatibility for UI components
   - Implement and test graceful degradation under resource constraints
   - _Requirements: 5.2, 5.4_
 
-- [ ] 7.2 Implement comprehensive UI build and deployment testing
+
+- [ ] 7.6 Comprehensive UI build and deployment testing
   - Validate embedded UI build process (npm run build + make build)
   - Test production UI (port 9099) shows all enhancements correctly
-  - Verify no regressions in existing static SLO functionality
+  - Verify no regressions in existing static SLO functionality using upstream comparison branch
   - Test complete UI workflow from development to production deployment
   - _Requirements: 5.2_
 
 ## Task Group 8: Documentation and Migration Support
 
-- [ ] 8. Create comprehensive troubleshooting documentation
+- [ ] 8. Create comprehensive documentation and migration support
 
+- [ ] 8.1 Create troubleshooting and debugging documentation
   - Document common issues and resolution steps for dynamic burn rate setup
   - Create debugging guide for missing metrics and edge case scenarios
   - Document performance tuning guidelines and optimization strategies
   - Create migration guide for converting static to dynamic SLOs
   - _Requirements: 6.1, 6.2, 6.4_
 
-- [ ] 8.1 Implement deployment validation testing
+- [ ] 8.2 Implement deployment validation testing
   - Test complete installation procedures from documentation
   - Validate deployment in production-like environments
   - Test migration procedures with real static SLO conversions
@@ -230,25 +256,39 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 ## Task Group 9: Comprehensive Regression Testing
 
-- [ ] 9. Create full feature regression test suite
+- [ ] 9. Create full feature regression test suite with upstream comparison
 
-  - Test all indicator types with both static and dynamic burn rates
-  - Validate mathematical accuracy across all scenarios with real Prometheus data
-  - Test UI consistency and user experience across all indicator types
-  - Verify no breaking changes to existing Pyrra functionality
+- [ ] 9.1 Implement upstream comparison regression testing
+  - Compare behavior between feature branch and upstream-comparison branch
+  - Validate existing static SLO functionality remains identical to original Pyrra
+  - Test that dynamic burn rate feature doesn't break core Pyrra functionality
+  - Create automated comparison tests for UI components and backend behavior
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 9.1 Implement production readiness validation
+- [ ] 9.2 Validate mathematical accuracy across all indicator types
+  - Test all indicator types with both static and dynamic burn rates
+  - Validate mathematical accuracy across all scenarios with real Prometheus data
+  - Cross-validate calculations against known working examples
+  - Test edge cases and boundary conditions for all indicator types
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
+- [ ] 9.3 Comprehensive UI consistency and user experience testing
+  - Test UI consistency and user experience across all indicator types
+  - Validate tooltips, error handling, and performance displays work correctly
+  - Test responsive design and cross-browser compatibility
+  - Ensure consistent behavior between development and production UI builds
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+
+- [ ] 9.4 Production readiness validation
   - Conduct end-to-end testing in production-like environments
   - Validate performance characteristics meet production requirements
   - Test feature stability over extended periods (multi-day testing)
   - Create final production deployment checklist and validation procedures
   - _Requirements: 5.5, 6.5_
 
-- [ ] 9.2 Finalize upstream contribution preparation
+- [ ] 9.5 Finalize upstream contribution preparation
   - Ensure all code changes follow Pyrra project standards and conventions
   - Create comprehensive test evidence documentation for pull request
-  - Validate feature works across different Kubernetes and Prometheus versions
+  - Validate feature works across different Kubernetes and Prometheus versions using upstream comparison
   - Prepare feature documentation for upstream integration
   - _Requirements: 6.5_
