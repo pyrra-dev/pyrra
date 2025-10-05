@@ -217,36 +217,78 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Test complete UI data flow from recording rules to display components
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.2 Validate alert rules generation for all indicator types
+- [ ] 7.2 CRITICAL: Mathematical Correctness Validation (Simple Check)
+  - **Pick 2-3 recording rules and manually verify they produce correct values**
+    - Use simple `python -c "..."` commands to calculate expected values using exact formulas
+    - Compare calculated values with what Prometheus shows for those recording rules
+    - Test one ratio SLO and one latency SLO to cover main indicator types
+  - **Check UI calculations match expected values**
+    - Verify BurnRateThresholdDisplay shows values that match manual calculations
+    - Test with both high traffic (above average) and low traffic (below average) scenarios
+  - **Simple testing approach**
+    - Use existing test SLOs (test-dynamic-apiserver, test-latency-dynamic)
+    - Guide user to check values in Prometheus UI and Pyrra UI for comparison
+    - Use simple Python scripts for ground truth calculations, no complex tools
+  - **Consult user before completion**: Ask if there are more components or cases to check
+  - _Requirements: 5.1, 5.3_
+
+- [ ] 7.3 CRITICAL: Fix Query Aggregation (Single Series Results)
+  - **Check recording rules use proper sum() aggregation**
+    - Look at 2-3 recording rules and verify they use `sum()` to aggregate multi-series metrics
+    - Test with test-dynamic-apiserver (base metric has 74 series) - recording rule should return 1 series
+    - Fix any recording rules that return multiple series instead of single aggregated series
+  - **Check UI queries return single series per SLO**
+    - Test BurnRateThresholdDisplay queries return exactly 1 series (not 74 like raw apiserver_request_total)
+    - Verify alert rules aggregate to single series per SLO per alert window
+    - Fix any UI component queries that return multiple series
+  - **Simple testing approach**
+    - Use Prometheus UI to run queries and count series returned
+    - Guide user to check query results in Prometheus UI: "This query should return 1 series, not 74"
+    - Use simple curl commands to test API queries and count results
+  - **Consult user before completion**: Ask if there are more components or cases to check
+  - _Requirements: 5.1, 5.3_
+
+- [ ] 7.4 CRITICAL: Fix UI Number Truncation (Add Scientific Notation)
+  - **Fix truncated numbers in UI components**
+    - Add scientific notation to AlertsTable short burn and long burn columns when numbers are very small
+    - Fix BurnRateThresholdDisplay to show scientific notation for very small thresholds
+    - Add scientific notation to any graphs that show small threshold values
+    - Implement simple rule: if number < 0.001, show scientific notation (e.g., 1.23e-5)
+  - **Test with high SLO targets that produce small numbers**
+    - Test with 99.99% SLO target that produces very small thresholds
+    - Create simple test SLO with high target to verify scientific notation works
+    - Guide user to check UI displays scientific notation correctly in Pyrra UI
+  - **Simple testing approach**
+    - Use existing SLOs and create one high-target test SLO
+    - Guide user to check number display in Pyrra UI (port 3000): "Do you see scientific notation for small numbers?"
+    - Use simple Python scripts to generate test values and verify formatting
+  - **Consult user before completion**: Ask if there are more UI components or cases to check
+  - _Requirements: 5.1, 5.3_
+
+- [ ] 7.5 Validate alert rules generation and end-to-end alert pipeline
   - Test alert rules creation for ratio, latency, latencyNative, and boolGauge indicators
   - Verify alert rules reference correct recording rules (not raw metrics) when available
   - Validate alert rule expressions produce correct threshold calculations
   - Test alert rules fire correctly under controlled error conditions using existing `cmd/run-synthetic-test/main.go`
+  - Test complete end-to-end alert pipeline from Prometheus rules to AlertManager
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.3 Optimize UI component queries for all indicator types
+- [ ] 7.6 Optimize UI component queries and performance validation
   - Validate BurnRateThresholdDisplay uses recording rules when available instead of raw metrics
   - Optimize histogram queries for latency indicators to use efficient aggregations
-  - Ensure UI queries use proper label aggregation to avoid cardinality issues
   - Test query performance across different indicator types and compare with static equivalents
-  - _Requirements: 5.1, 5.3_
-
-- [ ] 7.4 Validate end-to-end query efficiency and correctness
-  - Test complete query chain: raw metrics → recording rules → alert rules → UI queries
   - Verify no duplicate calculations between recording rules and UI components
-  - Validate query results match expected mathematical formulas for all indicator types
   - Compare query performance between static and dynamic SLOs for each indicator type
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.5 Production readiness validation
+- [ ] 7.7 Production readiness validation
   - Test feature with large numbers of mixed static/dynamic SLOs
   - Validate memory usage and performance scaling characteristics
   - Test cross-browser compatibility for UI components
   - Implement and test graceful degradation under resource constraints
   - _Requirements: 5.2, 5.4_
 
-
-- [ ] 7.6 Comprehensive UI build and deployment testing
+- [ ] 7.8 Comprehensive UI build and deployment testing
   - Validate embedded UI build process (npm run build + make build)
   - Test production UI (port 9099) shows all enhancements correctly
   - Verify no regressions in existing static SLO functionality using upstream comparison branch
@@ -287,6 +329,9 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Validate mathematical accuracy across all scenarios with real Prometheus data
   - Cross-validate calculations against known working examples
   - Test edge cases and boundary conditions for all indicator types
+  - **GROUND TRUTH REGRESSION**: Ensure mathematical validation framework from Task 7.2 passes for all scenarios
+  - **UNIQUENESS REGRESSION**: Verify query uniqueness validation from Task 7.3 continues to pass across all SLOs
+  - **PRECISION REGRESSION**: Test scientific notation and precision handling from Task 7.4 works consistently
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
 - [ ] 9.3 Comprehensive UI consistency and user experience testing
