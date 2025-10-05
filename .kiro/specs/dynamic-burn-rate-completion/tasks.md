@@ -193,11 +193,28 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [ ] 7. Validate and optimize recording rules, alert rules, and UI queries for all indicator types
 
-- [ ] 7.1 Validate recording rules generation for all indicator types
+- [x] 7.1 Validate recording rules generation for all indicator types
+
+
+
+
+
+
+
+
   - Test recording rules creation for ratio, latency, latencyNative, and boolGauge indicators
   - Verify recording rules produce correct metrics for both static and dynamic SLOs
   - Validate recording rule queries use efficient aggregations and proper label handling
   - Test recording rules work correctly across different time windows and SLO targets
+  - _Requirements: 5.1, 5.3_
+
+- [ ] 7.1.1 CRITICAL: Fix generic recording rules generation and UI data display
+  - Investigate why generic recording rules (pyrra_availability, pyrra_requests:rate5m, pyrra_errors:rate5m) are missing for most SLOs
+  - Fix UI main page showing "no data" for availability and budget columns (regression from task 6)
+  - Correct detail pages showing incorrect "100%" for availability and error budget when errors exist
+  - Ensure all indicator types (ratio, latency, boolGauge) generate proper generic rules for UI display
+  - Validate generic rules generation works for both static and dynamic SLOs
+  - Test complete UI data flow from recording rules to display components
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.2 Validate alert rules generation for all indicator types
