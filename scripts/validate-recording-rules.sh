@@ -78,14 +78,14 @@ sleep 30
 
 # Build and run the validation tool
 echo "=== Building Validation Tool ==="
-cd cmd/validate-recording-rules
-go build -o validate-recording-rules main.go
+cd cmd/validate-recording-rules-focused
+go build -o validate-recording-rules-focused main.go
 echo "✅ Validation tool built"
 echo
 
 # Run validation
 echo "=== Running Recording Rules Validation ==="
-./validate-recording-rules
+./validate-recording-rules-focused
 
 # Check recording rule queries in Prometheus
 echo

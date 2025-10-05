@@ -86,12 +86,83 @@ Burnrate recording rules are working correctly, but **critical issues discovered
 - **Test SLOs**: 4 indicator types across static/dynamic configurations
 - **Kubernetes**: Minikube with monitoring stack
 
+## Validation Tools Usage Guide
+
+### 🔧 Available Tools
+
+#### 1. Basic Recording Rules Validator (`cmd/validate-recording-rules-basic/main.go`)
+**Purpose**: Basic validation of recording rules existence and structure
+**Usage**:
+```bash
+cd cmd/validate-recording-rules-basic
+go run main.go
+```
+**Features**:
+- Tests recording rules creation for all indicator types
+- Validates basic metric generation
+- Checks label consistency
+- Simple pass/fail reporting
+
+#### 2. Focused Recording Rules Validator (`cmd/validate-recording-rules-focused/main.go`)
+**Purpose**: Comprehensive validation with detailed analysis
+**Usage**:
+```bash
+cd cmd/validate-recording-rules-focused
+go run main.go
+```
+**Features**:
+- Comprehensive test suite for all indicator types
+- Detailed analysis by indicator type (ratio, latency, boolGauge, latencyNative)
+- Performance metrics and query timing
+- Critical issue detection (like missing generic rules)
+- Task requirements validation
+
+#### 3. Native Histogram Validator (`cmd/validate-recording-rules-native/main.go`)
+**Purpose**: Specialized testing for native histogram configurations
+**Usage**:
+```bash
+cd cmd/validate-recording-rules-native
+go run main.go
+```
+**Features**:
+- Tests LatencyNative indicator recording rules
+- Validates native histogram metric generation
+- Requires Prometheus with native histograms enabled
+
+#### 4. Automated Validation Script (`scripts/validate-recording-rules.sh`)
+**Purpose**: Complete end-to-end validation workflow
+**Usage**:
+```bash
+chmod +x scripts/validate-recording-rules.sh
+./scripts/validate-recording-rules.sh
+```
+**Features**:
+- Deploys test SLOs automatically
+- Waits for recording rules generation
+- Runs comprehensive validation
+- Provides manual verification queries
+- Optional cleanup of test resources
+
+### 📋 Prerequisites
+
+- **Kubernetes cluster**: Accessible via kubectl
+- **Prometheus**: Running on http://localhost:9090
+- **Pyrra services**: API and Kubernetes backend running
+- **Test SLOs**: Available in `.dev/` folder
+
+### 🎯 Recommended Usage
+
+1. **Quick validation**: Use `cmd/validate-recording-rules-focused/main.go`
+2. **Full workflow**: Use `scripts/validate-recording-rules.sh`
+3. **Native histogram testing**: Use `cmd/validate-recording-rules-native/main.go`
+4. **Basic checks**: Use `cmd/validate-recording-rules-basic/main.go`
+
 ## Recommendations
 
-1. **Production Deployment**: Recording rules are production-ready
-2. **Native Histograms**: Consider enabling for LatencyNative support
-3. **Monitoring**: All recording rules perform efficiently
-4. **Scaling**: Time window calculations scale appropriately
+1. **Production Deployment**: Burnrate recording rules are production-ready
+2. **Generic Rules**: MUST fix generic recording rules before production
+3. **Native Histograms**: Consider enabling for LatencyNative support
+4. **Monitoring**: Burnrate rules perform efficiently, UI integration needs work
 
 ## Conclusion
 
