@@ -193,6 +193,32 @@ curl -X POST -H "Content-Type: application/json" -d '{}' \
 - `.dev-docs/AI_DEVELOPMENT_QUALITY_STANDARDS.md` - Quality requirements
 - `prompts/README.md` - Current session status and next priorities
 
+### Documentation Structure Guidelines
+
+**.dev-docs/ Organization**:
+
+- **Session documents** (`*_SESSION.md`): Living records of testing/development sessions, include task completions discovered during sessions
+  - Example: `DYNAMIC_BURN_RATE_TESTING_SESSION.md` documents Tests 1-10+ spanning multiple tasks
+  - Use for: Interactive testing, debugging investigations, iterative development work
+  - Include: Problem discovery, investigation process, solutions, validation results
+
+- **Task documents** (`TASK_*.md`): For substantial implementations or lessons learned that need standalone reference
+  - Example: `TASK_6_LESSONS_LEARNED.md` documents anti-patterns and development principles
+  - Use for: Significant standalone work, architectural decisions, reusable lessons
+  - Include: Implementation details, design decisions, lessons learned, best practices
+
+- **Feature documents**: High-level summaries and architectural decisions
+  - Example: `FEATURE_IMPLEMENTATION_SUMMARY.md` provides complete feature status
+  - Use for: Overall feature progress, component status, integration points
+  - Include: Feature overview, completion status, known issues, next steps
+
+- **Reference documents**: Environment setup, testing procedures, standards
+  - Example: `TESTING_ENVIRONMENT_REFERENCE.md` defines service architecture
+  - Use for: Reusable procedures, environment configuration, testing standards
+  - Include: Setup instructions, service URLs, validation procedures
+
+**Rule of thumb**: If the work was done during a documented session, document it there. Create separate task docs only for substantial standalone work that needs independent reference.
+
 #### Test Configuration
 
 **Static SLOs:**

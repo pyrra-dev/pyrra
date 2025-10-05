@@ -149,37 +149,19 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 6. Implement synthetic metric generation for alert testing
 
-
-
-
-
-
-
-
-
-
-
-
   - Create Prometheus client integration for generating controlled error conditions
   - Implement traffic pattern generation that exceeds calculated dynamic thresholds
   - Add metric cleanup and reset functionality for test isolation
   - Create test scenarios for both precision (no false alerts) and recall (catches real issues)
   - _Requirements: 4.1, 4.2_
 
-
 - [x] 6.1 Create end-to-end alert pipeline validation
-
-
 
   - Test alert firing in AlertManager when dynamic thresholds are exceeded
   - Validate alert timing matches expected sensitivity levels
   - Compare dynamic vs static alert behavior with identical error conditions
   - Test alert clearing when conditions resolve
   - _Requirements: 4.3, 4.4, 4.6_
-
-
-
-
 
 - [x] 6.2 Implement alert precision and recall testing framework
 
@@ -195,20 +177,14 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.1 Validate recording rules generation for all indicator types
 
-
-
-
-
-
-
-
   - Test recording rules creation for ratio, latency, latencyNative, and boolGauge indicators
   - Verify recording rules produce correct metrics for both static and dynamic SLOs
   - Validate recording rule queries use efficient aggregations and proper label handling
   - Test recording rules work correctly across different time windows and SLO targets
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.1.1 CRITICAL: Fix generic recording rules generation and UI data display
+- [x] 7.1.1 CRITICAL: Fix generic recording rules generation and UI data display
+
   - Investigate why generic recording rules (pyrra_availability, pyrra_requests:rate5m, pyrra_errors:rate5m) are missing for most SLOs
   - Fix UI main page showing "no data" for availability and budget columns (regression from task 6)
   - Correct detail pages showing incorrect "100%" for availability and error budget when errors exist
@@ -218,6 +194,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.2 CRITICAL: Mathematical Correctness Validation (Simple Check)
+
   - **Pick 2-3 recording rules and manually verify they produce correct values**
     - Use simple `python -c "..."` commands to calculate expected values using exact formulas
     - Compare calculated values with what Prometheus shows for those recording rules
@@ -233,6 +210,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.3 CRITICAL: Fix Query Aggregation (Single Series Results)
+
   - **Check recording rules use proper sum() aggregation**
     - Look at 2-3 recording rules and verify they use `sum()` to aggregate multi-series metrics
     - Test with test-dynamic-apiserver (base metric has 74 series) - recording rule should return 1 series
@@ -249,6 +227,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.4 CRITICAL: Fix UI Number Truncation (Add Scientific Notation)
+
   - **Fix truncated numbers in UI components**
     - Add scientific notation to AlertsTable short burn and long burn columns when numbers are very small
     - Fix BurnRateThresholdDisplay to show scientific notation for very small thresholds
@@ -266,6 +245,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.5 Validate alert rules generation and end-to-end alert pipeline
+
   - Test alert rules creation for ratio, latency, latencyNative, and boolGauge indicators
   - Verify alert rules reference correct recording rules (not raw metrics) when available
   - Validate alert rule expressions produce correct threshold calculations
@@ -274,6 +254,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.6 Optimize UI component queries and performance validation
+
   - Validate BurnRateThresholdDisplay uses recording rules when available instead of raw metrics
   - Optimize histogram queries for latency indicators to use efficient aggregations
   - Test query performance across different indicator types and compare with static equivalents
@@ -282,6 +263,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.7 Production readiness validation
+
   - Test feature with large numbers of mixed static/dynamic SLOs
   - Validate memory usage and performance scaling characteristics
   - Test cross-browser compatibility for UI components
@@ -300,6 +282,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 - [ ] 8. Create comprehensive documentation and migration support
 
 - [ ] 8.1 Create troubleshooting and debugging documentation
+
   - Document common issues and resolution steps for dynamic burn rate setup
   - Create debugging guide for missing metrics and edge case scenarios
   - Document performance tuning guidelines and optimization strategies
@@ -318,6 +301,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 - [ ] 9. Create full feature regression test suite with upstream comparison
 
 - [ ] 9.1 Implement upstream comparison regression testing
+
   - Compare behavior between feature branch and upstream-comparison branch
   - Validate existing static SLO functionality remains identical to original Pyrra
   - Test that dynamic burn rate feature doesn't break core Pyrra functionality
@@ -325,6 +309,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
 - [ ] 9.2 Validate mathematical accuracy across all indicator types
+
   - Test all indicator types with both static and dynamic burn rates
   - Validate mathematical accuracy across all scenarios with real Prometheus data
   - Cross-validate calculations against known working examples
@@ -335,6 +320,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
 - [ ] 9.3 Comprehensive UI consistency and user experience testing
+
   - Test UI consistency and user experience across all indicator types
   - Validate tooltips, error handling, and performance displays work correctly
   - Test responsive design and cross-browser compatibility
@@ -342,6 +328,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
 - [ ] 9.4 Production readiness validation
+
   - Conduct end-to-end testing in production-like environments
   - Validate performance characteristics meet production requirements
   - Test feature stability over extended periods (multi-day testing)
