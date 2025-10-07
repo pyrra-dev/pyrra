@@ -195,15 +195,9 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.2 CRITICAL: Mathematical Correctness Validation (Simple Check)
 
-
-
-
-
-
-
   - **Pick 2-3 recording rules and manually verify they produce correct values**
     - Use simple `python -c "..."` commands to calculate expected values using exact formulas
-    - Compare calculated values with what Prometheus shows for those recording rules. Check both the time series values ​​and the time window lengths 
+    - Compare calculated values with what Prometheus shows for those recording rules. Check both the time series values ​​and the time window lengths
     - Test one ratio SLO and one latency SLO to cover main indicator types
   - **Check UI calculations match expected values**
     - Verify BurnRateThresholdDisplay shows values that match manual calculations
@@ -216,7 +210,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 5.1, 5.3_
 
 - [x] 7.3 CRITICAL: Fix Query Aggregation (Single Series Results)
-
 
   - **Check recording rules use proper sum() aggregation**
     - Look at 2-3 recording rules and verify they use `sum()` to aggregate multi-series metrics
@@ -236,12 +229,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.4 CRITICAL: Fix UI Number Truncation (Add Scientific Notation)
 
-
-
-
-
-
-
   - **Fix truncated numbers in UI components**
     - Add scientific notation to AlertsTable short burn and long burn columns when numbers are very small
     - Fix BurnRateThresholdDisplay to show scientific notation for very small thresholds
@@ -259,6 +246,10 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.5 Validate alert rules generation and end-to-end alert pipeline
+
+
+
+
 
   - Test alert rules creation for ratio, latency, latencyNative, and boolGauge indicators
   - Verify alert rules reference correct recording rules (not raw metrics) when available

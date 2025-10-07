@@ -1013,8 +1013,29 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
-		if o.Indicator.Ratio.Total.Name != o.Indicator.Ratio.Errors.Name {
-			expr, err := increaseExpr()
+		// Always generate errors increase rule, even if metric name is the same
+		// The label selectors make them different metrics (e.g., total vs error codes)
+		expr, err = increaseExpr()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Errors.Name,
+			matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(expr)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.Ratio.Errors.Name, o.Window),
+			Expr:   intstr.FromString(expr.String()),
+			Labels: ruleLabels,
+		})
+
+		// add the absent alert if configured
+		if o.Alerting.Absent {
+			expr, err = absentExpr()
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1022,36 +1043,15 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   o.Indicator.Ratio.Errors.Name,
 				matchers: o.Indicator.Ratio.Errors.LabelMatchers,
-				grouping: grouping,
-				window:   time.Duration(o.Window),
 			}.replace(expr)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: increaseName(o.Indicator.Ratio.Errors.Name, o.Window),
-				Expr:   intstr.FromString(expr.String()),
-				Labels: ruleLabels,
+				Alert:       o.AlertNameAbsent(),
+				Expr:        intstr.FromString(expr.String()),
+				For:         monitoringDuration(o.AbsentDuration().String()),
+				Labels:      alertLabels,
+				Annotations: o.commonRuleAnnotations(),
 			})
-
-			// add the absent alert if configured
-			if o.Alerting.Absent {
-				expr, err = absentExpr()
-				if err != nil {
-					return monitoringv1.RuleGroup{}, err
-				}
-
-				objectiveReplacer{
-					metric:   o.Indicator.Ratio.Errors.Name,
-					matchers: o.Indicator.Ratio.Errors.LabelMatchers,
-				}.replace(expr)
-
-				rules = append(rules, monitoringv1.Rule{
-					Alert:       o.AlertNameAbsent(),
-					Expr:        intstr.FromString(expr.String()),
-					For:         monitoringDuration(o.AbsentDuration().String()),
-					Labels:      alertLabels,
-					Annotations: o.commonRuleAnnotations(),
-				})
-			}
 		}
 	case Latency:
 		ruleLabels := o.commonRuleLabels(sloName)
