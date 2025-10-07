@@ -12,6 +12,7 @@ import {blues, greys, reds} from './colors'
 import {Alert, Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../../duration'
 import {getThresholdDescription} from '../../burnrate'
+import {formatNumber} from '../../utils/numberFormat'
 
 interface BurnrateGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -156,14 +157,14 @@ const BurnrateGraph = ({
                 label: 'short',
                 gaps: seriesGaps(from / 1000, to / 1000),
                 stroke: `#${reds[1]}`,
-                value: (u, v) => (v == null ? '-' : v.toFixed(2)),
+                value: (u, v) => (v == null ? '-' : formatNumber(v, 3)),
               },
               {
                 min: 0,
                 label: 'long',
                 gaps: seriesGaps(from / 1000, to / 1000),
                 stroke: `#${reds[2]}`,
-                value: (u, v) => (v == null ? '-' : v.toFixed(2)),
+                value: (u, v) => (v == null ? '-' : formatNumber(v, 3)),
               },
               {
                 label: 'threshold',
@@ -213,20 +214,20 @@ const BurnrateGraph = ({
               label: `short (${shortFormatted})`,
               gaps: seriesGaps(from / 1000, to / 1000),
               stroke: '#42a5f5',
-              value: (u, v) => (v == null ? '-' : v.toFixed(2)),
+              value: (u, v) => (v == null ? '-' : formatNumber(v, 3)),
             },
             {
               min: 0,
               label: `long (${longFormatted})`,
               gaps: seriesGaps(from / 1000, to / 1000),
               stroke: '#651fff',
-              value: (u, v) => (v == null ? '-' : v.toFixed(2)),
+              value: (u, v) => (v == null ? '-' : formatNumber(v, 3)),
             },
             {
               label: 'threshold',
               stroke: `#${greys[0]}`,
               dash: [25, 10],
-              value: (u, v) => (v == null ? '-' : v.toFixed(2)),
+              value: (u, v) => (v == null ? '-' : formatNumber(v, 3)),
             },
           ],
           scales: {
@@ -235,7 +236,7 @@ const BurnrateGraph = ({
           axes: [
             {},
             {
-              values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(1)}`),
+              values: (uplot: uPlot, v: number[]) => v.map((v: number) => formatNumber(v, 3)),
             },
           ],
           hooks: {

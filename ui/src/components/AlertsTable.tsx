@@ -20,6 +20,7 @@ import {formatDuration} from '../duration'
 import {buildExternalHRef, externalName} from '../external'
 import {getBurnRateTooltip, getBurnRateType, BurnRateType} from '../burnrate'
 import BurnRateThresholdDisplay from './BurnRateThresholdDisplay'
+import {formatNumber} from '../utils/numberFormat'
 
 interface AlertsTableProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -127,17 +128,17 @@ const AlertsTable = ({
             if (a.short?.current === -1.0) {
               shortCurrent = 'NaN'
             } else if (a.short?.current === undefined) {
-              shortCurrent = (0).toFixed(3).toString()
+              shortCurrent = formatNumber(0, 3)
             } else {
-              shortCurrent = a.short.current.toFixed(3)
+              shortCurrent = formatNumber(a.short.current, 3)
             }
             let longCurrent = ''
             if (a.long?.current === -1.0) {
               longCurrent = 'NaN'
             } else if (a.long?.current === undefined) {
-              longCurrent = (0).toFixed(3).toString()
+              longCurrent = formatNumber(0, 3)
             } else {
-              longCurrent = a.long?.current.toFixed(3)
+              longCurrent = formatNumber(a.long?.current, 3)
             }
 
             const seriesFiringIndex = alertsLabels.findIndex((al: Labels): boolean => {

@@ -217,6 +217,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.3 CRITICAL: Fix Query Aggregation (Single Series Results)
 
+
   - **Check recording rules use proper sum() aggregation**
     - Look at 2-3 recording rules and verify they use `sum()` to aggregate multi-series metrics
     - Test with test-dynamic-apiserver (base metric has 74 series)
@@ -233,7 +234,13 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Consult user before completion**: Confirmed no additional components need checking
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.4 CRITICAL: Fix UI Number Truncation (Add Scientific Notation)
+- [x] 7.4 CRITICAL: Fix UI Number Truncation (Add Scientific Notation)
+
+
+
+
+
+
 
   - **Fix truncated numbers in UI components**
     - Add scientific notation to AlertsTable short burn and long burn columns when numbers are very small

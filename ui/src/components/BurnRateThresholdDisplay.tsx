@@ -4,6 +4,7 @@ import {PrometheusService} from '../proto/prometheus/v1/prometheus_connect'
 import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {usePrometheusQuery} from '../prometheus'
 import {BurnRateType, getBurnRateType} from '../burnrate'
+import {formatThreshold} from '../utils/numberFormat'
 
 interface BurnRateThresholdDisplayProps {
   objective: Objective
@@ -511,29 +512,19 @@ const DynamicThresholdValue: React.FC<{
     
     const dynamicThreshold = rawDynamicThreshold
     
-    // Choose appropriate formatting based on threshold magnitude
-    if (dynamicThreshold < 0.00001) {
-      // Use scientific notation for very small numbers
+    // Use consistent formatting with scientific notation for very small numbers
+    const formattedThreshold = formatThreshold(dynamicThreshold)
+    
+    // Add tooltip for scientific notation to explain the value
+    if (dynamicThreshold < 0.001) {
       return (
-        <span title={`Very small threshold: ${dynamicThreshold.toExponential(3)}`}>
-          {dynamicThreshold.toExponential(3)}
-        </span>
-      )
-    } else if (dynamicThreshold < 0.001) {
-      // Use more decimal places for small numbers
-      return (
-        <span>
-          {dynamicThreshold.toFixed(8)}
-        </span>
-      )
-    } else {
-      // Standard formatting for normal thresholds
-      return (
-        <span>
-          {dynamicThreshold.toFixed(5)}
+        <span title={`Very small threshold: ${formattedThreshold}`}>
+          {formattedThreshold}
         </span>
       )
     }
+    
+    return <span>{formattedThreshold}</span>
   }
   
   if (trafficResponse?.options?.case === 'scalar') {
@@ -579,29 +570,19 @@ const DynamicThresholdValue: React.FC<{
     
     const dynamicThreshold = rawDynamicThreshold
     
-    // Choose appropriate formatting based on threshold magnitude
-    if (dynamicThreshold < 0.00001) {
-      // Use scientific notation for very small numbers
+    // Use consistent formatting with scientific notation for very small numbers
+    const formattedThreshold = formatThreshold(dynamicThreshold)
+    
+    // Add tooltip for scientific notation to explain the value
+    if (dynamicThreshold < 0.001) {
       return (
-        <span title={`Very small threshold: ${dynamicThreshold.toExponential(3)}`}>
-          {dynamicThreshold.toExponential(3)}
-        </span>
-      )
-    } else if (dynamicThreshold < 0.001) {
-      // Use more decimal places for small numbers
-      return (
-        <span>
-          {dynamicThreshold.toFixed(8)}
-        </span>
-      )
-    } else {
-      // Standard formatting for normal thresholds
-      return (
-        <span>
-          {dynamicThreshold.toFixed(5)}
+        <span title={`Very small threshold: ${formattedThreshold}`}>
+          {formattedThreshold}
         </span>
       )
     }
+    
+    return <span>{formattedThreshold}</span>
   }
   
   // Handle case where query succeeded but returned no data

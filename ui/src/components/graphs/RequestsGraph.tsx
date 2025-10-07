@@ -16,6 +16,7 @@ import {Labels, labelValues} from '../../labels'
 import {buildExternalHRef, externalName} from '../../external'
 import {Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {getBurnRateType, BurnRateType} from '../../burnrate'
+import {formatNumber} from '../../utils/numberFormat'
 
 interface RequestsGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -196,14 +197,14 @@ const RequestsGraph = ({
                         // Calculate dynamic traffic ratio for this specific data point
                         const currentTrafficRatio = baselineValue > 0 ? v / baselineValue : null
                         if (currentTrafficRatio !== null) {
-                          const ratioText = currentTrafficRatio > 1.5 ? `${currentTrafficRatio.toFixed(1)}x above average` :
-                                           currentTrafficRatio < 0.5 ? `${currentTrafficRatio.toFixed(1)}x below average` :
-                                           `${currentTrafficRatio.toFixed(1)}x average`
-                          return `${v.toFixed(2)}req/s (${ratioText})`
+                          const ratioText = currentTrafficRatio > 1.5 ? `${formatNumber(currentTrafficRatio, 1)}x above average` :
+                                           currentTrafficRatio < 0.5 ? `${formatNumber(currentTrafficRatio, 1)}x below average` :
+                                           `${formatNumber(currentTrafficRatio, 1)}x average`
+                          return `${formatNumber(v, 2)}req/s (${ratioText})`
                         }
                       }
                       
-                      return `${v.toFixed(2)}req/s`
+                      return `${formatNumber(v, 2)}req/s`
                     },
                   }
                 }),
@@ -213,7 +214,7 @@ const RequestsGraph = ({
                   stroke: '#6c757d',
                   dash: [5, 5],
                   width: 2,
-                  value: (u: uPlot, v: number | null) => v == null ? '-' : `${v.toFixed(2)}req/s (baseline)`,
+                  value: (u: uPlot, v: number | null) => v == null ? '-' : `${formatNumber(v, 2)}req/s (baseline)`,
                 }] : []),
               ],
               scales: {
