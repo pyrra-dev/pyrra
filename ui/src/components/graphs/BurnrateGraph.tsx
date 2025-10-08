@@ -2,7 +2,7 @@ import {PromiseClient} from '@connectrpc/connect'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
 import uPlot, {AlignedData} from 'uplot'
 import React, {useLayoutEffect, useRef, useState} from 'react'
-import {usePrometheusQueryRange} from '../../prometheus'
+import {usePrometheusQuery, usePrometheusQueryRange} from '../../prometheus'
 import {step} from './step'
 import UplotReact from 'uplot-react'
 import {AlignedDataResponse, convertAlignedData, mergeAlignedData} from './aligneddata'
@@ -11,7 +11,7 @@ import {seriesGaps} from './gaps'
 import {blues, greys, reds} from './colors'
 import {Alert, Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../../duration'
-import {getThresholdDescription} from '../../burnrate'
+import {getThresholdDescription, getBurnRateType, BurnRateType} from '../../burnrate'
 import {formatNumber} from '../../utils/numberFormat'
 
 interface BurnrateGraphProps {
@@ -24,6 +24,115 @@ interface BurnrateGraphProps {
   pendingData: AlignedData
   firingData: AlignedData
   uPlotCursor: uPlot.Cursor
+}
+
+/**
+ * Helper function to extract base metric selector from objective
+ * Same logic as BurnRateThresholdDisplay and AlertsTable
+ */
+const getBaseMetricSelector = (objective: Objective): string => {
+  // Handle ratio indicators
+  if (objective.indicator?.options?.case === 'ratio') {
+    const ratioIndicator = objective.indicator.options.value
+    const totalMetric = ratioIndicator.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      return totalMetric
+    }
+  }
+  
+  // Handle latency indicators - use the total (count) metric for traffic calculation
+  if (objective.indicator?.options?.case === 'latency') {
+    const latencyIndicator = objective.indicator.options.value
+    const totalMetric = latencyIndicator.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      // For histogram metrics, ensure we're using the _count metric for traffic calculations
+      if (totalMetric.includes('_bucket')) {
+        return totalMetric.replace('_bucket', '_count')
+      }
+      return totalMetric
+    }
+  }
+  
+  // Handle latencyNative indicators - use the total metric with histogram_count() function
+  if (objective.indicator?.options?.case === 'latencyNative') {
+    const latencyNativeIndicator = objective.indicator.options.value
+    const totalMetric = latencyNativeIndicator.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      // Native histograms use histogram_count() function, not _count suffix
+      return totalMetric
+    }
+  }
+  
+  // Handle boolGauge indicators - use the boolGauge metric for traffic calculation
+  if (objective.indicator?.options?.case === 'boolGauge') {
+    const boolGaugeIndicator = objective.indicator.options.value
+    const boolGaugeMetric = boolGaugeIndicator.boolGauge?.metric
+    if (boolGaugeMetric !== undefined && boolGaugeMetric !== '') {
+      return boolGaugeMetric
+    }
+  }
+  
+  return 'unknown_metric'
+}
+
+/**
+ * Calculate dynamic threshold for a given alert factor
+ * Same logic as BurnRateThresholdDisplay
+ */
+const calculateDynamicThreshold = (
+  objective: Objective,
+  factor: number,
+  trafficRatio: number
+): number => {
+  const target = objective.target
+  
+  // Map factor to E_budget_percent_threshold (from backend DynamicWindows function)
+  const getThresholdConstant = (factor: number): number => {
+    switch (factor) {
+      case 14: return 1/48   // 0.020833
+      case 7:  return 1/16   // 0.0625
+      case 2:  return 1/14   // 0.071429
+      case 1:  return 1/7    // 0.142857
+      default: return 1/48   // Conservative fallback
+    }
+  }
+  
+  const thresholdConstant = getThresholdConstant(factor) * (1 - target)
+  return trafficRatio * thresholdConstant
+}
+
+/**
+ * Get traffic ratio query based on factor
+ * Same logic as BurnRateThresholdDisplay
+ */
+const getTrafficRatioQuery = (objective: Objective, factor: number): string => {
+  const isLatencyNativeIndicator = objective.indicator?.options?.case === 'latencyNative'
+  const isBoolGaugeIndicator = objective.indicator?.options?.case === 'boolGauge'
+  
+  // These windows match what we saw in the Prometheus rules
+  const windowMap = {
+    14: { slo: '30d', long: '1h4m' },    // Critical alert 1
+    7:  { slo: '30d', long: '6h26m' },   // Critical alert 2  
+    2:  { slo: '30d', long: '1d1h43m' }, // Warning alert 1
+    1:  { slo: '30d', long: '4d6h51m' }  // Warning alert 2
+  }
+  
+  const windows = windowMap[factor as keyof typeof windowMap]
+  if (windows === undefined) return ''
+  
+  const baseSelector = getBaseMetricSelector(objective)
+  
+  // Handle different indicator types with appropriate query patterns
+  if (isLatencyNativeIndicator) {
+    // LatencyNative uses histogram_count() for native histograms
+    return `sum(histogram_count(increase(${baseSelector}[${windows.slo}]))) / sum(histogram_count(increase(${baseSelector}[${windows.long}])))`
+  } else if (isBoolGaugeIndicator) {
+    // BoolGauge uses count_over_time() aggregation for traffic calculation
+    return `sum(count_over_time(${baseSelector}[${windows.slo}])) / sum(count_over_time(${baseSelector}[${windows.long}]))`
+  } else {
+    // Ratio and Latency indicators use standard increase() pattern
+    return `sum(increase(${baseSelector}[${windows.slo}])) / sum(increase(${baseSelector}[${windows.long}]))`
+  }
 }
 
 const BurnrateGraph = ({
@@ -40,7 +149,23 @@ const BurnrateGraph = ({
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
   const [width, setWidth] = useState<number>(500)
-
+  const [dynamicThreshold, setDynamicThreshold] = useState<number | null>(null)
+  
+  const burnRateType = getBurnRateType(objective)
+  const currentTime = Math.floor(Date.now() / 1000)
+  
+  // For dynamic burn rates, calculate the dynamic threshold
+  const trafficQuery = burnRateType === BurnRateType.Dynamic 
+    ? getTrafficRatioQuery(objective, alert.factor) 
+    : ''
+  
+  const {response: trafficResponse, status: trafficStatus} = usePrometheusQuery(
+    client,
+    trafficQuery,
+    currentTime,
+    {enabled: burnRateType === BurnRateType.Dynamic && trafficQuery !== ''}
+  )
+  
   const setWidthFromContainer = () => {
     if (targetRef?.current !== undefined && targetRef?.current !== null) {
       setWidth(targetRef.current.offsetWidth)
@@ -71,6 +196,33 @@ const BurnrateGraph = ({
     step(from, to),
     {enabled: alert.long?.query !== undefined},
   )
+  
+  // Calculate dynamic threshold when traffic data is available
+  React.useEffect(() => {
+    if (burnRateType === BurnRateType.Dynamic && trafficStatus === 'success' && trafficResponse !== null) {
+      let trafficRatio: number | undefined
+      
+      if (trafficResponse.options?.case === 'vector' && trafficResponse.options.value.samples.length > 0) {
+        trafficRatio = trafficResponse.options.value.samples[0].value
+      } else if (trafficResponse.options?.case === 'scalar') {
+        trafficRatio = trafficResponse.options.value.value
+      }
+      
+      if (trafficRatio !== undefined && isFinite(trafficRatio) && trafficRatio > 0) {
+        const calculatedThreshold = calculateDynamicThreshold(objective, alert.factor, trafficRatio)
+        setDynamicThreshold(calculatedThreshold)
+      } else {
+        // Fallback to static threshold if traffic data is invalid
+        setDynamicThreshold(null)
+      }
+    } else if (burnRateType === BurnRateType.Static) {
+      // For static burn rates, use the provided threshold
+      setDynamicThreshold(null)
+    }
+  }, [burnRateType, trafficStatus, trafficResponse, objective, alert.factor])
+  
+  // Use dynamic threshold if available, otherwise use static threshold
+  const displayThreshold = dynamicThreshold !== null ? dynamicThreshold : threshold
 
   // TODO: Improve to show graph if one is succeeded already
   if (
@@ -123,7 +275,8 @@ const BurnrateGraph = ({
     shortSeries,
     longSeries,
     // Add a sample for every timestamp with the threshold as value.
-    Array(timestamps.length).fill(threshold),
+    // Use dynamic threshold for dynamic SLOs, static threshold for static SLOs
+    Array(timestamps.length).fill(displayThreshold),
   ]
 
   let pendingSeries: number[] | undefined
@@ -195,7 +348,7 @@ const BurnrateGraph = ({
       <h5 className="graphs-headline">Burnrate</h5>
       <div className="graphs-description">
         <p>
-          {getThresholdDescription(objective, threshold, shortFormatted, longFormatted)} <br />
+          {getThresholdDescription(objective, displayThreshold, shortFormatted, longFormatted)} <br />
           First, the alert is <i style={{color: pendingColor}}>pending</i> for{' '}
           {formatDuration(Number(alert.for?.seconds) * 1000)} and then the alert will be{' '}
           <i style={{color: firingColor}}>firing</i>.

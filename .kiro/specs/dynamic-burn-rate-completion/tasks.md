@@ -247,7 +247,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.5 Validate alert rules generation and end-to-end alert pipeline
 
-
   - Test alert rules creation for ratio, latency, latencyNative, and boolGauge indicators
   - Verify alert rules reference correct recording rules (not raw metrics) when available
   - Validate alert rule expressions produce correct threshold calculations
@@ -257,11 +256,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.6 Investigate and fix UI refresh rate if needed
 
-
-
-
-
-
   - Compare Detail.tsx auto-reload behavior with upstream-comparison branch
   - Check if refresh interval was modified during dynamic burn rate feature development
   - If behavior changed from original: revert to original refresh rate configuration
@@ -269,7 +263,10 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Test that refresh rate is appropriate for production use
   - _Requirements: 5.2, 5.4_
 
-- [ ] 7.7 Fix BurnrateGraph to display dynamic thresholds for dynamic SLOs
+- [x] 7.7 Fix BurnrateGraph to display dynamic thresholds for dynamic SLOs
+
+
+
 
   - Update BurnrateGraph component to detect dynamic burn rate type from objective
   - Integrate traffic calculation patterns from BurnRateThresholdDisplay component

@@ -92,8 +92,15 @@ export const getThresholdDescription = (objective: Objective, threshold: number,
   const burnRateType = getBurnRateType(objective)
   
   if (burnRateType === BurnRateType.Dynamic) {
-    return `The short (${shortWindow}) and long (${longWindow}) burn rates both have to be over the traffic-aware threshold (currently ${threshold.toFixed(2)}%).`
+    // Format threshold appropriately - use scientific notation for very small values
+    const formattedThreshold = threshold < 0.001 
+      ? threshold.toExponential(2) 
+      : (threshold * 100).toFixed(2)
+    
+    const unit = threshold < 0.001 ? '' : '%'
+    
+    return `The short (${shortWindow}) and long (${longWindow}) burn rates both have to be over the traffic-aware dynamic threshold (currently ${formattedThreshold}${unit}). This threshold adapts based on actual traffic patterns.`
   }
   
-  return `The short (${shortWindow}) and long (${longWindow}) burn rates both have to be over the ${threshold.toFixed(2)}% threshold.`
+  return `The short (${shortWindow}) and long (${longWindow}) burn rates both have to be over the ${(threshold * 100).toFixed(2)}% threshold.`
 }
