@@ -436,42 +436,79 @@ func (o Objective) QueryErrorBudget() string {
 func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*labels.Matcher) (string, error) {
 	metric := ""
 	matchers := map[string]*labels.Matcher{}
+	var groupingMap map[string]struct{}
 
 	switch o.IndicatorType() {
 	case Ratio:
 		metric = o.BurnrateName(timerange)
+		groupingMap = map[string]struct{}{}
+		for _, g := range o.Indicator.Ratio.Grouping {
+			groupingMap[g] = struct{}{}
+		}
+		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
-				Type:  m.Type,
-				Name:  m.Name,
-				Value: m.Value,
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if _, ok := groupingMap[m.Name]; !ok {
+					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+						Type:  m.Type,
+						Name:  m.Name,
+						Value: m.Value,
+					}
+				}
 			}
 		}
 	case Latency:
 		metric = o.BurnrateName(timerange)
+		groupingMap = map[string]struct{}{}
+		for _, g := range o.Indicator.Latency.Grouping {
+			groupingMap[g] = struct{}{}
+		}
+		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
-				Type:  m.Type,
-				Name:  m.Name,
-				Value: m.Value,
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if _, ok := groupingMap[m.Name]; !ok {
+					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+						Type:  m.Type,
+						Name:  m.Name,
+						Value: m.Value,
+					}
+				}
 			}
 		}
 	case LatencyNative:
 		metric = o.BurnrateName(timerange)
+		groupingMap = map[string]struct{}{}
+		for _, g := range o.Indicator.LatencyNative.Grouping {
+			groupingMap[g] = struct{}{}
+		}
+		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
-			matchers[m.Name] = &labels.Matcher{
-				Type:  m.Type,
-				Name:  m.Name,
-				Value: m.Value,
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if _, ok := groupingMap[m.Name]; !ok {
+					matchers[m.Name] = &labels.Matcher{
+						Type:  m.Type,
+						Name:  m.Name,
+						Value: m.Value,
+					}
+				}
 			}
 		}
 	case BoolGauge:
 		metric = o.BurnrateName(timerange)
+		groupingMap = map[string]struct{}{}
+		for _, g := range o.Indicator.BoolGauge.Grouping {
+			groupingMap[g] = struct{}{}
+		}
+		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
-			matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
-				Type:  m.Type,
-				Name:  m.Name,
-				Value: m.Value,
+			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if _, ok := groupingMap[m.Name]; !ok {
+					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
+						Type:  m.Type,
+						Name:  m.Name,
+						Value: m.Value,
+					}
+				}
 			}
 		}
 	}
