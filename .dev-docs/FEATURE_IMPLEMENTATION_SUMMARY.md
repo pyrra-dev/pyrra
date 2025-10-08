@@ -42,7 +42,51 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
 
 **Status**: ✅ **TRAFFIC VISUALIZATION COMPLETE - PRODUCTION READY**
 
-### 🎯 Remaining Workjusts alert thresholds based on actual traffic patterns rather than using fixed static multipliers. This implementation is based on the method described in the "Error Budget is All You Need" blog series.
+### 🚧 **NEWLY IDENTIFIED ISSUES (Post Task 7.5)**
+
+#### Issue 1: UI Refresh Rate Investigation
+**Status**: 🔍 Investigation Required
+**Problem**: Pyrra UI appears to refresh too frequently
+**Action Required**:
+- Compare Detail.tsx auto-reload behavior with upstream-comparison branch
+- Determine if this is original Pyrra behavior or introduced by feature work
+- If introduced: revert to original refresh rate
+- If original: document as expected behavior
+
+#### Issue 2: BurnrateGraph Dynamic Threshold Display
+**Status**: 🐛 Bug Identified
+**Problem**: Alert table burn rate graphs show static thresholds instead of dynamic thresholds for dynamic SLOs
+**Root Cause**: 
+- `BurnrateGraph` component receives threshold prop but doesn't distinguish between static/dynamic
+- `getThresholdDescription()` returns placeholder for dynamic SLOs
+- Graph displays static threshold value instead of calculating dynamic threshold
+**Action Required**:
+- Update BurnrateGraph to calculate dynamic thresholds using traffic-aware formula
+- Integrate with BurnRateThresholdDisplay patterns
+- Update threshold line and tooltip to show correct dynamic values
+
+#### Issue 3: Grafana Dashboard Support
+**Status**: 📊 Enhancement Required
+**Problem**: Grafana dashboards not updated for dynamic burn rate SLOs
+**Current State**:
+- Pyrra provides Grafana dashboards (list.json, detail.json)
+- Dashboards rely on generic recording rules (pyrra_objective, pyrra_availability, etc.)
+- No dynamic burn rate specific visualizations
+**Action Required**:
+- Review existing dashboard structure and queries
+- Design dynamic burn rate panels and visualizations
+- Determine if new generic recording rules needed
+- Update dashboard JSON files and documentation
+- Test with mixed static/dynamic SLOs
+
+**Spec Updates**: All three issues have been added to:
+- `.kiro/specs/dynamic-burn-rate-completion/design.md` - Design section with detailed analysis
+- `.kiro/specs/dynamic-burn-rate-completion/requirements.md` - New requirements 7 and 8
+- `.kiro/specs/dynamic-burn-rate-completion/tasks.md` - New tasks 7.6-7.9
+
+### 🎯 Remaining Work
+
+The feature adjusts alert thresholds based on actual traffic patterns rather than using fixed static multipliers. This implementation is based on the method described in the "Error Budget is All You Need" blog series.
 
 ## ✅ **COMPLETED: UI Alert Display Integration - Production Ready**
 

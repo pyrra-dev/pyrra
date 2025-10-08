@@ -245,10 +245,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Consult user before completion**: Ask if there are more UI components or cases to check
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.5 Validate alert rules generation and end-to-end alert pipeline
-
-
-
+- [x] 7.5 Validate alert rules generation and end-to-end alert pipeline
 
 
   - Test alert rules creation for ratio, latency, latencyNative, and boolGauge indicators
@@ -258,7 +255,49 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Test complete end-to-end alert pipeline from Prometheus rules to AlertManager
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.6 Optimize UI component queries and performance validation
+- [ ] 7.6 Investigate and fix UI refresh rate if needed
+
+  - Compare Detail.tsx auto-reload behavior with upstream-comparison branch
+  - Check if refresh interval was modified during dynamic burn rate feature development
+  - If behavior changed from original: revert to original refresh rate configuration
+  - If behavior is original: document as expected behavior, no changes needed
+  - Test that refresh rate is appropriate for production use
+  - _Requirements: 5.2, 5.4_
+
+- [ ] 7.7 Fix BurnrateGraph to display dynamic thresholds for dynamic SLOs
+
+  - Update BurnrateGraph component to detect dynamic burn rate type from objective
+  - Integrate traffic calculation patterns from BurnRateThresholdDisplay component
+  - Calculate dynamic threshold using (N_SLO / N_alert) × E_budget_percent × (1 - SLO_target) formula
+  - Update threshold line in graph to show calculated dynamic threshold instead of static
+  - Update getThresholdDescription() to provide meaningful description for dynamic thresholds
+  - Maintain backward compatibility for static SLOs (existing behavior unchanged)
+  - Test with both ratio and latency dynamic SLOs to verify correct threshold display
+  - _Requirements: 2.1, 2.4_
+
+- [ ] 7.8 Design Grafana dashboard enhancements for dynamic burn rates
+
+  - Review existing Grafana dashboard structure (list.json, detail.json)
+  - Analyze current generic recording rules used by dashboards
+  - Identify what dynamic burn rate information should be displayed in Grafana
+  - Design dashboard panels for dynamic burn rate visualization
+  - Determine if new generic recording rules are needed for dynamic SLOs
+  - Document dashboard enhancement design and required changes
+  - Ensure backward compatibility with static SLOs
+  - _Requirements: 6.1, 6.2_
+
+- [ ] 7.9 Implement Grafana dashboard updates for dynamic burn rates
+
+  - Update detail.json dashboard with dynamic burn rate panels
+  - Add burn rate type indicator (static vs dynamic) to dashboard
+  - Add traffic context visualization if applicable
+  - Update dashboard queries to handle both static and dynamic SLOs
+  - Test dashboards with mixed static/dynamic SLOs
+  - Update examples/grafana/README.md with dynamic burn rate documentation
+  - Generate new dashboard screenshots showing dynamic burn rate features
+  - _Requirements: 6.1, 6.2, 6.3_
+
+- [ ] 7.10 Optimize UI component queries and performance validation
 
   - Validate BurnRateThresholdDisplay uses recording rules when available instead of raw metrics
   - Optimize histogram queries for latency indicators to use efficient aggregations
@@ -267,7 +306,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Compare query performance between static and dynamic SLOs for each indicator type
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.7 Production readiness validation
+- [ ] 7.11 Production readiness validation
 
   - Test feature with large numbers of mixed static/dynamic SLOs
   - Validate memory usage and performance scaling characteristics
@@ -275,7 +314,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Implement and test graceful degradation under resource constraints
   - _Requirements: 5.2, 5.4_
 
-- [ ] 7.8 Comprehensive UI build and deployment testing
+- [ ] 7.12 Comprehensive UI build and deployment testing
   - Validate embedded UI build process (npm run build + make build)
   - Test production UI (port 9099) shows all enhancements correctly
   - Verify no regressions in existing static SLO functionality using upstream comparison branch

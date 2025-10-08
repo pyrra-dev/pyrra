@@ -83,6 +83,30 @@ The core implementation is complete (~30%), with backend logic, API integration,
 4. WHEN optimizing performance THEN tuning guidelines SHALL help achieve optimal query performance and resource usage
 5. WHEN contributing to the project THEN development workflow documentation SHALL enable successful local development setup
 
+### Requirement 7: Grafana Dashboard Support for Dynamic Burn Rates
+
+**User Story:** As a Grafana user who prefers Grafana dashboards over the Pyrra UI, I want Grafana dashboards to display dynamic burn rate information correctly, so that I can monitor and visualize dynamic SLOs in my preferred tool.
+
+#### Acceptance Criteria
+
+1. WHEN viewing Grafana dashboards with dynamic SLOs THEN the dashboards SHALL display burn rate type (static vs dynamic) clearly
+2. WHEN using generic recording rules with dynamic SLOs THEN the dashboards SHALL show appropriate dynamic burn rate metrics
+3. WHEN switching between static and dynamic SLOs in Grafana THEN the dashboard SHALL adapt visualization appropriately
+4. WHEN viewing alert graphs in Grafana THEN dynamic thresholds SHALL be displayed correctly (not static thresholds)
+5. WHEN following Grafana dashboard documentation THEN setup instructions SHALL enable successful dynamic burn rate visualization
+
+### Requirement 8: UI Component Consistency and Bug Fixes
+
+**User Story:** As a Pyrra user, I want all UI components to display dynamic burn rate information consistently and correctly, so that I can trust the visualizations and make informed decisions.
+
+#### Acceptance Criteria
+
+1. WHEN viewing burn rate graphs in alert tables THEN dynamic SLOs SHALL display dynamic thresholds (not static thresholds)
+2. WHEN the UI auto-refreshes THEN the refresh rate SHALL match original Pyrra behavior (not be faster than intended)
+3. WHEN comparing threshold displays across different UI components THEN all components SHALL show consistent calculated values
+4. WHEN viewing graphs and tables THEN visual indicators SHALL clearly distinguish between static and dynamic behavior
+5. WHEN encountering edge cases THEN all UI components SHALL handle errors consistently and gracefully
+
 ## Success Criteria
 
 ### Minimum Success

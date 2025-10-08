@@ -513,40 +513,88 @@ print(f'Expected threshold: {threshold:.12f}')
 curl -s "http://localhost:9090/api/v1/query?query=..." | jq '.data.result[0].value[1]'
 ```
 
+## Newly Identified Issues (Post Task 7.5)
+
+### Issue 1: UI Refresh Rate Investigation
+**Problem**: Pyrra UI appears to refresh too frequently
+**Investigation Required**: 
+- Determine if this is original Pyrra behavior or introduced by dynamic burn rate feature
+- Check `Detail.tsx` auto-reload interval configuration
+- Compare with upstream-comparison branch to identify if behavior changed
+**Decision**: If original behavior, no changes needed. If introduced by feature work, revert to original refresh rate.
+
+### Issue 2: BurnrateGraph Threshold Display for Dynamic SLOs
+**Problem**: Alert table burn rate graphs show static thresholds instead of dynamic thresholds for dynamic SLOs
+**Current Behavior**: `BurnrateGraph` component receives `threshold` prop from `AlertsTable` but doesn't distinguish between static and dynamic calculations
+**Root Cause**: `getThresholdDescription()` function in `burnrate.tsx` returns placeholder for dynamic SLOs, and graph uses static threshold value
+**Required Fix**:
+- Update `BurnrateGraph` to calculate and display dynamic thresholds when `burnRateType === 'dynamic'`
+- Integrate with existing traffic calculation patterns from `BurnRateThresholdDisplay`
+- Update threshold line and tooltip to show traffic-aware dynamic threshold
+- Maintain backward compatibility for static SLOs
+
+### Issue 3: Grafana Dashboard Support for Dynamic Burn Rates
+**Problem**: Grafana dashboards not updated to support dynamic burn rate SLOs
+**Current State**: 
+- Pyrra provides Grafana dashboards (`examples/grafana/list.json`, `examples/grafana/detail.json`)
+- Dashboards rely on generic recording rules (`pyrra_objective`, `pyrra_availability`, `pyrra_requests:rate5m`, etc.)
+- Generated via `--generic-rules` flag on filesystem/kubernetes components
+- No dynamic burn rate specific metrics or visualizations
+**Investigation Required**:
+- Review existing Grafana dashboard structure and queries
+- Determine what dynamic burn rate information should be displayed
+- Identify if new generic recording rules are needed for dynamic SLOs
+- Design dashboard enhancements that maintain backward compatibility
+**Scope**: 
+- Update dashboard JSON files with dynamic burn rate panels
+- Document new dashboard features and configuration
+- Test with both static and dynamic SLOs
+
 ## Implementation Roadmap
 
 ### Immediate Priorities (Next Implementation Phase)
 
-#### Option A: Complete Latency Validation
-**Rationale**: Build on existing foundation, complete most common indicator type after ratio
-**Scope**: Enhanced tooltips, performance assessment, comprehensive validation
-**Risk**: Medium complexity, building on working foundation
-**Timeline**: 2-3 hours focused development + testing
+#### Priority 1: Fix BurnrateGraph Threshold Display (CRITICAL)
+**Rationale**: User-visible bug affecting dynamic SLO visualization
+**Scope**: Update BurnrateGraph component to show dynamic thresholds correctly
+**Risk**: Low - building on existing BurnRateThresholdDisplay patterns
+**Timeline**: 1-2 hours focused development + testing
 
-#### Option B: Resilience Testing First
-**Rationale**: Critical for production reliability, independent of indicator types
-**Scope**: Missing metrics, edge cases, error handling validation
-**Risk**: Lower complexity, easier debugging
-**Timeline**: 1-2 hours focused testing
+#### Priority 2: UI Refresh Rate Investigation (HIGH)
+**Rationale**: Potential regression affecting user experience
+**Scope**: Compare with upstream, identify if behavior changed, revert if needed
+**Risk**: Low - simple comparison and configuration change
+**Timeline**: 30 minutes investigation + fix if needed
+
+#### Priority 3: Grafana Dashboard Enhancement (MEDIUM)
+**Rationale**: Important for users who prefer Grafana over Pyrra UI
+**Scope**: Design and implement Grafana dashboard updates for dynamic burn rates
+**Risk**: Medium - requires understanding Grafana dashboard structure and testing
+**Timeline**: 2-3 hours design + implementation + testing
 
 ### Medium-Term Goals
 
-1. **Complete Indicator Coverage**:
+1. **Fix Identified Issues**:
+   - BurnrateGraph dynamic threshold display
+   - UI refresh rate investigation and fix
+   - Grafana dashboard enhancement for dynamic burn rates
+
+2. **Complete Indicator Coverage**:
    - LatencyNative and BoolGauge indicator validation
    - UI component support for all indicator types
    - Performance characteristics documentation
 
-2. **Alert Firing Validation**:
+3. **Alert Firing Validation**:
    - End-to-end alert pipeline testing
    - Synthetic metric generation for controlled testing
    - Precision and recall validation
 
-3. **Production Polish**:
+4. **Production Polish**:
    - Enhanced tooltips with minimal required changes
    - Performance optimization and benchmarking
    - Final production readiness assessment
 
-4. **Comprehensive Testing**:
+5. **Comprehensive Testing**:
    - Full regression testing across all indicator types
    - Production environment validation
    - Migration and deployment guide validation
