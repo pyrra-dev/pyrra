@@ -378,26 +378,41 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [ ] 7.10.3 Review backend alert rule query optimization
 
-  - **Context from 7.10.1**: UI optimization shows 7x speedup for SLO window using recording rules
+  - **Reference documents**:
+    - `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md` - Performance measurements showing 7x speedup for ratio, 2x for latency
+    - `.dev-docs/TASK_7.10_IMPLEMENTATION.md` - UI optimization implementation and real-world performance analysis
+    - `.dev-docs/TASK_7.10.1_TEST_IMPROVEMENTS.md` - Test methodology and recording rule availability
+  - **Context from 7.10.2**: UI optimization implemented with hybrid approach (recording rules for SLO window)
+  - **Key finding**: Query speedup (7x) provides minimal UI benefit (~5% of 110ms total) due to network overhead
+  - **Primary benefit**: Prometheus load reduction, not query speed
   - Check if alert rules in slo/rules.go use raw metrics in dynamic threshold calculation
   - Current: `scalar((sum(increase(metric[30d])) / sum(increase(metric[1h4m]))) * threshold)`
   - **IMPORTANT**: Alert windows (1h4m, 6h26m) do NOT have increase recording rules
   - Potential optimization: `scalar((sum(metric:increase30d{slo="..."}) / sum(increase(metric[1h4m]))) * threshold)`
   - Only SLO window can use recording rule, alert windows must use inline increase()
   - Evaluate if optimization is needed or if current approach is acceptable
-  - Consider: Alert rules evaluated every 30s, UI queries on-demand (different performance profiles)
+  - Consider: Alert rules evaluated every 30s (different performance profile than UI on-demand queries)
+  - Consider: Main benefit would be Prometheus load reduction, not alert evaluation speed
   - Document decision and rationale in `.dev-docs/TASK_7.10.3_BACKEND_OPTIMIZATION_DECISION.md`
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.10.4 Final validation and documentation cleanup
 
-  - **Run validation tools** with optimized implementation (from 7.10.2)
-  - **Measure actual performance improvements** for all indicator types
-  - **Compare static vs dynamic SLO performance** with real data
+  - **Reference documents** (already completed):
+    - `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md` - Performance measurements from 7.10.1
+    - `.dev-docs/TASK_7.10_IMPLEMENTATION.md` - Implementation details and real-world analysis from 7.10.2
+    - `.dev-docs/TASK_7.10.1_TEST_IMPROVEMENTS.md` - Test methodology
+    - `.dev-docs/TASK_7.10_UI_QUERY_OPTIMIZATION_ANALYSIS.md` - Original analysis
+  - **Validation status**: ✅ Already completed in 7.10.2
+    - Ratio indicators: 7.17x query speedup validated
+    - Latency indicators: 2.20x query speedup validated
+    - Real-world UI performance: ~110ms total (network overhead dominates)
+    - Decision: Keep optimization for Prometheus load reduction
+  - **Run validation tools** with optimized implementation (optional re-validation)
   - **Verify no duplicate calculations** between recording rules and UI
-  - **Consolidate documentation**:
-    - Create final `.dev-docs/TASK_7.10_FINAL_RESULTS.md` with actual measurements
-    - Update analysis documents with final results
+  - **Consolidate documentation** (if needed):
+    - Consider creating `.dev-docs/TASK_7.10_FINAL_RESULTS.md` if additional validation performed
+    - Update `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md` with any new findings
   - **Update steering documents** if optimization patterns should be documented
   - _Requirements: 5.1, 5.3_
 
