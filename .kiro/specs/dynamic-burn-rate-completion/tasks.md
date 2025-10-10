@@ -376,7 +376,12 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Update documentation**: Document optimization in `.dev-docs/TASK_7.10_IMPLEMENTATION.md`
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.10.3 Review backend alert rule query optimization
+- [x] 7.10.3 Review backend alert rule query optimization
+
+
+
+
+
 
   - **Reference documents**:
     - `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md` - Performance measurements showing 7x speedup for ratio, 2x for latency
@@ -414,6 +419,45 @@ This implementation plan breaks down the remaining work to complete the dynamic 
     - Consider creating `.dev-docs/TASK_7.10_FINAL_RESULTS.md` if additional validation performed
     - Update `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md` with any new findings
   - **Update steering documents** if optimization patterns should be documented
+  - _Requirements: 5.1, 5.3_
+
+- [ ] 7.10.5 Implement backend alert rule query optimization
+
+  - **Prerequisite**: Task 7.10.3 complete ✅ - Decision documented to implement optimization
+  - **Reference documents**:
+    - `.dev-docs/TASK_7.10.3_BACKEND_OPTIMIZATION_DECISION.md` - Decision rationale and implementation strategy
+    - `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md` - Performance measurements (7x ratio, 2x latency)
+    - `.dev-docs/TASK_7.10_IMPLEMENTATION.md` - UI implementation pattern to follow
+  - **Priority**: MEDIUM-HIGH (Prometheus load reduction at scale)
+  - **Expected benefits**:
+    - Ratio indicators: 7.17x speedup (48.75ms → 6.80ms) = ~42ms saved per alert
+    - Latency indicators: 2.20x speedup (6.34ms → 2.89ms) = ~3.5ms saved per alert
+    - Production impact: ~1.77 million seconds/year saved for ratio indicators at scale
+    - Primary benefit: Prometheus CPU/memory load reduction (not alert speed)
+  - **Implementation in `slo/rules.go`**:
+    - Add `getBaseMetricName()` helper function (similar to UI implementation)
+    - Update `buildDynamicAlertExpr()` for ratio indicators to use hybrid approach
+    - Update `buildDynamicAlertExpr()` for latency indicators to use hybrid approach
+    - Skip boolGauge optimization (already fast, no benefit)
+    - Use hybrid pattern: recording rule for SLO window + inline for alert windows
+  - **Correct query pattern** (hybrid approach):
+    - Current: `scalar((sum(increase(metric[30d])) / sum(increase(metric[1h4m]))) * threshold)`
+    - Optimized: `scalar((sum(metric:increase30d{slo="..."}) / sum(increase(metric[1h4m]))) * threshold)`
+    - Only SLO window uses recording rule, alert windows use inline increase()
+  - **Testing requirements**:
+    - Unit tests: Verify query generation produces correct PromQL
+    - Integration tests: Deploy test SLOs and verify alert rules created correctly
+    - Alert firing tests: Use `cmd/run-synthetic-test/main.go` to verify alerts fire
+    - Performance validation: Measure Prometheus CPU/memory usage before/after
+  - **Documentation**:
+    - Document implementation in `.dev-docs/TASK_7.10.5_BACKEND_IMPLEMENTATION.md`
+    - Update `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md` with completion status
+    - Update steering documents with backend optimization patterns
+  - **Success criteria**:
+    - Alert rules use recording rules for SLO window calculation
+    - Alert rules still fire correctly (validated with synthetic tests)
+    - Prometheus load reduced (measured)
+    - No regressions in alert behavior
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.11 Production readiness validation

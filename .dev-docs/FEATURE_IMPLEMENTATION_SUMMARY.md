@@ -1638,3 +1638,103 @@ case 1: // Second warning window
 **Status**: ✅ **FEATURE COMPLETE - PRODUCTION READY**  
 **Last Updated**: August 26, 2025  
 **Implementation**: All 4 indicator types support dynamic burn rate alerting
+
+
+## ✅ **COMPLETED: Task 7.10.3 - Backend Alert Rule Query Optimization Decision**
+
+### **January 10, 2025 - Backend Optimization Analysis Complete**
+
+**✅ Decision Documented**: Comprehensive analysis of backend alert rule query optimization completed
+
+#### **Analysis Summary**
+
+**Current Implementation**:
+- Backend alert rules use raw metrics for both SLO window and alert window calculations
+- Dynamic threshold formula: `scalar((sum(increase(metric[30d])) / sum(increase(metric[1h4m]))) * E_budget_percent * (1-SLO_target))`
+- Alert rules evaluated every 30 seconds by Prometheus rule engine
+
+**Optimization Opportunity**:
+- Use recording rules for SLO window (30d) calculation
+- Keep inline calculations for alert windows (1h4m, 6h26m) - no recording rules exist
+- Hybrid approach: `scalar((sum(metric:increase30d{slo="..."}) / sum(increase(metric[1h4m]))) * E_budget_percent * (1-SLO_target))`
+
+#### **Performance Analysis**
+
+**Expected Benefits** (based on Task 7.10.1 validation):
+- **Ratio indicators**: 7.17x speedup (48.75ms → 6.80ms) = ~42ms saved per alert
+- **Latency indicators**: 2.20x speedup (6.34ms → 2.89ms) = ~3.5ms saved per alert
+- **BoolGauge indicators**: No benefit (already fast at 3ms)
+
+**Production Impact Calculation**:
+- 10 dynamic SLOs × 4 alert windows = 40 alert rules
+- Each alert evaluates every 30 seconds (2 evaluations/minute)
+- **Ratio**: 40 alerts × 42ms = 1.68 seconds saved per evaluation cycle
+- **Latency**: 40 alerts × 3.5ms = 140ms saved per evaluation cycle
+- **Annual Prometheus load reduction**: ~1.77 million seconds/year for ratio indicators
+
+#### **Decision: IMPLEMENT OPTIMIZATION**
+
+**Rationale**:
+1. **Significant Prometheus Load Reduction** (PRIMARY BENEFIT)
+   - Reduces CPU/memory usage for Prometheus at scale
+   - 7x fewer data points scanned for ratio indicators
+   - Better scalability for managing more SLOs
+
+2. **Consistent with UI Implementation**
+   - UI already uses this optimization pattern (Task 7.10.2)
+   - Ensures consistency between UI and backend calculations
+   - Eliminates potential discrepancies in traffic calculations
+
+3. **Architectural Alignment**
+   - Pyrra generates recording rules specifically for this purpose
+   - Using them in alert rules aligns with system design intent
+   - Follows best practice of using pre-computed metrics
+
+4. **Proven Pattern**
+   - Hybrid approach validated in UI implementation
+   - Same pattern: recording rule for SLO window + inline for alert window
+   - Acceptable implementation complexity with clear benefits
+
+**Implementation Strategy**:
+- **Phase 1**: Add helper function to extract base metric name
+- **Phase 2**: Update buildDynamicAlertExpr() for ratio and latency indicators
+- **Phase 3**: Comprehensive testing (unit tests, integration tests, alert firing validation)
+- **Priority**: MEDIUM-HIGH (implement after Task 7.10.4 completion)
+- **Estimated Effort**: 2-3 hours implementation + 2-3 hours testing
+
+**Alternative Considered**: Do not optimize (keep current implementation)
+- **Rejected because**: Prometheus load reduction is significant at scale, consistency with UI is valuable, architectural alignment with Pyrra's design
+
+#### **Documentation Created**
+
+**File**: `.dev-docs/TASK_7.10.3_BACKEND_OPTIMIZATION_DECISION.md`
+
+**Contents**:
+- Complete analysis of current vs optimized implementation
+- Performance calculations and production impact estimates
+- Detailed rationale for optimization decision
+- Implementation code sketches and strategy
+- Success criteria and next steps
+
+**Key Sections**:
+- Current backend implementation analysis
+- Potential optimized pattern with code examples
+- Performance characteristics comparison (alert rules vs UI queries)
+- Benefits analysis (Prometheus load reduction, consistency, architectural alignment)
+- Risks and considerations
+- Decision rationale and implementation strategy
+
+#### **Next Steps**
+
+1. ✅ **Task 7.10.3 Complete**: Decision documented
+2. 🔜 **Task 7.10.4**: Final UI validation and documentation cleanup
+3. 🔜 **Task 7.10.5** (NEW): Implement backend alert rule optimization
+4. 🔜 **Update tasks.md**: Add Task 7.10.5 as new sub-task
+
+**Status**: ✅ **ANALYSIS COMPLETE - OPTIMIZATION RECOMMENDED**
+
+**References**:
+- Decision Document: `.dev-docs/TASK_7.10.3_BACKEND_OPTIMIZATION_DECISION.md`
+- Performance Validation: `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md`
+- UI Implementation: `.dev-docs/TASK_7.10_IMPLEMENTATION.md`
+- Backend Code: `slo/rules.go` (buildDynamicAlertExpr function)
