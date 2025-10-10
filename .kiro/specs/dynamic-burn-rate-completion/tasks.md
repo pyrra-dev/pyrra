@@ -328,7 +328,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.10.1 Fix validation tests and establish correct baseline
 
-
   - **Fix test queries**: Use only 30d window comparisons (has data)
     - Compare: `apiserver_request:increase30d` vs `increase(apiserver_request_total[30d])`
     - Remove tests for alert windows (1h4m, 6h26m) that have no data yet
@@ -345,7 +344,8 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Document recording rule availability**: Which exist, which have data, which need time
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.10.2 Implement BurnRateThresholdDisplay optimization
+- [x] 7.10.2 Implement BurnRateThresholdDisplay optimization
+
 
   - **Prerequisite**: Task 7.10.1 complete ✅ - Validation shows 7.17x speedup for ratio, 2.20x for latency
   - **Reference documents**:
