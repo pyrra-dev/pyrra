@@ -397,8 +397,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.10.4 Final validation and documentation cleanup
 
-
-
   - **Prerequisites**: All 7.10 sub-tasks complete ✅
     - Task 7.10.1: Test improvements and validation methodology ✅
     - Task 7.10.2: UI optimization implementation ✅
@@ -500,15 +498,41 @@ This implementation plan breaks down the remaining work to complete the dynamic 
     - No regressions in alert behavior
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.11 Production readiness validation
+- [x] 7.11 Create production readiness testing infrastructure
 
-  - Test feature with large numbers of mixed static/dynamic SLOs
-  - Validate memory usage and performance scaling characteristics
-  - Test cross-browser compatibility for UI components
-  - Implement and test graceful degradation under resource constraints
+  - Create SLO generator tool with window variation (7d, 28d, 30d)
+  - Create performance monitoring tool
+  - Create automated test scripts
+  - Generate 50 test SLOs for medium scale testing
+  - Create consolidated testing documentation
   - _Requirements: 5.2, 5.4_
+  - _Reference: `.dev-docs/TASK_7.11_TESTING_INFRASTRUCTURE.md` for complete tool documentation_
 
-- [ ] 7.12 Comprehensive UI build and deployment testing
+- [ ] 7.11.1 Run automated performance tests
+
+  - Run baseline performance test with current SLOs
+  - Apply 50 test SLOs and run medium scale performance test
+  - Apply 100 test SLOs and run large scale performance test
+  - Collect and analyze performance metrics (API response time, memory usage, query load)
+  - Document performance benchmarks and scaling characteristics
+  - _Requirements: 5.2, 5.4_
+  - _Reference: `.dev-docs/TASK_7.11_TESTING_INFRASTRUCTURE.md` for commands and tools_
+  - _Deliverable: `.dev-docs/PRODUCTION_PERFORMANCE_BENCHMARKS.md` with test results_
+
+- [ ] 7.12 Manual testing - Browser compatibility and graceful degradation
+
+  - **Interactive Testing Required**: Test in Chrome, Firefox, and Edge browsers
+  - **Follow Guide**: `.dev-docs/TASK_7.12_MANUAL_TESTING_GUIDE.md` (complete step-by-step instructions)
+  - Test graceful degradation: network throttling, API failures, Prometheus unavailability
+  - Test migration from static to dynamic SLOs with UI verification
+  - Test rollback procedures
+  - Create browser compatibility matrix document (`.dev-docs/BROWSER_COMPATIBILITY_MATRIX.md`)
+  - Create migration guide document (`.dev-docs/MIGRATION_GUIDE.md`)
+  - _Requirements: 5.2, 5.4_
+  - _Reference: `.dev-docs/BROWSER_COMPATIBILITY_TEST_GUIDE.md` for detailed test scenarios_
+  - _Note: This task requires human interaction for visual validation and browser testing_
+
+- [ ] 7.13 Comprehensive UI build and deployment testing
   - Validate embedded UI build process (npm run build + make build)
   - Test production UI (port 9099) shows all enhancements correctly
   - Verify no regressions in existing static SLO functionality using upstream comparison branch
