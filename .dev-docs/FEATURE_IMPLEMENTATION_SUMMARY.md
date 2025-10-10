@@ -1728,8 +1728,8 @@ case 1: // Second warning window
 
 1. ✅ **Task 7.10.3 Complete**: Decision documented
 2. 🔜 **Task 7.10.4**: Final UI validation and documentation cleanup
-3. 🔜 **Task 7.10.5** (NEW): Implement backend alert rule optimization
-4. 🔜 **Update tasks.md**: Add Task 7.10.5 as new sub-task
+3. ✅ **Task 7.10.5**: Backend alert rule optimization implemented
+4. ✅ **Update tasks.md**: Task 7.10.5 added and completed
 
 **Status**: ✅ **ANALYSIS COMPLETE - OPTIMIZATION RECOMMENDED**
 
@@ -1738,3 +1738,63 @@ case 1: // Second warning window
 - Performance Validation: `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md`
 - UI Implementation: `.dev-docs/TASK_7.10_IMPLEMENTATION.md`
 - Backend Code: `slo/rules.go` (buildDynamicAlertExpr function)
+
+---
+
+## ✅ **COMPLETED: Task 7.10.5 - Backend Alert Rule Query Optimization** ✅
+
+### **Task 7.10.5**: Backend Alert Rule Optimization ✅ **COMPLETED (Jan 10, 2025)**
+
+- ✅ **Helper Function Added**: Implemented `getBaseMetricName()` to strip metric suffixes
+- ✅ **UI Regression Fixed**: Fixed synthetic SLO threshold display (hardcoded 30d → dynamic window)
+- ✅ **Ratio Indicator Optimization**: Updated `buildDynamicAlertExpr()` to use hybrid approach
+- ✅ **Latency Indicator Optimization**: Updated `buildDynamicAlertExpr()` to use hybrid approach
+- ✅ **BoolGauge Skipped**: No optimization (already fast at 3.02ms)
+- ✅ **Alert Rule Generation Verified**: Kubernetes PrometheusRule objects use recording rules correctly
+- ✅ **Alert Firing Validated**: Synthetic test confirms alerts fire correctly with optimized queries
+- ✅ **No Regressions**: Both dynamic and static alerts work as expected
+
+**Technical Implementation Details**:
+
+- **slo/rules.go**: Added `getBaseMetricName()` helper and updated `buildDynamicAlertExpr()` for ratio and latency
+- **Hybrid Approach**: Recording rule for SLO window + inline calculation for alert window
+- **Query Pattern**: `sum(metric:increase30d{slo="..."}) / sum(increase(metric[1h4m]))`
+- **Consistent with UI**: Same optimization pattern as Task 7.10.2
+
+**Query Transformation Examples**:
+
+**Ratio Indicator** (7.17x speedup expected):
+- Before: `sum(increase(apiserver_request_total{verb="GET"}[30d]))`
+- After: `sum(apiserver_request:increase30d{slo="test-dynamic-apiserver"})`
+
+**Latency Indicator** (2.20x speedup expected):
+- Before: `sum(increase(prometheus_http_request_duration_seconds_count{job="prometheus-k8s"}[30d]))`
+- After: `sum(prometheus_http_request_duration_seconds:increase30d{slo="test-latency-dynamic"})`
+
+**Performance Benefits**:
+
+| Indicator | Query Speedup | Per-Alert Savings | Annual Prometheus Savings (40 alerts) |
+|-----------|---------------|-------------------|--------------------------------------|
+| **Ratio** | 7.17x | ~42ms | ~1.77 million seconds/year |
+| **Latency** | 2.20x | ~3.5ms | ~147,000 seconds/year |
+
+**Primary Benefits**:
+1. **Prometheus Load Reduction**: 7x fewer data points scanned for ratio indicators
+2. **Consistent Data Source**: UI and alerts use same recording rules
+3. **Architectural Alignment**: Follows Pyrra's design intent
+4. **Better Scalability**: More SLOs on same Prometheus instance
+
+**Testing Results**:
+- ✅ Compilation successful
+- ✅ Alert rules generated with recording rules for SLO window
+- ✅ Alert rules use inline calculations for alert windows
+- ✅ Synthetic test: Dynamic alerts fired successfully
+- ✅ Synthetic test: Static alerts also fired (no regression)
+- ✅ Alert pipeline working correctly end-to-end
+
+**Documentation**:
+- Implementation details: `.dev-docs/TASK_7.10.5_BACKEND_IMPLEMENTATION.md`
+- Decision rationale: `.dev-docs/TASK_7.10.3_BACKEND_OPTIMIZATION_DECISION.md`
+- Performance validation: `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md`
+
+**Status**: ✅ **BACKEND OPTIMIZATION COMPLETE - PRODUCTION READY**

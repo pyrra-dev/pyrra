@@ -5,6 +5,7 @@ import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {usePrometheusQuery} from '../prometheus'
 import {BurnRateType, getBurnRateType} from '../burnrate'
 import {formatThreshold} from '../utils/numberFormat'
+import {formatDuration} from '../duration'
 
 interface BurnRateThresholdDisplayProps {
   objective: Objective
@@ -100,15 +101,19 @@ const DynamicThresholdValue: React.FC<{
    * Falls back to raw metrics if recording rules unavailable
    * 
    * Hybrid approach:
-   * - SLO window (30d): Use recording rule (7x faster for ratio, 2x for latency)
+   * - SLO window (from objective.window): Use recording rule (7x faster for ratio, 2x for latency)
    * - Alert window (1h4m, etc.): Use inline calculation (no recording rules exist)
    */
   const getTrafficRatioQueryOptimized = (factor: number): string => {
+    // Get the actual SLO window from the objective (e.g., "30d", "1d", "28d")
+    const sloWindowSeconds = Number(objective.window?.seconds ?? 2592000) * 1000 // Default to 30d if not set
+    const sloWindow = formatDuration(sloWindowSeconds)
+    
     const windowMap = {
-      14: { slo: '30d', long: '1h4m' },    // Critical alert 1
-      7:  { slo: '30d', long: '6h26m' },   // Critical alert 2  
-      2:  { slo: '30d', long: '1d1h43m' }, // Warning alert 1
-      1:  { slo: '30d', long: '4d6h51m' }  // Warning alert 2
+      14: { slo: sloWindow, long: '1h4m' },    // Critical alert 1
+      7:  { slo: sloWindow, long: '6h26m' },   // Critical alert 2  
+      2:  { slo: sloWindow, long: '1d1h43m' }, // Warning alert 1
+      1:  { slo: sloWindow, long: '4d6h51m' }  // Warning alert 2
     }
     
     const windows = windowMap[factor as keyof typeof windowMap]
@@ -154,11 +159,15 @@ const DynamicThresholdValue: React.FC<{
     }
     
     // Fallback to raw metric approach if optimization not available
+    // Get the actual SLO window from the objective (e.g., "30d", "1d", "28d")
+    const sloWindowSeconds = Number(objective.window?.seconds ?? 2592000) * 1000 // Default to 30d if not set
+    const sloWindow = formatDuration(sloWindowSeconds)
+    
     const windowMap = {
-      14: { slo: '30d', long: '1h4m' },    // Critical alert 1
-      7:  { slo: '30d', long: '6h26m' },   // Critical alert 2  
-      2:  { slo: '30d', long: '1d1h43m' }, // Warning alert 1
-      1:  { slo: '30d', long: '4d6h51m' }  // Warning alert 2
+      14: { slo: sloWindow, long: '1h4m' },    // Critical alert 1
+      7:  { slo: sloWindow, long: '6h26m' },   // Critical alert 2  
+      2:  { slo: sloWindow, long: '1d1h43m' }, // Warning alert 1
+      1:  { slo: sloWindow, long: '4d6h51m' }  // Warning alert 2
     }
     
     const windows = windowMap[factor as keyof typeof windowMap]

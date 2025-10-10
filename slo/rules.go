@@ -176,6 +176,14 @@ func (o Objective) buildBoolGaugeSelector(alertMatchersString string) string {
 	return strings.Join(totalParts, ",")
 }
 
+// getBaseMetricName strips common suffixes to match recording rule naming
+func getBaseMetricName(metricName string) string {
+	metricName = strings.TrimSuffix(metricName, "_total")
+	metricName = strings.TrimSuffix(metricName, "_count")
+	metricName = strings.TrimSuffix(metricName, "_bucket")
+	return metricName
+}
+
 // buildAlertExpr constructs the alert expression based on burn rate type (static vs dynamic)
 func (o Objective) buildAlertExpr(w Window, alertMatchersString string) string {
 	if o.Alerting.BurnRateType == "dynamic" {
@@ -206,30 +214,34 @@ func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) s
 	switch o.IndicatorType() {
 	case Ratio:
 		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
-		// This is much more efficient than calculating everything inline
+		// Hybrid approach: recording rule for SLO window + inline for alert window
 		// Build selector for recording rules (includes slo label)
 		recordingRuleSelector := alertMatchersString
 		// Build selector for raw metrics (excludes slo label)
 		rawMetricSelector := o.buildTotalSelector(alertMatchersString)
+		// Get base metric name for recording rule
+		baseMetricName := getBaseMetricName(o.Indicator.Ratio.Total.Name)
+		// Get SLO name for recording rule selector
+		sloName := o.Labels.Get(labels.MetricName)
 
 		return fmt.Sprintf(
 			"("+
 				"%s{%s} > "+
-				"scalar((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(%s:increase%s{slo=\"%s\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				") and ("+
 				"%s{%s} > "+
-				"scalar((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(%s:increase%s{slo=\"%s\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				")",
 			// Short window: use recording rule > dynamic threshold calculated using N_long
 			o.BurnrateName(w.Short), recordingRuleSelector,
-			// Short window dynamic threshold calculation: N_SLO / N_long (same as long window)
-			o.Indicator.Ratio.Total.Name, rawMetricSelector, sloWindow,
+			// Short window dynamic threshold: recording rule for SLO window + inline for alert window
+			baseMetricName, sloWindow, sloName,
 			o.Indicator.Ratio.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 			// Long window: use recording rule > dynamic threshold
 			o.BurnrateName(w.Long), recordingRuleSelector,
-			// Long window dynamic threshold calculation: N_SLO / N_long
-			o.Indicator.Ratio.Total.Name, rawMetricSelector, sloWindow,
+			// Long window dynamic threshold: recording rule for SLO window + inline for alert window
+			baseMetricName, sloWindow, sloName,
 			o.Indicator.Ratio.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 		)
@@ -238,27 +250,31 @@ func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) s
 		recordingRuleSelector := alertMatchersString
 		// Build selector for raw metrics (excludes slo label)
 		rawMetricSelector := o.buildLatencyTotalSelector(alertMatchersString)
+		// Get base metric name for recording rule
+		baseMetricName := getBaseMetricName(o.Indicator.Latency.Total.Name)
+		// Get SLO name for recording rule selector
+		sloName := o.Labels.Get(labels.MetricName)
 
 		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
-		// This is much more efficient than calculating everything inline
+		// Hybrid approach: recording rule for SLO window + inline for alert window
 		return fmt.Sprintf(
 			"("+
 				"%s{%s} > "+
-				"scalar((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(%s:increase%s{slo=\"%s\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				") and ("+
 				"%s{%s} > "+
-				"scalar((sum(increase(%s{%s}[%s])) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(%s:increase%s{slo=\"%s\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				")",
 			// Short window: use recording rule > dynamic threshold calculated using N_long
 			o.BurnrateName(w.Short), recordingRuleSelector,
-			// Short window dynamic threshold calculation: N_SLO / N_long (same as long window)
-			o.Indicator.Latency.Total.Name, rawMetricSelector, sloWindow,
+			// Short window dynamic threshold: recording rule for SLO window + inline for alert window
+			baseMetricName, sloWindow, sloName,
 			o.Indicator.Latency.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 			// Long window: use recording rule > dynamic threshold
 			o.BurnrateName(w.Long), recordingRuleSelector,
-			// Long window dynamic threshold calculation: N_SLO / N_long
-			o.Indicator.Latency.Total.Name, rawMetricSelector, sloWindow,
+			// Long window dynamic threshold: recording rule for SLO window + inline for alert window
+			baseMetricName, sloWindow, sloName,
 			o.Indicator.Latency.Total.Name, rawMetricSelector, longWindow,
 			eBudgetPercent, targetStr,
 		)
