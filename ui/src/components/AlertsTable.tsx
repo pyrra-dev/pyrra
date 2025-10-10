@@ -165,8 +165,8 @@ const AlertsTable = ({
             }
 
             return (
-              <>
-                <tr key={i} className={alertStateString[a.state]}>
+              <React.Fragment key={`alert-${i}`}>
+                <tr className={alertStateString[a.state]}>
                   <td>
                     <button
                       className={showBurnrate[i] ? 'accordion down' : 'accordion'}
@@ -267,7 +267,7 @@ const AlertsTable = ({
                   </td>
                 </tr>
                 {a.short !== undefined && a.long !== undefined && showBurnrate[i] ? (
-                  <tr key={i + 10} className="burnrate">
+                  <tr className="burnrate">
                     <td colSpan={12}>
                       <BurnrateGraph
                         client={promClient}
@@ -282,10 +282,8 @@ const AlertsTable = ({
                       />
                     </td>
                   </tr>
-                ) : (
-                  <></>
-                )}
-              </>
+                ) : null}
+              </React.Fragment>
             )
           })}
         </tbody>
@@ -309,31 +307,54 @@ const DynamicBurnRateTooltip: React.FC<{
   const isRatioIndicator = objective.indicator?.options?.case === 'ratio'
   const isBoolGaugeIndicator = objective.indicator?.options?.case === 'boolGauge'
   
-  // Get traffic ratio query (same logic as BurnRateThresholdDisplay)
+  // Get traffic ratio query - MUST match BurnRateThresholdDisplay for consistency
   const getTrafficRatioQuery = (factor: number): string => {
+    // Get the actual SLO window from the objective (e.g., "30d", "1d", "28d")
+    const sloWindowSeconds = Number(objective.window?.seconds ?? 2592000) * 1000 // Default to 30d if not set
+    const sloWindow = formatDuration(sloWindowSeconds)
+    
     const windowMap = {
-      14: { slo: '30d', long: '1h4m' },
-      7:  { slo: '30d', long: '6h26m' },
-      2:  { slo: '30d', long: '1d1h43m' },
-      1:  { slo: '30d', long: '4d6h51m' }
+      14: { slo: sloWindow, long: '1h4m' },
+      7:  { slo: sloWindow, long: '6h26m' },
+      2:  { slo: sloWindow, long: '1d1h43m' },
+      1:  { slo: sloWindow, long: '4d6h51m' }
     }
     
     const windows = windowMap[factor as keyof typeof windowMap]
     if (windows === undefined) return ''
     
     const baseSelector = getBaseMetricSelector(objective)
+    const sloName = objective.labels?.__name__ ?? 'unknown'
     
-    // Handle different indicator types with appropriate query patterns
-    if (isLatencyNativeIndicator) {
-      // LatencyNative uses histogram_count() for native histograms
-      return `sum(histogram_count(increase(${baseSelector}[${windows.slo}]))) / sum(histogram_count(increase(${baseSelector}[${windows.long}])))`
-    } else if (isBoolGaugeIndicator) {
-      // BoolGauge uses count_over_time() aggregation for traffic calculation
-      return `sum(count_over_time(${baseSelector}[${windows.slo}])) / sum(count_over_time(${baseSelector}[${windows.long}]))`
-    } else {
-      // Ratio and Latency indicators use standard increase() pattern
-      return `sum(increase(${baseSelector}[${windows.slo}])) / sum(increase(${baseSelector}[${windows.long}]))`
+    // Helper to get base metric name (strip suffixes)
+    const getBaseMetricName = (selector: string): string => {
+      const metricMatch = selector.match(/^([a-zA-Z_:][a-zA-Z0-9_:]*)/)
+      if (metricMatch === null) return selector
+      const metricName = metricMatch[1]
+      return metricName.replace(/_total$/, '').replace(/_count$/, '').replace(/_bucket$/, '')
     }
+    
+    // Use optimized queries with recording rules (same as BurnRateThresholdDisplay)
+    if (isBoolGaugeIndicator) {
+      // BoolGauge: Skip optimization (already fast)
+      return `sum(count_over_time(${baseSelector}[${windows.slo}])) / sum(count_over_time(${baseSelector}[${windows.long}]))`
+    } else if (isRatioIndicator || isLatencyIndicator) {
+      // Ratio and Latency: Use recording rules for SLO window
+      const baseMetricName = getBaseMetricName(baseSelector)
+      
+      // For latency indicators, we must specify le="" to select only the total requests recording rule
+      // Pyrra creates two recording rules for latency: one with le="" (total) and one with le="<threshold>" (success)
+      // Without le="", sum() would aggregate both, giving 2x the actual traffic
+      const leLabel = isLatencyIndicator ? ',le=""' : ''
+      const sloWindowQuery = `sum(${baseMetricName}:increase${windows.slo}{slo="${sloName}"${leLabel}})`
+      const alertWindowQuery = `sum(increase(${baseSelector}[${windows.long}]))`
+      return `${sloWindowQuery} / ${alertWindowQuery}`
+    } else if (isLatencyNativeIndicator) {
+      // LatencyNative: Use raw metrics (recording rules may not preserve histogram structure)
+      return `sum(histogram_count(increase(${baseSelector}[${windows.slo}]))) / sum(histogram_count(increase(${baseSelector}[${windows.long}])))`
+    }
+    
+    return ''
   }
   
   const getThresholdConstant = (factor: number): number => {

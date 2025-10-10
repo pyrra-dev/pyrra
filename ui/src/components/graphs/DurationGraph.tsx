@@ -51,7 +51,7 @@ const DurationGraph = ({
   const [width, setWidth] = useState<number>(500)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined) {
+    if (targetRef?.current !== undefined && targetRef?.current !== null) {
       setWidth(targetRef.current.offsetWidth)
     }
   }

@@ -359,9 +359,9 @@ const Detail = () => {
                 </div>
                 <ButtonGroup aria-label="Charts" className="scale">
                   <OverlayTrigger
-                    key="auto-reload"
+                    key="chart-absolute"
                     overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>
+                      <OverlayTooltip id={`tooltip-chart-absolute`}>
                         Absolute scale gives a good impression of the big picture.
                       </OverlayTooltip>
                     }>
@@ -376,9 +376,9 @@ const Detail = () => {
                     </Button>
                   </OverlayTrigger>
                   <OverlayTrigger
-                    key="auto-reload"
+                    key="chart-relative"
                     overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>
+                      <OverlayTooltip id={`tooltip-chart-relative`}>
                         Relative scale gives a good impression of every detail.
                       </OverlayTooltip>
                     }>

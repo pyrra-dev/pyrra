@@ -133,7 +133,12 @@ const DynamicThresholdValue: React.FC<{
       // Hybrid approach: recording rule for SLO window + inline for alert window
       // SLO window: Use recording rule (e.g., apiserver_request:increase30d)
       // Alert window: Use inline calculation (no recording rules exist)
-      const sloWindowQuery = `sum(${baseMetricName}:increase${windows.slo}{slo="${sloName}"})`
+      
+      // For latency indicators, we must specify le="" to select only the total requests recording rule
+      // Pyrra creates two recording rules for latency: one with le="" (total) and one with le="<threshold>" (success)
+      // Without le="", sum() would aggregate both, giving 2x the actual traffic
+      const leLabel = isLatencyIndicator ? ',le=""' : ''
+      const sloWindowQuery = `sum(${baseMetricName}:increase${windows.slo}{slo="${sloName}"${leLabel}})`
       const alertWindowQuery = `sum(increase(${baseSelector}[${windows.long}]))`
       
       return `${sloWindowQuery} / ${alertWindowQuery}`
@@ -194,13 +199,6 @@ const DynamicThresholdValue: React.FC<{
   
   const trafficQuery = factor !== undefined ? getTrafficRatioQuery(factor) : ''
   
-  // Debug logging to see what queries are being generated
-  useEffect(() => {
-    if (trafficQuery !== '' && localStorage.getItem('pyrra-debug-performance') !== null) {
-      console.log(`[BurnRateThresholdDisplay] ${indicatorType} query generated:`, trafficQuery)
-    }
-  }, [trafficQuery, indicatorType])
-  
   // Track query start time for performance monitoring
   useEffect(() => {
     if (trafficQuery !== '' && queryStartTime.current === 0) {
@@ -218,21 +216,7 @@ const DynamicThresholdValue: React.FC<{
   
 
   
-  // Log performance metrics when queries complete
-  useEffect(() => {
-    if ((trafficStatus === 'success' || trafficStatus === 'error') &&
-        queryStartTime.current > 0) {
-      const queryTime = performance.now() - queryStartTime.current
-      
-      // Only log when performance debugging is explicitly enabled
-      if (localStorage.getItem('pyrra-debug-performance') !== null) {
-        console.log(`[BurnRateThresholdDisplay] ${indicatorType} dynamic query: ${queryTime.toFixed(2)}ms`)
-      }
-      
-      // Reset for next measurement
-      queryStartTime.current = 0
-    }
-  }, [trafficStatus, indicatorType])
+  // Performance monitoring removed - use browser dev tools Network tab for query timing
   
   // Enhanced error handling and validation
   if (sloName === 'unknown') {

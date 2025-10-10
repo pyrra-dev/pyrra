@@ -89,6 +89,32 @@ Pyrra uses **two different UI serving methods**:
 - **Backward Compatibility**: Static burn rate remains default, preserve existing functionality
 - **Error Handling**: Graceful fallbacks and conservative defaults
 
+#### CRITICAL: Latency Indicator Recording Rule Label Selector
+
+**Problem**: For latency indicators, Pyrra creates **TWO recording rules** with different `le` labels:
+1. **Total requests**: `metric:increase30d{slo="...",le=""}` - All requests
+2. **Success requests**: `metric:increase30d{slo="...",le="0.1"}` - Requests within latency threshold
+
+**Issue**: When querying recording rules without specifying `le=""`, the `sum()` aggregation will include BOTH recording rules, resulting in **2x the actual traffic** and **incorrect dynamic thresholds**.
+
+**Solution**: ALWAYS add `le=""` label selector when querying latency recording rules for traffic calculations:
+
+```promql
+# WRONG - sums both recording rules (2x traffic)
+sum(prometheus_http_request_duration_seconds:increase30d{slo="test-latency"})
+
+# CORRECT - selects only total requests recording rule
+sum(prometheus_http_request_duration_seconds:increase30d{slo="test-latency",le=""})
+```
+
+**Applies to**:
+- Backend alert rule generation (`slo/rules.go` - `buildDynamicAlertExpr` for Latency case)
+- UI threshold display (`BurnRateThresholdDisplay.tsx` - optimized query generation)
+- UI tooltips (`AlertsTable.tsx` - `DynamicBurnRateTooltip` query generation)
+- UI graphs (`BurnrateGraph.tsx` - if using recording rules for range queries)
+
+**Build Command**: Always use `go build -o pyrra .` (without `.exe` extension) for cross-platform compatibility
+
 ### Testing Standards
 
 #### Development Environment Setup

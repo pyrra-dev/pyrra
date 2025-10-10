@@ -257,13 +257,16 @@ func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) s
 
 		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
 		// Hybrid approach: recording rule for SLO window + inline for alert window
+		// CRITICAL: For latency indicators, we must specify le="" to select only the total requests recording rule
+		// Pyrra creates two recording rules for latency: one with le="" (total) and one with le="<threshold>" (success)
+		// Without le="", sum() would aggregate both, giving 2x the actual traffic and incorrect thresholds
 		return fmt.Sprintf(
 			"("+
 				"%s{%s} > "+
-				"scalar((sum(%s:increase%s{slo=\"%s\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(%s:increase%s{slo=\"%s\",le=\"\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				") and ("+
 				"%s{%s} > "+
-				"scalar((sum(%s:increase%s{slo=\"%s\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				"scalar((sum(%s:increase%s{slo=\"%s\",le=\"\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
 				")",
 			// Short window: use recording rule > dynamic threshold calculated using N_long
 			o.BurnrateName(w.Short), recordingRuleSelector,
