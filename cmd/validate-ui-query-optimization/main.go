@@ -29,6 +29,10 @@ type QueryPerformanceMetrics struct {
 	ResultCount   int
 	UsesRecording bool
 	QueryType     string
+	Runs          int
+	MinTime       time.Duration
+	MaxTime       time.Duration
+	AvgTime       time.Duration
 }
 
 func main() {
@@ -44,6 +48,8 @@ func main() {
 	fmt.Println()
 
 	// Test queries from BurnRateThresholdDisplay component
+	// CORRECTED: Only test SLO window comparisons (30d in these test cases)
+	// Alert windows (1h4m, 6h26m) do NOT have increase/count recording rules
 	testQueries := []struct {
 		name          string
 		query         string
@@ -51,63 +57,106 @@ func main() {
 		queryType     string
 	}{
 		{
-			name:          "Dynamic Ratio Traffic Query (Raw Metrics)",
-			query:         `sum(increase(apiserver_request_total[30d])) / sum(increase(apiserver_request_total[1h4m]))`,
+			name:          "Ratio - 30d increase (Raw Metrics)",
+			query:         `sum(increase(apiserver_request_total[30d]))`,
 			usesRecording: false,
 			queryType:     "ratio",
 		},
 		{
-			name:          "Dynamic Ratio Traffic Query (With Recording Rules)",
-			query:         `sum(apiserver_request:increase30d{slo="test-dynamic-apiserver"}) / sum(apiserver_request:increase1h4m{slo="test-dynamic-apiserver"})`,
+			name:          "Ratio - 30d increase (Recording Rule)",
+			query:         `sum(apiserver_request:increase30d{slo="test-dynamic-apiserver"})`,
 			usesRecording: true,
 			queryType:     "ratio",
 		},
 		{
-			name:          "Dynamic Latency Traffic Query (Raw Metrics)",
-			query:         `sum(increase(prometheus_http_request_duration_seconds_count[30d])) / sum(increase(prometheus_http_request_duration_seconds_count[1h4m]))`,
+			name:          "Latency - 30d increase (Raw Metrics)",
+			query:         `sum(increase(prometheus_http_request_duration_seconds_count[30d]))`,
 			usesRecording: false,
 			queryType:     "latency",
 		},
 		{
-			name:          "Dynamic Latency Traffic Query (With Recording Rules)",
-			query:         `sum(prometheus_http_request_duration_seconds:increase30d{slo="test-latency-dynamic"}) / sum(prometheus_http_request_duration_seconds:increase1h4m{slo="test-latency-dynamic"})`,
+			name:          "Latency - 30d increase (Recording Rule)",
+			query:         `sum(prometheus_http_request_duration_seconds:increase30d{slo="test-latency-dynamic"})`,
 			usesRecording: true,
 			queryType:     "latency",
 		},
 		{
-			name:          "Dynamic LatencyNative Traffic Query (Raw Metrics)",
-			query:         `sum(histogram_count(increase(http_request_duration_seconds[30d]))) / sum(histogram_count(increase(http_request_duration_seconds[1h4m])))`,
+			name:          "BoolGauge - 30d count (Raw Metrics)",
+			query:         `sum(count_over_time(up{job="prometheus-k8s"}[30d]))`,
 			usesRecording: false,
-			queryType:     "latencyNative",
+			queryType:     "boolGauge",
 		},
 		{
-			name:          "Dynamic BoolGauge Traffic Query (Raw Metrics)",
-			query:         `sum(count_over_time(probe_success[30d])) / sum(count_over_time(probe_success[1h4m]))`,
-			usesRecording: false,
+			name:          "BoolGauge - 30d count (Recording Rule)",
+			query:         `sum(up:count30d{slo="test-bool-gauge-dynamic"})`,
+			usesRecording: true,
 			queryType:     "boolGauge",
 		},
 	}
 
+	const numRuns = 10
 	var results []QueryPerformanceMetrics
 
 	for _, test := range testQueries {
 		fmt.Printf("Testing: %s\n", test.name)
 		fmt.Printf("Query: %s\n", test.query)
+		fmt.Printf("Running %d iterations...\n", numRuns)
 
-		metrics, err := executeQuery(prometheusURL, test.query)
-		if err != nil {
-			fmt.Printf("  ❌ Error: %v\n", err)
+		var durations []time.Duration
+		var resultCount int
+		var lastError error
+
+		for i := 0; i < numRuns; i++ {
+			metrics, err := executeQuery(prometheusURL, test.query)
+			if err != nil {
+				lastError = err
+				continue
+			}
+			durations = append(durations, metrics.ExecutionTime)
+			resultCount = metrics.ResultCount
+		}
+
+		if len(durations) == 0 {
+			fmt.Printf("  ❌ Error: %v\n", lastError)
 			fmt.Println()
 			continue
 		}
 
-		metrics.UsesRecording = test.usesRecording
-		metrics.QueryType = test.queryType
+		// Calculate statistics
+		var total time.Duration
+		minTime := durations[0]
+		maxTime := durations[0]
+
+		for _, d := range durations {
+			total += d
+			if d < minTime {
+				minTime = d
+			}
+			if d > maxTime {
+				maxTime = d
+			}
+		}
+
+		avgTime := total / time.Duration(len(durations))
+
+		metrics := QueryPerformanceMetrics{
+			Query:         test.query,
+			ExecutionTime: avgTime,
+			ResultCount:   resultCount,
+			UsesRecording: test.usesRecording,
+			QueryType:     test.queryType,
+			Runs:          len(durations),
+			MinTime:       minTime,
+			MaxTime:       maxTime,
+			AvgTime:       avgTime,
+		}
+
 		results = append(results, metrics)
 
-		fmt.Printf("  ✅ Execution Time: %v\n", metrics.ExecutionTime)
-		fmt.Printf("  📊 Result Count: %d series\n", metrics.ResultCount)
-		fmt.Printf("  🔧 Uses Recording Rules: %v\n", metrics.UsesRecording)
+		fmt.Printf("  ✅ Avg Time: %v (min: %v, max: %v)\n", avgTime, minTime, maxTime)
+		fmt.Printf("  📊 Result Count: %d series\n", resultCount)
+		fmt.Printf("  🔧 Uses Recording Rules: %v\n", test.usesRecording)
+		fmt.Printf("  🔄 Successful Runs: %d/%d\n", len(durations), numRuns)
 		fmt.Println()
 	}
 
@@ -120,9 +169,11 @@ func main() {
 	ratioRecording := findMetrics(results, "ratio", true)
 	if ratioRaw != nil && ratioRecording != nil {
 		fmt.Println("Ratio Indicator Comparison:")
-		fmt.Printf("  Raw Metrics Query: %v\n", ratioRaw.ExecutionTime)
-		fmt.Printf("  Recording Rules Query: %v\n", ratioRecording.ExecutionTime)
-		speedup := float64(ratioRaw.ExecutionTime) / float64(ratioRecording.ExecutionTime)
+		fmt.Printf("  Raw Metrics Query:\n")
+		fmt.Printf("    Avg: %v (min: %v, max: %v)\n", ratioRaw.AvgTime, ratioRaw.MinTime, ratioRaw.MaxTime)
+		fmt.Printf("  Recording Rules Query:\n")
+		fmt.Printf("    Avg: %v (min: %v, max: %v)\n", ratioRecording.AvgTime, ratioRecording.MinTime, ratioRecording.MaxTime)
+		speedup := float64(ratioRaw.AvgTime) / float64(ratioRecording.AvgTime)
 		fmt.Printf("  Speedup: %.2fx\n", speedup)
 		if speedup > 1.5 {
 			fmt.Println("  ✅ Recording rules provide significant performance improvement")
@@ -139,9 +190,11 @@ func main() {
 	latencyRecording := findMetrics(results, "latency", true)
 	if latencyRaw != nil && latencyRecording != nil {
 		fmt.Println("Latency Indicator Comparison:")
-		fmt.Printf("  Raw Metrics Query: %v\n", latencyRaw.ExecutionTime)
-		fmt.Printf("  Recording Rules Query: %v\n", latencyRecording.ExecutionTime)
-		speedup := float64(latencyRaw.ExecutionTime) / float64(latencyRecording.ExecutionTime)
+		fmt.Printf("  Raw Metrics Query:\n")
+		fmt.Printf("    Avg: %v (min: %v, max: %v)\n", latencyRaw.AvgTime, latencyRaw.MinTime, latencyRaw.MaxTime)
+		fmt.Printf("  Recording Rules Query:\n")
+		fmt.Printf("    Avg: %v (min: %v, max: %v)\n", latencyRecording.AvgTime, latencyRecording.MinTime, latencyRecording.MaxTime)
+		speedup := float64(latencyRaw.AvgTime) / float64(latencyRecording.AvgTime)
 		fmt.Printf("  Speedup: %.2fx\n", speedup)
 		if speedup > 1.5 {
 			fmt.Println("  ✅ Recording rules provide significant performance improvement")
@@ -153,32 +206,79 @@ func main() {
 		fmt.Println()
 	}
 
+	// Compare boolGauge queries
+	boolGaugeRaw := findMetrics(results, "boolGauge", false)
+	boolGaugeRecording := findMetrics(results, "boolGauge", true)
+	if boolGaugeRaw != nil && boolGaugeRecording != nil {
+		fmt.Println("BoolGauge Indicator Comparison:")
+		fmt.Printf("  Raw Metrics Query:\n")
+		fmt.Printf("    Avg: %v (min: %v, max: %v)\n", boolGaugeRaw.AvgTime, boolGaugeRaw.MinTime, boolGaugeRaw.MaxTime)
+		fmt.Printf("  Recording Rules Query:\n")
+		fmt.Printf("    Avg: %v (min: %v, max: %v)\n", boolGaugeRecording.AvgTime, boolGaugeRecording.MinTime, boolGaugeRecording.MaxTime)
+		speedup := float64(boolGaugeRaw.AvgTime) / float64(boolGaugeRecording.AvgTime)
+		fmt.Printf("  Speedup: %.2fx\n", speedup)
+		if speedup > 1.5 {
+			fmt.Println("  ✅ Recording rules provide significant performance improvement")
+		} else if speedup > 1.0 {
+			fmt.Println("  ⚠️  Recording rules provide modest performance improvement")
+		} else {
+			fmt.Println("  ❌ Recording rules do not improve performance")
+		}
+		fmt.Println()
+	}
+
+	// Recording rule availability check
+	fmt.Println("=== Recording Rule Availability ===")
+	fmt.Println()
+
+	recordingRules := []struct {
+		name  string
+		query string
+	}{
+		{name: "Ratio - 30d window", query: "apiserver_request:increase30d{slo=\"test-dynamic-apiserver\"}"},
+		{name: "Latency - 30d window", query: "prometheus_http_request_duration_seconds:increase30d{slo=\"test-latency-dynamic\"}"},
+		{name: "BoolGauge - 30d window", query: "up:count30d{slo=\"test-bool-gauge-dynamic\"}"},
+	}
+
+	for _, test := range recordingRules {
+		metrics, err := executeQuery(prometheusURL, test.query)
+		if err != nil {
+			fmt.Printf("  ❌ %s: Not found\n", test.name)
+		} else if metrics.ResultCount == 0 {
+			fmt.Printf("  ⚠️  %s: Exists but no data\n", test.name)
+		} else {
+			fmt.Printf("  ✅ %s: %d series\n", test.name, metrics.ResultCount)
+		}
+	}
+	fmt.Println()
+
 	// Recommendations
 	fmt.Println("=== Optimization Recommendations ===")
 	fmt.Println()
 
 	fmt.Println("Current BurnRateThresholdDisplay Implementation:")
 	fmt.Println("  ❌ Uses raw metrics directly (e.g., apiserver_request_total)")
-	fmt.Println("  ❌ Calculates increase() inline for 30d and alert windows")
+	fmt.Println("  ❌ Calculates increase()/count_over_time() inline for SLO window")
 	fmt.Println("  ❌ No use of pre-computed recording rules")
 	fmt.Println()
 
 	fmt.Println("Recommended Optimization:")
-	fmt.Println("  ✅ Use increase recording rules (e.g., apiserver_request:increase30d)")
-	fmt.Println("  ✅ Leverage pre-computed aggregations from recording rules")
-	fmt.Println("  ✅ Reduce query complexity and execution time")
+	fmt.Println("  ✅ Use increase/count recording rules for SLO window")
+	fmt.Println("  ✅ Keep inline increase()/count_over_time() for alert windows (no recording rules)")
+	fmt.Println("  ✅ Query pattern: sum(metric:increase30d) / sum(increase(metric[1h4m]))")
+	fmt.Println("  ✅ For bool-gauge: sum(metric:count30d) / sum(count_over_time(metric[1h4m]))")
 	fmt.Println()
 
 	fmt.Println("Implementation Strategy:")
-	fmt.Println("  1. Check if recording rules exist for the SLO")
-	fmt.Println("  2. If available, use recording rules instead of raw metrics")
-	fmt.Println("  3. Fallback to raw metrics if recording rules are not available")
+	fmt.Println("  1. Use recording rule for SLO window (pre-computed)")
+	fmt.Println("  2. Use inline increase()/count_over_time() for alert windows (no recording rules)")
+	fmt.Println("  3. Fallback to raw metrics if recording rules unavailable")
 	fmt.Println("  4. Add performance monitoring to track query execution times")
 	fmt.Println()
 
 	fmt.Println("Expected Benefits:")
-	fmt.Println("  • Faster query execution (1.5x - 3x speedup)")
-	fmt.Println("  • Reduced Prometheus load")
+	fmt.Println("  • Faster SLO window calculation (recording rule)")
+	fmt.Println("  • Reduced Prometheus load for long window queries")
 	fmt.Println("  • Better UI responsiveness")
 	fmt.Println("  • Consistent with Pyrra's recording rule architecture")
 	fmt.Println()

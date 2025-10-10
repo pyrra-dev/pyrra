@@ -326,38 +326,67 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
   - _Requirements: 5.1, 5.3_
 
-- [ ] 7.10.1 Fix validation tests and establish correct baseline
+- [x] 7.10.1 Fix validation tests and establish correct baseline
+
 
   - **Fix test queries**: Use only 30d window comparisons (has data)
     - Compare: `apiserver_request:increase30d` vs `increase(apiserver_request_total[30d])`
     - Remove tests for alert windows (1h4m, 6h26m) that have no data yet
+  - **Update validation tools**:
+    - Edit `cmd/validate-ui-query-optimization/main.go` to use only 30d window
+    - Edit `cmd/test-burnrate-threshold-queries/main.go` to use only 30d window
+    - Rebuild tools: `go build -o validate-ui-query-optimization.exe ./cmd/validate-ui-query-optimization`
   - **Run corrected tests** with Prometheus and document actual performance
+    - Execute: `./validate-ui-query-optimization.exe`
+    - Execute: `./test-burnrate-threshold-queries.exe`
   - **Update analysis documents** with correct test results:
-    - Fix `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md` (currently has invalid data)
-    - Update `.dev-docs/TASK_7.10_UI_QUERY_OPTIMIZATION_ANALYSIS.md` with real findings
+    - Fix `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md` with real measurements
+    - Update `.dev-docs/TASK_7.10_UI_QUERY_OPTIMIZATION_ANALYSIS.md` with validated findings
   - **Document recording rule availability**: Which exist, which have data, which need time
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.10.2 Implement BurnRateThresholdDisplay optimization
 
-  - **Prerequisite**: Task 7.10.1 must be complete with valid test results
+  - **Prerequisite**: Task 7.10.1 complete ✅ - Validation shows 7.17x speedup for ratio, 2.20x for latency
+  - **Reference documents**:
+    - `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md` - Performance measurements and findings
+    - `.dev-docs/TASK_7.10_UI_QUERY_OPTIMIZATION_ANALYSIS.md` - Implementation strategy
+    - `.dev-docs/TASK_7.10.1_TEST_IMPROVEMENTS.md` - Test methodology and results
+  - **Key findings from validation**:
+    - Ratio indicators: 48.75ms → 6.80ms (7.17x speedup) ✅ HIGH PRIORITY
+    - Latency indicators: 6.34ms → 2.89ms (2.20x speedup) ✅ IMPLEMENT
+    - BoolGauge indicators: 3.02ms (already fast) ❌ SKIP OPTIMIZATION
+    - Only SLO window has recording rules (not alert windows)
+    - Hybrid approach required: recording rule for SLO window + inline for alert windows
   - **Implementation** in `ui/src/components/BurnRateThresholdDisplay.tsx`:
-    - Add `getTrafficRatioQueryOptimized()` function
+    - Add `getTrafficRatioQueryOptimized()` function for hybrid query generation
     - Add `getBaseMetricName()` helper (strip \_total, \_count, \_bucket suffixes)
-    - Update `getTrafficRatioQuery()` to try recording rules first, fallback to raw metrics
-  - **Query pattern**: `sum({metric}:increase30d{slo="..."}) / sum({metric}:increase{window}{slo="..."})`
-  - **Test with all indicator types**: ratio, latency, latencyNative, boolGauge
-  - **Verify performance improvement** using validation tools from 7.10.1
+    - Update `getTrafficRatioQuery()` to use recording rules for SLO window, inline for alert windows
+    - Add fallback to raw metrics if recording rules unavailable
+  - **Correct query pattern** (hybrid approach):
+    - SLO window: `sum({metric}:increase{sloWindow}{slo="..."})` (use recording rule)
+    - Alert window: `sum(increase({metric}[{alertWindow}]))` (use inline calculation)
+    - Combined: `sum({metric}:increase30d{slo="..."}) / sum(increase({metric}[1h4m]))`
+  - **Implementation priority**:
+    - ✅ Implement for ratio indicators (7x speedup)
+    - ✅ Implement for latency indicators (2x speedup)
+    - ❌ Skip boolGauge optimization (already fast, no benefit)
+  - **Test with indicator types**: ratio, latency (skip boolGauge per validation findings)
+  - **Verify performance improvement** using `validate-ui-query-optimization.exe` from 7.10.1
   - **Update documentation**: Document optimization in `.dev-docs/TASK_7.10_IMPLEMENTATION.md`
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.10.3 Review backend alert rule query optimization
 
+  - **Context from 7.10.1**: UI optimization shows 7x speedup for SLO window using recording rules
   - Check if alert rules in slo/rules.go use raw metrics in dynamic threshold calculation
   - Current: `scalar((sum(increase(metric[30d])) / sum(increase(metric[1h4m]))) * threshold)`
-  - Potential: `scalar((sum(metric:increase30d) / sum(metric:increase1h4m)) * threshold)`
+  - **IMPORTANT**: Alert windows (1h4m, 6h26m) do NOT have increase recording rules
+  - Potential optimization: `scalar((sum(metric:increase30d{slo="..."}) / sum(increase(metric[1h4m]))) * threshold)`
+  - Only SLO window can use recording rule, alert windows must use inline increase()
   - Evaluate if optimization is needed or if current approach is acceptable
-  - Document decision and rationale
+  - Consider: Alert rules evaluated every 30s, UI queries on-demand (different performance profiles)
+  - Document decision and rationale in `.dev-docs/TASK_7.10.3_BACKEND_OPTIMIZATION_DECISION.md`
   - _Requirements: 5.1, 5.3_
 
 - [ ] 7.10.4 Final validation and documentation cleanup

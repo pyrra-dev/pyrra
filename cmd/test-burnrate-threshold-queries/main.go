@@ -27,7 +27,13 @@ func main() {
 	prometheusURL := "http://localhost:9090"
 
 	// Test current implementation queries (raw metrics)
-	fmt.Println("1. Testing CURRENT implementation (raw metrics):")
+	// CORRECTED: Only test SLO window (30d in these test cases)
+	// Alert windows do NOT have increase/count recording rules
+	// Run multiple times and average for accurate performance measurement
+	const numRuns = 10
+
+	fmt.Println("1. Testing CURRENT implementation (raw metrics - SLO window):")
+	fmt.Printf("   Running %d iterations per query...\n", numRuns)
 	fmt.Println()
 
 	currentQueries := []struct {
@@ -35,33 +41,58 @@ func main() {
 		query string
 	}{
 		{
-			name:  "Ratio - Factor 14 (Critical 1)",
-			query: "sum(increase(apiserver_request_total{code=~\"5..\",verb=\"GET\"}[30d])) / sum(increase(apiserver_request_total{verb=\"GET\"}[1h4m]))",
+			name:  "Ratio - 30d increase",
+			query: "sum(increase(apiserver_request_total[30d]))",
 		},
 		{
-			name:  "Latency - Factor 14 (Critical 1)",
-			query: "sum(increase(prometheus_http_request_duration_seconds_count[30d])) / sum(increase(prometheus_http_request_duration_seconds_count[1h4m]))",
+			name:  "Latency - 30d increase",
+			query: "sum(increase(prometheus_http_request_duration_seconds_count[30d]))",
+		},
+		{
+			name:  "BoolGauge - 30d count",
+			query: "sum(count_over_time(up{job=\"prometheus-k8s\"}[30d]))",
 		},
 	}
 
 	for _, test := range currentQueries {
 		fmt.Printf("  %s\n", test.name)
-		result, duration, err := executeQuery(prometheusURL, test.query)
-		if err != nil {
-			fmt.Printf("    ❌ Error: %v\n", err)
-		} else {
-			fmt.Printf("    ✅ Duration: %v\n", duration)
-			fmt.Printf("    📊 Results: %d series\n", len(result.Data.Result))
-			if len(result.Data.Result) > 0 {
-				value := result.Data.Result[0].Value[1]
-				fmt.Printf("    📈 Value: %v\n", value)
+
+		var durations []time.Duration
+		var resultCount int
+		var sampleValue string
+
+		for i := 0; i < numRuns; i++ {
+			result, duration, err := executeQuery(prometheusURL, test.query)
+			if err != nil {
+				continue
 			}
+			durations = append(durations, duration)
+			resultCount = len(result.Data.Result)
+			if len(result.Data.Result) > 0 && sampleValue == "" {
+				sampleValue = fmt.Sprintf("%v", result.Data.Result[0].Value[1])
+			}
+		}
+
+		if len(durations) == 0 {
+			fmt.Printf("    ❌ All queries failed\n")
+		} else {
+			avgDuration := calculateAverage(durations)
+			minDuration := calculateMin(durations)
+			maxDuration := calculateMax(durations)
+
+			fmt.Printf("    ✅ Avg Duration: %v (min: %v, max: %v)\n", avgDuration, minDuration, maxDuration)
+			fmt.Printf("    📊 Results: %d series\n", resultCount)
+			if sampleValue != "" {
+				fmt.Printf("    📈 Sample Value: %v\n", sampleValue)
+			}
+			fmt.Printf("    🔄 Successful Runs: %d/%d\n", len(durations), numRuns)
 		}
 		fmt.Println()
 	}
 
 	// Test optimized implementation queries (recording rules)
-	fmt.Println("2. Testing OPTIMIZED implementation (recording rules):")
+	fmt.Println("2. Testing OPTIMIZED implementation (recording rules - SLO window):")
+	fmt.Printf("   Running %d iterations per query...\n", numRuns)
 	fmt.Println()
 
 	optimizedQueries := []struct {
@@ -69,44 +100,66 @@ func main() {
 		query string
 	}{
 		{
-			name:  "Ratio - Factor 14 (Critical 1)",
-			query: "sum(apiserver_request:increase30d{slo=\"test-dynamic-apiserver\"}) / sum(apiserver_request:increase1h4m{slo=\"test-dynamic-apiserver\"})",
+			name:  "Ratio - 30d increase",
+			query: "sum(apiserver_request:increase30d{slo=\"test-dynamic-apiserver\"})",
 		},
 		{
-			name:  "Latency - Factor 14 (Critical 1)",
-			query: "sum(prometheus_http_request_duration_seconds:increase30d{slo=\"test-latency-dynamic\"}) / sum(prometheus_http_request_duration_seconds:increase1h4m{slo=\"test-latency-dynamic\"})",
+			name:  "Latency - 30d increase",
+			query: "sum(prometheus_http_request_duration_seconds:increase30d{slo=\"test-latency-dynamic\"})",
+		},
+		{
+			name:  "BoolGauge - 30d count",
+			query: "sum(up:count30d{slo=\"test-bool-gauge-dynamic\"})",
 		},
 	}
 
 	for _, test := range optimizedQueries {
 		fmt.Printf("  %s\n", test.name)
-		result, duration, err := executeQuery(prometheusURL, test.query)
-		if err != nil {
-			fmt.Printf("    ❌ Error: %v\n", err)
-		} else {
-			fmt.Printf("    ✅ Duration: %v\n", duration)
-			fmt.Printf("    📊 Results: %d series\n", len(result.Data.Result))
-			if len(result.Data.Result) > 0 {
-				value := result.Data.Result[0].Value[1]
-				fmt.Printf("    📈 Value: %v\n", value)
+
+		var durations []time.Duration
+		var resultCount int
+		var sampleValue string
+
+		for i := 0; i < numRuns; i++ {
+			result, duration, err := executeQuery(prometheusURL, test.query)
+			if err != nil {
+				continue
 			}
+			durations = append(durations, duration)
+			resultCount = len(result.Data.Result)
+			if len(result.Data.Result) > 0 && sampleValue == "" {
+				sampleValue = fmt.Sprintf("%v", result.Data.Result[0].Value[1])
+			}
+		}
+
+		if len(durations) == 0 {
+			fmt.Printf("    ❌ All queries failed\n")
+		} else {
+			avgDuration := calculateAverage(durations)
+			minDuration := calculateMin(durations)
+			maxDuration := calculateMax(durations)
+
+			fmt.Printf("    ✅ Avg Duration: %v (min: %v, max: %v)\n", avgDuration, minDuration, maxDuration)
+			fmt.Printf("    📊 Results: %d series\n", resultCount)
+			if sampleValue != "" {
+				fmt.Printf("    📈 Sample Value: %v\n", sampleValue)
+			}
+			fmt.Printf("    🔄 Successful Runs: %d/%d\n", len(durations), numRuns)
 		}
 		fmt.Println()
 	}
 
-	// Check if recording rules exist for all windows
-	fmt.Println("3. Verifying recording rules exist for all alert windows:")
+	// Check recording rule availability
+	fmt.Println("3. Recording Rule Availability Analysis:")
 	fmt.Println()
 
 	recordingRules := []struct {
 		name  string
 		query string
 	}{
-		{name: "30d window", query: "apiserver_request:increase30d{slo=\"test-dynamic-apiserver\"}"},
-		{name: "1h4m window", query: "apiserver_request:increase1h4m{slo=\"test-dynamic-apiserver\"}"},
-		{name: "6h26m window", query: "apiserver_request:increase6h26m{slo=\"test-dynamic-apiserver\"}"},
-		{name: "1d1h43m window", query: "apiserver_request:increase1d1h43m{slo=\"test-dynamic-apiserver\"}"},
-		{name: "4d6h51m window", query: "apiserver_request:increase4d6h51m{slo=\"test-dynamic-apiserver\"}"},
+		{name: "Ratio - 30d window", query: "apiserver_request:increase30d{slo=\"test-dynamic-apiserver\"}"},
+		{name: "Latency - 30d window", query: "prometheus_http_request_duration_seconds:increase30d{slo=\"test-latency-dynamic\"}"},
+		{name: "BoolGauge - 30d window", query: "up:count30d{slo=\"test-bool-gauge-dynamic\"}"},
 	}
 
 	for _, test := range recordingRules {
@@ -121,20 +174,31 @@ func main() {
 	}
 	fmt.Println()
 
+	fmt.Println("  IMPORTANT: Only SLO window has increase/count recording rules!")
+	fmt.Println("  • Alert windows (1h4m, 6h26m, etc.) do NOT have increase/count recording rules")
+	fmt.Println("  • Optimization applies to SLO window calculation only")
+	fmt.Println("  • Alert windows must use inline increase()/count_over_time() calculations")
+	fmt.Println()
+
 	// Performance comparison
 	fmt.Println("4. Performance Comparison Summary:")
 	fmt.Println()
 	fmt.Println("  Current Implementation (Raw Metrics):")
-	fmt.Println("    • Ratio queries: ~600ms")
-	fmt.Println("    • Latency queries: ~40ms")
-	fmt.Println("    • Calculates increase() on demand")
+	fmt.Println("    • Calculates increase()/count_over_time() for both SLO and alert windows")
+	fmt.Println("    • SLO window calculation is expensive (scans long time range)")
 	fmt.Println()
-	fmt.Println("  Optimized Implementation (Recording Rules):")
-	fmt.Println("    • Ratio queries: ~6ms (100x faster)")
-	fmt.Println("    • Latency queries: ~14ms (3x faster)")
-	fmt.Println("    • Uses pre-computed recording rules")
+	fmt.Println("  Optimized Implementation (Hybrid Approach):")
+	fmt.Println("    • Use recording rule for SLO window (pre-computed)")
+	fmt.Println("    • Use inline increase()/count_over_time() for alert windows (no recording rules)")
+	fmt.Println("    • Query pattern: sum(metric:increase30d) / sum(increase(metric[1h4m]))")
+	fmt.Println("    • For bool-gauge: sum(metric:count30d) / sum(count_over_time(metric[1h4m]))")
 	fmt.Println()
-	fmt.Println("  Recommendation: ✅ Implement recording rule optimization")
+	fmt.Println("  Expected Benefits:")
+	fmt.Println("    • Faster SLO window calculation")
+	fmt.Println("    • Reduced Prometheus load for long window queries")
+	fmt.Println("    • Better UI responsiveness")
+	fmt.Println()
+	fmt.Println("  Recommendation: ✅ Implement hybrid optimization approach")
 	fmt.Println()
 }
 
@@ -170,4 +234,41 @@ func executeQuery(prometheusURL, query string) (PrometheusQueryResult, time.Dura
 	}
 
 	return result, duration, nil
+}
+
+func calculateAverage(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return 0
+	}
+	var total time.Duration
+	for _, d := range durations {
+		total += d
+	}
+	return total / time.Duration(len(durations))
+}
+
+func calculateMin(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return 0
+	}
+	min := durations[0]
+	for _, d := range durations {
+		if d < min {
+			min = d
+		}
+	}
+	return min
+}
+
+func calculateMax(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return 0
+	}
+	max := durations[0]
+	for _, d := range durations {
+		if d > max {
+			max = d
+		}
+	}
+	return max
 }

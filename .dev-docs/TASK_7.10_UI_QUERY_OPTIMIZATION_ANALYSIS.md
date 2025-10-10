@@ -1,18 +1,28 @@
 # Task 7.10: UI Query Optimization Analysis
 
-⚠️ **WARNING: This document contains INVALID performance data**
-- Tests used recording rules without data (1h4m, 6h26m windows)
-- Performance measurements are unreliable
-- See Task 7.10.1 for corrected testing approach
-- This document will be updated after proper validation
+✅ **UPDATED: This document now contains VALID performance data**
+- Tests corrected to use only SLO window recording rules (30d)
+- Performance measurements from 10-iteration statistical analysis
+- Alert windows (1h4m, 6h26m) do NOT have increase recording rules
+- See TASK_7.10_VALIDATION_RESULTS.md for complete test results
 
 ## Executive Summary
 
 This document analyzes the current BurnRateThresholdDisplay component query patterns and provides recommendations for optimization using Pyrra's recording rules infrastructure.
 
 **Current Status**: ❌ Component uses raw metrics with inline calculations  
-**Optimization Opportunity**: ✅ Use pre-computed recording rules for 1.5x-3x performance improvement  
+**Optimization Opportunity**: ✅ Use pre-computed recording rules for 2-7x performance improvement  
 **Implementation Complexity**: Medium (requires query pattern refactoring)
+
+**Validated Performance Improvements** (from Task 7.10.1 testing):
+- **Ratio indicators**: 7.17x speedup (48.75ms → 6.80ms)
+- **Latency indicators**: 2.20x speedup (6.34ms → 2.89ms)
+- **BoolGauge indicators**: No benefit (already fast at 3ms)
+
+**Key Understanding**:
+- Pyrra generates increase/count recording rules ONLY for SLO window (e.g., 30d, 28d)
+- Alert windows (1h4m, 6h26m, etc.) do NOT have increase/count recording rules
+- Hybrid approach required: recording rule for SLO window + inline calculation for alert windows
 
 ## Current Implementation Analysis
 
