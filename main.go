@@ -68,7 +68,7 @@ var CLI struct {
 		TLSCertFile                 string            `default:"" help:"File containing the default x509 Certificate for HTTPS."`
 		TLSPrivateKeyFile           string            `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 		TLSClientCAFile             string            `default:"" help:"File containing the CA certificate for the client"`
-		MimirTenantIDs              []string          `default:"" help:"Mimir tenant IDs to query if multi-tenancy is enabled."`
+		MimirOrgID                  string            `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
@@ -86,8 +86,10 @@ var CLI struct {
 		MimirURL                *url.URL `default:"" help:"The URL to the Mimir API. If specified provisions rules via Mimir instead of Prometheus"`
 		MimirPrometheusPrefix   string   `default:"prometheus" help:"The prefix for the Prometheus API in Mimir"`
 		MimirBasicAuthUsername  string   `default:"" help:"The HTTP basic authentication username"`
-		MimirBasicAuthPassword  string   `default:"" help:"The HTTP basic authentication password"`
 		MimirWriteAlertingRules bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
+		MimirBasicAuthPassword  string   `default:"" help:"The HTTP basic authentication password"`
+		MimirOrgID              string   `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
+		MimirDeploymentMode     string   `default:"standalone" help:"Mimir deployment mode. Possible values: standalone (default), distributed"`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
 		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
@@ -132,12 +134,12 @@ func main() {
 	if CLI.API.TLSClientCAFile != "" {
 		clientConfig.TLSConfig = promconfig.TLSConfig{CAFile: CLI.API.TLSClientCAFile}
 	}
-	if len(CLI.API.MimirTenantIDs) > 0 {
-		mimirHeaderValue := strings.Join(CLI.API.MimirTenantIDs, "|")
+
+	if strings.EqualFold(CLI.API.MimirOrgID, "") {
 		clientConfig.HTTPHeaders = &promconfig.Headers{
 			Headers: map[string]promconfig.Header{
 				"X-Scope-OrgID": {
-					Values: []string{mimirHeaderValue},
+					Values: []string{CLI.API.MimirOrgID},
 				},
 			},
 		}
@@ -190,6 +192,8 @@ func main() {
 			PrometheusPrefix:  CLI.Kubernetes.MimirPrometheusPrefix,
 			BasicAuthUsername: CLI.Kubernetes.MimirBasicAuthUsername,
 			BasicAuthPassword: CLI.Kubernetes.MimirBasicAuthPassword,
+			OrgID:             CLI.Kubernetes.MimirOrgID,
+			DeploymentMode:    CLI.Kubernetes.MimirDeploymentMode,
 		}
 
 		mimirClient, err = mimir.NewClient(mimirConfig)
