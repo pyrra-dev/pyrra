@@ -397,22 +397,66 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [ ] 7.10.4 Final validation and documentation cleanup
 
-  - **Reference documents** (already completed):
+  - **Prerequisites**: All 7.10 sub-tasks complete ✅
+    - Task 7.10.1: Test improvements and validation methodology ✅
+    - Task 7.10.2: UI optimization implementation ✅
+    - Task 7.10.3: Backend optimization decision ✅
+    - Task 7.10.5: Backend optimization implementation ✅
+  - **Reference documents** (completed during 7.10 series):
     - `.dev-docs/TASK_7.10_VALIDATION_RESULTS.md` - Performance measurements from 7.10.1
-    - `.dev-docs/TASK_7.10_IMPLEMENTATION.md` - Implementation details and real-world analysis from 7.10.2
-    - `.dev-docs/TASK_7.10.1_TEST_IMPROVEMENTS.md` - Test methodology
+    - `.dev-docs/TASK_7.10.1_TEST_IMPROVEMENTS.md` - Test methodology and tools
     - `.dev-docs/TASK_7.10_UI_QUERY_OPTIMIZATION_ANALYSIS.md` - Original analysis
-  - **Validation status**: ✅ Already completed in 7.10.2
-    - Ratio indicators: 7.17x query speedup validated
-    - Latency indicators: 2.20x query speedup validated
-    - Real-world UI performance: ~110ms total (network overhead dominates)
-    - Decision: Keep optimization for Prometheus load reduction
-  - **Run validation tools** with optimized implementation (optional re-validation)
-  - **Verify no duplicate calculations** between recording rules and UI
-  - **Consolidate documentation** (if needed):
-    - Consider creating `.dev-docs/TASK_7.10_FINAL_RESULTS.md` if additional validation performed
-    - Update `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md` with any new findings
-  - **Update steering documents** if optimization patterns should be documented
+    - `.dev-docs/TASK_7.10_IMPLEMENTATION.md` - UI implementation details and real-world analysis from 7.10.2
+    - `.dev-docs/TASK_7.10.3_BACKEND_OPTIMIZATION_DECISION.md` - Backend decision rationale from 7.10.3
+    - `.dev-docs/TASK_7.10.5_BACKEND_IMPLEMENTATION.md` - Backend implementation details from 7.10.5
+    - `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md` - Overall feature status (updated throughout)
+  - **Implementation summary**:
+    - ✅ UI optimization: BurnRateThresholdDisplay uses recording rules for SLO window
+    - ✅ Backend optimization: Alert rules use recording rules for SLO window
+    - ✅ Hybrid approach: Recording rules for SLO window + inline for alert windows
+    - ✅ Bug fix: Dynamic SLO window support (fixes synthetic SLOs with 1d window)
+    - ✅ Performance: 7.17x speedup for ratio, 2.20x for latency indicators
+    - ✅ Primary benefit: Prometheus CPU/memory load reduction at scale
+  - **Validation status**: ✅ Core validation completed
+    - Ratio indicators: 7.17x query speedup validated (48.75ms → 6.80ms)
+    - Latency indicators: 2.20x query speedup validated (6.34ms → 2.89ms)
+    - Real-world UI performance: ~110ms total (network overhead dominates, 5% improvement)
+    - Backend alert rules: Optimized queries generated correctly
+    - Synthetic SLOs: Threshold display fixed (dynamic window support)
+  - **Final validation tasks**:
+    - **Test all indicator types** with optimized implementation:
+      - Ratio indicators: Verify threshold display and alert rules
+      - Latency indicators: Verify threshold display and alert rules
+      - BoolGauge indicators: Verify no optimization applied (as designed)
+      - LatencyNative indicators: Verify fallback to raw metrics (as designed)
+    - **Verify alert firing** with optimized backend queries:
+      - Use `cmd/run-synthetic-test/main.go` to test synthetic SLOs
+      - Confirm alerts fire correctly with recording rule queries
+      - Validate alert timing matches expected behavior
+    - **Performance validation** (optional re-validation):
+      - Run `validate-ui-query-optimization.exe` to confirm speedups
+      - Measure Prometheus CPU/memory usage before/after (if possible)
+      - Verify no performance regressions
+    - **Cross-validation**:
+      - Verify UI and backend use same recording rules (consistency)
+      - Confirm no duplicate calculations between UI and alerts
+      - Check that threshold values match between UI tooltip and alert rules
+  - **Documentation consolidation**:
+    - Review all `.dev-docs/TASK_7.10*.md` documents for completeness
+    - Update `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md` with final status
+    - Consider creating `.dev-docs/TASK_7.10_FINAL_SUMMARY.md` if needed
+    - Update `.kiro/steering/pyrra-development-standards.md` with optimization patterns
+    - Document lessons learned and best practices
+  - **Code cleanup** (if needed):
+    - Remove any debug logging or temporary code
+    - Ensure consistent code style across UI and backend
+    - Add final code comments for future maintainers
+  - **Success criteria**:
+    - All indicator types display thresholds correctly (including synthetic SLOs)
+    - Alert rules use optimized queries and fire correctly
+    - Documentation is complete and accurate
+    - No regressions in functionality or performance
+    - Code is production-ready
   - _Requirements: 5.1, 5.3_
 
 - [x] 7.10.5 Implement backend alert rule query optimization
