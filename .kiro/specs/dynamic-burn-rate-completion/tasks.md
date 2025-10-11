@@ -560,8 +560,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.13 Comprehensive UI build and deployment testing
 
-
-
   - **Reference Documents**:
     - `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md` - Embedded UI build workflow documentation
     - `.dev-docs/TASK_7.6_UI_REFRESH_RATE_INVESTIGATION.md` - Upstream comparison methodology
@@ -593,67 +591,132 @@ This implementation plan breaks down the remaining work to complete the dynamic 
     - [ ] Test embedded UI (port 9099) with missing metrics scenarios
   - _Requirements: 5.2_
 
-## Task Group 8: Documentation and Migration Support
+## Task Group 8: Upstream Integration Preparation
 
-- [ ] 8. Create comprehensive documentation and migration support
+**Context**: Tasks 1-7 are complete with comprehensive testing and documentation in `.dev-docs/`. This task group focuses on preparing the feature for upstream contribution by organizing files, updating production documentation, and creating the pull request.
 
-- [ ] 8.1 Create troubleshooting and debugging documentation
+**Reference Guide**: See `.dev-docs/UPSTREAM_CONTRIBUTION_PLAN.md` for detailed file organization strategy, merge procedures, documentation guidelines, and PR template.
 
-  - Document common issues and resolution steps for dynamic burn rate setup
-  - Create debugging guide for missing metrics and edge case scenarios
-  - Document performance tuning guidelines and optimization strategies
-  - Create migration guide for converting static to dynamic SLOs
-  - _Requirements: 6.1, 6.2, 6.4_
+**Note**: Most documentation and testing work is already complete. Focus is on file organization and upstream integration.
 
-- [ ] 8.2 Implement deployment validation testing
-  - Test complete installation procedures from documentation
-  - Validate deployment in production-like environments
-  - Test migration procedures with real static SLO conversions
-  - Create performance baseline documentation for different scales
-  - _Requirements: 6.3, 6.5_
+- [ ] 8. Prepare repository for upstream contribution
 
-## Task Group 9: Comprehensive Regression Testing
+- [ ] 8.1 Fetch and merge from upstream repository
 
-- [ ] 9. Create full feature regression test suite with upstream comparison
+  - Add upstream remote if not already configured: `git remote add upstream https://github.com/pyrra-dev/pyrra.git`
+  - Fetch latest upstream changes: `git fetch upstream`
+  - Merge upstream/main into feature branch: `git merge upstream/main`
+  - Resolve any merge conflicts that arise
+  - Test that feature still works after merge (run key validation tools from `cmd/`)
+  - Document any significant conflicts or changes required
+  - _Requirements: 6.5_
 
-- [ ] 9.1 Implement upstream comparison regression testing
+- [ ] 8.2 Organize files for PR vs fork separation
 
-  - Compare behavior between feature branch and upstream-comparison branch
-  - Validate existing static SLO functionality remains identical to original Pyrra
-  - Test that dynamic burn rate feature doesn't break core Pyrra functionality
-  - Create automated comparison tests for UI components and backend behavior
+  - **Create development branch**: Create new branch (e.g., `dev-tools-and-docs`) to preserve development artifacts
+  - **Identify PR files**: Determine which files should go in pull request to upstream:
+    - Core feature implementation (backend, UI, CRD changes)
+    - Essential documentation updates (README.md, examples/)
+    - Minimal necessary test files
+  - **Identify fork-only files**: Determine which files stay in fork only:
+    - Development tools in `cmd/` (validate-\*, test-\*, monitor-\*, generate-\*)
+    - Development documentation in `.dev-docs/`
+    - Development scripts in `scripts/`
+    - Test configuration files in `.dev/`
+    - Steering documents in `.kiro/`
+    - Prompt documents in `prompts/`
+  - **Clean temporary files**: Remove any temporary or build artifacts:
+    - Compiled binaries (`.exe` files in root)
+    - Build caches
+    - IDE-specific files not in `.gitignore`
+  - **Document file organization**: Create document explaining what goes where and why
+  - _Requirements: 6.5_
+
+- [ ] 8.3 Update production documentation (keep concise and proportional)
+
+  - **Review existing READMEs**: Examine current README.md and other production docs in upstream Pyrra
+  - **Keep updates minimal and proportional**: Dynamic burn rate is ONE feature among many - don't overshadow existing content
+  - **Identify documentation gaps**: Determine what needs to be added vs edited:
+    - Main README.md: Add brief dynamic burn rate feature section (2-3 paragraphs max)
+    - examples/README.md: Add concise dynamic SLO examples with short explanations
+    - New docs: Consider separate `docs/DYNAMIC_BURN_RATE.md` ONLY if it keeps main docs clean
+  - **Update documentation files**: Make necessary edits to production documentation
+    - Keep additions concise - users can explore details through examples and testing
+    - Focus on "what" and "how to use", not extensive "why" or implementation details
+    - Maintain existing documentation structure and tone
+  - **Add usage examples**: Include clear but minimal examples of dynamic burn rate configuration
+  - **Migration guidance**: Add brief migration notes (1-2 sentences) for users converting static to dynamic SLOs
+  - **Reference comprehensive docs**: Point to `.dev-docs/` in fork for detailed implementation docs (if appropriate)
+  - **IMPORTANT**: Extensive documentation already exists in `.dev-docs/` - extract ONLY essential user-facing content for production docs
+  - **Goal**: Users should understand the feature exists, how to enable it, and where to find examples - not become documentation experts
+  - _Requirements: 6.1, 6.2, 6.5_
+
+- [ ] 8.4 Create pull request description and evidence
+
+  - **Write PR description**: Create comprehensive pull request description including:
+    - Feature overview and motivation (reference "Error Budget is All You Need" blog series)
+    - Implementation summary (backend, API, UI changes)
+    - Testing evidence (reference validation tools and results)
+    - Breaking changes (if any - likely none)
+    - Migration notes for existing users
+  - **Compile test evidence**: Gather key testing results to include:
+    - Mathematical validation results (Task 7.2 - `.dev-docs/TASK_7_2_MATH_VALIDATION_GUIDE.md`)
+    - Query optimization results (Task 7.10 - `.dev-docs/TASK_7.10_COMPLETION_SUMMARY.md`)
+    - UI testing results (Task 7.13 - `.dev-docs/TASK_7.13_COMPLETION_SUMMARY.md`)
+    - Alert firing validation (Task 6 - `.dev-docs/TASK_6_LESSONS_LEARNED.md`)
+    - Regression testing (Task 7.13 - zero regressions found)
+  - **Create before/after examples**: Show clear examples of static vs dynamic behavior
+  - **Document design decisions**: Explain key architectural choices
+  - **Prepare for review**: Anticipate questions and prepare responses
+  - _Requirements: 6.5_
+
+## Task Group 9: Final Validation and Quality Assurance
+
+**Context**: Most validation already completed in Tasks 1-7 (see `.dev-docs/TASK_7.13_COMPLETION_SUMMARY.md` for comprehensive regression testing results). This group focuses on final checks before PR submission.
+
+**Note**: Task 7.13 already completed comprehensive regression testing with zero regressions found. These tasks are for final verification only.
+
+- [ ] 9. Perform final validation checks before upstream contribution
+
+- [ ] 9.1 Final regression verification
+
+  - **Review Task 7.13 results**: Verify comprehensive regression testing completed successfully
+  - **Spot-check key scenarios**: Quick validation of critical functionality:
+    - Static SLO behavior unchanged (compare with upstream-comparison branch)
+    - Dynamic SLO features working correctly
+    - Mixed static/dynamic environments stable
+  - **Verify test tools still work**: Run 1-2 validation tools from `cmd/` to confirm
+  - **Document any new findings**: Note any issues discovered since Task 7.13
+  - **Reference**: `.dev-docs/TASK_7.13_COMPLETION_SUMMARY.md` shows zero regressions found
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 9.2 Validate mathematical accuracy across all indicator types
+- [ ] 9.2 Code quality and standards review
 
-  - Test all indicator types with both static and dynamic burn rates
-  - Validate mathematical accuracy across all scenarios with real Prometheus data
-  - Cross-validate calculations against known working examples
-  - Test edge cases and boundary conditions for all indicator types
-  - **GROUND TRUTH REGRESSION**: Ensure mathematical validation framework from Task 7.2 passes for all scenarios
-  - **UNIQUENESS REGRESSION**: Verify query uniqueness validation from Task 7.3 continues to pass across all SLOs
-  - **PRECISION REGRESSION**: Test scientific notation and precision handling from Task 7.4 works consistently
-  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+  - **Code style consistency**: Ensure code follows Pyrra project conventions
+  - **Remove debug code**: Clean up any console.log, debug flags, or temporary code
+  - **Comment quality**: Verify code comments are clear and helpful
+  - **Test coverage**: Ensure adequate test coverage for new functionality
+  - **Documentation accuracy**: Verify all code comments and docs match implementation
+  - **Go formatting**: Run `gofumpt` on all Go files
+  - **TypeScript/React**: Verify UI code follows existing patterns
+  - _Requirements: 6.5_
 
-- [ ] 9.3 Comprehensive UI consistency and user experience testing
+- [ ] 9.3 Final production validation
 
-  - Test UI consistency and user experience across all indicator types
-  - Validate tooltips, error handling, and performance displays work correctly
-  - Test responsive design and cross-browser compatibility
-  - Ensure consistent behavior between development and production UI builds
-  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
-
-- [ ] 9.4 Production readiness validation
-
-  - Conduct end-to-end testing in production-like environments
-  - Validate performance characteristics meet production requirements
-  - Test feature stability over extended periods (multi-day testing)
-  - Create final production deployment checklist and validation procedures
+  - **End-to-end smoke test**: Run complete workflow from SLO creation to alert firing
+  - **Performance validation**: Verify performance meets expectations (reference Task 7.10 results)
+  - **Error handling validation**: Test graceful degradation with missing metrics
+  - **Cross-indicator validation**: Test all indicator types (ratio, latency, latencyNative, boolGauge)
+  - **Reference existing validation**: Leverage comprehensive testing from Tasks 1-7
+  - **Quick checklist**: Use `.dev-docs/TASK_7.13_QUICK_CHECKLIST.md` for final verification
   - _Requirements: 5.5, 6.5_
 
-- [ ] 9.5 Finalize upstream contribution preparation
-  - Ensure all code changes follow Pyrra project standards and conventions
-  - Create comprehensive test evidence documentation for pull request
-  - Validate feature works across different Kubernetes and Prometheus versions using upstream comparison
-  - Prepare feature documentation for upstream integration
+- [ ] 9.4 Prepare for upstream submission
+
+  - **Review commit history**: Check if commits need squashing/organizing for clean history
+  - **Update CHANGELOG**: Add entry for dynamic burn rate feature (if Pyrra uses changelog)
+  - **Version considerations**: Note any version compatibility requirements
+  - **Create PR branch**: Prepare clean branch for pull request from current feature branch
+  - **Final review checklist**: Complete pre-submission checklist
+  - **Backup development artifacts**: Ensure `dev-tools-and-docs` branch has all development files
   - _Requirements: 6.5_

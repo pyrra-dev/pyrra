@@ -531,3 +531,13 @@ tional Development Documentation
 ### Testing Environment Reference
 
 - **`.dev-docs/TESTING_ENVIRONMENT_REFERENCE.md`** - Complete testing environment setup and configuration reference
+
+### Upstream Contribution Guide
+
+- **`.dev-docs/UPSTREAM_CONTRIBUTION_PLAN.md`** - Comprehensive guide for preparing the dynamic burn rate feature for upstream contribution, including:
+  - File organization strategy (what goes in PR vs what stays in fork)
+  - Upstream merge procedures and conflict resolution
+  - Production documentation update guidelines (keep concise and proportional)
+  - Pull request description template with test evidence
+  - Timeline and success criteria for upstream submission
+  - **Reference this document when working on Tasks 8-9 (Upstream Integration Preparation)**
