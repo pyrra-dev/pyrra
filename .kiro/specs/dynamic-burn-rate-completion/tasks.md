@@ -510,8 +510,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 7.11.1 Run automated performance tests
 
-
-
   - Run baseline performance test with current SLOs
   - Apply 50 test SLOs and run medium scale performance test
   - Apply 100 test SLOs and run large scale performance test
@@ -521,7 +519,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Reference: `.dev-docs/TASK_7.11_TESTING_INFRASTRUCTURE.md` for commands and tools_
   - _Deliverable: `.dev-docs/PRODUCTION_PERFORMANCE_BENCHMARKS.md` with test results_
 
-- [ ] 7.12 Manual testing - Browser compatibility and graceful degradation
+- [x] 7.12 Manual testing - Browser compatibility and graceful degradation
 
   - **Interactive Testing Required**: Test in Chrome, Firefox, and Edge browsers
   - **Follow Guide**: `.dev-docs/TASK_7.12_MANUAL_TESTING_GUIDE.md` (complete step-by-step instructions)
@@ -533,6 +531,32 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 5.2, 5.4_
   - _Reference: `.dev-docs/BROWSER_COMPATIBILITY_TEST_GUIDE.md` for detailed test scenarios_
   - _Note: This task requires human interaction for visual validation and browser testing_
+
+- [ ] 7.12.1 CRITICAL: Fix white page crash for dynamic SLOs with missing metrics
+
+  - **Priority**: HIGH - Blocker for production use with missing/broken metrics
+  - **Issue**: Clicking burn rate graph button for dynamic SLOs with missing metrics causes complete page crash (white screen)
+  - **Root Cause**: `BurnrateGraph.tsx:284` calls `Array.from()` on undefined data when dynamic SLO has no metric data
+  - **Error**: `TypeError: undefined is not iterable (cannot read property Symbol(Symbol.iterator))`
+  - **Related Errors**:
+    - `[BurnRateThresholdDisplay] No data returned for boolGauge indicator traffic query`
+    - `POST http://localhost:9099/objectives.v1alpha1.ObjectiveService/GraphDuration 404 (Not Found)` (for latency SLOs)
+  - **Implementation**:
+    - Add null/undefined checks in `BurnrateGraph.tsx` before calling `Array.from()`
+    - Implement graceful error handling for missing graph data
+    - Display user-friendly error message instead of crashing (e.g., "No data available for this time range")
+    - Ensure consistent error handling between static and dynamic SLOs
+    - Test with all indicator types (ratio, latency, latencyNative, boolGauge) with missing metrics
+  - **Testing**:
+    - Test with dynamic SLOs that have completely missing metrics
+    - Test with dynamic SLOs that have broken/non-existent metrics
+    - Verify static SLOs with missing metrics continue to work (no regression)
+    - Verify working dynamic SLOs are not affected
+  - **Documentation**:
+    - Update `.dev-docs/BROWSER_COMPATIBILITY_MATRIX.md` with fix status
+    - Document error handling patterns in `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md`
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 5.2_
+  - _Discovered during: Task 7.12 browser compatibility testing_
 
 - [ ] 7.13 Comprehensive UI build and deployment testing
   - Validate embedded UI build process (npm run build + make build)
