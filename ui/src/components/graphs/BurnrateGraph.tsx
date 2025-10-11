@@ -278,31 +278,42 @@ const BurnrateGraph = ({
   // Calculate threshold series - either static (constant) or dynamic (varies over time)
   let thresholdSeries: number[]
   
-  if (burnRateType === BurnRateType.Dynamic && trafficData !== null && trafficData.data.length > 0) {
+  if (burnRateType === BurnRateType.Dynamic && trafficData !== null && trafficData.data !== undefined && trafficData.data.length > 1 && trafficData.data[0] !== undefined && trafficData.data[1] !== undefined) {
     // Dynamic threshold: calculate for each timestamp based on traffic ratio
-    const trafficTimestamps = Array.from(trafficData.data[0])
-    const trafficRatios = Array.from(trafficData.data[1])
-    
-    // Create a map of timestamp -> traffic ratio for efficient lookup
-    const trafficMap = new Map<number, number>()
-    for (let i = 0; i < trafficTimestamps.length; i++) {
-      const ratio = trafficRatios[i]
-      if (ratio !== null && ratio !== undefined && isFinite(ratio) && ratio > 0) {
-        trafficMap.set(trafficTimestamps[i], ratio)
+    // Add null/undefined checks before calling Array.from() to prevent crashes with missing metrics
+    try {
+      const trafficTimestamps = Array.from(trafficData.data[0])
+      const trafficRatios = Array.from(trafficData.data[1])
+      
+      // Create a map of timestamp -> traffic ratio for efficient lookup
+      const trafficMap = new Map<number, number>()
+      for (let i = 0; i < trafficTimestamps.length; i++) {
+        const ratio = trafficRatios[i]
+        if (ratio !== null && ratio !== undefined && isFinite(ratio) && ratio > 0) {
+          trafficMap.set(trafficTimestamps[i], ratio)
+        }
       }
+      
+      // Calculate dynamic threshold for each timestamp
+      thresholdSeries = Array.from(timestamps).map((ts: number) => {
+        const trafficRatio = trafficMap.get(ts)
+        if (trafficRatio !== undefined) {
+          return calculateDynamicThreshold(objective, alert.factor, trafficRatio)
+        }
+        // Fallback to static threshold if traffic data missing for this timestamp
+        return threshold
+      })
+    } catch (error) {
+      // If any error occurs during dynamic threshold calculation, fall back to static threshold
+      console.error('[BurnrateGraph] Error calculating dynamic thresholds, falling back to static:', error)
+      thresholdSeries = Array(timestamps.length).fill(threshold)
     }
-    
-    // Calculate dynamic threshold for each timestamp
-    thresholdSeries = Array.from(timestamps).map((ts: number) => {
-      const trafficRatio = trafficMap.get(ts)
-      if (trafficRatio !== undefined) {
-        return calculateDynamicThreshold(objective, alert.factor, trafficRatio)
-      }
-      // Fallback to static threshold if traffic data missing for this timestamp
-      return threshold
-    })
   } else {
     // Static threshold: constant value for all timestamps
+    // Also used as fallback when dynamic SLO has missing/broken metrics
+    if (burnRateType === BurnRateType.Dynamic && (trafficData === null || trafficData.data === undefined || trafficData.data.length === 0)) {
+      console.warn('[BurnrateGraph] Dynamic SLO has no traffic data, falling back to static threshold display')
+    }
     thresholdSeries = Array(timestamps.length).fill(threshold)
   }
 

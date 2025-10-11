@@ -88,6 +88,57 @@ The dynamic burn rate feature introduces adaptive alerting to Pyrra### ✅ **COM
 - `.kiro/specs/dynamic-burn-rate-completion/requirements.md` - New requirements 7 and 8
 - `.kiro/specs/dynamic-burn-rate-completion/tasks.md` - New tasks 7.6-7.9
 
+#### Issue 4: Missing Metrics Display Issues
+**Status**: ✅ **FIXED (Jan 11, 2025)**
+
+**Problem 1: BurnrateGraph White Page Crash**
+- Clicking burn rate graph button for dynamic SLOs with missing metrics causes complete page crash (white screen)
+- Error: `TypeError: undefined is not iterable (cannot read property Symbol(Symbol.iterator))`
+- Root Cause: `BurnrateGraph.tsx:284` calls `Array.from()` on undefined data when dynamic SLO has no metric data
+
+**Problem 2: Detail Page Shows 100% for Missing Metrics**
+- Main page correctly shows "No data" for availability and budget columns
+- Detail page incorrectly shows 100% availability and 100% error budget for SLOs with missing/broken metrics
+- Root Cause: `Detail.tsx` defaults to `errors = 0` and `total = 1` when no data, resulting in `1 - 0/1 = 100%`
+
+**Solution Implemented**:
+- ✅ **BurnrateGraph.tsx**: Added comprehensive null/undefined checks before calling `Array.from()` on traffic data
+- ✅ **BurnrateGraph.tsx**: Wrapped dynamic threshold calculation in try-catch block for graceful error handling
+- ✅ **BurnrateGraph.tsx**: Implemented fallback to static threshold when traffic data is missing or broken
+- ✅ **BurnrateGraph.tsx**: Added console warnings to help debug missing metrics scenarios
+- ✅ **Detail.tsx**: Changed default values from `errors = 0, total = 1` to `errors = undefined, total = undefined`
+- ✅ **Detail.tsx**: Tiles now correctly display "No data" when metrics are missing (consistent with main page)
+**Error Handling Pattern**:
+```typescript
+// Check all data structures exist before accessing
+if (burnRateType === BurnRateType.Dynamic && 
+    trafficData !== null && 
+    trafficData.data !== undefined && 
+    trafficData.data.length > 1 && 
+    trafficData.data[0] !== undefined && 
+    trafficData.data[1] !== undefined) {
+  try {
+    // Safe to call Array.from() now
+    const trafficTimestamps = Array.from(trafficData.data[0])
+    const trafficRatios = Array.from(trafficData.data[1])
+    // ... calculate dynamic thresholds
+  } catch (error) {
+    // Fallback to static threshold on any error
+    console.error('[BurnrateGraph] Error calculating dynamic thresholds, falling back to static:', error)
+    thresholdSeries = Array(timestamps.length).fill(threshold)
+  }
+} else {
+  // Fallback to static threshold for missing data
+  thresholdSeries = Array(timestamps.length).fill(threshold)
+}
+```
+**Testing Coverage**:
+- ✅ Dynamic SLOs with completely missing metrics (no crash, shows static threshold)
+- ✅ Dynamic SLOs with broken/non-existent metrics (no crash, shows static threshold)
+- ✅ Static SLOs with missing metrics (no regression, continues to work)
+- ✅ Working dynamic SLOs (no regression, shows dynamic thresholds correctly)
+**Status**: ✅ **CRITICAL BUG FIXED - PRODUCTION READY**
+
 ### 🎯 Remaining Work
 
 The feature adjusts alert thresholds based on actual traffic patterns rather than using fixed static multipliers. This implementation is based on the method described in the "Error Budget is All You Need" blog series.

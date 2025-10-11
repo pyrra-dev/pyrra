@@ -209,8 +209,10 @@ const Detail = () => {
 
   const success: boolean = totalStatus === 'success' && errorStatus === 'success'
 
-  let errors: number = 0
-  let total: number = 1
+  let errors: number | undefined
+  let total: number | undefined
+  
+  // Handle vector responses
   if (totalResponse?.options.case === 'vector' && errorResponse?.options.case === 'vector') {
     if (errorResponse.options.value.samples.length > 0) {
       errors = errorResponse.options.value.samples[0].value
@@ -219,6 +221,12 @@ const Detail = () => {
     if (totalResponse.options.value.samples.length > 0) {
       total = totalResponse.options.value.samples[0].value
     }
+  }
+  
+  // Handle scalar responses
+  if (totalResponse?.options.case === 'scalar' && errorResponse?.options.case === 'scalar') {
+    errors = errorResponse.options.value.value
+    total = totalResponse.options.value.value
   }
 
   const labelBadges = Object.entries({...objective.labels, ...groupingLabels})
