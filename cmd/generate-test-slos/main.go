@@ -83,10 +83,9 @@ func generateDynamicSLO(name, namespace, filename string, index int) error {
 	} else {
 		indicatorYAML = `    latency:
       success:
-        metric: prometheus_http_request_duration_seconds_bucket{handler="/api/v1/query"}
+        metric: prometheus_http_request_duration_seconds_bucket{handler="/api/v1/query",le="0.1"}
       total:
-        metric: prometheus_http_request_duration_seconds_count{handler="/api/v1/query"}
-      threshold: "0.1"`
+        metric: prometheus_http_request_duration_seconds_count{handler="/api/v1/query"}`
 	}
 
 	yaml := fmt.Sprintf(`apiVersion: pyrra.dev/v1alpha1
@@ -129,10 +128,9 @@ func generateStaticSLO(name, namespace, filename string, index int) error {
 	} else {
 		indicatorYAML = `    latency:
       success:
-        metric: prometheus_http_request_duration_seconds_bucket{handler="/api/v1/query"}
+        metric: prometheus_http_request_duration_seconds_bucket{handler="/api/v1/query",le="0.1"}
       total:
-        metric: prometheus_http_request_duration_seconds_count{handler="/api/v1/query"}
-      threshold: "0.1"`
+        metric: prometheus_http_request_duration_seconds_count{handler="/api/v1/query"}`
 	}
 
 	yaml := fmt.Sprintf(`apiVersion: pyrra.dev/v1alpha1
