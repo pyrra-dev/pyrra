@@ -243,6 +243,16 @@ Include links to key validation results:
 
 ## Timeline
 
+### Pre-Merge Cleanup (Task 8.0) - MUST DO FIRST
+- Review and revert unintended changes (CONTRIBUTING.md, deployment manifests, etc.)
+- Move examples from .dev/ to examples/
+- Backend code cleanup (remove duplicates, unused code)
+- CRD cleanup (remove redundant variables)
+- UI code review and cleanup
+- Investigate filesystem.go changes and determine if filesystem mode needs testing
+- Investigate proto changes
+- Create cleanup checklist document
+
 ### Immediate (Task 8.1)
 - Fetch and merge from upstream
 - Resolve any conflicts
@@ -257,6 +267,7 @@ Include links to key validation results:
 - Create PR description
 - Final validation checks
 - Code quality review
+- Filesystem mode testing (if needed)
 - Submit pull request
 
 ## Success Criteria

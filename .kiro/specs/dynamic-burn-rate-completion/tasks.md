@@ -601,6 +601,60 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [ ] 8. Prepare repository for upstream contribution
 
+- [ ] 8.0 Pre-merge code cleanup and review (MUST DO FIRST)
+
+  - **Reference Checklist**: See `.dev-docs/TASK_8.0_PRE_MERGE_CLEANUP_CHECKLIST.md` for detailed checklist and tracking
+  
+  - **Review and revert unintended changes**:
+    - `CONTRIBUTING.md` - Review changes, likely need to revert all updates
+    - `examples/kubernetes/manifests/pyrra-kubernetesDeployment.yaml` - Likely need to revert
+    - `ui/public/index.html` - Revert to template values (was updated to specific values, possibly by build process)
+    - `.gitignore` - Remove dev-specific entries that shouldn't go to upstream
+    - `.kiro/` hooks - Remove Kiro-specific hooks from repository
+  
+  - **Move examples from .dev/ to examples/**:
+    - Review test SLOs in `.dev/` folder
+    - Select best examples for production (e.g., `test-dynamic-slo.yaml`, `test-latency-dynamic.yaml`)
+    - Move and rename to `examples/` with clear naming and documentation
+    - Ensure examples are production-ready (remove test-specific configurations)
+  
+  - **Backend code cleanup (slo/rules.go)**:
+    - Remove duplicate code: `buildTotalSelector`, `buildLatencyTotalSelector`, `buildLatencyNativeTotalSelector`, `buildBoolGaugeSelector`
+    - Consolidate into single reusable function if possible
+    - Update `errorBudgetBurnPercent` comments: Replace "originally X for Y" with "X for Y SLO period"
+  
+  - **Backend code cleanup (slo/slo.go)**:
+    - Remove unused function: `GetRemainingErrorBudget` (if truly unused)
+    - Remove unused struct: `DynamicBurnRate` (if truly unused)
+    - Verify these are not used anywhere before removing
+  
+  - **CRD cleanup (kubernetes/api/v1alpha1/servicelevelobjective_types.go)**:
+    - Review redundant variables: `BaseFactor`, `MinFactor`, `MaxFactor`
+    - Determine if these are actually used or can be removed
+    - Clean up if redundant
+  
+  - **Test file review**:
+    - `kubernetes/api/v1alpha1/servicelevelobjective_types_test.go` - Added only static cases, consider adding dynamic test cases
+    - `ui/src/components/BurnRateThresholdDisplay.spec.tsx` - Decide: keep for upstream or move to fork
+  
+  - **UI code review**:
+    - `ui/src/components/Toggle.tsx` - Investigate what "readOnly" addition does and if it's needed
+    - `ui/DYNAMIC_BURN_RATE_UI.md` - Old file, decide: edit and move to `.dev-docs/` or delete
+  
+  - **Investigate filesystem.go changes**:
+    - Review what was changed and why
+    - Determine if changes are partial and need more comprehensive updates
+    - **IMPORTANT**: Decide if filesystem mode needs testing (only kubernetes mode tested so far)
+    - If filesystem mode affected, add testing task or document as known limitation
+  
+  - **Investigate proto changes**:
+    - `proto/objectives/v1alpha1/objectives.pb.go` - Many changes, understand how they relate to feature
+    - Verify these are necessary generated changes from protobuf definitions
+    - Ensure no manual edits that should be in .proto files instead
+  
+  - **Create cleanup checklist document**: Document all changes made and decisions for future reference
+  - _Requirements: 6.5_
+
 - [ ] 8.1 Fetch and merge from upstream repository
 
   - Add upstream remote if not already configured: `git remote add upstream https://github.com/pyrra-dev/pyrra.git`
@@ -707,6 +761,12 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Performance validation**: Verify performance meets expectations (reference Task 7.10 results)
   - **Error handling validation**: Test graceful degradation with missing metrics
   - **Cross-indicator validation**: Test all indicator types (ratio, latency, latencyNative, boolGauge)
+  - **Filesystem mode validation** (if determined necessary in Task 8.0):
+    - Reference Task 8.0 decision in `.dev-docs/TASK_8.0_PRE_MERGE_CLEANUP_CHECKLIST.md`
+    - Test dynamic burn rate feature in filesystem mode (only kubernetes mode tested so far)
+    - Verify filesystem.go changes work correctly
+    - Document any filesystem-specific limitations or issues
+    - If not tested, document as known limitation in PR description
   - **Reference existing validation**: Leverage comprehensive testing from Tasks 1-7
   - **Quick checklist**: Use `.dev-docs/TASK_7.13_QUICK_CHECKLIST.md` for final verification
   - _Requirements: 5.5, 6.5_
