@@ -601,71 +601,75 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [ ] 8. Prepare repository for upstream contribution
 
-- [ ] 8.0 Pre-merge code cleanup and review (MUST DO FIRST)
+- [x] 8.0 Pre-merge code cleanup and review - ✅ COMPLETE
 
-  - **Reference Checklist**: See `.dev-docs/TASK_8.0_PRE_MERGE_CLEANUP_CHECKLIST.md` for detailed checklist and tracking
-  
-  - **Review and revert unintended changes**:
-    - `CONTRIBUTING.md` - Review changes, likely need to revert all updates
-    - `examples/kubernetes/manifests/pyrra-kubernetesDeployment.yaml` - Likely need to revert
-    - `ui/public/index.html` - Revert to template values (was updated to specific values, possibly by build process)
-    - `.gitignore` - Remove dev-specific entries that shouldn't go to upstream
-    - `.kiro/` hooks - Remove Kiro-specific hooks from repository
-  
-  - **Move examples from .dev/ to examples/**:
-    - Review test SLOs in `.dev/` folder
-    - Select best examples for production (e.g., `test-dynamic-slo.yaml`, `test-latency-dynamic.yaml`)
-    - Move and rename to `examples/` with clear naming and documentation
-    - Ensure examples are production-ready (remove test-specific configurations)
-  
-  - **Backend code cleanup (slo/rules.go)**:
-    - Remove duplicate code: `buildTotalSelector`, `buildLatencyTotalSelector`, `buildLatencyNativeTotalSelector`, `buildBoolGaugeSelector`
-    - Consolidate into single reusable function if possible
-    - Update `errorBudgetBurnPercent` comments: Replace "originally X for Y" with "X for Y SLO period"
-  
-  - **Backend code cleanup (slo/slo.go)**:
-    - Remove unused function: `GetRemainingErrorBudget` (if truly unused)
-    - Remove unused struct: `DynamicBurnRate` (if truly unused)
-    - Verify these are not used anywhere before removing
-  
-  - **CRD cleanup (kubernetes/api/v1alpha1/servicelevelobjective_types.go)**:
-    - Review redundant variables: `BaseFactor`, `MinFactor`, `MaxFactor`
-    - Determine if these are actually used or can be removed
-    - Clean up if redundant
-  
-  - **Test file review**:
-    - `kubernetes/api/v1alpha1/servicelevelobjective_types_test.go` - Added only static cases, consider adding dynamic test cases
-    - `ui/src/components/BurnRateThresholdDisplay.spec.tsx` - Decide: keep for upstream or move to fork
-  
-  - **UI code review**:
-    - `ui/src/components/Toggle.tsx` - Investigate what "readOnly" addition does and if it's needed
-    - `ui/DYNAMIC_BURN_RATE_UI.md` - Old file, decide: edit and move to `.dev-docs/` or delete
-  
-  - **Investigate filesystem.go changes**:
-    - Review what was changed and why
-    - Determine if changes are partial and need more comprehensive updates
-    - **IMPORTANT**: Decide if filesystem mode needs testing (only kubernetes mode tested so far)
-    - If filesystem mode affected, add testing task or document as known limitation
-  
-  - **Investigate proto changes**:
-    - `proto/objectives/v1alpha1/objectives.pb.go` - Many changes, understand how they relate to feature
-    - Verify these are necessary generated changes from protobuf definitions
-    - Ensure no manual edits that should be in .proto files instead
-  
-  - **Create cleanup checklist document**: Document all changes made and decisions for future reference
+  - **Status**: ✅ Complete - See `.dev-docs/TASK_8_CLEANUP_AND_PREPARATION.md` for comprehensive documentation
+  - **Reference Documents**:
+
+    - `.dev-docs/TASK_8_CLEANUP_AND_PREPARATION.md` - Consolidated cleanup and preparation guide (PRIMARY)
+    - `.dev-docs/TASK_8.0_PRE_MERGE_CLEANUP_CHECKLIST.md` - Detailed checklist (reference)
+    - `.dev-docs/TASK_8.0_CLEANUP_ANALYSIS.md` - File categorization analysis (reference)
+    - `.dev-docs/TASK_8.0_CLEANUP_SUMMARY.md` - Actions completed summary (reference)
+
+  - **Actions Completed**:
+
+    - ✅ Reverted unintended changes (pyrra-kubernetesDeployment.yaml, ui/public/index.html, filesystem.go)
+    - ✅ Removed unused code (~47 lines from slo/slo.go and CRD types)
+    - ✅ Updated comment format in slo/rules.go ("originally X for Y" → "X for Y SLO period")
+    - ✅ Moved ui/DYNAMIC_BURN_RATE_UI.md to .dev-docs/HISTORICAL_UI_DESIGN.md
+    - ✅ Updated CONTRIBUTING.md with ui/README.md reference
+    - ✅ Kept main.go native histogram changes (API server emits test metric for LatencyNative testing)
+    - ✅ Kept BurnRateThresholdDisplay.spec.tsx tests (good practice)
+    - ✅ Kept Toggle.tsx readOnly fix (React best practice)
+    - ✅ All tests passing, code compiles successfully
+
+  - **Architecture Understanding**:
+
+    - ✅ Clarified that `connect_server_requests_duration_seconds` is a test metric emitted by API server only
+    - ✅ Backend modes (kubernetes.go, filesystem.go) do NOT need test metric emission
+    - ✅ LatencyNative feature works correctly - API server always runs in typical deployments
+    - ✅ Test metric available for examples because `./pyrra api` is always running
+
+  - **Deferred Items**:
+
+    - ⏳ .gitignore cleanup - Will be handled before dev-tools-and-docs branch creation
+    - ⏳ Move examples from .dev/ to examples/ - Moved to Task 8.2
+    - ⏳ Duplicate selector functions - Kept as-is (logic differs per indicator type, consolidation not beneficial)
+    - ⏳ Filesystem mode testing - Optional, can be added to Task 9.3 if desired
+
   - _Requirements: 6.5_
 
 - [ ] 8.1 Fetch and merge from upstream repository
 
+  - **Reference**: See `.dev-docs/TASK_8_CLEANUP_AND_PREPARATION.md` Section "Task 8.1" for detailed steps
   - Add upstream remote if not already configured: `git remote add upstream https://github.com/pyrra-dev/pyrra.git`
   - Fetch latest upstream changes: `git fetch upstream`
   - Merge upstream/main into feature branch: `git merge upstream/main`
   - Resolve any merge conflicts that arise
-  - Test that feature still works after merge (run key validation tools from `cmd/`)
+  - Test that feature still works after merge:
+    - `go build -o pyrra .`
+    - `go test ./slo -run "TestObjective_DynamicBurnRate"`
+    - `cd ui && npm run build`
   - Document any significant conflicts or changes required
   - _Requirements: 6.5_
 
-- [ ] 8.2 Organize files for PR vs fork separation
+- [ ] 8.2 Move examples from .dev/ to examples/
+
+  - **Reference**: See `.dev-docs/TASK_8_CLEANUP_AND_PREPARATION.md` Section "Task 8.2" for detailed steps
+  - Review test SLOs in `.dev/` folder
+  - Select best examples for production:
+    - `test-dynamic-slo.yaml` → `examples/dynamic-burn-rate-ratio.yaml`
+    - `test-latency-dynamic.yaml` → `examples/dynamic-burn-rate-latency.yaml`
+    - Consider: LatencyNative and BoolGauge examples
+  - Clean up examples:
+    - Remove test-specific configurations
+    - Add clear comments explaining dynamic burn rate usage
+    - Ensure proper naming conventions
+    - Add metadata and labels as appropriate
+  - Update `examples/README.md` with dynamic burn rate explanation
+  - _Requirements: 6.5_
+
+- [ ] 8.3 Organize files for PR vs fork separation
 
   - **Create development branch**: Create new branch (e.g., `dev-tools-and-docs`) to preserve development artifacts
   - **Identify PR files**: Determine which files should go in pull request to upstream:

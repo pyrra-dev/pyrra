@@ -1,6 +1,9 @@
-# Dynamic Burn Rate UI Integration
+# Dynamic Burn Rate UI Integration - Historical Design Document
 
-This document describes the UI implementation for Pyrra's Dynamic Burn Rate feature.
+**Status:** Historical reference - Implementation has evolved beyond this document  
+**Current Status:** See `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md` for up-to-date implementation details
+
+This document describes the initial UI design and implementation plan for Pyrra's Dynamic Burn Rate feature.
 
 ## Overview
 
@@ -54,11 +57,14 @@ The Dynamic Burn Rate feature allows SLOs to use traffic-aware alerting threshol
 5. **`examples/demo-dynamic-burnrate.yaml`** - Demo configuration
    - Example SLO configurations showcasing both types
 
-### Mock Detection Logic
+### Mock Detection Logic (OBSOLETE)
 
-Until the API provides the actual `burnRateType` field, the UI uses heuristic detection:
+**Note:** This mock logic was used during early development and has been replaced with actual API integration.
+
+Early prototype used heuristic detection:
 
 ```typescript
+// OBSOLETE - No longer in codebase
 // Keywords that suggest dynamic behavior
 const dynamicKeywords = ['dynamic', 'traffic-aware', 'adaptive', 'auto', 'smart']
 
@@ -72,6 +78,8 @@ if (name.includes('api') || name.includes('service')) {
   return Math.random() > 0.6 ? BurnRateType.Dynamic : BurnRateType.Static
 }
 ```
+
+**Current Implementation:** The UI now receives `burnRateType` directly from the API via protobuf.
 
 ## Visual Design
 
@@ -94,12 +102,14 @@ if (name.includes('api') || name.includes('service')) {
 - Responsive design works across different screen sizes
 - Column visibility and sorting work properly
 
-### Next Steps for Full Integration:
+### Integration Status (COMPLETED):
 
-1. **Protobuf Updates**: Add `Alerting` message with `burn_rate_type` field
-2. **API Integration**: Update Go conversion functions to include alerting info
-3. **Replace Mock Logic**: Connect UI to real API field instead of heuristics
-4. **Testing**: End-to-end testing with real dynamic burn rate configurations
+1. ✅ **Protobuf Updates**: Added `Alerting` message with `burn_rate_type` field
+2. ✅ **API Integration**: Updated Go conversion functions to include alerting info
+3. ✅ **Replaced Mock Logic**: UI now uses real API field
+4. ✅ **Testing**: End-to-end testing completed with real dynamic burn rate configurations
+
+**See `.dev-docs/FEATURE_IMPLEMENTATION_SUMMARY.md` for current implementation status.**
 
 ## User Experience
 

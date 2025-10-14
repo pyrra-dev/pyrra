@@ -22,11 +22,11 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
     <title>Pyrra</title>
-    <script>window.PATH_PREFIX = "/"</script>
-    <script>window.API_BASEPATH = undefined</script>
-    <script>window.EXTERNAL_URL = "http://localhost:9090"</script>
-    <script>window.EXTERNAL_GRAFANA_DATASOURCE_ID = ""</script>
-    <script>window.EXTERNAL_GRAFANA_ORG_ID = "1"</script>
+    <script>window.PATH_PREFIX = {{.PathPrefix}}</script>
+    <script>window.API_BASEPATH = {{.APIBasepath}}</script>
+    <script>window.EXTERNAL_URL = {{.ExternalURL}}</script>
+    <script>window.EXTERNAL_GRAFANA_DATASOURCE_ID = {{.ExternalGrafanaDatasourceID}}</script>
+    <script>window.EXTERNAL_GRAFANA_ORG_ID = {{.ExternalGrafanaOrgID}}</script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

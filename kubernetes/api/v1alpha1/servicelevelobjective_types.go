@@ -122,28 +122,6 @@ type ServiceLevelIndicator struct {
 	BoolGauge *BoolGaugeIndicator `json:"bool_gauge,omitempty"`
 }
 
-type DynamicBurnRate struct {
-	// +optional
-	// +kubebuilder:default:=false
-	// Enabled determines whether to use dynamic burn rate alerting
-	Enabled *bool `json:"enabled,omitempty"`
-
-	// +optional
-	// +kubebuilder:default:=1.0
-	// BaseFactor is multiplied by the error budget fraction remaining to determine the current factor
-	BaseFactor float64 `json:"baseFactor,omitempty"`
-
-	// +optional
-	// +kubebuilder:default:=0.1
-	// MinFactor is the minimum factor to use when error budget is nearly exhausted
-	MinFactor float64 `json:"minFactor,omitempty"`
-
-	// +optional
-	// +kubebuilder:default:=10.0
-	// MaxFactor is the maximum factor to use when error budget is healthy
-	MaxFactor float64 `json:"maxFactor,omitempty"`
-}
-
 type Alerting struct {
 	// +optional
 	// +kubebuilder:deprecatedversion:warning="disabled is deprecated. Use burnrates instead."

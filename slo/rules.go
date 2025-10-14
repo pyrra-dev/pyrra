@@ -1420,13 +1420,13 @@ func (o Objective) DynamicWindows(sloWindow time.Duration) []Window {
 		// We determine this based on the window's position in the static factor hierarchy
 		var errorBudgetBurnPercent float64
 		switch w.Factor {
-		case 14: // First critical window (originally 1h for 28d) - 50% per day
+		case 14: // First critical window (1h for 28d SLO period) - 2% error budget burn
 			errorBudgetBurnPercent = 1.0 / 48
-		case 7: // Second critical window (originally 6h for 28d) - 100% per 4 days
+		case 7: // Second critical window (6h for 28d SLO period) - 6% error budget burn
 			errorBudgetBurnPercent = 1.0 / 16
-		case 2: // First warning window (originally 1d for 28d)
+		case 2: // First warning window (1d for 28d SLO period) - 7% error budget burn
 			errorBudgetBurnPercent = 1.0 / 14
-		case 1: // Second warning window (originally 4d for 28d)
+		case 1: // Second warning window (4d for 28d SLO period) - 14% error budget burn
 			errorBudgetBurnPercent = 1.0 / 7
 		default:
 			// Fallback to the most conservative threshold

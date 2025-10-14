@@ -87,18 +87,15 @@ Most likely you need to update the `window.PUBLIC_API` constant in `ui/public/in
 
 **Critical**: When making UI changes, testing only the development server (port 3000) is insufficient. The production deployment uses embedded UI files that require a complete rebuild workflow.
 
-**Complete workflow for UI changes:**
+**For detailed UI development workflow, see [`ui/README.md`](ui/README.md)** which covers:
+- Development UI vs Embedded UI differences
+- Complete rebuild workflow for production testing
+- Why both testing methods are necessary
+
+**Quick reference:**
 ```bash
-# 1. Make UI changes and test in development
-cd ui && npm start  # Test at http://localhost:3000
-
-# 2. Build UI for production (REQUIRED)
-npm run build
-
-# 3. Rebuild Go binary with embedded UI (REQUIRED) 
-cd .. && make build
-
-# 4. Restart pyrra service and test embedded UI at http://localhost:9099
+# 1. Test in development: cd ui && npm start → http://localhost:3000
+# 2. Build for production: npm run build
+# 3. Rebuild Go binary: cd .. && make build
+# 4. Test embedded UI: ./pyrra api → http://localhost:9099
 ```
-
-**Why this matters**: The `./pyrra api` command serves embedded UI files from `ui/build/` (via Go embed), not the live source files. Changes to `ui/src/` won't appear in the embedded UI without rebuilding both the UI and the Go binary.
