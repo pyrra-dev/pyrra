@@ -641,7 +641,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
   - _Requirements: 6.5_
 
-- [ ] 8.1 Fetch and merge from upstream repository
+- [x] 8.1 Fetch and merge from upstream repository
 
 
 
