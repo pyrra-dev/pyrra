@@ -1,4 +1,4 @@
-FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/golang:1.25.0-alpine as go-builder
+FROM --platform="${BUILDPLATFORM:-linux/amd64}" docker.io/golang:1.25.2-alpine as go-builder
 
 # renovate: datasource=go depName=github.com/go-delve/delve
 ARG DLV_VERSION=v1.21.0
@@ -24,7 +24,7 @@ RUN if [ "${TARGETARCH}" = 'amd64' ]; then \
     fi
 RUN chmod +x pyrra
 
-FROM --platform="${TARGETPLATFORM:-linux/amd64}"  docker.io/alpine:3.22.1 AS runner
+FROM --platform="${TARGETPLATFORM:-linux/amd64}"  docker.io/alpine:3.22.2 AS runner
 WORKDIR /
 COPY --chown=0:0 --from=builder /app/pyrra /usr/bin/pyrra
 COPY --chown=0:0 --from=go-builder /go/bin/dlv /usr/bin/dlv
