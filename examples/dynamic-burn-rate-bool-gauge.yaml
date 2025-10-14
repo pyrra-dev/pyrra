@@ -1,0 +1,21 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: prometheus-availability-dynamic
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: "99.9"
+  window: 28d
+  description: "Prometheus availability monitoring with dynamic burn rate"
+  indicator:
+    bool_gauge:
+      metric: up{job="prometheus-k8s"}
+  alerting:
+    name: PrometheusAvailabilityDynamicErrorBudgetBurn
+    burnRateType: dynamic
+    burnrates: true
+    absent: true
+    disabled: false

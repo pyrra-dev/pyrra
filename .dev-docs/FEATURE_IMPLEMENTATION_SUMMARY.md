@@ -2052,3 +2052,64 @@ case 1: // Second warning window
 
 **Status**: ✅ **TASK 7.11 TOOLS AND DOCUMENTATION COMPLETE - READY FOR USER-DRIVEN TESTING**
 
+
+
+---
+
+## ✅ **COMPLETED: Task 8.2 - Examples Migration** ✅
+
+### **Task 8.2**: Move Examples from .dev/ to examples/ ✅ **COMPLETED (Oct 14, 2025)**
+
+**Purpose**: Create production-ready dynamic burn rate examples for all indicator types with comprehensive documentation.
+
+**Files Created**:
+
+1. ✅ **examples/dynamic-burn-rate-ratio.yaml** - Ratio indicator example
+   - Generic metric names (http_requests_total)
+   - Comprehensive inline comments
+   - Production-ready configuration
+   - Explains dynamic burn rate concept and formula
+
+2. ✅ **examples/dynamic-burn-rate-latency.yaml** - Latency indicator example
+   - Traditional histogram metrics
+   - 99% of requests under 100ms example
+   - Explains histogram bucket and count metrics
+   - Includes grouping configuration
+
+3. ✅ **examples/dynamic-burn-rate-latency-native.yaml** - LatencyNative indicator example
+   - Native histogram metrics
+   - Explains native histogram advantages
+   - Prometheus version requirements documented
+   - Test metric availability notes
+
+4. ✅ **examples/dynamic-burn-rate-bool-gauge.yaml** - BoolGauge indicator example
+   - Prometheus availability monitoring
+   - Binary state tracking (1=up, 0=down)
+   - Minimal comments, consistent with other examples
+
+5. ✅ **examples/README.md** - Concise documentation
+   - Overview of all examples (~70 lines, comparable to other upstream READMEs)
+   - Brief dynamic burn rate explanation (when to use, not implementation details)
+   - Links to deployment examples
+   - Overview of all examples
+   - Detailed dynamic burn rate explanation
+   - Static vs dynamic comparison
+   - When to use each indicator type
+   - Configuration options and best practices
+   - Multi-window burn rate alert explanation
+   - Getting started guide
+   - Links to deployment examples
+
+**Key Features**:
+
+- ✅ **Minimal Comments**: Consistent with existing examples (description field only)
+- ✅ **Production-Ready**: Real metrics from actual services, proper metadata
+- ✅ **Complete Coverage**: All four indicator types (Ratio, Latency, LatencyNative, BoolGauge)
+- ✅ **Concise Documentation**: examples/README.md comparable to other upstream READMEs (~70 lines)
+- ✅ **Tested**: All 4 examples verified showing actual data in Pyrra UI
+
+**Status**: ✅ **EXAMPLES MIGRATION COMPLETE - READY FOR UPSTREAM CONTRIBUTION**
+
+**Reference**: `.dev-docs/TASK_8.2_EXAMPLES_MIGRATION_SUMMARY.md`
+
+---

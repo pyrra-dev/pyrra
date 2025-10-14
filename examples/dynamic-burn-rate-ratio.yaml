@@ -1,0 +1,24 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: apiserver-requests-dynamic
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: "99"
+  window: 28d
+  description: "Kubernetes API server GET request success rate with dynamic burn rate alerting"
+  indicator:
+    ratio:
+      errors:
+        metric: apiserver_request_total{verb="GET",code=~"4..|5.."}
+      total:
+        metric: apiserver_request_total{verb="GET"}
+  alerting:
+    name: ApiserverRequestsDynamicErrorBudgetBurn
+    burnRateType: dynamic
+    burnrates: true
+    absent: true
+    disabled: false

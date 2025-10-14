@@ -603,8 +603,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 8.0 Pre-merge code cleanup and review - ✅ COMPLETE
 
-
-
   - **Status**: ✅ Complete - See `.dev-docs/TASK_8_CLEANUP_AND_PREPARATION.md` for comprehensive documentation
   - **Reference Documents**:
 
@@ -643,11 +641,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 8.1 Fetch and merge from upstream repository
 
-
-
-
-
-
   - **Reference**: See `.dev-docs/TASK_8_CLEANUP_AND_PREPARATION.md` Section "Task 8.1" for detailed steps
   - Add upstream remote if not already configured: `git remote add upstream https://github.com/pyrra-dev/pyrra.git`
   - Fetch latest upstream changes: `git fetch upstream`
@@ -661,6 +654,9 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 6.5_
 
 - [ ] 8.2 Move examples from .dev/ to examples/
+
+
+
 
   - **Reference**: See `.dev-docs/TASK_8_CLEANUP_AND_PREPARATION.md` Section "Task 8.2" for detailed steps
   - Review test SLOs in `.dev/` folder
@@ -716,7 +712,58 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Goal**: Users should understand the feature exists, how to enable it, and where to find examples - not become documentation experts
   - _Requirements: 6.1, 6.2, 6.5_
 
-- [ ] 8.4 Create pull request description and evidence
+- [ ] 8.4 Investigate and resolve regex label selector behavior
+
+  - **Context**: During Task 8.2 testing, discovered that SLOs with regex label selectors (e.g., `handler=~"/api.*"`) exhibit unexpected behavior with multiple SLOs created and data inconsistencies between main page and detail page
+  - **Priority**: High - Affects production use cases with regex selectors
+  - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md`
+
+- [ ] 8.4.1 Upstream comparison testing
+
+  - **Test regex selectors on upstream**: Checkout `upstream-comparison` branch and test identical SLO configuration
+  - **Document upstream behavior**: Record how many SLOs are created, recording rule structure, detail page functionality
+  - **Compare with feature branch**: Identify if this is a regression or existing upstream behavior
+  - **Test scenarios**:
+    - Regex selector with static burn rate
+    - Regex selector with dynamic burn rate
+    - Regex selector with grouping field
+    - Simple selector as control
+  - **Document findings**: Create comparison document showing upstream vs feature branch behavior
+  - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md` - Investigation plan
+  - _Requirements: 3.1, 3.4_
+
+- [ ] 8.4.2 Root cause analysis
+
+  - **Code analysis**: Review `slo/rules.go`, `slo/slo.go`, and controller logic
+  - **Understand grouping behavior**: How does `grouping` field affect SLO instantiation?
+  - **Recording rule scoping**: Are rules per-group or aggregated?
+  - **Identify mismatch**: Where does main page vs detail page calculation diverge?
+  - **Dynamic burn rate impact**: Does dynamic burn rate logic exacerbate the issue?
+  - **Document architecture**: Clarify intended relationship between SLO YAML and SLO instances
+  - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md` - Code analysis section
+  - _Requirements: 3.1, 3.4_
+
+- [ ] 8.4.3 Solution implementation
+
+  - **Based on 8.4.1 findings**: Choose appropriate solution approach
+  - **Option A - Fix regression** (if upstream works):
+    - Identify regression in feature branch code
+    - Fix recording rule generation or SLO instantiation
+    - Ensure detail page calculations match main page
+  - **Option B - Document limitation** (if upstream also breaks):
+    - Add warning in documentation about regex selectors
+    - Recommend using simple selectors without grouping
+    - Consider upstream contribution to fix the issue
+  - **Option C - Implement aggregated approach** (if design change needed):
+    - One YAML = One SLO (aggregated across grouping labels)
+    - Recording rules aggregate across all label values
+    - Detail page shows aggregated data
+  - **Test solution**: Verify fix works for all indicator types
+  - **Update examples**: Ensure examples follow best practices
+  - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md` - Solution design section
+  - _Requirements: 3.1, 3.4, 6.5_
+
+- [ ] 8.5 Create pull request description and evidence
 
   - **Write PR description**: Create comprehensive pull request description including:
     - Feature overview and motivation (reference "Error Budget is All You Need" blog series)

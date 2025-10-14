@@ -1,7 +1,7 @@
 # Task 8 - Pre-Merge Cleanup and Preparation
 
-**Status:** Task 8.0 ✅ Complete | Task 8.1 ✅ Complete | Task 8.2 ⏳ Not Started  
-**Date:** 2025-10-13  
+**Status:** Task 8.0 ✅ Complete | Task 8.1 ✅ Complete | Task 8.2 ✅ Complete  
+**Date:** 2025-10-14  
 **Branch:** add-dynamic-burn-rate
 
 ---
@@ -417,27 +417,77 @@ Proceed to Task 8.2: Move examples from .dev/ to examples/
 
 ---
 
-## Task 8.2: Move Examples - ⏳ NOT STARTED
+## Task 8.2: Move Examples - ✅ COMPLETE
 
 ### Objectives
-1. Review test SLOs in `.dev/` folder
-2. Select best examples for production
-3. Move to `examples/` with clear naming
-4. Ensure examples are production-ready
+1. ✅ Review test SLOs in `.dev/` folder
+2. ✅ Select best examples for production
+3. ✅ Move to `examples/` with clear naming
+4. ✅ Ensure examples are production-ready
 
-### Examples to Move
+### Examples Created
 
-**From .dev/ folder:**
-- `test-dynamic-slo.yaml` → `examples/dynamic-burn-rate-ratio.yaml`
-- `test-latency-dynamic.yaml` → `examples/dynamic-burn-rate-latency.yaml`
-- Consider: LatencyNative and BoolGauge examples
+**New production-ready examples:**
+- ✅ `examples/dynamic-burn-rate-ratio.yaml` - Ratio indicator with comprehensive comments
+- ✅ `examples/dynamic-burn-rate-latency.yaml` - Latency indicator with histogram explanation
+- ✅ `examples/dynamic-burn-rate-latency-native.yaml` - LatencyNative indicator with native histogram details
+- ✅ `examples/dynamic-burn-rate-bool-gauge.yaml` - BoolGauge indicator with availability examples
+
+**Existing file preserved:**
+- ✅ `examples/latency-dynamic-burnrate.yaml` - Kept as-is (provides static vs dynamic comparison)
 
 ### Example Cleanup Checklist
-- [ ] Remove test-specific configurations
-- [ ] Add clear comments explaining dynamic burn rate usage
-- [ ] Ensure proper naming conventions
-- [ ] Add metadata and labels as appropriate
-- [ ] Update `examples/README.md` with dynamic burn rate explanation
+- ✅ Remove test-specific configurations (used generic metric names)
+- ✅ Add clear comments explaining dynamic burn rate usage
+- ✅ Ensure proper naming conventions (dynamic-burn-rate-{type}.yaml)
+- ✅ Add metadata and labels as appropriate (pyrra.dev/team: platform)
+- ✅ Create `examples/README.md` with comprehensive dynamic burn rate explanation
+
+### Documentation Created
+
+**examples/README.md includes:**
+- ✅ Overview of all examples in the directory
+- ✅ Comprehensive dynamic burn rate explanation
+- ✅ Comparison of static vs dynamic burn rates
+- ✅ When to use each indicator type
+- ✅ Configuration options and best practices
+- ✅ Multi-window burn rate alert explanation
+- ✅ Getting started guide
+- ✅ Links to deployment examples (Kubernetes, Docker, Grafana)
+
+### Key Features of New Examples
+
+**Comprehensive Comments:**
+- Explanation of dynamic burn rate concept
+- Formula and how it works
+- When to use each indicator type
+- Metric requirements and prerequisites
+- Configuration options with inline documentation
+
+**Production-Ready:**
+- Generic metric names (not test-specific)
+- Proper metadata and labels
+- Recommended alerting configuration
+- Clear descriptions
+- Grouping examples where appropriate
+
+**Coverage:**
+- All four indicator types (Ratio, Latency, LatencyNative, BoolGauge)
+- Both dynamic and static examples (via latency-dynamic-burnrate.yaml)
+- Multiple use cases per indicator type
+- Real-world metric examples
+
+### Files Modified in Task 8.2
+
+**Created (5 files):**
+- `examples/dynamic-burn-rate-ratio.yaml` - Ratio indicator example
+- `examples/dynamic-burn-rate-latency.yaml` - Latency indicator example
+- `examples/dynamic-burn-rate-latency-native.yaml` - LatencyNative indicator example
+- `examples/dynamic-burn-rate-bool-gauge.yaml` - BoolGauge indicator example (includes 2 SLOs)
+- `examples/README.md` - Comprehensive documentation
+
+**Preserved:**
+- `examples/latency-dynamic-burnrate.yaml` - Existing comparison example (no changes needed)
 
 ---
 

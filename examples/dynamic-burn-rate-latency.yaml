@@ -1,0 +1,24 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: prometheus-http-latency-dynamic
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: "99"
+  window: 28d
+  description: "Prometheus HTTP request latency with dynamic burn rate - 99% of requests under 100ms"
+  indicator:
+    latency:
+      success:
+        metric: prometheus_http_request_duration_seconds_bucket{job="prometheus-k8s",le="0.1"}
+      total:
+        metric: prometheus_http_request_duration_seconds_count{job="prometheus-k8s"}
+  alerting:
+    name: PrometheusHttpLatencyDynamicErrorBudgetBurn
+    burnRateType: dynamic
+    burnrates: true
+    absent: true
+    disabled: false
