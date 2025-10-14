@@ -653,7 +653,9 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - Document any significant conflicts or changes required
   - _Requirements: 6.5_
 
-- [ ] 8.2 Move examples from .dev/ to examples/
+- [x] 8.2 Move examples from .dev/ to examples/
+
+
 
 
 
@@ -714,11 +716,19 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [ ] 8.4 Investigate and resolve regex label selector behavior
 
+
+
   - **Context**: During Task 8.2 testing, discovered that SLOs with regex label selectors (e.g., `handler=~"/api.*"`) exhibit unexpected behavior with multiple SLOs created and data inconsistencies between main page and detail page
   - **Priority**: High - Affects production use cases with regex selectors
   - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md`
 
-- [ ] 8.4.1 Upstream comparison testing
+
+- [x] 8.4.1 Upstream comparison testing
+
+
+
+
+
 
   - **Test regex selectors on upstream**: Checkout `upstream-comparison` branch and test identical SLO configuration
   - **Document upstream behavior**: Record how many SLOs are created, recording rule structure, detail page functionality
@@ -732,7 +742,10 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md` - Investigation plan
   - _Requirements: 3.1, 3.4_
 
-- [ ] 8.4.2 Root cause analysis
+- [x] 8.4.2 Root cause analysis
+
+
+
 
   - **Code analysis**: Review `slo/rules.go`, `slo/slo.go`, and controller logic
   - **Understand grouping behavior**: How does `grouping` field affect SLO instantiation?
@@ -743,7 +756,9 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md` - Code analysis section
   - _Requirements: 3.1, 3.4_
 
-- [ ] 8.4.3 Solution implementation
+
+- [-] 8.4.3 Solution implementation
+
 
   - **Based on 8.4.1 findings**: Choose appropriate solution approach
   - **Option A - Fix regression** (if upstream works):

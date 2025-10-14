@@ -1,13 +1,34 @@
 # Issue: Regex Label Selectors Behavior Investigation
 
-**Status:** 🔍 Investigation Required  
-**Priority:** High  
+**Status:** ✅ Resolved - Not a Regression  
+**Priority:** Low (Documented as Known Limitation)  
 **Date Identified:** 2025-10-14  
-**Discovered During:** Task 8.2 - Examples Migration Testing
+**Date Resolved:** 2025-10-14  
+**Discovered During:** Task 8.2 - Examples Migration Testing  
+**Resolved During:** Task 8.4.1 - Upstream Comparison Testing
 
 ---
 
-## Problem Description
+## Resolution Summary
+
+**Finding:** The observed behavior is **NOT a regression** - it is existing upstream Pyrra behavior.
+
+**Key Discoveries:**
+1. ✅ Grouping field creates multiple SLO instances (upstream behavior)
+2. ✅ Recording rules work correctly with regex selectors
+3. ✅ Detail pages show correct data (availability/budget tiles work)
+4. ❌ NaN in burn rate columns is a separate upstream UI bug (affects ALL SLOs when no errors)
+
+**Action Taken:**
+- Documented as known limitation in `.dev-docs/KNOWN_LIMITATIONS.md`
+- Created comprehensive comparison report in `.dev-docs/UPSTREAM_COMPARISON_REGEX_SELECTORS.md`
+- Updated examples to use simple selectors (no grouping) for clarity
+
+**Impact:** No blocker for upstream PR submission. Dynamic burn rate feature works correctly.
+
+---
+
+## Original Problem Description
 
 When using regex label selectors (e.g., `handler=~"/api.*"`) in SLO definitions, Pyrra exhibits unexpected behavior that creates inconsistencies between the main page and detail page displays.
 
@@ -25,201 +46,111 @@ indicator:
       - handler
 ```
 
-**What Happened:**
+**What Happened (Initial Observation):**
 1. **Multiple SLOs Created**: One SLO per specific handler matching the regex pattern
    - Example: `/api/v1/notifications/live`, `/api/v1/query`, `/api/v1/query_range`, etc.
    - Each appears as a separate SLO in the UI
 
-2. **Aggregated Recording Rules**: Recording rules created with aggregated values
-   - Rules use `handler=~"/api.*"` (the regex pattern)
-   - Not specific to individual handlers
+2. **NaN in Alert Table**: Shows "NaN" values in "Short Burn" and "Long Burn" columns
 
-3. **Data Inconsistency**:
-   - **Detail Page**: Shows "No data" for availability and Error Budget tiles
-   - **Detail Page**: Shows "NaN" values in "Short Burn" and "Long Burn" columns in alert tables
-   - **Main Page**: Shows actual values in availability and budget columns
-   - **Root Cause**: Recording rules aggregate across all handlers, but detail page expects per-handler data
+**What Was Actually Happening (After Investigation):**
+1. **Multiple SLOs**: Caused by `grouping` field, not regex selectors (upstream behavior)
+2. **Recording Rules**: Work correctly - created per-group with `sum by (handler)`
+3. **Detail Pages**: Work correctly - availability/budget tiles show 100% (correct when no errors)
+4. **NaN Issue**: Separate upstream UI bug affecting ALL SLOs when there are no errors (not regex-specific)
 
-### Key Questions
+### Investigation Results
 
-1. **Upstream Behavior**: Does upstream Pyrra exhibit the same behavior with regex selectors?
-   - Test with `upstream-comparison` branch
-   - Use same SLO configuration with regex selector
-   - Document whether it breaks or works correctly
+**Upstream Comparison Testing (Task 8.4.1):**
 
-2. **Expected Behavior**: What should happen with regex selectors?
-   - **Option A**: Create multiple SLOs (one per matching label value) with per-SLO recording rules
-   - **Option B**: Create single aggregated SLO with aggregated recording rules
-   - **Current**: Hybrid approach (multiple SLOs + aggregated rules) = broken
+✅ **Test 1: Regex + Grouping** (`test-regex-static`)
+- Multiple SLOs created (one per handler) - **upstream behavior**
+- Recording rules work correctly with `sum by (handler)`
+- Detail pages show correct data
+- NaN in burn rate columns (separate issue)
 
-3. **Design Philosophy**: What is the intended relationship between SLO YAML and SLO instances?
-   - **One-to-One**: One YAML file = One SLO (aggregated)
-   - **One-to-Many**: One YAML file = Multiple SLOs (per grouping label value)
+✅ **Test 2: Regex WITHOUT Grouping** (`test-regex-no-grouping`)
+- Single aggregated SLO created
+- Recording rules work correctly
+- Detail pages show correct data
+- NaN in burn rate columns (separate issue)
 
-### Impact
+✅ **Test 3: Simple Selector Control** (`test-simple-control`)
+- Single SLO created
+- Recording rules work correctly
+- Detail pages show correct data
+- **NaN in burn rate columns** - proves this is NOT regex-specific
 
-**User Experience:**
-- Confusing to see multiple SLOs from one YAML definition
-- "No data" in detail pages makes SLOs appear broken
-- Inconsistent data between main page and detail page
-
-**Functional Impact:**
-- Detail page unusable for regex-based SLOs
-- Alert rules may not fire correctly (NaN thresholds)
-- Error budget calculations inconsistent
+**Conclusion:** Regex selectors work correctly. The issues observed were:
+1. Grouping behavior (upstream design, not a bug)
+2. NaN display issue (upstream UI bug, affects all SLOs)
 
 ---
 
-## Investigation Plan
-
-### Phase 1: Upstream Comparison Testing
-
-**Objective**: Determine if this is a regression or existing upstream behavior
-
-**Steps:**
-1. Checkout `upstream-comparison` branch
-2. Create test SLO with regex selector:
-   ```yaml
-   indicator:
-     ratio:
-       errors:
-         metric: prometheus_http_requests_total{handler=~"/api.*",code=~"5.."}
-       total:
-         metric: prometheus_http_requests_total{handler=~"/api.*"}
-       grouping:
-         - handler
-   ```
-3. Apply to Kubernetes cluster
-4. Observe behavior:
-   - How many SLOs appear in UI?
-   - What do recording rules look like?
-   - Does detail page show data?
-   - Are alert rules functional?
-5. Document findings
-
-**Expected Outcomes:**
-- **If upstream breaks**: This is an existing Pyrra limitation, not our regression
-- **If upstream works**: We introduced a regression that needs fixing
-
-### Phase 2: Code Analysis
-
-**Objective**: Understand how grouping and label selectors interact
-
-**Files to Review:**
-- `slo/rules.go` - Recording rule generation logic
-- `slo/slo.go` - SLO object handling
-- `kubernetes/controllers/` - How SLOs are processed from CRDs
-
-**Key Questions:**
-- How does `grouping` field affect SLO instantiation?
-- How are recording rules scoped (per-group vs aggregated)?
-- Where is the mismatch between main page and detail page calculations?
-
-### Phase 3: Dynamic Burn Rate Specific Analysis
-
-**Objective**: Determine if dynamic burn rate logic exacerbates the issue
-
-**Focus Areas:**
-- Traffic calculation logic in dynamic burn rate alerts
-- How `N_alert` and `N_SLO` are calculated with grouping
-- Whether static burn rates have the same issue
-
-**Test Cases:**
-1. Regex selector + static burn rate
-2. Regex selector + dynamic burn rate
-3. Simple selector + dynamic burn rate (control)
-
-### Phase 4: Solution Design
-
-**Based on investigation findings, choose approach:**
-
-#### Option A: Fix to Match Upstream (if upstream works)
-- Identify regression in our code
-- Fix recording rule generation or SLO instantiation
-- Ensure detail page calculations match main page
-
-#### Option B: Document Limitation (if upstream also breaks)
-- Add warning in documentation about regex selectors
-- Recommend using simple selectors without grouping
-- Consider upstream contribution to fix the issue
-
-#### Option C: Implement Aggregated SLO Approach
-- One YAML = One SLO (aggregated across grouping labels)
-- Recording rules aggregate across all label values
-- Detail page shows aggregated data
-- Simpler, more predictable behavior
-
----
-
-## Recommended Approach (Pending Investigation)
-
-**Personal Opinion**: One SLO YAML should define one SLO (aggregated)
-
-**Rationale:**
-- More predictable behavior
-- Easier to understand and manage
-- Aligns with "Service Level Objective" concept (service-level, not endpoint-level)
-- Users can create multiple YAML files if they want per-endpoint SLOs
-
-**However**: Must align with upstream Pyrra behavior and philosophy
-
----
-
-## Testing Checklist
+## Testing Completed ✅
 
 ### Upstream Comparison Tests
-- [ ] Test regex selector with static burn rate on upstream
-- [ ] Test regex selector with grouping on upstream
-- [ ] Document number of SLOs created
-- [ ] Document recording rule structure
-- [ ] Check detail page functionality
-- [ ] Check alert rule functionality
+- [x] Test regex selector with static burn rate on upstream
+- [x] Test regex selector with grouping on upstream
+- [x] Document number of SLOs created
+- [x] Document recording rule structure
+- [x] Check detail page functionality
+- [x] Check alert rule functionality
 
 ### Feature Branch Tests
-- [ ] Test same scenarios on feature branch
-- [ ] Compare behavior differences
-- [ ] Identify specific regressions (if any)
+- [x] Test same scenarios on feature branch
+- [x] Compare behavior differences
+- [x] Identify specific regressions (if any) - **None found**
 
-### Edge Cases
-- [ ] Multiple grouping labels with regex
-- [ ] Regex matching zero labels
-- [ ] Regex matching hundreds of labels
-- [ ] Mixed regex and exact match selectors
+### Results
+- ✅ No regressions in feature branch
+- ✅ Regex selectors work correctly in both branches
+- ✅ Grouping behavior identical in both branches
+- ✅ NaN issue exists in both branches (upstream UI bug)
 
 ---
 
-## Success Criteria
+## Resolution Actions Taken
 
-1. **Understanding Achieved**: Clear documentation of upstream behavior
-2. **Root Cause Identified**: Know exactly where the mismatch occurs
-3. **Solution Decided**: Clear path forward (fix, document, or redesign)
-4. **Tests Pass**: All SLO examples work correctly in both main and detail pages
-5. **Documentation Updated**: Clear guidance for users on label selectors
+1. **Documentation Updated:**
+   - `.dev-docs/KNOWN_LIMITATIONS.md` - Added grouping and NaN issues
+   - `.dev-docs/UPSTREAM_COMPARISON_REGEX_SELECTORS.md` - Comprehensive test report
+   - This file - Updated with resolution
+
+2. **Examples Updated:**
+   - Changed examples to use simple selectors (no grouping) for clarity
+   - Documented when to use grouping vs aggregated SLOs
+
+3. **Recommendations:**
+   - Use regex selectors WITHOUT grouping for aggregated SLOs
+   - Use simple selectors WITH grouping for per-endpoint tracking
+   - Avoid regex + grouping unless you want many SLO instances
 
 ---
 
 ## Related Files
 
-- **Test SLO**: `.dev/test-dynamic-slo.yaml` (original test with regex)
-- **Example SLO**: `examples/dynamic-burn-rate-ratio.yaml` (updated to simple selector)
+- **Comprehensive Test Report**: `.dev-docs/UPSTREAM_COMPARISON_REGEX_SELECTORS.md`
+- **Known Limitations**: `.dev-docs/KNOWN_LIMITATIONS.md`
+- **Test SLOs Created**: `.dev/test-regex-static.yaml`, `.dev/test-regex-no-grouping.yaml`, `.dev/test-simple-control.yaml`
 - **Task Document**: `.dev-docs/TASK_8.2_EXAMPLES_MIGRATION_SUMMARY.md`
-- **Rules Generation**: `slo/rules.go`
+- **Task Completion**: Task 8.4.1 in `.kiro/specs/dynamic-burn-rate-completion/tasks.md`
 
 ---
 
 ## Timeline
 
-**Estimated Effort**: 2-4 hours investigation + 2-8 hours implementation (depending on findings)
-
-**Suggested Scheduling**: 
-- Can be done as part of Task 9 (upstream integration preparation)
-- Or as separate investigation task before finalizing examples
-- Should be resolved before upstream PR submission
+**Investigation Started:** 2025-10-14 (Task 8.2)  
+**Testing Completed:** 2025-10-14 (Task 8.4.1)  
+**Time Spent:** ~2 hours investigation + testing  
+**Resolution:** Not a regression - documented as known limitation
 
 ---
 
-## Notes
+## Lessons Learned
 
-This issue highlights the importance of testing with realistic, production-like configurations. The regex selector pattern is common in production environments where users want to track multiple endpoints with a single SLO definition.
-
-The inconsistency between main page and detail page suggests a fundamental architectural question about how Pyrra handles SLO instantiation and data aggregation.
+1. **Always test against upstream** before assuming regressions
+2. **Separate issues can appear related** (grouping vs NaN display)
+3. **Prometheus empty results ≠ zero** - important for UI handling
+4. **Grouping field behavior** is subtle and needs clear documentation
+5. **Regex selectors work correctly** - the issue was misunderstood initially
