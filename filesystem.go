@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -89,7 +90,7 @@ Objectives:
 	return objectives
 }
 
-func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules bool) int {
+func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules bool, pyrraExternalURL *url.URL) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
 		Help: "The total amount of reconciles.",
@@ -179,7 +180,12 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "processing", "file", f)
 					reconcilesTotal.Inc()
 
-					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false)
+					pyrraURL := ""
+					if pyrraExternalURL != nil {
+						pyrraURL = pyrraExternalURL.String()
+					}
+
+					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false, pyrraURL)
 					if err != nil {
 						reconcilesErrors.Inc()
 						level.Error(logger).Log("msg", "error creating rule file", "file", f, "err", err)
@@ -301,7 +307,7 @@ func (s *FilesystemObjectiveServer) List(_ context.Context, req *connect.Request
 	}), nil
 }
 
-func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule bool) error {
+func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule bool, externalURL string) error {
 	kubeObjective, objective, err := objectiveFromFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to get objective: %w", err)
@@ -326,7 +332,7 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		return fmt.Errorf("failed to get increase rules: %w", err)
 	}
 
-	burnrates, err := objective.Burnrates()
+	burnrates, err := objective.Burnrates(externalURL)
 	if err != nil {
 		return fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
