@@ -1,3 +1,10 @@
+# Dynamic Burn Rate Example - LatencyNative Indicator
+#
+# This example demonstrates dynamic burn rate alerting for native histogram-based latency SLOs.
+# Requires Prometheus 2.40+ with native histogram support.
+#
+# Use case: Modern services using native histograms for latency tracking
+#
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
@@ -7,20 +14,20 @@ metadata:
     prometheus: k8s
     role: alert-rules
 spec:
-  target: "99.5"
-  window: 28d
+  target: "99.5"  # 99.5% of requests under latency threshold
+  window: 28d     # 28-day SLO window
   description: "Pyrra API request latency using native histograms with dynamic burn rate"
   indicator:
     latencyNative:
       total:
         metric: connect_server_requests_duration_seconds{job="pyrra",code="ok"}
-      latency: 200ms
+      latency: 200ms  # Latency threshold
       grouping:
         - service
         - method
   alerting:
     name: PyrraConnectLatencyDynamicErrorBudgetBurn
-    burnRateType: dynamic
+    burnRateType: dynamic  # Enable dynamic burn rates
     burnrates: true
     absent: true
     disabled: false

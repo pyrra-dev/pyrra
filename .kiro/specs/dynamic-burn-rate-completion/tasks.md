@@ -655,11 +655,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 8.2 Move examples from .dev/ to examples/
 
-
-
-
-
-
   - **Reference**: See `.dev-docs/TASK_8_CLEANUP_AND_PREPARATION.md` Section "Task 8.2" for detailed steps
   - Review test SLOs in `.dev/` folder
   - Select best examples for production:
@@ -695,7 +690,10 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Document file organization**: Create document explaining what goes where and why
   - _Requirements: 6.5_
 
-- [ ] 8.5 Update production documentation (keep concise and proportional)
+- [x] 8.5 Update production documentation (keep concise and proportional)
+
+
+
 
   - **Review existing READMEs**: Examine current README.md and other production docs in upstream Pyrra
   - **Keep updates minimal and proportional**: Dynamic burn rate is ONE feature among many - don't overshadow existing content
@@ -709,26 +707,17 @@ This implementation plan breaks down the remaining work to complete the dynamic 
     - Maintain existing documentation structure and tone
   - **Add usage examples**: Include clear but minimal examples of dynamic burn rate configuration
   - **Migration guidance**: Add brief migration notes (1-2 sentences) for users converting static to dynamic SLOs
-  - **Reference comprehensive docs**: Point to `.dev-docs/` in fork for detailed implementation docs (if appropriate)
   - **IMPORTANT**: Extensive documentation already exists in `.dev-docs/` - extract ONLY essential user-facing content for production docs
   - **Goal**: Users should understand the feature exists, how to enable it, and where to find examples - not become documentation experts
   - _Requirements: 6.1, 6.2, 6.5_
 
 - [x] 8.4 Investigate and resolve regex label selector behavior
 
-
-
   - **Context**: During Task 8.2 testing, discovered that SLOs with regex label selectors (e.g., `handler=~"/api.*"`) exhibit unexpected behavior with multiple SLOs created and data inconsistencies between main page and detail page
   - **Priority**: High - Affects production use cases with regex selectors
   - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md`
 
-
 - [x] 8.4.1 Upstream comparison testing
-
-
-
-
-
 
   - **Test regex selectors on upstream**: Checkout `upstream-comparison` branch and test identical SLO configuration
   - **Document upstream behavior**: Record how many SLOs are created, recording rule structure, detail page functionality
@@ -744,9 +733,6 @@ This implementation plan breaks down the remaining work to complete the dynamic 
 
 - [x] 8.4.2 Root cause analysis
 
-
-
-
   - **Code analysis**: Review `slo/rules.go`, `slo/slo.go`, and controller logic
   - **Understand grouping behavior**: How does `grouping` field affect SLO instantiation?
   - **Recording rule scoping**: Are rules per-group or aggregated?
@@ -756,9 +742,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md` - Code analysis section
   - _Requirements: 3.1, 3.4_
 
-
 - [x] 8.4.3 Solution implementation
-
 
   - **Based on 8.4.1 findings**: Choose appropriate solution approach
   - **Option A - Fix regression** (if upstream works):

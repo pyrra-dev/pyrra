@@ -1,3 +1,10 @@
+# Dynamic Burn Rate Example - Latency Indicator
+#
+# This example demonstrates dynamic burn rate alerting for a latency-based SLO.
+# Dynamic burn rates adapt alert thresholds based on actual traffic patterns.
+#
+# Use case: Services where latency SLOs need traffic-aware alerting
+#
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
@@ -7,8 +14,8 @@ metadata:
     prometheus: k8s
     role: alert-rules
 spec:
-  target: "99"
-  window: 28d
+  target: "99"  # 99% of requests under latency threshold
+  window: 28d   # 28-day SLO window
   description: "Prometheus HTTP request latency with dynamic burn rate - 99% of requests under 100ms"
   indicator:
     latency:
@@ -18,7 +25,7 @@ spec:
         metric: prometheus_http_request_duration_seconds_count{job="prometheus-k8s"}
   alerting:
     name: PrometheusHttpLatencyDynamicErrorBudgetBurn
-    burnRateType: dynamic
+    burnRateType: dynamic  # Enable dynamic burn rates
     burnrates: true
     absent: true
     disabled: false

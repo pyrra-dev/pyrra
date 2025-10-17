@@ -1,3 +1,10 @@
+# Dynamic Burn Rate Example - BoolGauge Indicator
+#
+# This example demonstrates dynamic burn rate alerting for boolean gauge-based SLOs.
+# Boolean gauges represent binary states: 1 = up/success, 0 = down/failure.
+#
+# Use case: Availability monitoring where uptime varies by time of day
+#
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
@@ -7,15 +14,15 @@ metadata:
     prometheus: k8s
     role: alert-rules
 spec:
-  target: "99.9"
-  window: 28d
+  target: "99.9"  # 99.9% availability target
+  window: 28d     # 28-day SLO window
   description: "Prometheus availability monitoring with dynamic burn rate"
   indicator:
     bool_gauge:
-      metric: up{job="prometheus-k8s"}
+      metric: up{job="prometheus-k8s"}  # 1 = up, 0 = down
   alerting:
     name: PrometheusAvailabilityDynamicErrorBudgetBurn
-    burnRateType: dynamic
+    burnRateType: dynamic  # Enable dynamic burn rates
     burnrates: true
     absent: true
     disabled: false

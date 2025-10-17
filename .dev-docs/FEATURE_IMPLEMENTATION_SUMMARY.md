@@ -2113,3 +2113,72 @@ case 1: // Second warning window
 **Reference**: `.dev-docs/TASK_8.2_EXAMPLES_MIGRATION_SUMMARY.md`
 
 ---
+
+## ✅ **COMPLETED: Task 8.5 - Production Documentation Updates** ✅
+
+### **Task 8.5**: Update Production Documentation (Keep Concise and Proportional) ✅ **COMPLETED (Jan 17, 2025)**
+
+**Purpose**: Add minimal, proportional documentation for dynamic burn rate feature to production docs without overshadowing existing content.
+
+**Documentation Philosophy**: 
+- Dynamic burn rate is ONE feature among many in Pyrra
+- Extensive documentation already exists in `.dev-docs/` for development
+- Production docs should extract ONLY essential user-facing content
+- Users should understand: feature exists, how to enable it, where to find examples
+
+**Files Updated**:
+
+1. ✅ **README.md** - Main project documentation
+   - Added "Dynamic Burn Rates" bullet under Features section
+   - Added new "Dynamic Burn Rate Alerting" section (2 paragraphs)
+   - Brief description, when to use, configuration example, formula reference
+   - Pointer to examples for details
+
+2. ✅ **examples/README.md** - Examples documentation
+   - Enhanced existing "Dynamic Burn Rate Examples" section
+   - Added "How it works" subsection with traffic adaptation explanation
+   - Added complete configuration example with inline comments
+   - Added migration guidance (1 sentence: just add `burnRateType: dynamic`)
+   - Expanded use cases and practical guidance
+
+3. ✅ **Dynamic Burn Rate Example Files** - Self-documenting examples
+   - `examples/dynamic-burn-rate-ratio.yaml` - Added header comments and use case
+   - `examples/dynamic-burn-rate-latency.yaml` - Added header comments and use case
+   - `examples/dynamic-burn-rate-latency-native.yaml` - Added header comments and Prometheus version note
+   - `examples/dynamic-burn-rate-bool-gauge.yaml` - Added header comments and binary state explanation
+
+**What Was NOT Added** (Following "Concise and Proportional" Principle):
+- ❌ Separate docs/DYNAMIC_BURN_RATE.md file (would overshadow existing content)
+- ❌ Mathematical deep-dives (formula mentioned but not explained in detail)
+- ❌ Implementation details (recording rules, query optimization, etc.)
+- ❌ Extensive troubleshooting (basic usage is straightforward)
+- ❌ Architecture diagrams (not needed for user-facing docs)
+- ❌ Performance benchmarks (users can test in their environment)
+- ❌ Comparison tables (behavior is self-evident from description)
+
+**User Journey**:
+1. **Discovery**: User reads README.md → sees "Dynamic Burn Rates" in features
+2. **Learning**: User reads examples/README.md → understands when/how to use
+3. **Implementation**: User copies example YAML → modifies for their service
+4. **Testing**: User deploys and validates in their environment
+5. **Migration**: User adds `burnRateType: dynamic` to existing SLOs if desired
+
+**Validation**:
+- ✅ No syntax errors in any documentation files
+- ✅ YAML examples are valid
+- ✅ Markdown formatting correct
+- ✅ Tone consistent with existing Pyrra documentation
+- ✅ Maintains existing documentation structure
+
+**Success Criteria Met**:
+- ✅ **Minimal and proportional**: Dynamic burn rate doesn't overshadow existing content
+- ✅ **Clear usage examples**: Users can copy/paste and adapt
+- ✅ **Migration guidance**: One-sentence migration note provided
+- ✅ **Maintains structure**: No new doc files, existing structure preserved
+- ✅ **Maintains tone**: Consistent with Pyrra's friendly, practical style
+
+**Status**: ✅ **PRODUCTION DOCUMENTATION COMPLETE - READY FOR UPSTREAM CONTRIBUTION**
+
+**Reference**: `.dev-docs/TASK_8.5_DOCUMENTATION_UPDATES.md`
+
+---

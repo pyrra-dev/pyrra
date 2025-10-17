@@ -22,14 +22,36 @@ This directory contains example Service Level Objective (SLO) configurations for
 Dynamic burn rates adapt alert thresholds based on actual traffic patterns, preventing false positives during low traffic and maintaining sensitivity during high traffic.
 
 **When to use:**
+
 - Services with variable traffic patterns (business hours vs nights/weekends)
 - When you want alerts that adapt to actual service load
+- To reduce alert noise while maintaining detection capability
+
+**How it works:**
+
+- **Key insight**: Alerts fire at the **same absolute number of errors** regardless of traffic volume
+- **High traffic**: Lower error rate threshold (e.g., 0.1%) but same absolute error count
+- **Low traffic**: Higher error rate threshold (e.g., 10%) but same absolute error count
+- **Formula**: `(N_SLO / N_alert) × E_budget_percent × (1 - SLO_target)` ensures alerts trigger at `E_budget_percent × E_budget_absolute` errors
+- **Benefit**: Prevents false positives from small sample sizes during low traffic while maintaining consistent sensitivity
 
 **Configuration:**
+
 ```yaml
-alerting:
-  burnRateType: dynamic  # or "static" for traditional behavior
+spec:
+  target: "99"
+  window: 28d
+  indicator:
+    ratio:# or latency, latencyNative, boolGauge
+    # ... indicator configuration
+  alerting:
+    name: MyServiceErrorBudgetBurn
+    burnRateType: dynamic # Enable dynamic burn rates
+    burnrates: true
+    absent: true
 ```
+
+**Migration from static to dynamic:** Simply add `burnRateType: dynamic` to the `alerting` section. Error budget calculations remain identical - only alert thresholds adapt to traffic.
 
 ### Examples by Indicator Type
 
