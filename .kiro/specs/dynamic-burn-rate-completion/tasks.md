@@ -695,7 +695,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Document file organization**: Create document explaining what goes where and why
   - _Requirements: 6.5_
 
-- [ ] 8.3 Update production documentation (keep concise and proportional)
+- [ ] 8.5 Update production documentation (keep concise and proportional)
 
   - **Review existing READMEs**: Examine current README.md and other production docs in upstream Pyrra
   - **Keep updates minimal and proportional**: Dynamic burn rate is ONE feature among many - don't overshadow existing content
@@ -714,7 +714,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Goal**: Users should understand the feature exists, how to enable it, and where to find examples - not become documentation experts
   - _Requirements: 6.1, 6.2, 6.5_
 
-- [ ] 8.4 Investigate and resolve regex label selector behavior
+- [x] 8.4 Investigate and resolve regex label selector behavior
 
 
 
@@ -757,7 +757,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - _Requirements: 3.1, 3.4_
 
 
-- [-] 8.4.3 Solution implementation
+- [x] 8.4.3 Solution implementation
 
 
   - **Based on 8.4.1 findings**: Choose appropriate solution approach
@@ -778,7 +778,7 @@ This implementation plan breaks down the remaining work to complete the dynamic 
   - **Reference**: `.dev-docs/ISSUE_REGEX_LABEL_SELECTORS.md` - Solution design section
   - _Requirements: 3.1, 3.4, 6.5_
 
-- [ ] 8.5 Create pull request description and evidence
+- [ ] 8.6 Create pull request description and evidence
 
   - **Write PR description**: Create comprehensive pull request description including:
     - Feature overview and motivation (reference "Error Budget is All You Need" blog series)
