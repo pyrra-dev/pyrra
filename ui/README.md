@@ -2,49 +2,6 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Pyrra UI Development Workflow
-
-### Two UI Serving Methods
-
-Pyrra uses **two different UI serving methods** that require different workflows:
-
-#### Development UI (Recommended for Development)
-- **Command**: `npm start`
-- **URL**: http://localhost:3000
-- **Source**: Live source files from `src/`
-- **Updates**: Real-time hot reload
-- **API**: Configure via `public/index.html` (`window.API_BASEPATH`)
-
-#### Embedded UI (Production)
-- **Command**: `../pyrra api` (Go binary)
-- **URL**: http://localhost:9099
-- **Source**: Compiled files from `build/` (via Go embed)
-- **Updates**: Requires rebuild workflow
-- **API**: Built into Go binary
-
-### 🚨 Critical: Complete UI Change Workflow
-
-**❌ Common Mistake**: Testing only development UI and assuming embedded UI will work
-
-**✅ Required Steps for UI Changes**:
-```bash
-# 1. Make changes to src/ files
-# 2. Test in development
-npm start  # → http://localhost:3000
-
-# 3. Build for production (REQUIRED)
-npm run build
-
-# 4. Rebuild Go binary (REQUIRED)
-cd ..
-make build
-
-# 5. Restart Pyrra service
-# 6. Test production at http://localhost:9099
-```
-
-**Why This Matters**: Production users only see embedded UI. Development success ≠ Production success.
-
 ## Available Scripts
 
 In the project directory, you can run:

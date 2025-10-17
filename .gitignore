@@ -6,10 +6,6 @@
 *.dylib
 bin
 
-# Generated test binaries (without .exe extension)
-/generate-test-slos
-/monitor-performance
-
 # Test binary, build with `go test -c`
 *.test
 
@@ -27,8 +23,7 @@ bin
 *.swo
 *~
 
-/pyrra
-pyrra-*
+/pyrra*
 
 # dist folder
 /dist
@@ -40,9 +35,3 @@ package*.json
 # Local development environment
 /.dev
 .envrc
-
-# Performance test metrics (JSON files)
-.dev-docs/*-slos.json
-.dev-docs/baseline-*.json
-.dev-docs/medium-*.json
-.dev-docs/large-*.json

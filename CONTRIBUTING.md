@@ -82,20 +82,3 @@ Most likely you need to update the `window.PUBLIC_API` constant in `ui/public/in
 -    <script>window.PUBLIC_API = '/'</script>
 +    <script>window.PUBLIC_API = 'http://localhost:9099/'</script>
 ```
-
-### ⚠️ Important: UI Changes Production Deployment
-
-**Critical**: When making UI changes, testing only the development server (port 3000) is insufficient. The production deployment uses embedded UI files that require a complete rebuild workflow.
-
-**For detailed UI development workflow, see [`ui/README.md`](ui/README.md)** which covers:
-- Development UI vs Embedded UI differences
-- Complete rebuild workflow for production testing
-- Why both testing methods are necessary
-
-**Quick reference:**
-```bash
-# 1. Test in development: cd ui && npm start → http://localhost:3000
-# 2. Build for production: npm run build
-# 3. Rebuild Go binary: cd .. && make build
-# 4. Test embedded UI: ./pyrra api → http://localhost:9099
-```
