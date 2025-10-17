@@ -2182,3 +2182,44 @@ case 1: // Second warning window
 **Reference**: `.dev-docs/TASK_8.5_DOCUMENTATION_UPDATES.md`
 
 ---
+
+
+## Task 8: Upstream Integration Preparation
+
+### ✅ **COMPLETED: Task 8.3 - File Organization Documentation** ✅
+
+#### **Task 8.3**: File Organization for PR vs Fork Separation ✅ **COMPLETED (Jan 17, 2025)**
+
+- ✅ **Comprehensive File Categorization**: Documented all repository files into 10 categories
+- ✅ **PR vs Fork Strategy**: Clear separation of ~50-100 PR files vs ~200+ fork files
+- ✅ **Preservation Plan**: Strategy to preserve all dev artifacts in `dev-tools-and-docs` branch
+- ✅ **Action Plan**: 7-step process from branch creation to final cleanup
+- ✅ **Verification Checklist**: 14 items to confirm before PR creation
+
+**File Categories Documented**:
+1. Core Implementation (PR) - Backend, UI, protobuf
+2. Essential Documentation (PR) - Minimal user-facing docs
+3. Development Tools (Fork) - All `cmd/` validation tools
+4. Development Documentation (Fork) - All `.dev-docs/` files
+5. Development Scripts (Fork) - All `scripts/` files
+6. Test Configuration (Fork) - All `.dev/` files
+7. Project Management (Fork) - `.kiro/` and `prompts/`
+8. Standard Project Files (Review) - Git, CI/CD, Docker
+9. Existing Examples (Review) - Keep existing, add new
+10. Files Requiring Investigation - Core Go files
+
+**Documentation Location**: `.dev-docs/TASK_8.3_FILE_ORGANIZATION.md`
+
+**Key Principles**:
+- Minimal documentation in PR (proportional to feature scope)
+- All development artifacts preserved in fork
+- Clean, focused PR for easy review
+- Backward compatibility maintained
+
+**Status**: ✅ **FILE ORGANIZATION DOCUMENTED - READY FOR EXECUTION**
+
+**Next Steps**:
+- Task 8.0: Pre-merge cleanup (if not already done)
+- Task 8.1: Fetch and merge from upstream
+- Task 8.2: Create dev-tools-and-docs branch
+- Task 8.4: Create PR description with test evidence
