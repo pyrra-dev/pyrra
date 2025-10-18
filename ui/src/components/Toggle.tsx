@@ -32,7 +32,7 @@ const Toggle = ({checked, onChange, onText, offText}: ToggleProps): JSX.Element 
       onClick={onChange}
       style={{width, height}}
       ref={element}>
-      <input type="checkbox" checked={checked} />
+      <input type="checkbox" checked={checked} readOnly />
       <div className="toggle-group">
         <label htmlFor="" className="btn btn-light active toggle-on" ref={elementOn}>
           {onText !== undefined ? onText : 'On'}

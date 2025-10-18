@@ -12,6 +12,7 @@ import {usePrometheusQueryRange} from '../../prometheus'
 import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {buildExternalHRef, externalName} from '../../external'
+import {formatNumber} from '../../utils/numberFormat'
 
 interface ErrorBudgetGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -170,7 +171,7 @@ const ErrorBudgetGraph = ({
                 {
                   fill: budgetGradient,
                   gaps: seriesGaps(from / 1000, to / 1000),
-                  value: (u: uPlot, v: number) => (v == null ? '-' : v.toFixed(2) + '%'),
+                  value: (u: uPlot, v: number) => (v == null ? '-' : formatNumber(v, 3) + '%'),
                 },
               ],
               scales: {
@@ -185,7 +186,7 @@ const ErrorBudgetGraph = ({
               axes: [
                 {},
                 {
-                  values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(2)}%`),
+                  values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${formatNumber(v, 3)}%`),
                 },
               ],
               hooks: {

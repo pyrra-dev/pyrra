@@ -1,6 +1,6 @@
 import {OverlayTrigger, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
 import React, {useEffect, useState} from 'react'
-import {IconChevron, IconExternal} from './Icons'
+import {IconChevron, IconExternal, IconDynamic} from './Icons'
 import {Labels, labelsString} from '../labels'
 import {
   Alert,
@@ -13,11 +13,13 @@ import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
 import BurnrateGraph from './graphs/BurnrateGraph'
 import uPlot, {AlignedData} from 'uplot'
 import {PrometheusService} from '../proto/prometheus/v1/prometheus_connect'
-import {usePrometheusQueryRange} from '../prometheus'
+import {usePrometheusQueryRange, usePrometheusQuery} from '../prometheus'
 import {step} from './graphs/step'
 import {convertAlignedData} from './graphs/aligneddata'
 import {formatDuration} from '../duration'
-import {buildExternalHRef, externalName} from '../external';
+import {buildExternalHRef, externalName} from '../external'
+import {getBurnRateTooltip, getBurnRateType, BurnRateType} from '../burnrate'
+import BurnRateThresholdDisplay from './BurnRateThresholdDisplay'
 
 interface AlertsTableProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -30,6 +32,27 @@ interface AlertsTableProps {
 }
 
 const alertStateString = ['inactive', 'pending', 'firing']
+
+/**
+ * Get the error budget percentage or factor value for display in the new column
+ */
+const getErrorBudgetDisplayValue = (objective: Objective, factor: number): string => {
+  const burnRateType = getBurnRateType(objective)
+  
+  if (burnRateType === BurnRateType.Dynamic) {
+    // For dynamic SLOs: Show error budget percentage values
+    switch (factor) {
+      case 14: return '2.08%'  // 1/48 = 0.020833
+      case 7:  return '6.25%'  // 1/16 = 0.0625
+      case 2:  return '7.14%'  // 1/14 = 0.071429
+      case 1:  return '14.29%' // 1/7 = 0.142857
+      default: return '2.08%'  // Conservative fallback
+    }
+  } else {
+    // For static SLOs: Show factor values
+    return factor.toString()
+  }
+}
 
 const AlertsTable = ({
   client,
@@ -60,7 +83,7 @@ const AlertsTable = ({
       .then((resp: GetAlertsResponse) => {
         setAlerts(resp.alerts)
       })
-      .catch((err) => console.log(err))
+      .catch((err) => console.error('Error fetching alerts:', err))
   }, [client, objective, grouping])
 
   const {response: alertsRangeResponse} = usePrometheusQueryRange(
@@ -85,13 +108,16 @@ const AlertsTable = ({
             <th style={{width: '10%'}}>State</th>
             <th style={{width: '10%'}}>Severity</th>
             <th style={{width: '10%', textAlign: 'right'}}>Exhaustion</th>
+            <th style={{width: '10%', textAlign: 'right'}}>
+              {getBurnRateType(objective) === BurnRateType.Dynamic ? 'Error Budget Consumption' : 'Factor'}
+            </th>
             <th style={{width: '12%', textAlign: 'right'}}>Threshold</th>
             <th style={{width: '5%'}} />
             <th style={{width: '10%', textAlign: 'left'}}>Short Burn</th>
             <th style={{width: '5%'}} />
             <th style={{width: '10%', textAlign: 'left'}}>Long Burn</th>
             <th style={{width: '5%', textAlign: 'right'}}>For</th>
-            <th style={{width: '10%', textAlign: 'left'}}>{externalName()}</th>
+            <th style={{width: '8%', textAlign: 'left'}}>{externalName()}</th>
           </tr>
         </thead>
         <tbody>
@@ -101,7 +127,7 @@ const AlertsTable = ({
             if (a.short?.current === -1.0) {
               shortCurrent = 'NaN'
             } else if (a.short?.current === undefined) {
-              shortCurrent = (0).toFixed(3).toString()
+              shortCurrent = (0).toFixed(3)
             } else {
               shortCurrent = a.short.current.toFixed(3)
             }
@@ -109,22 +135,22 @@ const AlertsTable = ({
             if (a.long?.current === -1.0) {
               longCurrent = 'NaN'
             } else if (a.long?.current === undefined) {
-              longCurrent = (0).toFixed(3).toString()
+              longCurrent = (0).toFixed(3)
             } else {
               longCurrent = a.long?.current.toFixed(3)
             }
 
             const seriesFiringIndex = alertsLabels.findIndex((al: Labels): boolean => {
               return (
-                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000) &&
-                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000) &&
+                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000, 4) &&
+                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000, 4) &&
                 al.alertstate === 'firing'
               )
             })
             const seriesPendingIndex = alertsLabels.findIndex((al: Labels): boolean => {
               return (
-                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000) &&
-                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000) &&
+                al.short === formatDuration(Number(a.short?.window?.seconds) * 1000, 4) &&
+                al.long === formatDuration(Number(a.long?.window?.seconds) * 1000, 4) &&
                 al.alertstate === 'pending'
               )
             })
@@ -139,8 +165,8 @@ const AlertsTable = ({
             }
 
             return (
-              <>
-                <tr key={i} className={alertStateString[a.state]}>
+              <React.Fragment key={`alert-${i}`}>
+                <tr className={alertStateString[a.state]}>
                   <td>
                     <button
                       className={showBurnrate[i] ? 'accordion down' : 'accordion'}
@@ -159,8 +185,10 @@ const AlertsTable = ({
                       key={i}
                       overlay={
                         <OverlayTooltip id={`tooltip-${i}`}>
-                          If this alert is firing, the entire Error Budget can be burnt within that
-                          time frame.
+                          {getBurnRateType(objective) === BurnRateType.Dynamic 
+                            ? 'If this alert is firing, the entire Error Budget can be burnt within that time frame. Dynamic burn rate adapts this based on actual traffic patterns.'
+                            : 'If this alert is firing, the entire Error Budget can be burnt within that time frame.'
+                          }
                         </OverlayTooltip>
                       }>
                       <span>
@@ -172,27 +200,60 @@ const AlertsTable = ({
                     <OverlayTrigger
                       key={i}
                       overlay={
-                        <OverlayTooltip id={`tooltip-${i}`}>
-                          {a.factor} * (1 - {objective.target})
+                        <OverlayTooltip id={`tooltip-error-budget-${i}`}>
+                          {getBurnRateType(objective) === BurnRateType.Dynamic 
+                            ? `This alert fires when ${getErrorBudgetDisplayValue(objective, a.factor)} of the error budget is consumed over the long alert window.`
+                            : `Static factor multiplier for this alert window. Threshold = ${a.factor} × (1 - SLO target).`
+                          }
                         </OverlayTooltip>
                       }>
-                      <span>{(a.factor * (1 - objective?.target)).toFixed(3)}</span>
+                      <span>
+                        {getErrorBudgetDisplayValue(objective, a.factor)}
+                      </span>
+                    </OverlayTrigger>
+                  </td>
+                  <td style={{textAlign: 'right'}}>
+                    <OverlayTrigger
+                      key={i}
+                      overlay={
+                        <OverlayTooltip 
+                          id={`tooltip-${i}`} 
+                          style={{maxWidth: '450px', width: 'max-content'}}
+                          className="wide-tooltip"
+                        >
+                          <div style={{maxWidth: '450px', whiteSpace: 'normal'}}>
+                            {getBurnRateType(objective) === BurnRateType.Dynamic ? (
+                              <DynamicBurnRateTooltip objective={objective} factor={a.factor} promClient={promClient} />
+                            ) : (
+                              getBurnRateTooltip(objective, a.factor)
+                            )}
+                          </div>
+                        </OverlayTooltip>
+                      }>
+                      <span className="d-flex align-items-center justify-content-end" style={{gap: '4px'}}>
+                        <BurnRateThresholdDisplay 
+                          objective={objective} 
+                          factor={a.factor} 
+                          promClient={promClient} 
+                        />
+                        {getBurnRateType(objective) === BurnRateType.Dynamic && <IconDynamic width={12} height={12} />}
+                      </span>
                     </OverlayTrigger>
                   </td>
                   <td style={{textAlign: 'center'}}>
                     <small style={{opacity: 0.5}}>&gt;</small>
                   </td>
                   <td style={{textAlign: 'left'}}>
-                    {shortCurrent} ({formatDuration(Number(a.short?.window?.seconds) * 1000)})
+                    {shortCurrent} ({formatDuration(Number(a.short?.window?.seconds) * 1000, 4)})
                   </td>
                   <td style={{textAlign: 'left'}}>
                     <small style={{opacity: 0.5}}>and</small>
                   </td>
                   <td style={{textAlign: 'left'}}>
-                    {longCurrent} ({formatDuration(Number(a.long?.window?.seconds) * 1000)})
+                    {longCurrent} ({formatDuration(Number(a.long?.window?.seconds) * 1000, 4)})
                   </td>
                   <td style={{textAlign: 'right'}}>
-                    {formatDuration(Number(a.for?.seconds) * 1000)}
+                    {formatDuration(Number(a.for?.seconds) * 1000, 4)}
                   </td>
                   <td>
                     <a
@@ -206,11 +267,12 @@ const AlertsTable = ({
                   </td>
                 </tr>
                 {a.short !== undefined && a.long !== undefined && showBurnrate[i] ? (
-                  <tr key={i + 10} className="burnrate">
-                    <td colSpan={11}>
+                  <tr className="burnrate">
+                    <td colSpan={12}>
                       <BurnrateGraph
                         client={promClient}
                         alert={a}
+                        objective={objective}
                         threshold={a.factor * (1 - objective.target)}
                         from={from}
                         to={to}
@@ -220,16 +282,196 @@ const AlertsTable = ({
                       />
                     </td>
                   </tr>
-                ) : (
-                  <></>
-                )}
-              </>
+                ) : null}
+              </React.Fragment>
             )
           })}
         </tbody>
       </Table>
     </div>
   )
+}
+
+/**
+ * Dynamic tooltip component that provides enhanced tooltip content for dynamic burn rate thresholds
+ */
+const DynamicBurnRateTooltip: React.FC<{
+  objective: Objective
+  factor?: number
+  promClient: PromiseClient<typeof PrometheusService>
+}> = ({objective, promClient, factor}) => {
+  const currentTime = Math.floor(Date.now() / 1000)
+  const target = objective.target
+  const isLatencyIndicator = objective.indicator?.options?.case === 'latency'
+  const isLatencyNativeIndicator = objective.indicator?.options?.case === 'latencyNative'
+  const isRatioIndicator = objective.indicator?.options?.case === 'ratio'
+  const isBoolGaugeIndicator = objective.indicator?.options?.case === 'boolGauge'
+  
+  // Get traffic ratio query - MUST match BurnRateThresholdDisplay for consistency
+  const getTrafficRatioQuery = (factor: number): string => {
+    // Get the actual SLO window from the objective (e.g., "30d", "1d", "28d")
+    const sloWindowSeconds = Number(objective.window?.seconds ?? 2592000) * 1000 // Default to 30d if not set
+    const sloWindow = formatDuration(sloWindowSeconds)
+    
+    const windowMap = {
+      14: { slo: sloWindow, long: '1h4m' },
+      7:  { slo: sloWindow, long: '6h26m' },
+      2:  { slo: sloWindow, long: '1d1h43m' },
+      1:  { slo: sloWindow, long: '4d6h51m' }
+    }
+    
+    const windows = windowMap[factor as keyof typeof windowMap]
+    if (windows === undefined) return ''
+    
+    const baseSelector = getBaseMetricSelector(objective)
+    const sloName = objective.labels?.__name__ ?? 'unknown'
+    
+    // Helper to get base metric name (strip suffixes)
+    const getBaseMetricName = (selector: string): string => {
+      const metricMatch = selector.match(/^([a-zA-Z_:][a-zA-Z0-9_:]*)/)
+      if (metricMatch === null) return selector
+      const metricName = metricMatch[1]
+      return metricName.replace(/_total$/, '').replace(/_count$/, '').replace(/_bucket$/, '')
+    }
+    
+    // Use optimized queries with recording rules (same as BurnRateThresholdDisplay)
+    if (isBoolGaugeIndicator) {
+      // BoolGauge: Skip optimization (already fast)
+      return `sum(count_over_time(${baseSelector}[${windows.slo}])) / sum(count_over_time(${baseSelector}[${windows.long}]))`
+    } else if (isRatioIndicator || isLatencyIndicator) {
+      // Ratio and Latency: Use recording rules for SLO window
+      const baseMetricName = getBaseMetricName(baseSelector)
+      
+      // For latency indicators, we must specify le="" to select only the total requests recording rule
+      // Pyrra creates two recording rules for latency: one with le="" (total) and one with le="<threshold>" (success)
+      // Without le="", sum() would aggregate both, giving 2x the actual traffic
+      const leLabel = isLatencyIndicator ? ',le=""' : ''
+      const sloWindowQuery = `sum(${baseMetricName}:increase${windows.slo}{slo="${sloName}"${leLabel}})`
+      const alertWindowQuery = `sum(increase(${baseSelector}[${windows.long}]))`
+      return `${sloWindowQuery} / ${alertWindowQuery}`
+    } else if (isLatencyNativeIndicator) {
+      // LatencyNative: Use raw metrics (recording rules may not preserve histogram structure)
+      return `sum(histogram_count(increase(${baseSelector}[${windows.slo}]))) / sum(histogram_count(increase(${baseSelector}[${windows.long}])))`
+    }
+    
+    return ''
+  }
+  
+  const getThresholdConstant = (factor: number): number => {
+    switch (factor) {
+      case 14: return 1/48
+      case 7:  return 1/16
+      case 2:  return 1/14
+      case 1:  return 1/7
+      default: return 1/48
+    }
+  }
+  
+  const trafficQuery = factor !== undefined ? getTrafficRatioQuery(factor) : ''
+  
+  const {response: trafficResponse, status} = usePrometheusQuery(
+    promClient,
+    trafficQuery,
+    currentTime,
+    {enabled: trafficQuery !== '' && factor !== undefined && (isLatencyIndicator || isLatencyNativeIndicator || isRatioIndicator || isBoolGaugeIndicator)}
+  )
+  
+  // Generate enhanced tooltip content
+  if (status === 'loading') {
+    return <>Dynamic threshold adapts to traffic volume. Calculating...</>
+  }
+  
+  if (status === 'error' || trafficResponse === null) {
+    return <>Dynamic threshold adapts to traffic volume. Unable to load current calculation.</>
+  }
+  
+  // Extract traffic ratio
+  let trafficRatio: number | undefined
+  if (trafficResponse.options?.case === 'vector' && trafficResponse.options.value.samples.length > 0) {
+    trafficRatio = trafficResponse.options.value.samples[0].value
+  } else if (trafficResponse.options?.case === 'scalar') {
+    trafficRatio = trafficResponse.options.value.value
+  }
+  
+  if (trafficRatio === undefined || !isFinite(trafficRatio) || trafficRatio <= 0) {
+    return <>Dynamic threshold adapts to traffic volume. No traffic data available.</>
+  }
+  
+  // Calculate thresholds
+  const thresholdConstant = factor !== undefined ? getThresholdConstant(factor) * (1 - target) : 0
+  const dynamicThreshold = trafficRatio * thresholdConstant
+  const staticThreshold = factor !== undefined ? factor * (1 - target) : 0
+  
+  const thresholdRatio = staticThreshold > 0 ? dynamicThreshold / staticThreshold : 1
+  
+  let trafficContext = ''
+  if (thresholdRatio > 1.1) {
+    trafficContext = ` (${thresholdRatio.toFixed(1)}x higher due to lower traffic than average for this window)`
+  } else if (thresholdRatio < 0.9) {
+    trafficContext = ` (${(1/thresholdRatio).toFixed(1)}x smaller due to higher traffic than average for this window)`
+  }
+  
+  return (
+    <div style={{minWidth: '350px', maxWidth: '450px'}}>
+      <style>{`
+        .wide-tooltip .tooltip-inner {
+          max-width: 450px !important;
+          width: max-content !important;
+          white-space: normal !important;
+        }
+      `}</style>
+      Dynamic threshold adapts to traffic volume.<br/>
+      Traffic ratio: {trafficRatio.toFixed(2)}x<br/>
+      Dynamic threshold: {dynamicThreshold.toFixed(6)} vs Static threshold: {staticThreshold.toFixed(6)}{trafficContext}<br/>
+      Formula: (N_SLO / N_alert) × E_budget_percent × (1 - SLO_target)
+    </div>
+  )
+}
+
+// Helper function for base metric selector (same as BurnRateThresholdDisplay)
+function getBaseMetricSelector(objective: Objective): string {
+  // Handle ratio indicators
+  if (objective.indicator?.options?.case === 'ratio') {
+    const ratioIndicator = objective.indicator.options.value
+    const totalMetric = ratioIndicator.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      return totalMetric
+    }
+  }
+  
+  // Handle latency indicators - use the total (count) metric for traffic calculation
+  if (objective.indicator?.options?.case === 'latency') {
+    const latencyIndicator = objective.indicator.options.value
+    const totalMetric = latencyIndicator.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      // For histogram metrics, ensure we're using the _count metric for traffic calculations
+      if (totalMetric.includes('_bucket')) {
+        return totalMetric.replace('_bucket', '_count')
+      }
+      return totalMetric
+    }
+  }
+  
+  // Handle latencyNative indicators - use the total metric with histogram_count() function
+  if (objective.indicator?.options?.case === 'latencyNative') {
+    const latencyNativeIndicator = objective.indicator.options.value
+    const totalMetric = latencyNativeIndicator.total?.metric
+    if (totalMetric !== undefined && totalMetric !== '') {
+      // Native histograms use histogram_count() function, not _count suffix
+      return totalMetric
+    }
+  }
+  
+  // Handle boolGauge indicators - use the boolGauge metric for traffic calculation
+  if (objective.indicator?.options?.case === 'boolGauge') {
+    const boolGaugeIndicator = objective.indicator.options.value
+    const boolGaugeMetric = boolGaugeIndicator.boolGauge?.metric
+    if (boolGaugeMetric !== undefined && boolGaugeMetric !== '') {
+      return boolGaugeMetric
+    }
+  }
+  
+  return 'unknown_metric'
 }
 
 export default AlertsTable

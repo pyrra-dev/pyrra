@@ -98,6 +98,11 @@ export declare class Objective extends Message<Objective> {
    */
   queries?: Queries;
 
+  /**
+   * @generated from field: objectives.v1alpha1.Alerting alerting = 8;
+   */
+  alerting?: Alerting;
+
   constructor(data?: PartialMessage<Objective>);
 
   static readonly runtime: typeof proto3;
@@ -368,6 +373,50 @@ export declare class Queries extends Message<Queries> {
   static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Queries;
 
   static equals(a: Queries | PlainMessage<Queries> | undefined, b: Queries | PlainMessage<Queries> | undefined): boolean;
+}
+
+/**
+ * @generated from message objectives.v1alpha1.Alerting
+ */
+export declare class Alerting extends Message<Alerting> {
+  /**
+   * @generated from field: bool burnrates = 1;
+   */
+  burnrates: boolean;
+
+  /**
+   * @generated from field: bool absent = 2;
+   */
+  absent: boolean;
+
+  /**
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string absent_name = 4;
+   */
+  absentName: string;
+
+  /**
+   * @generated from field: string burn_rate_type = 5;
+   */
+  burnRateType: string;
+
+  constructor(data?: PartialMessage<Alerting>);
+
+  static readonly runtime: typeof proto3;
+  static readonly typeName = "objectives.v1alpha1.Alerting";
+  static readonly fields: FieldList;
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Alerting;
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Alerting;
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Alerting;
+
+  static equals(a: Alerting | PlainMessage<Alerting> | undefined, b: Alerting | PlainMessage<Alerting> | undefined): boolean;
 }
 
 /**

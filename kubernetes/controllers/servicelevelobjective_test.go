@@ -112,6 +112,29 @@ func Test_makePrometheusRule(t *testing.T) {
 										"team":     "foo",
 									},
 								},
+								{
+									Record: "http_requests:increase4w",
+									Expr:   intstr.FromString(`sum by (status) (increase(http_requests_total{job="app",status=~"5.."}[4w]))`),
+									Labels: map[string]string{
+										"job":  "app",
+										"slo":  "http",
+										"team": "foo",
+									},
+								},
+								{
+									Alert: "SLOMetricAbsent",
+									Expr:  intstr.FromString(`absent(http_requests_total{job="app",status=~"5.."}) == 1`),
+									For:   monitoringDuration("6m"),
+									Annotations: map[string]string{
+										"description": "foo",
+									},
+									Labels: map[string]string{
+										"severity": "critical",
+										"job":      "app",
+										"slo":      "http",
+										"team":     "foo",
+									},
+								},
 							},
 						},
 						{
@@ -214,6 +237,22 @@ func Test_makeConfigMap(t *testing.T) {
     annotations:
       description: foo
     expr: absent(http_requests_total{job="app"}) == 1
+    for: 6m
+    labels:
+      job: app
+      severity: critical
+      slo: http
+      team: foo
+  - expr: sum by (status) (increase(http_requests_total{job="app",status=~"5.."}[4w]))
+    labels:
+      job: app
+      slo: http
+      team: foo
+    record: http_requests:increase4w
+  - alert: SLOMetricAbsent
+    annotations:
+      description: foo
+    expr: absent(http_requests_total{job="app",status=~"5.."}) == 1
     for: 6m
     labels:
       job: app

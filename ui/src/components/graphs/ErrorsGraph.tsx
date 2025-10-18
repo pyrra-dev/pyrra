@@ -13,7 +13,8 @@ import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
 import {Labels, labelValues} from '../../labels'
-import {buildExternalHRef, externalName} from '../../external';
+import {buildExternalHRef, externalName} from '../../external'
+import {formatNumber} from '../../utils/numberFormat'
 
 interface ErrorsGraphProps {
   client: PromiseClient<typeof PrometheusService>
@@ -147,7 +148,7 @@ const ErrorsGraph = ({
                   stroke: `#${reds[i]}`,
                   label: labelValues(label)[0],
                   gaps: seriesGaps(from / 1000, to / 1000),
-                  value: (u, v) => (v == null ? '-' : (100 * v).toFixed(2) + '%'),
+                  value: (u, v) => (v == null ? '-' : formatNumber(100 * v, 3) + '%'),
                 }
               }),
             ],

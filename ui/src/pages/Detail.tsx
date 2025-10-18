@@ -18,7 +18,7 @@ import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
 import RequestsGraph from '../components/graphs/RequestsGraph'
 import ErrorsGraph from '../components/graphs/ErrorsGraph'
 import {createConnectTransport} from '@bufbuild/connect-web'
-import {createPromiseClient} from '@connectrpc/connect'
+import {createPromiseClient, PromiseClient} from '@connectrpc/connect'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
 import AlertsTable from '../components/AlertsTable'
 import Toggle from '../components/Toggle'
@@ -29,11 +29,12 @@ import {replaceInterval, usePrometheusQuery} from '../prometheus'
 import {useObjectivesList} from '../objectives'
 import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
+import {getBurnRateInfo, getBurnRateType, BurnRateType} from '../burnrate'
+import {IconDynamic, IconStatic, IconChartArea, IconChartLine} from '../components/Icons'
 import ObjectiveTile from '../components/tiles/ObjectiveTile'
 import AvailabilityTile from '../components/tiles/AvailabilityTile'
 import ErrorBudgetTile from '../components/tiles/ErrorBudgetTile'
 import Tiles from '../components/tiles/Tiles'
-import {IconChartArea, IconChartLine} from '../components/Icons'
 
 const Detail = () => {
   const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
@@ -208,8 +209,10 @@ const Detail = () => {
 
   const success: boolean = totalStatus === 'success' && errorStatus === 'success'
 
-  let errors: number = 0
-  let total: number = 1
+  let errors: number | undefined
+  let total: number | undefined
+  
+  // Handle vector responses
   if (totalResponse?.options.case === 'vector' && errorResponse?.options.case === 'vector') {
     if (errorResponse.options.value.samples.length > 0) {
       errors = errorResponse.options.value.samples[0].value
@@ -218,6 +221,12 @@ const Detail = () => {
     if (totalResponse.options.value.samples.length > 0) {
       total = totalResponse.options.value.samples[0].value
     }
+  }
+  
+  // Handle scalar responses
+  if (totalResponse?.options.case === 'scalar' && errorResponse?.options.case === 'scalar') {
+    errors = errorResponse.options.value.value
+    total = totalResponse.options.value.value
   }
 
   const labelBadges = Object.entries({...objective.labels, ...groupingLabels})
@@ -262,6 +271,47 @@ const Detail = () => {
             ) : (
               <></>
             )}
+            <Col
+              xs={12}
+              md={6}
+              style={{marginTop: labelBadges.length > 0 ? 12 : 0}}
+              className="col-xxxl-5 offset-xxxl-1">
+              {(() => {
+                const burnRateType = getBurnRateType(objective)
+                const info = getBurnRateInfo(burnRateType)
+                const Icon = burnRateType === BurnRateType.Dynamic ? IconDynamic : IconStatic
+                return (
+                  <div>
+                    <strong>Burn Rate Type: </strong>
+                    <OverlayTrigger
+                      placement="top"
+                      overlay={
+                        <OverlayTooltip id="tooltip-detail-burnrate">
+                          <div style={{maxWidth: '250px'}}>
+                            <strong>{info.displayName} Burn Rate</strong>
+                            <br />
+                            {info.description}
+                            {burnRateType === BurnRateType.Dynamic && (
+                              <>
+                                <br />
+                                <br />
+                                <TrafficContextText objective={objective} promClient={promClient} />
+                              </>
+                            )}
+                          </div>
+                        </OverlayTooltip>
+                      }>
+                      <span>
+                        <Badge bg={info.badgeVariant} className="fw-normal d-flex align-items-center" style={{gap: '4px', display: 'inline-flex'}}>
+                          <Icon width={12} height={12} />
+                          {info.displayName}
+                        </Badge>
+                      </span>
+                    </OverlayTrigger>
+                  </div>
+                )
+              })()}
+            </Col>
           </Row>
           <Row>
             <Col className="col-xxxl-10 offset-xxxl-1">
@@ -317,9 +367,9 @@ const Detail = () => {
                 </div>
                 <ButtonGroup aria-label="Charts" className="scale">
                   <OverlayTrigger
-                    key="auto-reload"
+                    key="chart-absolute"
                     overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>
+                      <OverlayTooltip id={`tooltip-chart-absolute`}>
                         Absolute scale gives a good impression of the big picture.
                       </OverlayTooltip>
                     }>
@@ -334,9 +384,9 @@ const Detail = () => {
                     </Button>
                   </OverlayTrigger>
                   <OverlayTrigger
-                    key="auto-reload"
+                    key="chart-relative"
                     overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>
+                      <OverlayTooltip id={`tooltip-chart-relative`}>
                         Relative scale gives a good impression of every detail.
                       </OverlayTooltip>
                     }>
@@ -386,6 +436,7 @@ const Detail = () => {
                   type={objectiveType}
                   updateTimeRange={updateTimeRangeSelect}
                   absolute={absolute}
+                  objective={objective}
                 />
               ) : (
                 <></>
@@ -473,6 +524,94 @@ const intervalFromDuration = (duration: number): number => {
   }
 
   return Math.floor(duration / 60 / 1000 / 1000) * 60 * 1000
+}
+
+/**
+ * Simple traffic context text component for tooltips
+ */
+interface TrafficContextTextProps {
+  objective: Objective
+  promClient: PromiseClient<typeof PrometheusService>
+}
+
+const TrafficContextText: React.FC<TrafficContextTextProps> = ({
+  objective,
+  promClient,
+}) => {
+  const currentTime = Math.floor(Date.now() / 1000)
+  
+  // Calculate current traffic ratio using the same pattern as RequestsGraph
+  const getTrafficRatioQuery = (): string => {
+    const baseSelector = getBaseMetricSelectorForTooltip(objective)
+    if (baseSelector === 'unknown_metric') return ''
+    
+    // Use 1h window for current traffic and 4d6h51m for baseline (longest alert window)
+    return `sum(rate(${baseSelector}[1h])) / sum(rate(${baseSelector}[4d6h51m]))`
+  }
+
+  const trafficQuery = getTrafficRatioQuery()
+  const {response: trafficResponse, status: trafficStatus} = usePrometheusQuery(
+    promClient,
+    trafficQuery,
+    currentTime,
+    {enabled: trafficQuery !== ''}
+  )
+
+  if (trafficStatus === 'loading') {
+    return <span>Loading traffic data...</span>
+  }
+
+  if (trafficStatus === 'success') {
+    let trafficRatio: number | null = null
+    
+    if (trafficResponse?.options?.case === 'vector' && trafficResponse.options.value.samples.length > 0) {
+      trafficRatio = trafficResponse.options.value.samples[0].value
+    } else if (trafficResponse?.options?.case === 'scalar') {
+      trafficRatio = trafficResponse.options.value.value
+    }
+
+    if (trafficRatio !== null) {
+      if (trafficRatio > 1.5) {
+        return <span>High traffic: alerts fire at {trafficRatio.toFixed(1)}x lower error rates</span>
+      } else if (trafficRatio < 0.5) {
+        return <span>Low traffic: alerts fire at {(1/trafficRatio).toFixed(1)}x higher error rates</span>
+      } else {
+        return <span>Normal traffic: {trafficRatio.toFixed(1)}x average</span>
+      }
+    }
+  }
+
+  return <span>Traffic data unavailable</span>
+}
+
+/**
+ * Extract base metric selector from objective for tooltip calculations
+ */
+function getBaseMetricSelectorForTooltip(objective: Objective): string {
+  // Handle ratio indicators
+  if (objective.indicator?.options?.case === 'ratio') {
+    const ratioIndicator = objective.indicator.options.value
+    const totalMetric = ratioIndicator.total?.metric
+    if (totalMetric != null && totalMetric !== '') {
+      return totalMetric
+    }
+  }
+  
+  // Handle latency indicators - use the total (count) metric for traffic calculation
+  if (objective.indicator?.options?.case === 'latency') {
+    const latencyIndicator = objective.indicator.options.value
+    const totalMetric = latencyIndicator.total?.metric
+    if (totalMetric != null && totalMetric !== '') {
+      // For histogram metrics, ensure we're using the _count metric for traffic calculations
+      if (totalMetric.includes('_bucket')) {
+        return totalMetric.replace('_bucket', '_count')
+      }
+      return totalMetric
+    }
+  }
+  
+  // Fallback - this shouldn't happen in practice
+  return 'unknown_metric'
 }
 
 export default Detail
