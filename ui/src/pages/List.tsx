@@ -452,8 +452,6 @@ const VolumeWarningTooltip = ({
 const emptyData: row[] = []
 
 const List = () => {
-  console.log('render List')
-
   document.title = 'Objectives - Pyrra'
   const navigate = useNavigate()
   const {search} = useLocation()
@@ -482,7 +480,7 @@ const List = () => {
         }
       }
     } catch (e) {
-      console.log(e)
+      console.error('Error parsing filter labels:', e)
       return [{}, true]
     }
     return [{}, false]
@@ -500,7 +498,6 @@ const List = () => {
 
     const hasSearch = search.length > 0
     const hasLabels = Object.keys(labels).length > 0
-    console.log('hasSearch', hasSearch, 'hasLabels', hasLabels, labels)
 
     if (!hasSearch && !hasLabels) {
       navigate('?')
@@ -590,7 +587,7 @@ const List = () => {
             }
           })
         })
-        .catch((err) => console.log(err))
+        .catch((err) => console.error('Error fetching objective status:', err))
 
       objectiveResponse.objectives.forEach((o: Objective) => {
         dispatchTable({
@@ -630,7 +627,7 @@ const List = () => {
             }
           })
           .catch((err) => {
-            console.log(err)
+            console.error('Error fetching alerts for objective:', err)
             dispatchTable({type: TableActionType.SetStatusError, lset: labelsString(o.labels)})
           })
       })
@@ -895,7 +892,6 @@ const NameCell = ({cell, onFilter}: NameCellProps): React.JSX.Element => {
           event.stopPropagation()
           const lset: Labels = {}
           lset[l[0]] = l[1]
-          console.log('filter', lset)
           onFilter(lset)
         }}>
         <a>
