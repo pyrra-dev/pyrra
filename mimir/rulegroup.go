@@ -28,7 +28,7 @@ func (c *Client) SetRuleGroup(ctx context.Context, namespace string, ruleGroup r
 	req.Header.Set("Content-Type", "application/yaml")
 
 	if c.orgID != "" {
-		req.Header.Set("X-Scope-OrgID", c.orgID)
+		req.Header.Set(TenantHeaderName, c.orgID)
 	}
 
 	resp, err := c.client.Do(req)
@@ -54,7 +54,7 @@ func (c *Client) DeleteNamespace(ctx context.Context, namespace string) error {
 	}
 
 	if c.orgID != "" {
-		req.Header.Set("X-Scope-OrgID", c.orgID)
+		req.Header.Set(TenantHeaderName, c.orgID)
 	}
 
 	resp, err := c.client.Do(req)

@@ -8,6 +8,8 @@ import (
 	"net/url"
 )
 
+const TenantHeaderName = "X-Scope-OrgID"
+
 // Client is a simple client for the required Mimir API resources.
 type Client struct {
 	client           http.Client
@@ -72,12 +74,10 @@ func (t *BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error
 
 // Ready checks if mimir is ready to serve traffic.
 func (c *Client) Ready(ctx context.Context) error {
-	path := c.address.JoinPath("/")
+	path := c.address.JoinPath("/ready")
 
 	if c.deploymentMode == "distributed" {
 		path = c.address.JoinPath("/api/v1/status/buildinfo")
-	} else {
-		path = c.address.JoinPath("/ready")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path.String(), nil)
@@ -86,7 +86,7 @@ func (c *Client) Ready(ctx context.Context) error {
 	}
 
 	if c.orgID != "" {
-		req.Header.Set("X-Scope-OrgID", c.orgID)
+		req.Header.Set(TenantHeaderName, c.orgID)
 	}
 
 	resp, err := c.client.Do(req)

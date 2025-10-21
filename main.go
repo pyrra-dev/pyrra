@@ -138,7 +138,7 @@ func main() {
 	if strings.EqualFold(CLI.API.MimirOrgID, "") {
 		clientConfig.HTTPHeaders = &promconfig.Headers{
 			Headers: map[string]promconfig.Header{
-				"X-Scope-OrgID": {
+				mimir.TenantHeaderName: {
 					Values: []string{CLI.API.MimirOrgID},
 				},
 			},
