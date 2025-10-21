@@ -614,14 +614,14 @@ func TestObjective_QueryBurnrate(t *testing.T) {
 		grouping: []*labels.Matcher{
 			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
 		},
-		expected: `http_requests:burnrate5m{handler="/api/v1/query",job="thanos-receive-default",slo="monitoring-http-errors"}`,
+		expected: `http_requests:burnrate5m{handler="/api/v1/query",slo="monitoring-http-errors"}`,
 	}, {
 		name:      "http-ratio-grouping-regex",
 		objective: objectiveHTTPRatioGroupingRegex(),
 		grouping: []*labels.Matcher{
 			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
 		},
-		expected: `http_requests:burnrate5m{handler="/api/v1/query",job="thanos-receive-default",slo="monitoring-http-errors"}`,
+		expected: `http_requests:burnrate5m{handler="/api/v1/query",slo="monitoring-http-errors"}`,
 	}, {
 		name:      "grpc-ratio",
 		objective: objectiveGRPCRatio(),
@@ -632,29 +632,29 @@ func TestObjective_QueryBurnrate(t *testing.T) {
 		grouping: []*labels.Matcher{
 			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
 		},
-		expected: `grpc_server_handled:burnrate5m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",handler="/api/v1/query",job="api",slo="monitoring-grpc-errors"}`,
+		expected: `grpc_server_handled:burnrate5m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",handler="/api/v1/query",slo="monitoring-grpc-errors"}`,
 	}, {
 		name:      "http-latency",
 		objective: objectiveHTTPLatency(),
-		expected:  `http_request_duration_seconds:burnrate5m{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
+		expected:  `http_request_duration_seconds:burnrate5m{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
 	}, {
 		name:      "http-latency-native",
 		objective: objectiveHTTPNativeLatency(),
-		expected:  `http_request_duration_seconds:burnrate5m{code=~"2..",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
+		expected:  `http_request_duration_seconds:burnrate5m{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
 		grouping: []*labels.Matcher{
 			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
 		},
-		expected: `http_request_duration_seconds:burnrate5m{code=~"2..",handler="/api/v1/query",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
+		expected: `http_request_duration_seconds:burnrate5m{handler="/api/v1/query",slo="monitoring-http-latency"}`,
 	}, {
 		name:      "http-latency-grouping-regex",
 		objective: objectiveHTTPLatencyGroupingRegex(),
 		grouping: []*labels.Matcher{
 			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
 		},
-		expected: `http_request_duration_seconds:burnrate5m{code=~"2..",handler="/api/v1/query",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
+		expected: `http_request_duration_seconds:burnrate5m{handler="/api/v1/query",slo="monitoring-http-latency"}`,
 	}, {
 		name:      "grpc-latency",
 		objective: objectiveGRPCLatency(),
@@ -665,7 +665,7 @@ func TestObjective_QueryBurnrate(t *testing.T) {
 		grouping: []*labels.Matcher{
 			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
 		},
-		expected: `grpc_server_handling_seconds:burnrate5m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",handler="/api/v1/query",job="api",slo="monitoring-grpc-latency"}`,
+		expected: `grpc_server_handling_seconds:burnrate5m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",handler="/api/v1/query",slo="monitoring-grpc-latency"}`,
 	}, {
 		name:      "operator-ratio",
 		objective: objectiveOperator(),
@@ -680,11 +680,11 @@ func TestObjective_QueryBurnrate(t *testing.T) {
 	}, {
 		name:      "apiserver-write-response-errors",
 		objective: objectiveAPIServerRatio(),
-		expected:  `apiserver_request:burnrate5m{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"}`,
+		expected:  `apiserver_request:burnrate5m{job="apiserver",slo="apiserver-write-response-errors"}`,
 	}, {
 		name:      "apiserver-read-resource-latency",
 		objective: objectiveAPIServerRatio(),
-		expected:  `apiserver_request:burnrate5m{job="apiserver",slo="apiserver-write-response-errors",verb=~"POST|PUT|PATCH|DELETE"}`,
+		expected:  `apiserver_request:burnrate5m{job="apiserver",slo="apiserver-write-response-errors"}`,
 	}, {
 		name:      "up-targets",
 		objective: objectiveUpTargets(),
@@ -692,7 +692,7 @@ func TestObjective_QueryBurnrate(t *testing.T) {
 	}, {
 		name:      "up-targets",
 		objective: objectiveUpTargetsGroupingRegex(),
-		expected:  `up:burnrate5m{instance!~"(127.0.0.1|localhost).*",slo="up-targets"}`,
+		expected:  `up:burnrate5m{slo="up-targets"}`,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
