@@ -23,10 +23,10 @@
     color: $gray-900;
     border-radius: 8px;
     
-    [data-bs-theme="dark"] & {
-      background-color: $dark-gray-300;
-      color: $dark-gray-900;
-    }
+    //[data-bs-theme="dark"] & {
+    //  background-color: $dark-gray-300;
+    //  color: $dark-gray-900;
+    //}
 
     h2, h6 {
       font-family: $font-family-sans-serif;
@@ -46,9 +46,9 @@
     .headline, .details {
       opacity: 0.5;
       
-      [data-bs-theme="dark"] & {
-        opacity: 0.7;
-      }
+      //[data-bs-theme="dark"] & {
+      //  opacity: 0.7;
+      //}
     }
 
     .metric {
@@ -64,28 +64,28 @@
       background-color: $green;
       color: $green-text;
       
-      [data-bs-theme="dark"] & {
-        background-color: $dark-gray-300;
-        color: $dark-gray-900;
-        
-        h2 {
-          color: $dark-turquoise;
-        }
-      }
+      //[data-bs-theme="dark"] & {
+      //  background-color: $dark-gray-300;
+      //  color: $dark-gray-900;
+      //
+      //  h2 {
+      //    color: $dark-turquoise;
+      //  }
+      //}
     }
 
     &.bad {
       background-color: $red;
       color: $red-text;
       
-      [data-bs-theme="dark"] & {
-        background-color: $dark-gray-300;
-        color: $dark-gray-900;
-        
-        h2 {
-          color: lighten($red, 10%);
-        }
-      }
+      //[data-bs-theme="dark"] & {
+      //  background-color: $dark-gray-300;
+      //  color: $dark-gray-900;
+      //
+      //  h2 {
+      //    color: lighten($red, 10%);
+      //  }
+      //}
     }
 
     h2.error {

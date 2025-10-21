@@ -427,7 +427,7 @@ const List = () => {
   const {search} = useLocation()
 
   const client = useMemo(() => {
-    const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
+    const baseUrl = API_BASEPATH === undefined ? 'https://demo.pyrra.dev' : API_BASEPATH
     return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [])
 

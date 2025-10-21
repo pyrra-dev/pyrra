@@ -1,38 +1,38 @@
 // Light theme colors
-$gray-100: #fafafa;
-$gray-200: #f5f5f5;
-$gray-300: #f0f0f0;
-$gray-400: #dedede;
-$gray-500: #c2c2c2;
-$gray-600: #979797;
-$gray-700: #818181;
-$gray-800: #606060;
-$gray-900: #3c3c3c;
+$gray-100: hsl(0, 0%, 98%);
+$gray-200: hsl(0, 0%, 96%);
+$gray-300: hsl(0, 0%, 94%);
+$gray-400: hsl(0, 0%, 87%);
+$gray-500: hsl(0, 0%, 76%);
+$gray-600: hsl(0, 0%, 59%);
+$gray-700: hsl(0, 0%, 51%);
+$gray-800: hsl(0, 0%, 38%);
+$gray-900: hsl(0, 0%, 24%);
 
 // Dark theme colors - Slate palette
-$dark-gray-100: #0f172a;  // darkest slate
-$dark-gray-200: #1e293b;  // dark slate
-$dark-gray-300: #334155;  // slate
-$dark-gray-400: #475569;  // medium slate
-$dark-gray-500: #64748b;  // slate gray
-$dark-gray-600: #94a3b8;  // light slate
-$dark-gray-700: #cbd5e1;  // lighter slate
-$dark-gray-800: #e2e8f0;  // very light slate
-$dark-gray-900: #f1f5f9;  // lightest slate
+$dark-gray-100: hsl(220, 39%, 11%);
+$dark-gray-200: hsl(215, 28%, 17%);
+$dark-gray-300: hsl(215, 24%, 27%);
+$dark-gray-400: hsl(215, 19%, 35%);
+$dark-gray-500: hsl(215, 17%, 47%);
+$dark-gray-600: hsl(214, 20%, 66%);
+$dark-gray-700: hsl(214, 24%, 83%);
+$dark-gray-800: hsl(214, 24%, 91%);
+$dark-gray-900: hsl(214, 32%, 97%);
 
-// Dark theme accent colors
-$dark-turquoise: #06b6d4;  // primary turquoise
-$dark-turquoise-light: #22d3ee;  // light turquoise
-$dark-turquoise-dark: #0891b2;  // dark turquoise
+//// Dark theme accent colors
+//$dark-turquoise: hsl(191, 94%, 43%);  // primary turquoise
+//$dark-turquoise-light: hsl(191, 84%, 55%);  // light turquoise
+//$dark-turquoise-dark: hsl(191, 92%, 37%);  // dark turquoise
 
-$blue: #005397;
+$blue: hsl(207, 100%, 30%);
 $blue-text: lighten($blue, 65%);
-$red: #f46363;
+$red: hsl(0, 85%, 68%);
 $red-text: lighten($red, 30%);
 $red-text-dark: darken($red, 30%);
-$yellow: #f4a32a;
+$yellow: hsl(38, 89%, 56%);
 $yellow-text: lighten($yellow, 40%);
-$green: #32b67a;
+$green: hsl(152, 56%, 46%);
 $green-text: lighten($green, 50%);
 
 $light: $gray-300;
@@ -122,121 +122,117 @@ $container-max-widths:map-merge($container-max-widths, (
   --bs-body-bg: #{$dark-gray-100};
   --bs-body-color: #{$dark-gray-900};
   --bs-border-color: #{$dark-gray-400};
-  
-  // Table colors
-  --bs-table-bg: transparent;
-  --bs-table-striped-bg: #{$dark-gray-200};
-  --bs-table-hover-bg: #{$dark-gray-300};
-  --bs-table-border-color: #{$dark-gray-400};
-  
-  // Form colors
-  --bs-input-bg: #{$dark-gray-200};
-  --bs-input-border-color: #{$dark-gray-400};
-  --bs-input-color: #{$dark-gray-900};
-  
-  // Button colors
-  --bs-btn-bg: #{$dark-gray-300};
-  --bs-btn-border-color: #{$dark-gray-400};
-  --bs-btn-hover-bg: #{$dark-gray-400};
-  --bs-btn-hover-border-color: #{$dark-gray-500};
-  
-  // Link colors
-  --bs-link-color: #{$dark-turquoise};
-  --bs-link-hover-color: #{$dark-turquoise-light};
-  
-  // Custom component overrides
-  .navbar {
-    background-color: $dark-gray-200;
-  }
-  
-  .table thead th {
-    color: $dark-gray-700;
-  }
-  
-  .btn-light {
-    background-color: $dark-gray-300;
-    border-color: $dark-gray-400;
-    color: $dark-gray-900;
-    
-    &:hover {
-      background-color: $dark-gray-400;
-      border-color: $dark-gray-500;
-      color: $dark-gray-900;
-    }
-    
-    &:not(:disabled):not(.disabled):active,
-    &:not(:disabled):not(.disabled).active {
-      background-color: $dark-gray-600;
-      border-color: $dark-gray-600;
-      color: $dark-gray-100;
-    }
-    
-    &:not(:disabled):not(.disabled):active:focus,
-    &:not(:disabled):not(.disabled).active:focus {
-      box-shadow: 0 0 0 0.2rem rgba($dark-gray-600, 0.5);
-    }
-  }
-  
-  .btn-group {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-  
-  pre {
-    background-color: $dark-gray-300;
-    color: $dark-gray-900;
-  }
-  
-  .badge {
-    // Adjust badge colors for better contrast in dark mode
-    &.bg-light {
-      background-color: $dark-gray-600 !important;
-      color: $dark-gray-100 !important;
-    }
-    &.bg-success {
-      background-color: darken($green, 10%) !important;
-    }
-    &.bg-danger {
-      background-color: darken($red, 10%) !important;
-    }
-    &.bg-warning {
-      background-color: darken($yellow, 10%) !important;
-    }
-  }
-  
-  // Dropdown menus
-  .dropdown-menu {
-    background-color: $dark-gray-200;
-    border-color: $dark-gray-400;
-    
-    .dropdown-item {
-      color: $dark-gray-900;
-      
-      &:hover {
-        background-color: $dark-gray-300;
-      }
-    }
-  }
-  
-  // Alerts
-  .alert {
-    &.alert-danger {
-      background-color: rgba($red, 0.1);
-      border-color: rgba($red, 0.3);
-      color: lighten($red, 20%);
-    }
-    
-    &.alert-success {
-      background-color: rgba($green, 0.1);
-      border-color: rgba($green, 0.3);
-      color: lighten($green, 20%);
-    }
-    
-    &.alert-warning {
-      background-color: rgba($yellow, 0.1);
-      border-color: rgba($yellow, 0.3);
-      color: lighten($yellow, 20%);
-    }
-  }
+
+  //// Table colors
+  //--bs-table-bg: transparent;
+  //--bs-table-striped-bg: #{$dark-gray-200};
+  //--bs-table-hover-bg: #{$dark-gray-300};
+  //--bs-table-border-color: #{$dark-gray-400};
+  //
+  //// Form colors
+  //--bs-input-bg: #{$dark-gray-200};
+  //--bs-input-border-color: #{$dark-gray-400};
+  //--bs-input-color: #{$dark-gray-900};
+  //
+  //// Button colors
+  //--bs-btn-bg: #{$dark-gray-300};
+  //--bs-btn-border-color: #{$dark-gray-400};
+  //--bs-btn-hover-bg: #{$dark-gray-400};
+  //--bs-btn-hover-border-color: #{$dark-gray-500};
+  //
+  //// Custom component overrides
+  //.navbar {
+  //  background-color: $dark-gray-200;
+  //}
+  //
+  //.table thead th {
+  //  color: $dark-gray-700;
+  //}
+  //
+  //.btn-light {
+  //  background-color: $dark-gray-300;
+  //  border-color: $dark-gray-400;
+  //  color: $dark-gray-900;
+  //
+  //  &:hover {
+  //    background-color: $dark-gray-400;
+  //    border-color: $dark-gray-500;
+  //    color: $dark-gray-900;
+  //  }
+  //
+  //  &:not(:disabled):not(.disabled):active,
+  //  &:not(:disabled):not(.disabled).active {
+  //    background-color: $dark-gray-600;
+  //    border-color: $dark-gray-600;
+  //    color: $dark-gray-100;
+  //  }
+  //
+  //  &:not(:disabled):not(.disabled):active:focus,
+  //  &:not(:disabled):not(.disabled).active:focus {
+  //    box-shadow: 0 0 0 0.2rem rgba($dark-gray-600, 0.5);
+  //  }
+  //}
+  //
+  //.btn-group {
+  //  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  //}
+  //
+  //pre {
+  //  background-color: $dark-gray-300;
+  //  color: $dark-gray-900;
+  //}
+  //
+  //.badge {
+  //  // Adjust badge colors for better contrast in dark mode
+  //  &.bg-light {
+  //    background-color: $dark-gray-600 !important;
+  //    color: $dark-gray-100 !important;
+  //  }
+  //  &.bg-success {
+  //    background-color: darken($green, 10%) !important;
+  //  }
+  //  &.bg-danger {
+  //    background-color: darken($red, 10%) !important;
+  //  }
+  //  &.bg-warning {
+  //    background-color: darken($yellow, 10%) !important;
+  //  }
+  //}
+  //
+  //// Dropdown menus
+  //.dropdown-menu {
+  //  background-color: $dark-gray-200;
+  //  border-color: $dark-gray-400;
+  //
+  //  .dropdown-item {
+  //    color: $dark-gray-900;
+  //
+  //    &:hover {
+  //      background-color: $dark-gray-300;
+  //    }
+  //  }
+  //}
+  //
+  //// Alerts
+  //.alert {
+  //  &.alert-danger {
+  //    background-color: rgba($red, 0.1);
+  //    border-color: rgba($red, 0.3);
+  //    color: lighten($red, 20%);
+  //  }
+  //
+  //  &.alert-success {
+  //    background-color: rgba($green, 0.1);
+  //    border-color: rgba($green, 0.3);
+  //    color: lighten($green, 20%);
+  //  }
+  //
+  //  &.alert-warning {
+  //    background-color: rgba($yellow, 0.1);
+  //    border-color: rgba($yellow, 0.3);
+  //    color: lighten($yellow, 20%);
+  //  }
+  //}
 }
 
 .navbar {
@@ -288,11 +284,11 @@ a.external-prometheus {
   }
 }
 
-[data-bs-theme="dark"] {
-  a.external-prometheus {
-    color: $dark-gray-900;
-  }
-}
+//[data-bs-theme="dark"] {
+//  a.external-prometheus {
+//    color: $dark-gray-900;
+//  }
+//}
 
 @import '~uplot/dist/uPlot.min.css';
 

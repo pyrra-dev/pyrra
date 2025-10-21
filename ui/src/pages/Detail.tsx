@@ -36,7 +36,7 @@ import Tiles from '../components/tiles/Tiles'
 import {IconChartArea, IconChartLine} from '../components/Icons'
 
 const Detail = () => {
-  const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
+  const baseUrl = API_BASEPATH === undefined ? 'https://demo.pyrra.dev' : API_BASEPATH
 
   const client = useMemo(() => {
     return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
