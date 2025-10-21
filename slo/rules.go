@@ -512,7 +512,7 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, sum(rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, sum by (grouping) (rate(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -903,7 +903,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			}
 		}
 
-		expr, err := parser.ParseExpr(`histogram_count(sum(increase(metric{matchers="total"}[1s])))`)
+		expr, err := parser.ParseExpr(`histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -921,7 +921,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			Labels: ruleLabels,
 		})
 
-		expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, sum(increase(metric{matchers="total"}[1s]))) * histogram_count(sum(increase(metric{matchers="total"}[1s])))`)
+		expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, sum by (grouping) (increase(metric{matchers="total"}[1s]))) * histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
