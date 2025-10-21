@@ -8,11 +8,15 @@ import (
 	"net/url"
 )
 
+const TenantHeaderName = "X-Scope-OrgID"
+
 // Client is a simple client for the required Mimir API resources.
 type Client struct {
 	client           http.Client
 	address          *url.URL
 	prometheusPrefix string
+	orgID            string
+	deploymentMode   string
 }
 
 // Config is used to configure the client.
@@ -21,6 +25,8 @@ type Config struct {
 	PrometheusPrefix  string
 	BasicAuthUsername string
 	BasicAuthPassword string
+	OrgID             string
+	DeploymentMode    string
 }
 
 // NewClient creates a new client with the given configuration.
@@ -48,6 +54,8 @@ func NewClient(config Config) (*Client, error) {
 		client:           httpClient,
 		address:          addr,
 		prometheusPrefix: config.PrometheusPrefix,
+		orgID:            config.OrgID,
+		deploymentMode:   config.DeploymentMode,
 	}, nil
 }
 
@@ -68,9 +76,17 @@ func (t *BasicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error
 func (c *Client) Ready(ctx context.Context) error {
 	path := c.address.JoinPath("/ready")
 
+	if c.deploymentMode == "distributed" {
+		path = c.address.JoinPath("/api/v1/status/buildinfo")
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path.String(), nil)
 	if err != nil {
 		return err
+	}
+
+	if c.orgID != "" {
+		req.Header.Set(TenantHeaderName, c.orgID)
 	}
 
 	resp, err := c.client.Do(req)

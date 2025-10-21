@@ -27,6 +27,10 @@ func (c *Client) SetRuleGroup(ctx context.Context, namespace string, ruleGroup r
 
 	req.Header.Set("Content-Type", "application/yaml")
 
+	if c.orgID != "" {
+		req.Header.Set(TenantHeaderName, c.orgID)
+	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
@@ -47,6 +51,10 @@ func (c *Client) DeleteNamespace(ctx context.Context, namespace string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, path.String(), nil)
 	if err != nil {
 		return err
+	}
+
+	if c.orgID != "" {
+		req.Header.Set(TenantHeaderName, c.orgID)
 	}
 
 	resp, err := c.client.Do(req)
