@@ -2,7 +2,6 @@ package slo
 
 import (
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -1104,19 +1103,11 @@ func TestLatencyNativeBurnrateGrouping(t *testing.T) {
 	objective := objectiveHTTPNativeLatencyGrouping()
 
 	burnrateQuery := objective.Burnrate(5 * time.Minute)
-
-	require.True(t,
-		strings.Contains(burnrateQuery, "sum by (handler, job)") || strings.Contains(burnrateQuery, "sum by (job, handler)"),
-		"LatencyNative burnrate query should include grouping, got: %s", burnrateQuery)
-	require.Contains(t, burnrateQuery, "histogram_fraction", "LatencyNative burnrate should use histogram_fraction")
+	require.Equal(t, "1 - histogram_fraction(0, 1, sum by (handler, job) (rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[5m])))", burnrateQuery)
 
 	requestRangeQuery := objective.RequestRange(2 * time.Hour)
-	require.True(t,
-		strings.Contains(requestRangeQuery, "sum by (handler, job)") || strings.Contains(requestRangeQuery, "sum by (job, handler)"),
-		"LatencyNative RequestRange should include grouping, got: %s", requestRangeQuery)
+	require.Equal(t, "sum by (job, handler) (histogram_count(rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[2h])))", requestRangeQuery)
 
 	errorsRangeQuery := objective.ErrorsRange(2 * time.Hour)
-	require.True(t,
-		strings.Contains(errorsRangeQuery, "sum by (handler, job)") || strings.Contains(errorsRangeQuery, "sum by (job, handler)"),
-		"LatencyNative ErrorsRange should include grouping, got: %s", errorsRangeQuery)
+	require.Equal(t, "1 - histogram_fraction(0, 1, sum by (handler, job) (rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[2h])))", errorsRangeQuery)
 }
