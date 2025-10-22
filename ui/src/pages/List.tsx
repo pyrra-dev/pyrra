@@ -8,6 +8,7 @@ import {
   Dropdown,
   OverlayTrigger,
   Row,
+  Spinner,
   Table,
   Tooltip as OverlayTooltip,
 } from 'react-bootstrap'
@@ -16,7 +17,7 @@ import {useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import {Labels, labelsString, MetricName, parseLabels} from '../labels'
 import {createConnectTransport} from '@bufbuild/connect-web'
-import {createPromiseClient} from '@connectrpc/connect'
+import {createPromiseClient, Code} from '@connectrpc/connect'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
 import {
   Alert as ObjectiveAlert,
@@ -463,7 +464,7 @@ const List = () => {
   // TODO: Pass in the search to the useObjectivesList hook
   const {
     response: objectiveResponse,
-    // error: objectiveError,
+    error: objectiveError,
     status: objectiveStatus,
   } = useObjectivesList(client, labelsString(filterLabels), '')
 
@@ -672,6 +673,54 @@ const List = () => {
     return `/objectives?expr=${encodeURI(labelsString(labels))}&grouping=${encodeURI(
       labelsString(grouping),
     )}`
+  }
+
+  if (objectiveStatus === 'loading') {
+    return (
+      <>
+        <Navbar />
+        <Container className="content list">
+          <Row className="mt-3 justify-content-center">
+            <Col xs="auto" className="text-center">
+              <Spinner animation="border" role="status">
+                <span className="visually-hidden">Loading objectives...</span>
+              </Spinner>
+              <p className="mt-3">Loading objectives...</p>
+            </Col>
+          </Row>
+        </Container>
+      </>
+    )
+  }
+
+  if (objectiveError !== null && objectiveError !== undefined) {
+    return (
+      <>
+        <Navbar />
+        <Container className="content list">
+          <Row className="mt-3">
+            <Col>
+              {objectiveError.code === Code.Unavailable && (
+                <Alert variant="danger">
+                  <h5>Backend connection failed</h5>
+                  <p className="mb-0">
+                    Cannot reach the backend service. Ensure the <b>filesystem</b> or{' '}
+                    <b>Kubernetes</b> backend is running.
+                  </p>
+                </Alert>
+              )}
+              {objectiveError.code !== Code.NotFound &&
+                objectiveError.code !== Code.Unavailable && (
+                  <Alert variant="danger">
+                    <h5>Error loading objectives</h5>
+                    <p className="mb-0">{objectiveError.message}</p>
+                  </Alert>
+                )}
+            </Col>
+          </Row>
+        </Container>
+      </>
+    )
   }
 
   return (
