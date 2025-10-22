@@ -653,7 +653,7 @@ func TestObjective_QueryBurnrate(t *testing.T) {
 		grouping: []*labels.Matcher{
 			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
 		},
-		expected: `http_request_duration_seconds:burnrate5m{code=~"2..",handler="/api/v1/query",job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"}`,
+		expected: `http_request_duration_seconds:burnrate5m{handler="/api/v1/query",slo="monitoring-http-latency"}`,
 	}, {
 		name:      "http-latency-grouping",
 		objective: objectiveHTTPLatencyGrouping(),
