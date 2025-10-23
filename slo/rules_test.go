@@ -1265,6 +1265,15 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Expr:   intstr.FromString(`absent(http_requests_total{job="thanos-receive-default"}) == 1`),
 				For:    monitoringDuration("10m"),
 				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors", "severity": "critical"},
+			}, {
+				Record: "http_requests:increase4w",
+				Expr:   intstr.FromString(`sum by (code) (increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(http_requests_total{code=~"5..",job="thanos-receive-default"}) == 1`),
+				For:    monitoringDuration("10m"),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1280,6 +1289,15 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_requests_total{job="thanos-receive-default"}) == 1`),
+				For:    monitoringDuration("10m"),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "severity": "critical"},
+			}, {
+				Record: "http_requests:increase4w",
+				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(http_requests_total{code=~"5..",job="thanos-receive-default"}) == 1`),
 				For:    monitoringDuration("10m"),
 				Labels: map[string]string{"slo": "monitoring-http-errors", "severity": "critical"},
 			}},
@@ -1299,6 +1317,15 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Expr:   intstr.FromString(`absent(http_requests_total{handler=~"/api.*",job="thanos-receive-default"}) == 1`),
 				For:    monitoringDuration("10m"),
 				Labels: map[string]string{"slo": "monitoring-http-errors", "severity": "critical"},
+			}, {
+				Record: "http_requests:increase4w",
+				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_requests_total{code=~"5..",handler=~"/api.*",job="thanos-receive-default"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(http_requests_total{code=~"5..",handler=~"/api.*",job="thanos-receive-default"}) == 1`),
+				For:    monitoringDuration("10m"),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1314,6 +1341,15 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
+				For:    monitoringDuration("3m"),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors", "severity": "critical"},
+			}, {
+				Record: "grpc_server_handled:increase4w",
+				Expr:   intstr.FromString(`sum by (grpc_code) (increase(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
 				For:    monitoringDuration("3m"),
 				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-errors", "severity": "critical"},
 			}},
@@ -1333,6 +1369,15 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Expr:   intstr.FromString(`absent(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
 				For:    monitoringDuration("3m"),
 				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors", "severity": "critical"},
+			}, {
+				Record: "grpc_server_handled:increase4w",
+				Expr:   intstr.FromString(`sum by (grpc_code, handler, job) (increase(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w]))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(grpc_server_handled_total{grpc_code=~"Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss",grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
+				For:    monitoringDuration("3m"),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1344,21 +1389,21 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`sum by (code) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
-				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
-			}, {
-				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by (code) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
-				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1"},
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "le": "", "slo": "monitoring-http-latency"},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}) == 1`),
 				For:    monitoringDuration("6m"),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "severity": "critical"},
 			}, {
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by (code) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "le": "1", "slo": "monitoring-http-latency"},
+			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}) == 1`),
 				For:    monitoringDuration("6m"),
-				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1", "severity": "critical"},
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1391,21 +1436,21 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-latency"},
-			}, {
-				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+				Labels: map[string]string{"slo": "monitoring-http-latency", "le": ""},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}) == 1`),
 				For:    monitoringDuration("6m"),
 				Labels: map[string]string{"slo": "monitoring-http-latency", "severity": "critical"},
 			}, {
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le="1"}) == 1`),
 				For:    monitoringDuration("6m"),
-				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1", "severity": "critical"},
+				Labels: map[string]string{"slo": "monitoring-http-latency", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1417,21 +1462,21 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-latency"},
-			}, {
-				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
-				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+				Labels: map[string]string{"slo": "monitoring-http-latency", "le": ""},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}) == 1`),
 				For:    monitoringDuration("6m"),
 				Labels: map[string]string{"slo": "monitoring-http-latency", "severity": "critical"},
 			}, {
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}) == 1`),
 				For:    monitoringDuration("6m"),
-				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1", "severity": "critical"},
+				Labels: map[string]string{"slo": "monitoring-http-latency", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1443,21 +1488,21 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "grpc_server_handling_seconds:increase1w",
 				Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
-			}, {
-				Record: "grpc_server_handling_seconds:increase1w",
-				Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": ""},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
 				For:    monitoringDuration("2m"),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "severity": "critical"},
 			}, {
+				Record: "grpc_server_handling_seconds:increase1w",
+				Expr:   intstr.FromString(`sum(increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
+			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}) == 1`),
 				For:    monitoringDuration("2m"),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "job": "api", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6", "severity": "critical"},
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "job": "api", "slo": "monitoring-grpc-latency", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1469,21 +1514,21 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "grpc_server_handling_seconds:increase1w",
 				Expr:   intstr.FromString(`sum by (handler, job) (increase(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[1w]))`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore"},
-			}, {
-				Record: "grpc_server_handling_seconds:increase1w",
-				Expr:   intstr.FromString(`sum by (handler, job) (increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": ""},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handling_seconds_count{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
 				For:    monitoringDuration("2m"),
 				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "severity": "critical"},
 			}, {
+				Record: "grpc_server_handling_seconds:increase1w",
+				Expr:   intstr.FromString(`sum by (handler, job) (increase(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}[1w]))`),
+				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6"},
+			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(grpc_server_handling_seconds_bucket{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",le="0.6"}) == 1`),
 				For:    monitoringDuration("2m"),
-				Labels: map[string]string{"slo": "monitoring-grpc-latency", "grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "le": "0.6", "severity": "critical"},
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-latency", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1553,6 +1598,15 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Expr:   intstr.FromString(`absent(apiserver_request_total{job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}) == 1`),
 				For:    monitoringDuration("5m"),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors", "severity": "critical"},
+			}, {
+				Record: "apiserver_request:increase2w",
+				Expr:   intstr.FromString(`sum by (code, verb) (increase(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}[2w]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors"},
+			}, {
+				Alert:  "APIServerMetricAbsent",
+				Expr:   intstr.FromString(`absent(apiserver_request_total{code=~"5..",job="apiserver",verb=~"POST|PUT|PATCH|DELETE"}) == 1`),
+				For:    monitoringDuration("5m"),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-write-response-errors", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1564,21 +1618,21 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			Rules: []monitoringv1.Rule{{
 				Record: "apiserver_request_duration_seconds:increase2w",
 				Expr:   intstr.FromString(`sum by (resource, verb) (increase(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
-				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency"},
-			}, {
-				Record: "apiserver_request_duration_seconds:increase2w",
-				Expr:   intstr.FromString(`sum by (resource, verb) (increase(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
-				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1"},
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": ""},
 			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(apiserver_request_duration_seconds_count{job="apiserver",resource=~"resource|",verb=~"LIST|GET"}) == 1`),
 				For:    monitoringDuration("5m"),
 				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "severity": "critical"},
 			}, {
+				Record: "apiserver_request_duration_seconds:increase2w",
+				Expr:   intstr.FromString(`sum by (resource, verb) (increase(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}[2w]))`),
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1"},
+			}, {
 				Alert:  "SLOMetricAbsent",
 				Expr:   intstr.FromString(`absent(apiserver_request_duration_seconds_bucket{job="apiserver",le="0.1",resource=~"resource|",verb=~"LIST|GET"}) == 1`),
 				For:    monitoringDuration("5m"),
-				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "le": "0.1", "severity": "critical"},
+				Labels: map[string]string{"job": "apiserver", "slo": "apiserver-read-resource-latency", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -2013,4 +2067,234 @@ func TestObjective_AlertNameMetricAbsent(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestObjective_DynamicBurnRate(t *testing.T) {
+	// Test dynamic vs static burn rate alert expression generation
+	obj := objectiveHTTPRatio()
+
+	// Test static mode (default)
+	obj.Alerting.BurnRateType = "static"
+	staticRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Test dynamic mode
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Both should generate the same number of rules
+	require.Equal(t, len(staticRules.Rules), len(dynamicRules.Rules))
+
+	// The alert expressions should be different for ratio indicators
+	// Find the alert rules (not recording rules)
+	var staticAlertFound, dynamicAlertFound bool
+	for _, rule := range staticRules.Rules {
+		if rule.Alert != "" {
+			staticAlertFound = true
+			// Static should use traditional burn rate format
+			require.Contains(t, rule.Expr.String(), "http_requests:burnrate")
+			break
+		}
+	}
+
+	for _, rule := range dynamicRules.Rules {
+		if rule.Alert != "" {
+			dynamicAlertFound = true
+			// Dynamic should use recording rules for efficiency (better than inline calculations)
+			require.Contains(t, rule.Expr.String(), "http_requests:burnrate") // Uses recording rules
+			// Should contain the dynamic calculation pattern
+			require.Contains(t, rule.Expr.String(), "increase(http_requests_total")
+			break
+		}
+	}
+
+	require.True(t, staticAlertFound, "Static alert rule should be found")
+	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
+}
+
+func TestObjective_DynamicBurnRate_Latency(t *testing.T) {
+	// Test dynamic vs static burn rate alert expression generation for Latency indicators
+	obj := objectiveHTTPLatency()
+
+	// Test static mode (default)
+	obj.Alerting.BurnRateType = "static"
+	staticRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Test dynamic mode
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Both should generate the same number of rules
+	require.Equal(t, len(staticRules.Rules), len(dynamicRules.Rules))
+
+	// The alert expressions should be different for latency indicators
+	// Find the alert rules (not recording rules)
+	var staticAlertFound, dynamicAlertFound bool
+	for _, rule := range staticRules.Rules {
+		if rule.Alert != "" {
+			staticAlertFound = true
+			// Static should use traditional burn rate format
+			require.Contains(t, rule.Expr.String(), "http_request_duration_seconds:burnrate")
+			break
+		}
+	}
+
+	for _, rule := range dynamicRules.Rules {
+		if rule.Alert != "" {
+			dynamicAlertFound = true
+			// Dynamic should use recording rules for efficiency (better than inline calculations)
+			require.Contains(t, rule.Expr.String(), "http_request_duration_seconds:burnrate") // Uses recording rules
+			// Should contain the dynamic calculation pattern
+			require.Contains(t, rule.Expr.String(), "increase(http_request_duration_seconds_count")
+			break
+		}
+	}
+
+	require.True(t, staticAlertFound, "Static alert rule should be found")
+	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
+}
+
+func TestObjective_DynamicBurnRate_LatencyNative(t *testing.T) {
+	// Test dynamic vs static burn rate alert expression generation for LatencyNative indicators
+	obj := objectiveHTTPNativeLatency()
+
+	// Test static mode (default)
+	obj.Alerting.BurnRateType = "static"
+	staticRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Test dynamic mode
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Both should generate the same number of rules
+	require.Equal(t, len(staticRules.Rules), len(dynamicRules.Rules))
+
+	// The alert expressions should be different for LatencyNative indicators
+	// Find the alert rules (not recording rules)
+	var staticAlertFound, dynamicAlertFound bool
+	for _, rule := range staticRules.Rules {
+		if rule.Alert != "" {
+			staticAlertFound = true
+			// Static should use traditional burn rate format
+			require.Contains(t, rule.Expr.String(), "http_request_duration_seconds:burnrate")
+			break
+		}
+	}
+
+	for _, rule := range dynamicRules.Rules {
+		if rule.Alert != "" {
+			dynamicAlertFound = true
+			// Dynamic should use recording rules for efficiency (better than inline calculations)
+			require.Contains(t, rule.Expr.String(), "http_request_duration_seconds:burnrate") // Uses recording rules
+			// Should contain the dynamic calculation pattern for native histograms
+			require.Contains(t, rule.Expr.String(), "histogram_count(sum(increase(http_request_duration_seconds")
+			break
+		}
+	}
+
+	require.True(t, staticAlertFound, "Static alert rule should be found")
+	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
+}
+
+func TestObjective_DynamicBurnRate_BoolGauge(t *testing.T) {
+	// Test dynamic vs static burn rate alert expression generation for BoolGauge indicators
+	obj := objectiveUpTargets()
+
+	// Test static mode (default)
+	obj.Alerting.BurnRateType = "static"
+	staticRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Test dynamic mode
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicRules, err := obj.Burnrates()
+	require.NoError(t, err)
+
+	// Both should generate the same number of rules
+	require.Equal(t, len(staticRules.Rules), len(dynamicRules.Rules))
+
+	// The alert expressions should be different for BoolGauge indicators
+	// Find the alert rules (not recording rules)
+	var staticAlertFound, dynamicAlertFound bool
+	for _, rule := range staticRules.Rules {
+		if rule.Alert != "" {
+			staticAlertFound = true
+			// Static should use traditional burn rate format
+			require.Contains(t, rule.Expr.String(), "up:burnrate")
+			break
+		}
+	}
+
+	for _, rule := range dynamicRules.Rules {
+		if rule.Alert != "" {
+			dynamicAlertFound = true
+			// Dynamic should use recording rules for efficiency (better than inline calculations)
+			require.Contains(t, rule.Expr.String(), "up:burnrate") // Uses recording rules
+			// Should contain the dynamic calculation pattern for boolean gauges
+			require.Contains(t, rule.Expr.String(), "count_over_time(up")
+			break
+		}
+	}
+
+	require.True(t, staticAlertFound, "Static alert rule should be found")
+	require.True(t, dynamicAlertFound, "Dynamic alert rule should be found")
+}
+
+func TestObjective_buildAlertExpr(t *testing.T) {
+	// Test Ratio indicators
+	obj := objectiveHTTPRatio()
+	window := Window{
+		Severity: "critical", // Use string instead of undefined constant
+		For:      2 * time.Minute,
+		Long:     time.Hour,
+		Short:    5 * time.Minute,
+		Factor:   14.4, // Use the actual static factor for 1 hour window
+	}
+	alertMatchersString := `job="thanos-receive-default",slo="monitoring-http-errors"`
+
+	// Test static expression
+	obj.Alerting.BurnRateType = "static"
+	staticExpr := obj.buildAlertExpr(window, alertMatchersString)
+	require.Contains(t, staticExpr, "http_requests:burnrate")
+	require.Contains(t, staticExpr, "14") // Static factor (formatted as 14, not 14.4)
+
+	// For dynamic test, use the dynamic factor
+	dynamicWindow := Window{
+		Severity: "critical",
+		For:      2 * time.Minute,
+		Long:     time.Hour,
+		Short:    5 * time.Minute,
+		Factor:   1.0 / 48, // E_budget_percent_threshold for 1 hour window
+	}
+
+	// Test dynamic expression
+	obj.Alerting.BurnRateType = "dynamic"
+	dynamicExpr := obj.buildAlertExpr(dynamicWindow, alertMatchersString)
+	// Dynamic mode now uses recording rules for efficiency (better than inline calculations)
+	require.Contains(t, dynamicExpr, "http_requests:burnrate")       // Uses recording rules
+	require.Contains(t, dynamicExpr, "increase(http_requests_total") // Dynamic threshold calculation
+	require.Contains(t, dynamicExpr, "0.020833")                     // 1/48 formatted
+
+	// Test Latency indicators
+	objLatency := objectiveHTTPLatency()
+	latencyAlertMatchersString := `job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"`
+
+	// Test static expression for latency
+	objLatency.Alerting.BurnRateType = "static"
+	staticLatencyExpr := objLatency.buildAlertExpr(window, latencyAlertMatchersString)
+	require.Contains(t, staticLatencyExpr, "http_request_duration_seconds:burnrate")
+	require.Contains(t, staticLatencyExpr, "14") // Static factor
+
+	// Test dynamic expression for latency
+	objLatency.Alerting.BurnRateType = "dynamic"
+	dynamicLatencyExpr := objLatency.buildAlertExpr(dynamicWindow, latencyAlertMatchersString)
+	// Should contain latency-specific dynamic patterns
+	require.Contains(t, dynamicLatencyExpr, "http_request_duration_seconds:burnrate")       // Uses recording rules
+	require.Contains(t, dynamicLatencyExpr, "increase(http_request_duration_seconds_count") // Dynamic threshold
+	require.Contains(t, dynamicLatencyExpr, "0.020833")                                     // E_budget_percent_threshold
 }

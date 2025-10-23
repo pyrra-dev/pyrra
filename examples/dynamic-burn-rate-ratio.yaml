@@ -1,0 +1,33 @@
+# Dynamic Burn Rate Example - Ratio Indicator
+#
+# This example demonstrates dynamic burn rate alerting for a ratio-based SLO.
+# Dynamic burn rates adapt alert thresholds based on actual traffic patterns:
+# - High traffic: Requires more errors to trigger alerts
+# - Low traffic: Requires fewer errors to trigger alerts
+#
+# Use case: API services with variable traffic (business hours vs nights/weekends)
+#
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: apiserver-requests-dynamic
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: "99"  # 99% success rate target
+  window: 28d   # 28-day SLO window
+  description: "Kubernetes API server GET request success rate with dynamic burn rate alerting"
+  indicator:
+    ratio:
+      errors:
+        metric: apiserver_request_total{verb="GET",code=~"4..|5.."}
+      total:
+        metric: apiserver_request_total{verb="GET"}
+  alerting:
+    name: ApiserverRequestsDynamicErrorBudgetBurn
+    burnRateType: dynamic  # Enable dynamic burn rates (use "static" for traditional behavior)
+    burnrates: true
+    absent: true
+    disabled: false

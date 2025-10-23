@@ -49,10 +49,13 @@ import {
   IconMagnifyingGlass,
   IconTableColumns,
   IconWarning,
+  IconDynamic,
+  IconStatic,
 } from '../components/Icons'
 import AwesomeDebouncePromise from 'awesome-debounce-promise'
 import useConstant from 'use-constant'
 import {useAsync} from 'react-async-hook'
+import {BurnRateType, getBurnRateInfo, getBurnRateType} from '../burnrate'
 
 enum TableObjectiveState {
   Unknown,
@@ -252,6 +255,7 @@ interface row {
   availability: number | undefined
   budget: number | undefined | null
   alerts: string
+  burnRateType: BurnRateType
 }
 
 const columnHelper = createColumnHelper<row>()
@@ -278,6 +282,30 @@ const columns = [
   columnHelper.accessor('lset', {
     id: 'lset',
     header: 'Name',
+  }),
+  columnHelper.accessor('burnRateType', {
+    id: 'burnRateType',
+    header: 'Burn Rate',
+    cell: (props) => {
+      const burnRateType = props.getValue()
+      const info = getBurnRateInfo(burnRateType)
+      const Icon = burnRateType === BurnRateType.Dynamic ? IconDynamic : IconStatic
+      return (
+        <OverlayTrigger
+          overlay={
+            <OverlayTooltip id={`tooltip-burnrate-${props.cell.id}`}>
+              <strong>{info.displayName} Burn Rate</strong>
+              <br />
+              {info.description}
+            </OverlayTooltip>
+          }>
+          <Badge bg={info.badgeVariant} className="fw-normal d-flex align-items-center" style={{gap: '4px'}}>
+            <Icon width={12} height={12} />
+            {info.displayName}
+          </Badge>
+        </OverlayTrigger>
+      )
+    },
   }),
   columnHelper.accessor('window', {
     id: 'window',
@@ -425,8 +453,6 @@ const VolumeWarningTooltip = ({
 const emptyData: row[] = []
 
 const List = () => {
-  console.log('render List')
-
   document.title = 'Objectives - Pyrra'
   const navigate = useNavigate()
   const {search} = useLocation()
@@ -455,7 +481,7 @@ const List = () => {
         }
       }
     } catch (e) {
-      console.log(e)
+      console.error('Error parsing filter labels:', e)
       return [{}, true]
     }
     return [{}, false]
@@ -473,7 +499,6 @@ const List = () => {
 
     const hasSearch = search.length > 0
     const hasLabels = Object.keys(labels).length > 0
-    console.log('hasSearch', hasSearch, 'hasLabels', hasLabels, labels)
 
     if (!hasSearch && !hasLabels) {
       navigate('?')
@@ -514,6 +539,7 @@ const List = () => {
   // TODO: Persist the column visibility in the browser's state
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     lset: true,
+    burnRateType: true,
     window: true,
     objective: true,
     latency: true,
@@ -562,7 +588,7 @@ const List = () => {
             }
           })
         })
-        .catch((err) => console.log(err))
+        .catch((err) => console.error('Error fetching objective status:', err))
 
       objectiveResponse.objectives.forEach((o: Objective) => {
         dispatchTable({
@@ -602,7 +628,7 @@ const List = () => {
             }
           })
           .catch((err) => {
-            console.log(err)
+            console.error('Error fetching alerts for objective:', err)
             dispatchTable({type: TableActionType.SetStatusError, lset: labelsString(o.labels)})
           })
       })
@@ -643,6 +669,7 @@ const List = () => {
             availability: o.availability?.percentage,
             budget: o.budget,
             alerts: o.severity !== null ? o.severity : '',
+            burnRateType: getBurnRateType(o.objective),
           }
           return r
         }) ?? null
@@ -914,7 +941,6 @@ const NameCell = ({cell, onFilter}: NameCellProps): React.JSX.Element => {
           event.stopPropagation()
           const lset: Labels = {}
           lset[l[0]] = l[1]
-          console.log('filter', lset)
           onFilter(lset)
         }}>
         <a>

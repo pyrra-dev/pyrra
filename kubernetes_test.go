@@ -34,6 +34,11 @@ var (
 		Target: 0.99,
 		Window: durationpb.New(1 * 7 * 24 * time.Hour),
 		Config: string(c1),
+		Alerting: &objectivesv1alpha1.Alerting{
+			Burnrates:    true,
+			Absent:       true,
+			BurnRateType: "static",
+		},
 	}
 	o2 = pyrrav1alpha1.ServiceLevelObjective{
 		ObjectMeta: metav1.ObjectMeta{
@@ -51,6 +56,11 @@ var (
 		Target: 0.98,
 		Window: durationpb.New(2 * 7 * 24 * time.Hour),
 		Config: string(c2),
+		Alerting: &objectivesv1alpha1.Alerting{
+			Burnrates:    true,
+			Absent:       true,
+			BurnRateType: "static",
+		},
 	}
 	o3 = pyrrav1alpha1.ServiceLevelObjective{
 		ObjectMeta: metav1.ObjectMeta{
@@ -68,6 +78,11 @@ var (
 		Target: 0.42123,
 		Window: durationpb.New(3 * 7 * 24 * time.Hour),
 		Config: string(c3),
+		Alerting: &objectivesv1alpha1.Alerting{
+			Burnrates:    true,
+			Absent:       true,
+			BurnRateType: "static",
+		},
 	}
 )
 

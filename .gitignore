@@ -18,11 +18,12 @@ bin
 
 # editor and IDE paraphernalia
 .idea
+.vscode
 *.swp
 *.swo
 *~
 
-/pyrra
+/pyrra*
 
 # dist folder
 /dist
@@ -30,3 +31,7 @@ bin
 # node
 node_modules
 package*.json
+
+# Local development environment
+/.dev
+.envrc

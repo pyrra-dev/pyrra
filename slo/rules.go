@@ -28,8 +28,339 @@ type MultiBurnRateAlert struct {
 	QueryLong  string
 }
 
+// buildTotalSelector builds the label selector for total metrics in dynamic expressions
+func (o Objective) buildTotalSelector(alertMatchersString string) string {
+	// Parse existing alert matchers to avoid duplicates and filter out slo label
+	alertMatchersMap := make(map[string]string)
+	filteredAlertMatchers := []string{}
+	if alertMatchersString != "" {
+		for _, part := range strings.Split(alertMatchersString, ",") {
+			if strings.Contains(part, "=") {
+				kv := strings.SplitN(part, "=", 2)
+				if len(kv) == 2 {
+					key := kv[0]
+					value := strings.Trim(kv[1], `"`)
+					alertMatchersMap[key] = value
+					// Exclude 'slo' label as it doesn't exist on raw metrics
+					if key != "slo" {
+						filteredAlertMatchers = append(filteredAlertMatchers, part)
+					}
+				}
+			}
+		}
+	}
+
+	totalParts := []string{}
+	for _, matcher := range o.Indicator.Ratio.Total.LabelMatchers {
+		if matcher.Name != labels.MetricName {
+			// Skip if already present in alertMatchers
+			if _, exists := alertMatchersMap[matcher.Name]; !exists {
+				totalParts = append(totalParts, matcher.String())
+			}
+		}
+	}
+
+	// Add filtered alert matchers (without slo label)
+	totalParts = append(totalParts, filteredAlertMatchers...)
+	return strings.Join(totalParts, ",")
+}
+
+// buildLatencyTotalSelector builds the label selector for latency total metrics in dynamic expressions
+func (o Objective) buildLatencyTotalSelector(alertMatchersString string) string {
+	// Parse existing alert matchers to avoid duplicates and filter out slo label
+	alertMatchersMap := make(map[string]string)
+	filteredAlertMatchers := []string{}
+	if alertMatchersString != "" {
+		for _, part := range strings.Split(alertMatchersString, ",") {
+			if strings.Contains(part, "=") {
+				kv := strings.SplitN(part, "=", 2)
+				if len(kv) == 2 {
+					key := kv[0]
+					value := strings.Trim(kv[1], `"`)
+					alertMatchersMap[key] = value
+					// Exclude 'slo' label as it doesn't exist on raw metrics
+					if key != "slo" {
+						filteredAlertMatchers = append(filteredAlertMatchers, part)
+					}
+				}
+			}
+		}
+	}
+
+	totalParts := []string{}
+	for _, matcher := range o.Indicator.Latency.Total.LabelMatchers {
+		if matcher.Name != labels.MetricName {
+			// Skip if already present in alertMatchers
+			if _, exists := alertMatchersMap[matcher.Name]; !exists {
+				totalParts = append(totalParts, matcher.String())
+			}
+		}
+	}
+
+	// Add filtered alert matchers (without slo label)
+	totalParts = append(totalParts, filteredAlertMatchers...)
+	return strings.Join(totalParts, ",")
+}
+
+// buildLatencyNativeTotalSelector builds the label selector for native latency total metrics in dynamic expressions
+func (o Objective) buildLatencyNativeTotalSelector(alertMatchersString string) string {
+	// Parse existing alert matchers to avoid duplicates and filter out slo label
+	alertMatchersMap := make(map[string]string)
+	filteredAlertMatchers := []string{}
+	if alertMatchersString != "" {
+		for _, part := range strings.Split(alertMatchersString, ",") {
+			if strings.Contains(part, "=") {
+				kv := strings.SplitN(part, "=", 2)
+				if len(kv) == 2 {
+					key := kv[0]
+					value := strings.Trim(kv[1], `"`)
+					alertMatchersMap[key] = value
+					// Exclude 'slo' label as it doesn't exist on raw metrics
+					if key != "slo" {
+						filteredAlertMatchers = append(filteredAlertMatchers, part)
+					}
+				}
+			}
+		}
+	}
+
+	totalParts := []string{}
+	for _, matcher := range o.Indicator.LatencyNative.Total.LabelMatchers {
+		if matcher.Name != labels.MetricName {
+			// Skip if already present in alertMatchers
+			if _, exists := alertMatchersMap[matcher.Name]; !exists {
+				totalParts = append(totalParts, matcher.String())
+			}
+		}
+	}
+
+	// Add filtered alert matchers (without slo label)
+	totalParts = append(totalParts, filteredAlertMatchers...)
+	return strings.Join(totalParts, ",")
+}
+
+// buildBoolGaugeSelector builds the label selector for boolean gauge metrics in dynamic expressions
+func (o Objective) buildBoolGaugeSelector(alertMatchersString string) string {
+	// Parse existing alert matchers to avoid duplicates and filter out slo label
+	alertMatchersMap := make(map[string]string)
+	filteredAlertMatchers := []string{}
+	if alertMatchersString != "" {
+		for _, part := range strings.Split(alertMatchersString, ",") {
+			if strings.Contains(part, "=") {
+				kv := strings.SplitN(part, "=", 2)
+				if len(kv) == 2 {
+					key := kv[0]
+					value := strings.Trim(kv[1], `"`)
+					alertMatchersMap[key] = value
+					// Exclude 'slo' label as it doesn't exist on raw metrics
+					if key != "slo" {
+						filteredAlertMatchers = append(filteredAlertMatchers, part)
+					}
+				}
+			}
+		}
+	}
+
+	totalParts := []string{}
+	for _, matcher := range o.Indicator.BoolGauge.LabelMatchers {
+		if matcher.Name != labels.MetricName {
+			// Skip if already present in alertMatchers
+			if _, exists := alertMatchersMap[matcher.Name]; !exists {
+				totalParts = append(totalParts, matcher.String())
+			}
+		}
+	}
+
+	// Add filtered alert matchers (without slo label)
+	totalParts = append(totalParts, filteredAlertMatchers...)
+	return strings.Join(totalParts, ",")
+}
+
+// getBaseMetricName strips common suffixes to match recording rule naming
+func getBaseMetricName(metricName string) string {
+	metricName = strings.TrimSuffix(metricName, "_total")
+	metricName = strings.TrimSuffix(metricName, "_count")
+	metricName = strings.TrimSuffix(metricName, "_bucket")
+	return metricName
+}
+
+// buildAlertExpr constructs the alert expression based on burn rate type (static vs dynamic)
+func (o Objective) buildAlertExpr(w Window, alertMatchersString string) string {
+	if o.Alerting.BurnRateType == "dynamic" {
+		return o.buildDynamicAlertExpr(w, alertMatchersString)
+	}
+	// Static burn rate: burnrate > factor * (1 - SLO_target)
+	return fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
+		o.BurnrateName(w.Short),
+		alertMatchersString,
+		w.Factor,
+		strconv.FormatFloat(o.Target, 'f', -1, 64),
+		o.BurnrateName(w.Long),
+		alertMatchersString,
+		w.Factor,
+		strconv.FormatFloat(o.Target, 'f', -1, 64),
+	)
+}
+
+// buildDynamicAlertExpr constructs dynamic burn rate alert expressions
+func (o Objective) buildDynamicAlertExpr(w Window, alertMatchersString string) string {
+	targetStr := strconv.FormatFloat(o.Target, 'f', -1, 64)
+	sloWindow := model.Duration(o.Window).String()
+	longWindow := model.Duration(w.Long).String()
+
+	// E_budget_percent_threshold (constant for this window)
+	eBudgetPercent := w.Factor // In dynamic mode, Factor contains the E_budget_percent_threshold
+
+	switch o.IndicatorType() {
+	case Ratio:
+		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
+		// Hybrid approach: recording rule for SLO window + inline for alert window
+		// Build selector for recording rules (includes slo label)
+		recordingRuleSelector := alertMatchersString
+		// Build selector for raw metrics (excludes slo label)
+		rawMetricSelector := o.buildTotalSelector(alertMatchersString)
+		// Get base metric name for recording rule
+		baseMetricName := getBaseMetricName(o.Indicator.Ratio.Total.Name)
+		// Get SLO name for recording rule selector
+		sloName := o.Labels.Get(labels.MetricName)
+
+		return fmt.Sprintf(
+			"("+
+				"%s{%s} > "+
+				"scalar((sum(%s:increase%s{slo=\"%s\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				") and ("+
+				"%s{%s} > "+
+				"scalar((sum(%s:increase%s{slo=\"%s\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				")",
+			// Short window: use recording rule > dynamic threshold calculated using N_long
+			o.BurnrateName(w.Short), recordingRuleSelector,
+			// Short window dynamic threshold: recording rule for SLO window + inline for alert window
+			baseMetricName, sloWindow, sloName,
+			o.Indicator.Ratio.Total.Name, rawMetricSelector, longWindow,
+			eBudgetPercent, targetStr,
+			// Long window: use recording rule > dynamic threshold
+			o.BurnrateName(w.Long), recordingRuleSelector,
+			// Long window dynamic threshold: recording rule for SLO window + inline for alert window
+			baseMetricName, sloWindow, sloName,
+			o.Indicator.Ratio.Total.Name, rawMetricSelector, longWindow,
+			eBudgetPercent, targetStr,
+		)
+	case Latency:
+		// Build selector for recording rules (includes slo label)
+		recordingRuleSelector := alertMatchersString
+		// Build selector for raw metrics (excludes slo label)
+		rawMetricSelector := o.buildLatencyTotalSelector(alertMatchersString)
+		// Get base metric name for recording rule
+		baseMetricName := getBaseMetricName(o.Indicator.Latency.Total.Name)
+		// Get SLO name for recording rule selector
+		sloName := o.Labels.Get(labels.MetricName)
+
+		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
+		// Hybrid approach: recording rule for SLO window + inline for alert window
+		// CRITICAL: For latency indicators, we must specify le="" to select only the total requests recording rule
+		// Pyrra creates two recording rules for latency: one with le="" (total) and one with le="<threshold>" (success)
+		// Without le="", sum() would aggregate both, giving 2x the actual traffic and incorrect thresholds
+		return fmt.Sprintf(
+			"("+
+				"%s{%s} > "+
+				"scalar((sum(%s:increase%s{slo=\"%s\",le=\"\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				") and ("+
+				"%s{%s} > "+
+				"scalar((sum(%s:increase%s{slo=\"%s\",le=\"\"}) / sum(increase(%s{%s}[%s]))) * %f * (1-%s))"+
+				")",
+			// Short window: use recording rule > dynamic threshold calculated using N_long
+			o.BurnrateName(w.Short), recordingRuleSelector,
+			// Short window dynamic threshold: recording rule for SLO window + inline for alert window
+			baseMetricName, sloWindow, sloName,
+			o.Indicator.Latency.Total.Name, rawMetricSelector, longWindow,
+			eBudgetPercent, targetStr,
+			// Long window: use recording rule > dynamic threshold
+			o.BurnrateName(w.Long), recordingRuleSelector,
+			// Long window dynamic threshold: recording rule for SLO window + inline for alert window
+			baseMetricName, sloWindow, sloName,
+			o.Indicator.Latency.Total.Name, rawMetricSelector, longWindow,
+			eBudgetPercent, targetStr,
+		)
+	case LatencyNative:
+		// Build selector for recording rules (includes slo label)
+		recordingRuleSelector := alertMatchersString
+		// Build selector for raw metrics (excludes slo label)
+		rawMetricSelector := o.buildLatencyNativeTotalSelector(alertMatchersString)
+
+		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
+		// LatencyNative uses histogram_count for total and histogram_fraction for errors (slow requests)
+		return fmt.Sprintf(
+			"("+
+				"%s{%s} > "+
+				"scalar((histogram_count(sum(increase(%s{%s}[%s]))) / histogram_count(sum(increase(%s{%s}[%s])))) * %f * (1-%s))"+
+				") and ("+
+				"%s{%s} > "+
+				"scalar((histogram_count(sum(increase(%s{%s}[%s]))) / histogram_count(sum(increase(%s{%s}[%s])))) * %f * (1-%s))"+
+				")",
+			// Short window: use recording rule > dynamic threshold calculated using N_long
+			o.BurnrateName(w.Short), recordingRuleSelector,
+			// Short window dynamic threshold calculation using histogram_count for total requests
+			o.Indicator.LatencyNative.Total.Name, rawMetricSelector, sloWindow,
+			o.Indicator.LatencyNative.Total.Name, rawMetricSelector, longWindow,
+			eBudgetPercent, targetStr,
+			// Long window: use recording rule > dynamic threshold
+			o.BurnrateName(w.Long), recordingRuleSelector,
+			// Long window dynamic threshold calculation using histogram_count for total requests
+			o.Indicator.LatencyNative.Total.Name, rawMetricSelector, sloWindow,
+			o.Indicator.LatencyNative.Total.Name, rawMetricSelector, longWindow,
+			eBudgetPercent, targetStr,
+		)
+	case BoolGauge:
+		// Build selector for recording rules (includes slo label)
+		recordingRuleSelector := alertMatchersString
+		// Build selector for raw metrics (excludes slo label)
+		rawMetricSelector := o.buildBoolGaugeSelector(alertMatchersString)
+
+		// For dynamic mode, use recording rules for the error rate and calculate dynamic threshold
+		// BoolGauge uses count_over_time for total and (count_over_time - sum_over_time) for errors
+		return fmt.Sprintf(
+			"("+
+				"%s{%s} > "+
+				"scalar((sum(count_over_time(%s{%s}[%s])) / sum(count_over_time(%s{%s}[%s]))) * %f * (1-%s))"+
+				") and ("+
+				"%s{%s} > "+
+				"scalar((sum(count_over_time(%s{%s}[%s])) / sum(count_over_time(%s{%s}[%s]))) * %f * (1-%s))"+
+				")",
+			// Short window: use recording rule > dynamic threshold calculated using N_long
+			o.BurnrateName(w.Short), recordingRuleSelector,
+			// Short window dynamic threshold calculation using count_over_time for total observations
+			o.Indicator.BoolGauge.Name, rawMetricSelector, sloWindow,
+			o.Indicator.BoolGauge.Name, rawMetricSelector, longWindow,
+			eBudgetPercent, targetStr,
+			// Long window: use recording rule > dynamic threshold
+			o.BurnrateName(w.Long), recordingRuleSelector,
+			// Long window dynamic threshold calculation using count_over_time for total observations
+			o.Indicator.BoolGauge.Name, rawMetricSelector, sloWindow,
+			o.Indicator.BoolGauge.Name, rawMetricSelector, longWindow,
+			eBudgetPercent, targetStr,
+		)
+	default:
+		// Fallback to static for unknown indicator types
+		return fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
+			o.BurnrateName(w.Short),
+			alertMatchersString,
+			w.Factor,
+			targetStr,
+			o.BurnrateName(w.Long),
+			alertMatchersString,
+			w.Factor,
+			targetStr,
+		)
+	}
+}
+
 func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
-	ws := Windows(time.Duration(o.Window))
+	var ws []Window
+	if o.Alerting.BurnRateType == "dynamic" {
+		ws = o.DynamicWindows(time.Duration(o.Window))
+	} else {
+		ws = Windows(time.Duration(o.Window))
+	}
 
 	mbras := make([]MultiBurnRateAlert, len(ws))
 	for i, w := range ws {
@@ -99,6 +430,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}, nil
 		}
 
+		// Use dynamic windows if burn rate type is dynamic
+		if o.Alerting.BurnRateType == "dynamic" {
+			ws = o.DynamicWindows(time.Duration(o.Window))
+		}
+
 		var alertMatchers []string
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -134,18 +470,8 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
-				Alert: o.AlertName(),
-				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-					o.BurnrateName(w.Short),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-					o.BurnrateName(w.Long),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-				)),
+				Alert:       o.AlertName(),
+				Expr:        intstr.FromString(o.buildAlertExpr(w, alertMatchersString)),
 				For:         monitoringDuration(w.For.String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
@@ -187,6 +513,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}, nil
 		}
 
+		// Use dynamic windows if burn rate type is dynamic
+		if o.Alerting.BurnRateType == "dynamic" {
+			ws = o.DynamicWindows(time.Duration(o.Window))
+		}
+
 		var alertMatchers []string
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -222,18 +553,8 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
-				Alert: o.AlertName(),
-				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-					o.BurnrateName(w.Short),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-					o.BurnrateName(w.Long),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-				)),
+				Alert:       o.AlertName(),
+				Expr:        intstr.FromString(o.buildAlertExpr(w, alertMatchersString)),
 				For:         monitoringDuration(model.Duration(w.For).String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
@@ -275,6 +596,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}, nil
 		}
 
+		// Use dynamic windows if burn rate type is dynamic
+		if o.Alerting.BurnRateType == "dynamic" {
+			ws = o.DynamicWindows(time.Duration(o.Window))
+		}
+
 		var alertMatchers []string
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -310,18 +636,8 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
-				Alert: o.AlertName(),
-				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-					o.BurnrateName(w.Short),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-					o.BurnrateName(w.Long),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-				)),
+				Alert:       o.AlertName(),
+				Expr:        intstr.FromString(o.buildAlertExpr(w, alertMatchersString)),
 				For:         monitoringDuration(model.Duration(w.For).String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
@@ -363,6 +679,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			}, nil
 		}
 
+		// Use dynamic windows if burn rate type is dynamic
+		if o.Alerting.BurnRateType == "dynamic" {
+			ws = o.DynamicWindows(time.Duration(o.Window))
+		}
+
 		var alertMatchers []string
 		for _, m := range matchers {
 			if m.Name == labels.MetricName {
@@ -398,18 +719,8 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
-				Alert: o.AlertName(),
-				// TODO: Use expr replacer
-				Expr: intstr.FromString(fmt.Sprintf("%s{%s} > (%.f * (1-%s)) and %s{%s} > (%.f * (1-%s))",
-					o.BurnrateName(w.Short),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-					o.BurnrateName(w.Long),
-					alertMatchersString,
-					w.Factor,
-					strconv.FormatFloat(o.Target, 'f', -1, 64),
-				)),
+				Alert:       o.AlertName(),
+				Expr:        intstr.FromString(o.buildAlertExpr(w, alertMatchersString)),
 				For:         monitoringDuration(model.Duration(w.For).String()),
 				Labels:      alertLabels,
 				Annotations: alertAnnotations,
@@ -721,8 +1032,29 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			})
 		}
 
-		if o.Indicator.Ratio.Total.Name != o.Indicator.Ratio.Errors.Name {
-			expr, err := increaseExpr()
+		// Always generate errors increase rule, even if metric name is the same
+		// The label selectors make them different metrics (e.g., total vs error codes)
+		expr, err = increaseExpr()
+		if err != nil {
+			return monitoringv1.RuleGroup{}, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Errors.Name,
+			matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(expr)
+
+		rules = append(rules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.Ratio.Errors.Name, o.Window),
+			Expr:   intstr.FromString(expr.String()),
+			Labels: ruleLabels,
+		})
+
+		// add the absent alert if configured
+		if o.Alerting.Absent {
+			expr, err = absentExpr()
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -730,36 +1062,15 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   o.Indicator.Ratio.Errors.Name,
 				matchers: o.Indicator.Ratio.Errors.LabelMatchers,
-				grouping: grouping,
-				window:   time.Duration(o.Window),
 			}.replace(expr)
 
 			rules = append(rules, monitoringv1.Rule{
-				Record: increaseName(o.Indicator.Ratio.Errors.Name, o.Window),
-				Expr:   intstr.FromString(expr.String()),
-				Labels: ruleLabels,
+				Alert:       o.AlertNameAbsent(),
+				Expr:        intstr.FromString(expr.String()),
+				For:         monitoringDuration(o.AbsentDuration().String()),
+				Labels:      alertLabels,
+				Annotations: o.commonRuleAnnotations(),
 			})
-
-			// add the absent alert if configured
-			if o.Alerting.Absent {
-				expr, err = absentExpr()
-				if err != nil {
-					return monitoringv1.RuleGroup{}, err
-				}
-
-				objectiveReplacer{
-					metric:   o.Indicator.Ratio.Errors.Name,
-					matchers: o.Indicator.Ratio.Errors.LabelMatchers,
-				}.replace(expr)
-
-				rules = append(rules, monitoringv1.Rule{
-					Alert:       o.AlertNameAbsent(),
-					Expr:        intstr.FromString(expr.String()),
-					For:         monitoringDuration(o.AbsentDuration().String()),
-					Labels:      alertLabels,
-					Annotations: o.commonRuleAnnotations(),
-				})
-			}
 		}
 	case Latency:
 		ruleLabels := o.commonRuleLabels(sloName)
@@ -807,41 +1118,25 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			window:   time.Duration(o.Window),
 		}.replace(expr)
 
+		// Add le="" label for total recording rule to differentiate from success bucket
+		ruleLabelsTotal := make(map[string]string, len(ruleLabels)+1)
+		for k, v := range ruleLabels {
+			ruleLabelsTotal[k] = v
+		}
+		ruleLabelsTotal["le"] = ""
+
 		rules = append(rules, monitoringv1.Rule{
 			Record: increaseName(o.Indicator.Latency.Total.Name, o.Window),
 			Expr:   intstr.FromString(expr.String()),
-			Labels: ruleLabels,
+			Labels: ruleLabelsTotal,
 		})
 
-		expr, err = increaseExpr()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
-		}
-
-		objectiveReplacer{
-			metric:   o.Indicator.Latency.Success.Name,
-			matchers: o.Indicator.Latency.Success.LabelMatchers,
-			grouping: grouping,
-			window:   time.Duration(o.Window),
-		}.replace(expr)
-
-		var le string
-		for _, m := range o.Indicator.Latency.Success.LabelMatchers {
-			if m.Name == "le" {
-				le = m.Value
-				break
-			}
-		}
-		ruleLabelsLe := map[string]string{"le": le}
+		alertLabels := make(map[string]string, len(ruleLabels)+1)
 		for k, v := range ruleLabels {
-			ruleLabelsLe[k] = v
+			alertLabels[k] = v
 		}
-
-		rules = append(rules, monitoringv1.Rule{
-			Record: increaseName(o.Indicator.Latency.Success.Name, o.Window),
-			Expr:   intstr.FromString(expr.String()),
-			Labels: ruleLabelsLe,
-		})
+		// Add severity label for alerts
+		alertLabels["severity"] = string(critical)
 
 		// add the absent alert if configured
 		if o.Alerting.Absent {
@@ -855,13 +1150,6 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				matchers: o.Indicator.Latency.Total.LabelMatchers,
 			}.replace(expr)
 
-			alertLabels := make(map[string]string, len(ruleLabels)+1)
-			for k, v := range ruleLabels {
-				alertLabels[k] = v
-			}
-			// Add severity label for alerts
-			alertLabels["severity"] = string(critical)
-
 			rules = append(rules, monitoringv1.Rule{
 				Alert:       o.AlertNameAbsent(),
 				Expr:        intstr.FromString(expr.String()),
@@ -869,8 +1157,11 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				Labels:      alertLabels,
 				Annotations: o.commonRuleAnnotations(),
 			})
+		}
 
-			expr, err = absentExpr()
+		// Create success bucket recording rule (required for QueryErrorBudget)
+		if o.Indicator.Latency.Total.Name != o.Indicator.Latency.Success.Name {
+			expr, err := increaseExpr()
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -878,22 +1169,50 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			objectiveReplacer{
 				metric:   o.Indicator.Latency.Success.Name,
 				matchers: o.Indicator.Latency.Success.LabelMatchers,
+				grouping: grouping,
+				window:   time.Duration(o.Window),
 			}.replace(expr)
 
-			alertLabelsLe := make(map[string]string, len(ruleLabelsLe)+1)
-			for k, v := range ruleLabelsLe {
-				alertLabelsLe[k] = v
+			// Extract le label from success bucket matchers
+			var le string
+			for _, m := range o.Indicator.Latency.Success.LabelMatchers {
+				if m.Name == "le" {
+					le = m.Value
+					break
+				}
 			}
-			// Add severity label for alerts
-			alertLabelsLe["severity"] = string(critical)
+			ruleLabelsLe := make(map[string]string, len(ruleLabels)+1)
+			for k, v := range ruleLabels {
+				ruleLabelsLe[k] = v
+			}
+			ruleLabelsLe["le"] = le
 
 			rules = append(rules, monitoringv1.Rule{
-				Alert:       o.AlertNameAbsent(),
-				Expr:        intstr.FromString(expr.String()),
-				For:         monitoringDuration(o.AbsentDuration().String()),
-				Labels:      alertLabelsLe,
-				Annotations: o.commonRuleAnnotations(),
+				Record: increaseName(o.Indicator.Latency.Success.Name, o.Window),
+				Expr:   intstr.FromString(expr.String()),
+				Labels: ruleLabelsLe,
 			})
+
+			// add the absent alert if configured for success bucket
+			if o.Alerting.Absent {
+				expr, err = absentExpr()
+				if err != nil {
+					return monitoringv1.RuleGroup{}, err
+				}
+
+				objectiveReplacer{
+					metric:   o.Indicator.Latency.Success.Name,
+					matchers: o.Indicator.Latency.Success.LabelMatchers,
+				}.replace(expr)
+
+				rules = append(rules, monitoringv1.Rule{
+					Alert:       o.AlertNameAbsent(),
+					Expr:        intstr.FromString(expr.String()),
+					For:         monitoringDuration(o.AbsentDuration().String()),
+					Labels:      alertLabels,
+					Annotations: o.commonRuleAnnotations(),
+				})
+			}
 		}
 	case LatencyNative:
 		ruleLabels := o.commonRuleLabels(sloName)
@@ -1084,37 +1403,84 @@ type Window struct {
 	Factor   float64
 }
 
+// DynamicWindows returns the burn rate windows with error budget burn percentages
+func (o Objective) DynamicWindows(sloWindow time.Duration) []Window {
+	// If burn rate type is static, use static windows
+	if o.Alerting.BurnRateType != "dynamic" {
+		return Windows(sloWindow)
+	}
+
+	// Get base windows with their period configuration
+	baseWindows := Windows(sloWindow)
+
+	// For each window, map the scaled window periods to appropriate E_budget_percent_threshold values
+	windows := make([]Window, len(baseWindows))
+	for i, w := range baseWindows {
+		// Map the scaled window period to the appropriate E_budget_percent_threshold
+		// We determine this based on the window's position in the static factor hierarchy
+		var errorBudgetBurnPercent float64
+		switch w.Factor {
+		case 14: // First critical window (1h for 28d SLO period) - 2% error budget burn
+			errorBudgetBurnPercent = 1.0 / 48
+		case 7: // Second critical window (6h for 28d SLO period) - 6% error budget burn
+			errorBudgetBurnPercent = 1.0 / 16
+		case 2: // First warning window (1d for 28d SLO period) - 7% error budget burn
+			errorBudgetBurnPercent = 1.0 / 14
+		case 1: // Second warning window (4d for 28d SLO period) - 14% error budget burn
+			errorBudgetBurnPercent = 1.0 / 7
+		default:
+			// Fallback to the most conservative threshold
+			errorBudgetBurnPercent = 1.0 / 48
+		}
+
+		windows[i] = Window{
+			Severity: w.Severity,
+			For:      w.For,
+			Long:     w.Long,
+			Short:    w.Short,
+			Factor:   errorBudgetBurnPercent, // Store E_budget_percent_threshold in Factor for dynamic mode
+		}
+	}
+
+	return windows
+}
+
 func Windows(sloWindow time.Duration) []Window {
-	// TODO: I'm still not sure if For, Long, Short should really be based on the 28 days ratio...
+	// TODO: Change based on sloWindow
+	var round time.Duration = time.Minute
 
-	round := time.Minute // TODO: Change based on sloWindow
-
-	// long and short rates are calculated based on the ratio for 28 days.
-	return []Window{{
-		Severity: critical,
-		For:      (sloWindow / (28 * 24 * (60 / 2))).Round(round), // 2m for 28d - half short
-		Long:     (sloWindow / (28 * 24)).Round(round),            // 1h for 28d
-		Short:    (sloWindow / (28 * 24 * (60 / 5))).Round(round), // 5m for 28d
-		Factor:   14,                                              // error budget burn: 50% within a day
-	}, {
-		Severity: critical,
-		For:      (sloWindow / (28 * 24 * (60 / 15))).Round(round), // 15m for 28d - half short
-		Long:     (sloWindow / (28 * (24 / 6))).Round(round),       // 6h for 28d
-		Short:    (sloWindow / (28 * 24 * (60 / 30))).Round(round), // 30m for 28d
-		Factor:   7,                                                // error budget burn: 20% within a day / 100% within 5 days
-	}, {
-		Severity: warning,
-		For:      (sloWindow / (28 * 24)).Round(round),       // 1h for 28d - half short
-		Long:     (sloWindow / 28).Round(round),              // 1d for 28d
-		Short:    (sloWindow / (28 * (24 / 2))).Round(round), // 2h for 28d
-		Factor:   2,                                          // error budget burn: 10% within a day / 100% within 10 days
-	}, {
-		Severity: warning,
-		For:      (sloWindow / (28 * (24 / 3))).Round(round), // 3h for 28d - half short
-		Long:     (sloWindow / 7).Round(round),               // 4d for 28d
-		Short:    (sloWindow / (28 * (24 / 6))).Round(round), // 6h for 28d
-		Factor:   1,                                          // error budget burn: 100% until the end of sloWindow
-	}}
+	// Base factors for static thresholds
+	baseFactors := []Window{
+		{
+			Severity: critical,
+			For:      (sloWindow / (28 * 24 * (60 / 2))).Round(round), // 2m for 28d - half short
+			Long:     (sloWindow / (28 * 24)).Round(round),            // 1h for 28d
+			Short:    (sloWindow / (28 * 24 * (60 / 5))).Round(round), // 5m for 28d
+			Factor:   14,                                              // error budget burn: 50% within a day
+		},
+		{
+			Severity: critical,
+			For:      (sloWindow / (28 * 24 * (60 / 15))).Round(round), // 15m for 28d - half short
+			Long:     (sloWindow / (28 * (24 / 6))).Round(round),       // 6h for 28d
+			Short:    (sloWindow / (28 * 24 * (60 / 30))).Round(round), // 30m for 28d
+			Factor:   7,                                                // error budget burn: 20% within a day / 100% within 5 days
+		},
+		{
+			Severity: warning,
+			For:      (sloWindow / (28 * 24)).Round(round),       // 1h for 28d - half short
+			Long:     (sloWindow / 28).Round(round),              // 1d for 28d
+			Short:    (sloWindow / (28 * (24 / 2))).Round(round), // 2h for 28d
+			Factor:   2,                                          // error budget burn: 10% within a day / 100% within 10 days
+		},
+		{
+			Severity: warning,
+			For:      (sloWindow / (28 * (24 / 3))).Round(round), // 3h for 28d - half short
+			Long:     (sloWindow / 7).Round(round),               // 4d for 28d
+			Short:    (sloWindow / (28 * (24 / 6))).Round(round), // 6h for 28d
+			Factor:   1,                                          // error budget burn: 100% until the end of sloWindow
+		},
+	}
+	return baseFactors
 }
 
 func burnratesFromWindows(ws []Window) []time.Duration {

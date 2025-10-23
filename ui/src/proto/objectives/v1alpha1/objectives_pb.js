@@ -39,6 +39,7 @@ export const Objective = proto3.makeMessageType(
     { no: 5, name: "indicator", kind: "message", T: Indicator },
     { no: 6, name: "config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "queries", kind: "message", T: Queries },
+    { no: 8, name: "alerting", kind: "message", T: Alerting },
   ],
 );
 
@@ -125,6 +126,20 @@ export const Queries = proto3.makeMessageType(
     { no: 3, name: "graphErrorBudget", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "graphRequests", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "graphErrors", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ],
+);
+
+/**
+ * @generated from message objectives.v1alpha1.Alerting
+ */
+export const Alerting = proto3.makeMessageType(
+  "objectives.v1alpha1.Alerting",
+  () => [
+    { no: 1, name: "burnrates", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "absent", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "absent_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "burn_rate_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 

@@ -21,12 +21,13 @@
 
 - Support for Kubernetes, Docker, and reading from the filesystem
 - Alerting: Generates 4 Multi Burn Rate Alerts with different severity
+  - **Dynamic Burn Rates**: Traffic-aware alert thresholds that adapt to actual service load
 - Page listing all Service Level Objectives
   - Search through names and labels
   - Sorted by remaining error budget to see the worst ones quickly
   - All columns sortable
   - View and hide individual columns
-  - Clicking on labels to filter SLOs that contain the label  
+  - Clicking on labels to filter SLOs that contain the label
   - Tool-tips when hovering for extra context
 - Page with details for a Service Level Objective
   - Objective, Availability, Error Budget highlighted as 3 most important numbers
@@ -113,6 +114,30 @@ http_requests:burnrate2d
 The recording rules names are based on the originally provided metric.
 The recording rules contain the necessary labels to uniquely identify the recording rules in case there are multiple ones available.
 
+### Dynamic Burn Rate Alerting
+
+Dynamic burn rates adapt alert thresholds based on actual traffic patterns, preventing false positives during low traffic and maintaining sensitivity during high traffic periods.
+
+**When to use:**
+
+- Services with variable traffic (business hours vs nights/weekends)
+- When you want alerts that adapt to actual service load
+
+**Configuration:**
+
+```yaml
+spec:
+  # ... standard SLO configuration
+  alerting:
+    burnRateType: dynamic # or "static" for traditional behavior (default)
+```
+
+**How it works:** Dynamic burn rates alert on the same absolute number of errors regardless of traffic. The formula `(N_SLO / N_alert) × E_budget_percent × (1 - SLO_target)` adjusts the error rate threshold so alerts fire at `E_budget_percent × E_budget_absolute` errors. This prevents false positives during low traffic (small sample sizes) while maintaining consistent sensitivity.
+
+**Learn more:** [Error Budget is All You Need (Part 2)](https://dev.to/yairst/error-budget-is-all-you-need-part-2-3inb) - Deep dive into dynamic burn rate concepts and implementation.
+
+**Examples:** See `examples/dynamic-burn-rate-*.yaml` for ratio, latency, latency-native, and bool-gauge indicator examples.
+
 ### Running inside a Kubernetes cluster
 
 > An example for this mode of operation can be found in [examples/kubernetes](examples/kubernetes).
@@ -157,12 +182,12 @@ kubectl apply --server-side -f ./example/kubernetes/manifests-webhook/slos
 
 ##### kube-prometheus
 
-The underlying jsonnet code is imported by the [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus) project. 
+The underlying jsonnet code is imported by the [kube-prometheus](https://github.com/prometheus-operator/kube-prometheus) project.
 If you want to install an entire monitoring stack including Pyrra we highly recommend using kube-prometheus.
 
 #### Install with Helm
 
-Thanks to [@rlex](https://github.com/rlex) there is a [Helm chart](https://artifacthub.io/packages/helm/rlex/pyrra) for deploying Pyrra too. 
+Thanks to [@rlex](https://github.com/rlex) there is a [Helm chart](https://artifacthub.io/packages/helm/rlex/pyrra) for deploying Pyrra too.
 
 ### Running inside Docker / Filesystem
 
@@ -193,6 +218,7 @@ work with. It's designed to work alongside a Prometheus.
 When running `pyrra api`, you can configure various options:
 
 #### Prometheus Configuration
+
 - `--prometheus-url` - The URL to the Prometheus to query (default: `http://localhost:9090`)
 - `--prometheus-external-url` - The URL for the UI to redirect users to when opening Prometheus
 - `--prometheus-basic-auth-username` - The HTTP basic authentication username
@@ -202,6 +228,7 @@ When running `pyrra api`, you can configure various options:
 - `--mimir-tenant-ids` - Mimir tenant IDs to query if multi-tenancy is enabled
 
 #### Grafana Integration
+
 As an alternative to redirecting to Prometheus, Pyrra can redirect to Grafana Explore for a richer query experience:
 
 - `--grafana-external-url` - The URL for the UI to redirect users to Grafana Explore page
@@ -213,6 +240,7 @@ As an alternative to redirecting to Prometheus, Pyrra can redirect to Grafana Ex
 #### Example Usage
 
 Using Prometheus external URL:
+
 ```bash
 pyrra api \
   --prometheus-url=http://prometheus:9090 \
@@ -221,6 +249,7 @@ pyrra api \
 ```
 
 Using Grafana external URL:
+
 ```bash
 pyrra api \
   --grafana-external-url=http://grafana:3000 \
@@ -234,7 +263,7 @@ pyrra api \
 
 **Server:** Go with libraries such as: chi, ristretto, xxhash, client-go.
 
-Generated protobuf APIs with connect-go for Go and connect-web for TypeScript. 
+Generated protobuf APIs with connect-go for Go and connect-web for TypeScript.
 
 ## Roadmap
 
