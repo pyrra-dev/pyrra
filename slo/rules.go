@@ -745,7 +745,7 @@ func (o Objective) increaseRulesRatio(sloName string) ([]monitoringv1.Rule, erro
 		return rules, err
 	}
 
-	if o.LessAccurate {
+	if o.PerformanceOverAccuracy {
 		objectiveReplacer{
 			metric:   o.Indicator.Ratio.Total.Name,
 			matchers: o.Indicator.Ratio.Total.LabelMatchers,
@@ -914,7 +914,7 @@ func (o Objective) increaseRuleLatency(sloName string) ([]monitoringv1.Rule, err
 	sort.Strings(grouping)
 
 	window := time.Duration(o.Window)
-	if o.LessAccurate {
+	if o.PerformanceOverAccuracy {
 		window = 5 * time.Minute
 	}
 
@@ -966,7 +966,7 @@ func (o Objective) increaseRuleLatency(sloName string) ([]monitoringv1.Rule, err
 		Labels: ruleLabelsLe,
 	})
 
-	if o.LessAccurate {
+	if o.PerformanceOverAccuracy {
 		expr, err := o.increaseSubqueryExpr()
 		if err != nil {
 			return rules, err

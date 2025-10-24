@@ -382,6 +382,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 	if err != nil {
 		return slo.Objective{}, fmt.Errorf("failed to parse objective window: %w", err)
 	}
+
 	var alerting slo.Alerting
 	alerting.Disabled = false
 	if in.Spec.Alerting.Disabled != nil {
@@ -579,13 +580,14 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 	}
 
 	return slo.Objective{
-		Labels:      ls,
-		Annotations: in.Annotations,
-		Description: in.Spec.Description,
-		Target:      target / 100,
-		Window:      window,
-		Config:      string(config),
-		Alerting:    alerting,
+		Labels:                  ls,
+		Annotations:             in.Annotations,
+		Description:             in.Spec.Description,
+		Target:                  target / 100,
+		Window:                  window,
+		PerformanceOverAccuracy: in.Spec.PerformanceOverAccuracy,
+		Config:                  string(config),
+		Alerting:                alerting,
 		Indicator: slo.Indicator{
 			Ratio:         ratio,
 			Latency:       latency,

@@ -44,7 +44,7 @@ var (
 	}
 	objectiveHTTPRatioGroupingLessAccurate = func() Objective {
 		o := objectiveHTTPRatio()
-		o.LessAccurate = true
+		o.PerformanceOverAccuracy = true
 		return o
 	}
 	objectiveHTTPRatioGrouping = func() Objective {
@@ -105,7 +105,7 @@ var (
 	}
 	objectiveGRPCRatioGroupingLessAccuracy = func() Objective {
 		o := objectiveGRPCRatioGrouping()
-		o.LessAccurate = true
+		o.PerformanceOverAccuracy = true
 		return o
 	}
 	objectiveHTTPLatency = func() Objective {
@@ -180,7 +180,7 @@ var (
 	}
 	objectiveHTTPLatencyGroupingRegexLessAccuracy = func() Objective {
 		o := objectiveHTTPLatencyGroupingRegex()
-		o.LessAccurate = true
+		o.PerformanceOverAccuracy = true
 		return o
 	}
 	objectiveGRPCLatency = func() Objective {
