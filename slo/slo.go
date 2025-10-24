@@ -24,7 +24,7 @@ type Objective struct {
 	Window      model.Duration
 	Config      string
 
-	LessAccurate bool
+	PerformanceOverAccuracy bool
 
 	Alerting  Alerting
 	Indicator Indicator
