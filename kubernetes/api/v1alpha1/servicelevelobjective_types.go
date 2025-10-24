@@ -99,6 +99,10 @@ type ServiceLevelObjectiveSpec struct {
 	// be ignored by Prometheus instances.
 	// More info: https://github.com/thanos-io/thanos/blob/main/docs/components/rule.md#partial-response
 	PartialResponseStrategy string `json:"partial_response_strategy,omitempty"`
+
+	// +optional
+	// +kubebuilder:default:=false
+	PerformanceOverAccuracy bool `json:"performance_over_accuracy,omitempty"`
 }
 
 // ServiceLevelIndicator defines the underlying indicator that is a Prometheus metric.
