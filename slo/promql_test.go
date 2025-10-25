@@ -42,6 +42,11 @@ var (
 			},
 		}
 	}
+	objectiveHTTPRatioGroupingLessAccurate = func() Objective {
+		o := objectiveHTTPRatio()
+		o.PerformanceOverAccuracy = true
+		return o
+	}
 	objectiveHTTPRatioGrouping = func() Objective {
 		o := objectiveHTTPRatio()
 		o.Indicator.Ratio.Grouping = []string{"job", "handler"}
@@ -96,6 +101,11 @@ var (
 	objectiveGRPCRatioGrouping = func() Objective {
 		o := objectiveGRPCRatio()
 		o.Indicator.Ratio.Grouping = []string{"job", "handler"}
+		return o
+	}
+	objectiveGRPCRatioGroupingLessAccuracy = func() Objective {
+		o := objectiveGRPCRatioGrouping()
+		o.PerformanceOverAccuracy = true
 		return o
 	}
 	objectiveHTTPLatency = func() Objective {
@@ -166,6 +176,11 @@ var (
 		o.Indicator.Latency.Grouping = []string{"job", "handler"}
 		o.Indicator.Latency.Success.LabelMatchers = append(o.Indicator.Latency.Success.LabelMatchers, matcher)
 		o.Indicator.Latency.Total.LabelMatchers = append(o.Indicator.Latency.Total.LabelMatchers, matcher)
+		return o
+	}
+	objectiveHTTPLatencyGroupingRegexLessAccuracy = func() Objective {
+		o := objectiveHTTPLatencyGroupingRegex()
+		o.PerformanceOverAccuracy = true
 		return o
 	}
 	objectiveGRPCLatency = func() Objective {
