@@ -278,6 +278,23 @@ const columns = [
   columnHelper.accessor('lset', {
     id: 'lset',
     header: 'Name',
+    sortingFn: (a: TableRow<row>, b: TableRow<row>, columnId: string): number => {
+      const av: {lset: Labels; grouping: Labels} = a.getValue(columnId)
+      const bv: {lset: Labels; grouping: Labels} = b.getValue(columnId)
+      
+      // First compare by the metric name
+      const aName = av.lset[MetricName] ?? ''
+      const bName = bv.lset[MetricName] ?? ''
+      const nameComparison = aName.localeCompare(bName)
+      if (nameComparison !== 0) {
+        return nameComparison
+      }
+      
+      // If names are equal, compare by grouping labels only
+      const aGrouping = labelsString(av.grouping)
+      const bGrouping = labelsString(bv.grouping)
+      return aGrouping.localeCompare(bGrouping)
+    },
   }),
   columnHelper.accessor('window', {
     id: 'window',
