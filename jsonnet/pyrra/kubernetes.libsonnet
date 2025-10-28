@@ -25,6 +25,7 @@
     image: error 'must provide image',
     replicas:: 1,
     port:: 9099,
+    webhookPort:: 9443,
 
     commonLabels:: {
       'app.kubernetes.io/name': 'pyrra',
@@ -222,7 +223,10 @@
           'kubernetes',
         ],
         // resources: pyrra._config.resources,
-        ports: [{ containerPort: pyrra._config.port }],
+        ports: [
+          { name: 'http', containerPort: pyrra._config.port },
+          { name: 'webhooks', containerPort: pyrra._config.webhookPort }
+        ],
         securityContext: {
           allowPrivilegeEscalation: false,
           readOnlyRootFilesystem: true,
