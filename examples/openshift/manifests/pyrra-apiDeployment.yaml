@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/component: api
     app.kubernetes.io/name: pyrra
-    app.kubernetes.io/version: 0.7.5
+    app.kubernetes.io/version: 0.9.0
   name: pyrra-api
   namespace: openshift-monitoring
 spec:
@@ -24,7 +24,7 @@ spec:
       labels:
         app.kubernetes.io/component: api
         app.kubernetes.io/name: pyrra
-        app.kubernetes.io/version: 0.7.5
+        app.kubernetes.io/version: 0.9.0
     spec:
       containers:
       - args:
@@ -35,7 +35,7 @@ spec:
         - --tls-cert-file=/etc/tls/private/tls.crt
         - --tls-private-key-file=/etc/tls/private/tls.key
         - --tls-client-ca-file=/etc/tls/certs/service-ca.crt
-        image: ghcr.io/pyrra-dev/pyrra:v0.7.5
+        image: ghcr.io/pyrra-dev/pyrra:v0.9.0
         name: pyrra
         ports:
         - containerPort: 9099

@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/component: api
     app.kubernetes.io/name: pyrra
-    app.kubernetes.io/version: 0.7.5
+    app.kubernetes.io/version: 0.9.0
   name: pyrra-api
   namespace: openshift-monitoring
 spec:
