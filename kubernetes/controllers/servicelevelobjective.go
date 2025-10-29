@@ -213,8 +213,10 @@ func (r *ServiceLevelObjectiveReconciler) SetupWithManager(mgr ctrl.Manager) err
 }
 
 func (r *ServiceLevelObjectiveReconciler) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	slo := &pyrrav1alpha1.ServiceLevelObjective{}
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(&pyrrav1alpha1.ServiceLevelObjective{}).
+		For(slo).
+		WithValidator(slo).
 		Complete()
 }
 
