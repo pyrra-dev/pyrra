@@ -14,7 +14,7 @@ require (
 	github.com/polarsignals/connect-go-prometheus v0.0.0-20221209115647-3601eea3d0d0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.86.1
 	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/common v0.67.1
+	github.com/prometheus/common v0.67.2
 	github.com/prometheus/prometheus v0.304.2
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6
@@ -75,7 +75,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/oauth2 v0.31.0 // indirect
+	golang.org/x/oauth2 v0.32.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/term v0.36.0 // indirect
