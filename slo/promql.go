@@ -589,6 +589,10 @@ func (r objectiveReplacer) replace(node parser.Node) {
 			n.Range = r.window
 		}
 		r.replace(n.VectorSelector)
+	case *parser.SubqueryExpr:
+		n.Range = r.window
+		n.Step = 5 * time.Minute
+		r.replace(n.Expr)
 	case *parser.VectorSelector:
 		if n.Name == "errorMetric" {
 			n.Name = r.errorMetric
