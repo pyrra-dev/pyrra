@@ -1102,7 +1102,7 @@ func TestReplacer(t *testing.T) {
 func TestLatencyNativeBurnrateGrouping(t *testing.T) {
 	objective := objectiveHTTPNativeLatencyGrouping()
 
-	burnrateQuery := objective.Burnrate(5 * time.Minute)
+	burnrateQuery := objective.Burnrate(5*time.Minute, GenerationOptions{})
 	require.Equal(t, "1 - histogram_fraction(0, 1, sum by (handler, job) (rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[5m])))", burnrateQuery)
 
 	requestRangeQuery := objective.RequestRange(2 * time.Hour)

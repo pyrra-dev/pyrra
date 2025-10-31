@@ -44,12 +44,13 @@ import (
 // ServiceLevelObjectiveReconciler reconciles a ServiceLevelObjective object.
 type ServiceLevelObjectiveReconciler struct {
 	client.Client
-	MimirClient             *mimir.Client
-	MimirWriteAlertingRules bool
-	Logger                  kitlog.Logger
-	Scheme                  *runtime.Scheme
-	ConfigMapMode           bool
-	GenericRules            bool
+	MimirClient                *mimir.Client
+	MimirWriteAlertingRules    bool
+	Logger                     kitlog.Logger
+	Scheme                     *runtime.Scheme
+	ConfigMapMode              bool
+	GenericRules               bool
+	EnablePrometheus3Migration bool
 }
 
 // +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
@@ -106,7 +107,7 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules)
+	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -139,7 +140,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Context, logger kitlog.Logger, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules)
+	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules, r.EnablePrometheus3Migration)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -171,7 +172,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
 ) (ctrl.Result, error) {
 	name := fmt.Sprintf("pyrra-recording-rule-%s", kubeObjective.GetName())
 
-	newConfigMap, err := makeConfigMap(name, kubeObjective, r.GenericRules)
+	newConfigMap, err := makeConfigMap(name, kubeObjective, r.GenericRules, r.EnablePrometheus3Migration)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -218,17 +219,21 @@ func (r *ServiceLevelObjectiveReconciler) SetupWebhookWithManager(mgr ctrl.Manag
 		Complete()
 }
 
-func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*corev1.ConfigMap, error) {
+func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, enablePrometheus3Migration bool) (*corev1.ConfigMap, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
 	}
 
-	increases, err := objective.IncreaseRules()
+	opts := slo.GenerationOptions{
+		EnablePrometheus3Migration: enablePrometheus3Migration,
+	}
+
+	increases, err := objective.IncreaseRules(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get increase rules: %w", err)
 	}
-	burnrates, err := objective.Burnrates()
+	burnrates, err := objective.Burnrates(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
@@ -238,7 +243,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}
 
 	if genericRules {
-		rules, err := objective.GenericRules()
+		rules, err := objective.GenericRules(opts)
 		if err != nil {
 			if err != slo.ErrGroupingUnsupported {
 				return nil, fmt.Errorf("failed to get generic rules: %w", err)
@@ -286,19 +291,23 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}, nil
 }
 
-func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, writeAlertingRules bool) (*rulefmt.RuleGroup, error) {
+func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, writeAlertingRules, enablePrometheus3Migration bool) (*rulefmt.RuleGroup, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
 	}
 
-	increases, err := objective.IncreaseRules()
+	opts := slo.GenerationOptions{
+		EnablePrometheus3Migration: enablePrometheus3Migration,
+	}
+
+	increases, err := objective.IncreaseRules(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get increase rules: %w", err)
 	}
 	increasesMimirRules := prometheusRulesToMimirRules(increases.Rules, writeAlertingRules)
 
-	burnrates, err := objective.Burnrates()
+	burnrates, err := objective.Burnrates(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
@@ -306,7 +315,7 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 
 	genericMimirRules := []rulefmt.Rule{}
 	if genericRules {
-		rules, err := objective.GenericRules()
+		rules, err := objective.GenericRules(opts)
 		if err != nil {
 			if err != slo.ErrGroupingUnsupported {
 				return nil, fmt.Errorf("failed to get generic rules: %w", err)
@@ -372,17 +381,21 @@ func prometheusRulesToMimirRules(promRules []monitoringv1.Rule, writeAlertingRul
 	return rules
 }
 
-func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules bool) (*monitoringv1.PrometheusRule, error) {
+func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, enablePrometheus3Migration bool) (*monitoringv1.PrometheusRule, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
 	}
 
-	increases, err := objective.IncreaseRules()
+	opts := slo.GenerationOptions{
+		EnablePrometheus3Migration: enablePrometheus3Migration,
+	}
+
+	increases, err := objective.IncreaseRules(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get increase rules: %w", err)
 	}
-	burnrates, err := objective.Burnrates()
+	burnrates, err := objective.Burnrates(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
@@ -392,7 +405,7 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	}
 
 	if genericRules {
-		rules, err := objective.GenericRules()
+		rules, err := objective.GenericRules(opts)
 		if err != nil {
 			if err != slo.ErrGroupingUnsupported {
 				return nil, fmt.Errorf("failed to get generic rules: %w", err)
