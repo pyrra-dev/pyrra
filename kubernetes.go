@@ -66,6 +66,7 @@ func cmdKubernetes(
 	certFile, privateKeyFile string,
 	mimirClient *mimir.Client,
 	mimirWriteAlertingRules bool,
+	enablePrometheus3Migration bool,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -87,12 +88,13 @@ func cmdKubernetes(
 	}
 
 	reconciler := &controllers.ServiceLevelObjectiveReconciler{
-		Client:                  mgr.GetClient(),
-		Logger:                  log.With(logger, "controllers", "ServiceLevelObjective"),
-		GenericRules:            genericRules,
-		ConfigMapMode:           configMapMode,
-		MimirClient:             mimirClient,
-		MimirWriteAlertingRules: mimirWriteAlertingRules,
+		Client:                     mgr.GetClient(),
+		Logger:                     log.With(logger, "controllers", "ServiceLevelObjective"),
+		GenericRules:               genericRules,
+		ConfigMapMode:              configMapMode,
+		MimirClient:                mimirClient,
+		MimirWriteAlertingRules:    mimirWriteAlertingRules,
+		EnablePrometheus3Migration: enablePrometheus3Migration,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceLevelObjective")
