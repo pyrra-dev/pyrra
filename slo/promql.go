@@ -518,7 +518,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		return "", fmt.Errorf("objective misses indicator")
 	}
 
-	expr, err := parser.ParseExpr(`metric{}`)
+	expr, err := parser.ParseExpr(`sum(metric{})`)
 	if err != nil {
 		return "", err
 	}
