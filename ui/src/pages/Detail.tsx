@@ -122,7 +122,7 @@ const Detail = () => {
         toStr = 'now'
       }
       navigate(
-        `/objectives?expr=${expr}&grouping=${groupingExpr ?? ''}&from=${fromStr}&to=${toStr}`,
+        `/objectives?expr=${encodeURI(expr)}&grouping=${encodeURI(groupingExpr ?? '')}&from=${fromStr}&to=${toStr}`,
       )
     },
     [navigate, expr, groupingExpr],
