@@ -321,7 +321,7 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		return fmt.Errorf("invalid objective: %s - %w", file, err)
 	}
 
-	increases, err := objective.IncreaseRules()
+	increases, err := objective.IncreaseRules(slo.IncreaseRulesAll)
 	if err != nil {
 		return fmt.Errorf("failed to get increase rules: %w", err)
 	}

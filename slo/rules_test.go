@@ -1247,9 +1247,10 @@ func TestObjective_BurnrateNames(t *testing.T) {
 
 func TestObjective_IncreaseRules(t *testing.T) {
 	testcases := []struct {
-		name  string
-		slo   Objective
-		rules monitoringv1.RuleGroup
+		name   string
+		slo    Objective
+		option IncreaseRulesOptions
+		rules  monitoringv1.RuleGroup
 	}{{
 		name: "http-ratio",
 		slo:  objectiveHTTPRatio(),
@@ -1297,6 +1298,37 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Record: "http_requests:increase4w",
 				Expr:   intstr.FromString(`sum by (code) (sum_over_time(http_requests:increase5m{job="thanos-receive-default"}[4w:5m]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(http_requests_total{job="thanos-receive-default"}) == 1`),
+				For:    monitoringDuration("10m"),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors", "severity": "critical"},
+			}},
+		},
+	}, {
+		name:   "http-ratio-less-accuracy-window",
+		slo:    objectiveHTTPRatioGroupingLessAccurate(),
+		option: IncreaseRulesWindow,
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-increase",
+			Interval: monitoringDuration("2m30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:increase4w",
+				Expr:   intstr.FromString(`sum by (code) (sum_over_time(http_requests:increase5m{job="thanos-receive-default"}[4w:5m]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}},
+		},
+	}, {
+		name:   "http-ratio-less-accuracy-5m",
+		slo:    objectiveHTTPRatioGroupingLessAccurate(),
+		option: IncreaseRules5m,
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-increase",
+			Interval: monitoringDuration("2m30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:increase5m",
+				Expr:   intstr.FromString(`sum by (code) (increase(http_requests_total{job="thanos-receive-default"}[5m]))`),
 				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
 			}, {
 				Alert:  "SLOMetricAbsent",
@@ -1696,11 +1728,11 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		},
 	}}
 
-	require.Len(t, testcases, 20)
+	require.Len(t, testcases, 22)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			group, err := tc.slo.IncreaseRules()
+			group, err := tc.slo.IncreaseRules(tc.option)
 			require.NoError(t, err)
 			require.Equal(t, tc.rules, group)
 		})

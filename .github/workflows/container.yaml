@@ -6,6 +6,7 @@ on:
       - 'release-*'
       - 'main'
       - 'improve-slo-performance-with-subqueries'
+      - 'improve-slo-performance-with-subqueries-split'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.ref }}

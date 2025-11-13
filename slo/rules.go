@@ -639,7 +639,15 @@ func (o Objective) absentExpr() (parser.Expr, error) {
 	return parser.ParseExpr(`absent(metric{matchers="total"}) == 1`)
 }
 
-func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
+type IncreaseRulesOptions uint
+
+const (
+	IncreaseRulesAll IncreaseRulesOptions = iota
+	IncreaseRulesWindow
+	IncreaseRules5m
+)
+
+func (o Objective) IncreaseRules(options IncreaseRulesOptions) (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
 	var rules []monitoringv1.Rule
@@ -648,25 +656,25 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	case Unknown:
 		return monitoringv1.RuleGroup{}, nil
 	case Ratio:
-		rulesRatio, err := o.increaseRulesRatio(sloName)
+		rulesRatio, err := o.increaseRulesRatio(sloName, options)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
 		rules = append(rules, rulesRatio...)
 	case Latency:
-		rulesLatency, err := o.increaseRuleLatency(sloName)
+		rulesLatency, err := o.increaseRuleLatency(sloName, options)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
 		rules = append(rules, rulesLatency...)
 	case LatencyNative:
-		rulesLatencyNative, err := o.increaseRuleLatencyNative(sloName)
+		rulesLatencyNative, err := o.increaseRuleLatencyNative(sloName, options)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
 		rules = append(rules, rulesLatencyNative...)
 	case BoolGauge:
-		rulesBoolGauge, err := o.increaseRuleBoolGauge(sloName)
+		rulesBoolGauge, err := o.increaseRuleBoolGauge(sloName, options)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -704,7 +712,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	}, nil
 }
 
-func (o Objective) increaseRulesRatio(sloName string) ([]monitoringv1.Rule, error) {
+func (o Objective) increaseRulesRatio(sloName string, options IncreaseRulesOptions) ([]monitoringv1.Rule, error) {
 	var rules []monitoringv1.Rule
 
 	ruleLabels := o.commonRuleLabels(sloName)
@@ -779,17 +787,20 @@ func (o Objective) increaseRulesRatio(sloName string) ([]monitoringv1.Rule, erro
 			window:   time.Duration(o.Window),
 		}.replace(subExpr)
 
-		rules = append(rules,
-			monitoringv1.Rule{
+		if options == IncreaseRulesAll || options == IncreaseRules5m {
+			rules = append(rules, monitoringv1.Rule{
 				Record: subqueryName,
 				Expr:   intstr.FromString(expr.String()),
 				Labels: ruleLabels,
-			}, monitoringv1.Rule{
+			})
+		}
+		if options == IncreaseRulesAll || options == IncreaseRulesWindow {
+			rules = append(rules, monitoringv1.Rule{
 				Record: increaseName(o.Indicator.Ratio.Total.Name, o.Window),
 				Expr:   intstr.FromString(subExpr.String()),
 				Labels: ruleLabels,
-			},
-		)
+			})
+		}
 	} else {
 		objectiveReplacer{
 			metric:   o.Indicator.Ratio.Total.Name,
@@ -803,6 +814,10 @@ func (o Objective) increaseRulesRatio(sloName string) ([]monitoringv1.Rule, erro
 			Expr:   intstr.FromString(expr.String()),
 			Labels: ruleLabels,
 		})
+	}
+
+	if options == IncreaseRulesWindow {
+		return rules, nil
 	}
 
 	alertLabels := make(map[string]string, len(ruleLabels)+1)
@@ -877,7 +892,7 @@ func (o Objective) increaseRulesRatio(sloName string) ([]monitoringv1.Rule, erro
 	return rules, nil
 }
 
-func (o Objective) increaseRuleLatency(sloName string) ([]monitoringv1.Rule, error) {
+func (o Objective) increaseRuleLatency(sloName string, options IncreaseRulesOptions) ([]monitoringv1.Rule, error) {
 	var rules []monitoringv1.Rule
 
 	ruleLabels := o.commonRuleLabels(sloName)
@@ -1090,7 +1105,7 @@ func (o Objective) increaseRuleLatency(sloName string) ([]monitoringv1.Rule, err
 	return rules, nil
 }
 
-func (o Objective) increaseRuleLatencyNative(sloName string) ([]monitoringv1.Rule, error) {
+func (o Objective) increaseRuleLatencyNative(sloName string, options IncreaseRulesOptions) ([]monitoringv1.Rule, error) {
 	var rules []monitoringv1.Rule
 
 	ruleLabels := o.commonRuleLabels(sloName)
@@ -1144,7 +1159,7 @@ func (o Objective) increaseRuleLatencyNative(sloName string) ([]monitoringv1.Rul
 	return rules, nil
 }
 
-func (o Objective) increaseRuleBoolGauge(sloName string) ([]monitoringv1.Rule, error) {
+func (o Objective) increaseRuleBoolGauge(sloName string, options IncreaseRulesOptions) ([]monitoringv1.Rule, error) {
 	var rules []monitoringv1.Rule
 
 	ruleLabels := o.commonRuleLabels(sloName)
