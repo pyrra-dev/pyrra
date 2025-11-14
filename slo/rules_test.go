@@ -1157,7 +1157,7 @@ func TestObjective_Burnrates(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			group, err := tc.slo.Burnrates()
+			group, err := tc.slo.Burnrates(GenerationOptions{})
 			require.NoError(t, err)
 			require.Equal(t, tc.rules, group)
 		})
@@ -1629,7 +1629,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			group, err := tc.slo.IncreaseRules()
+			group, err := tc.slo.IncreaseRules(GenerationOptions{})
 			require.NoError(t, err)
 			require.Equal(t, tc.rules, group)
 		})
@@ -1936,7 +1936,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			group, err := tc.slo.GenericRules()
+			group, err := tc.slo.GenericRules(GenerationOptions{})
 			if tc.err != nil {
 				require.Error(t, tc.err)
 			} else {

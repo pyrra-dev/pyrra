@@ -71,31 +71,34 @@ var CLI struct {
 		MimirOrgID                  string            `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
-		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
-		PrometheusURL    *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
-		PrometheusFolder string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
-		GenericRules     bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		ConfigFiles                string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
+		PrometheusURL              *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
+		PrometheusFolder           string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
+		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		EnablePrometheus3Migration bool     `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
-		MetricsAddr             string   `default:":8080" help:"The address the metric endpoint binds to."`
-		ConfigMapMode           bool     `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
-		GenericRules            bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		DisableWebhooks         bool     `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
-		TLSCertFile             string   `default:"" help:"File containing the default x509 Certificate for HTTPS."`
-		TLSPrivateKeyFile       string   `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
-		MimirURL                *url.URL `default:"" help:"The URL to the Mimir API. If specified provisions rules via Mimir instead of Prometheus"`
-		MimirPrometheusPrefix   string   `default:"prometheus" help:"The prefix for the Prometheus API in Mimir"`
-		MimirBasicAuthUsername  string   `default:"" help:"The HTTP basic authentication username"`
-		MimirWriteAlertingRules bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
-		MimirBasicAuthPassword  string   `default:"" help:"The HTTP basic authentication password"`
-		MimirOrgID              string   `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
-		MimirDeploymentMode     string   `default:"standalone" help:"Mimir deployment mode. Possible values: standalone (default), distributed"`
+		MetricsAddr                string   `default:":8080" help:"The address the metric endpoint binds to."`
+		ConfigMapMode              bool     `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
+		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		DisableWebhooks            bool     `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
+		TLSCertFile                string   `default:"" help:"File containing the default x509 Certificate for HTTPS."`
+		TLSPrivateKeyFile          string   `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
+		MimirURL                   *url.URL `default:"" help:"The URL to the Mimir API. If specified provisions rules via Mimir instead of Prometheus"`
+		MimirPrometheusPrefix      string   `default:"prometheus" help:"The prefix for the Prometheus API in Mimir"`
+		MimirBasicAuthUsername     string   `default:"" help:"The HTTP basic authentication username"`
+		MimirWriteAlertingRules    bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
+		MimirBasicAuthPassword     string   `default:"" help:"The HTTP basic authentication password"`
+		MimirOrgID                 string   `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
+		MimirDeploymentMode        string   `default:"standalone" help:"Mimir deployment mode. Possible values: standalone (default), distributed"`
+		EnablePrometheus3Migration bool     `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
-		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
-		PrometheusFolder string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
-		GenericRules     bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		OperatorRule     bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
+		ConfigFiles                string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		PrometheusFolder           string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
+		GenericRules               bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		OperatorRule               bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
+		EnablePrometheus3Migration bool   `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
 	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
 }
 
@@ -232,6 +235,7 @@ func main() {
 			CLI.Filesystem.ConfigFiles,
 			CLI.Filesystem.PrometheusFolder,
 			CLI.Filesystem.GenericRules,
+			CLI.Filesystem.EnablePrometheus3Migration,
 		)
 	case "kubernetes":
 		code = cmdKubernetes(
@@ -244,6 +248,7 @@ func main() {
 			CLI.Kubernetes.TLSPrivateKeyFile,
 			mimirClient,
 			CLI.Kubernetes.MimirWriteAlertingRules,
+			CLI.Kubernetes.EnablePrometheus3Migration,
 		)
 	case "generate":
 		code = cmdGenerate(
@@ -252,6 +257,7 @@ func main() {
 			CLI.Generate.PrometheusFolder,
 			CLI.Generate.GenericRules,
 			CLI.Generate.OperatorRule,
+			CLI.Generate.EnablePrometheus3Migration,
 		)
 	}
 	os.Exit(code)
@@ -1305,12 +1311,12 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 					Short: &objectivesv1alpha1.Burnrate{
 						Window:  durationpb.New(time.Duration(short)),
 						Current: -1,
-						Query:   o.Burnrate(time.Duration(short)),
+						Query:   o.Burnrate(time.Duration(short), slo.GenerationOptions{}),
 					},
 					Long: &objectivesv1alpha1.Burnrate{
 						Window:  durationpb.New(time.Duration(long)),
 						Current: -1,
-						Query:   o.Burnrate(time.Duration(long)),
+						Query:   o.Burnrate(time.Duration(long), slo.GenerationOptions{}),
 					},
 				})
 			} else {
