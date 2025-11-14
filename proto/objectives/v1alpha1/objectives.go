@@ -124,11 +124,11 @@ func FromInternal(o slo.Objective) *Objective {
 			Grouping: o.Grouping(),
 			Errors: &Query{
 				Name:   r.Errors.Name,
-				Metric: r.Errors.Metric(),
+				Metric: r.Errors.String(),
 			},
 			Total: &Query{
 				Name:   r.Total.Name,
-				Metric: r.Total.Metric(),
+				Metric: r.Total.String(),
 			},
 		}
 		for _, m := range r.Total.LabelMatchers {
@@ -153,11 +153,11 @@ func FromInternal(o slo.Objective) *Objective {
 			Grouping: o.Grouping(),
 			Success: &Query{
 				Name:   l.Success.Name,
-				Metric: l.Success.Metric(),
+				Metric: l.Success.String(),
 			},
 			Total: &Query{
 				Name:   l.Total.Name,
-				Metric: l.Total.Metric(),
+				Metric: l.Total.String(),
 			},
 		}
 		for _, m := range l.Total.LabelMatchers {
@@ -181,7 +181,7 @@ func FromInternal(o slo.Objective) *Objective {
 			Grouping: o.Grouping(),
 			Total: &Query{
 				Name:   l.Total.Name,
-				Metric: l.Total.Metric(),
+				Metric: l.Total.String(),
 			},
 			Latency: l.Latency.String(),
 		}
@@ -199,11 +199,11 @@ func FromInternal(o slo.Objective) *Objective {
 		boolGauge = &BoolGauge{
 			Grouping: o.Grouping(),
 			BoolGauge: &Query{
-				Name:   b.Metric.Name,
-				Metric: b.Metric.Metric(),
+				Name:   b.Name,
+				Metric: b.String(),
 			},
 		}
-		for _, m := range b.Metric.LabelMatchers {
+		for _, m := range b.LabelMatchers {
 			boolGauge.BoolGauge.Matchers = append(boolGauge.BoolGauge.Matchers, &LabelMatcher{
 				Type:  LabelMatcher_Type(m.Type),
 				Name:  m.Name,
