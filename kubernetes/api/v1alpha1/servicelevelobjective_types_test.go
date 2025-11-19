@@ -701,7 +701,7 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 
 		t.Run("empty", func(t *testing.T) {
 			bg := boolGauge()
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = ""
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = ""
 			warn, err := bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "boolGauge metric must be set")
 			require.Nil(t, warn)
@@ -709,22 +709,22 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 
 		t.Run("invalidMetric", func(t *testing.T) {
 			bg := boolGauge()
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "foo{"
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = "foo{"
 			warn, err := bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:5: parse error: unexpected end of input inside braces")
 			require.Nil(t, warn)
 
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "foo}"
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = "foo}"
 			warn, err = bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:4: parse error: unexpected character: '}'")
 			require.Nil(t, warn)
 
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "$$$"
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = "$$$"
 			warn, err = bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:1: parse error: unexpected character: '$'")
 			require.Nil(t, warn)
 
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = `foo{foo="bar'}`
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = `foo{foo="bar'}`
 			warn, err = bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:9: parse error: unterminated quoted string")
 			require.Nil(t, warn)

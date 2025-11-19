@@ -73,7 +73,7 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 
 	if r.MimirClient != nil {
 		mimirFinalizer := "mimir.servicelevelobjective.pyrra.dev/finalizer"
-		if slo.ObjectMeta.DeletionTimestamp.IsZero() {
+		if slo.DeletionTimestamp.IsZero() {
 			// slo is not being deleted, add our finalizer if not already present
 			if !controllerutil.ContainsFinalizer(&slo, mimirFinalizer) {
 				controllerutil.AddFinalizer(&slo, mimirFinalizer)
