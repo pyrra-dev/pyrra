@@ -14,7 +14,7 @@ require (
 	github.com/polarsignals/connect-go-prometheus v0.0.0-20221209115647-3601eea3d0d0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.86.2
 	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/common v0.67.3
+	github.com/prometheus/common v0.67.4
 	github.com/prometheus/prometheus v0.304.2
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6
