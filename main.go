@@ -69,6 +69,7 @@ var CLI struct {
 		TLSPrivateKeyFile           string            `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 		TLSClientCAFile             string            `default:"" help:"File containing the CA certificate for the client"`
 		MimirOrgID                  string            `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
+		EnablePrometheus3Migration  bool              `default:"false" help:"Enable Prometheus 3 migration mode that makes queries compatible with both Prometheus 2 and 3."`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles                string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
@@ -226,6 +227,7 @@ func main() {
 			CLI.API.UIRoutePrefix,
 			CLI.API.TLSCertFile,
 			CLI.API.TLSPrivateKeyFile,
+			CLI.API.EnablePrometheus3Migration,
 		)
 	case "filesystem":
 		code = cmdFilesystem(
@@ -271,6 +273,7 @@ func cmdAPI(
 	externalGrafanaOrgID, externalGrafanaDatasourceID string,
 	routePrefix, uiRoutePrefix string,
 	tlsCertFile, tlsPrivateKeyFile string,
+	enablePrometheus3Migration bool,
 ) int {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
@@ -356,6 +359,7 @@ func cmdAPI(
 					connect.WithInterceptors(prometheusInterceptor),
 				),
 			),
+			opts: slo.GenerationOptions{EnablePrometheus3Migration: enablePrometheus3Migration},
 		}
 
 		objectivePath, objectiveHandler := objectivesv1alpha1connect.NewObjectiveServiceHandler(
@@ -677,6 +681,7 @@ type objectiveServer struct {
 	logger  log.Logger
 	promAPI *promCache
 	client  objectivesv1alpha1connect.ObjectiveBackendServiceClient
+	opts    slo.GenerationOptions
 }
 
 func (s *objectiveServer) getObjective(ctx context.Context, expr string) (slo.Objective, error) {
@@ -813,11 +818,11 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 		}
 
 		o.Queries = &objectivesv1alpha1.Queries{
-			CountTotal:       oi.QueryTotal(oi.Window),
-			CountErrors:      oi.QueryErrors(oi.Window),
-			GraphErrorBudget: oi.QueryErrorBudget(),
-			GraphRequests:    oi.RequestRange(time.Second),
-			GraphErrors:      oi.ErrorsRange(time.Second),
+			CountTotal:       oi.QueryTotal(oi.Window, s.opts),
+			CountErrors:      oi.QueryErrors(oi.Window, s.opts),
+			GraphErrorBudget: oi.QueryErrorBudget(s.opts),
+			GraphRequests:    oi.RequestRange(time.Second, s.opts),
+			GraphErrors:      oi.ErrorsRange(time.Second, s.opts),
 		}
 	}
 
@@ -860,7 +865,7 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 		ts = req.Msg.Time.AsTime()
 	}
 
-	queryTotal := objective.QueryTotal(objective.Window)
+	queryTotal := objective.QueryTotal(objective.Window, s.opts)
 	value, _, err := s.promAPI.Query(contextSetPromCache(ctx, 15*time.Second), queryTotal, ts)
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to query total", "query", queryTotal, "err", err)
@@ -884,7 +889,7 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 		}
 	}
 
-	queryErrors := objective.QueryErrors(objective.Window)
+	queryErrors := objective.QueryErrors(objective.Window, s.opts)
 	value, _, err = s.promAPI.Query(contextSetPromCache(ctx, 15*time.Second), queryErrors, ts)
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to query errors", "query", queryErrors, "err", err)
@@ -1013,7 +1018,7 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 	}
 	step := end.Sub(start) / 1000
 
-	query := objective.QueryErrorBudget()
+	query := objective.QueryErrorBudget(s.opts)
 	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, 15*time.Second), query, prometheusapiv1.Range{
 		Start: start,
 		End:   end,
@@ -1390,7 +1395,7 @@ func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[ob
 	timeRange := rangeInterval(start, end)
 	cacheDuration := rangeCache(start, end)
 
-	query := objective.RequestRange(timeRange)
+	query := objective.RequestRange(timeRange, s.opts)
 
 	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusapiv1.Range{
 		Start: start,
@@ -1489,7 +1494,7 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 	timeRange := rangeInterval(start, end)
 	cacheDuration := rangeCache(start, end)
 
-	query := objective.ErrorsRange(timeRange)
+	query := objective.ErrorsRange(timeRange, s.opts)
 	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusapiv1.Range{
 		Start: start,
 		End:   end,
