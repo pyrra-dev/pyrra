@@ -56,7 +56,7 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 	return mbras, nil
 }
 
-func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
+func (o Objective) Burnrates(opts GenerationOptions) (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
 	ws := Windows(time.Duration(o.Window))
@@ -86,7 +86,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
 				Record: o.BurnrateName(br),
-				Expr:   intstr.FromString(o.Burnrate(br)),
+				Expr:   intstr.FromString(o.Burnrate(br, opts)),
 				Labels: ruleLabels,
 			})
 		}
@@ -174,7 +174,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
 				Record: o.BurnrateName(br),
-				Expr:   intstr.FromString(o.Burnrate(br)),
+				Expr:   intstr.FromString(o.Burnrate(br, opts)),
 				Labels: ruleLabels,
 			})
 		}
@@ -262,7 +262,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
 				Record: o.BurnrateName(br),
-				Expr:   intstr.FromString(o.Burnrate(br)),
+				Expr:   intstr.FromString(o.Burnrate(br, opts)),
 				Labels: ruleLabels,
 			})
 		}
@@ -350,7 +350,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
 				Record: o.BurnrateName(br),
-				Expr:   intstr.FromString(o.Burnrate(br)),
+				Expr:   intstr.FromString(o.Burnrate(br, opts)),
 				Labels: ruleLabels,
 			})
 		}
@@ -446,7 +446,7 @@ func (o Objective) BurnrateName(rate time.Duration) string {
 	return fmt.Sprintf("%s:burnrate%s", metric, model.Duration(rate))
 }
 
-func (o Objective) Burnrate(timerange time.Duration) string {
+func (o Objective) Burnrate(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (grouping) (rate(errorMetric{matchers="errors"}[1s])) / sum by (grouping) (rate(metric{matchers="total"}[1s]))`)
@@ -503,9 +503,9 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 
 		objectiveReplacer{
 			metric:        o.Indicator.Latency.Total.Name,
-			matchers:      o.Indicator.Latency.Total.LabelMatchers,
+			matchers:      applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts),
 			errorMetric:   o.Indicator.Latency.Success.Name,
-			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			errorMatchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
 			grouping:      grouping,
 			window:        timerange,
 		}.replace(expr)
@@ -619,7 +619,7 @@ func (o Objective) commonRuleAnnotations() map[string]string {
 	return annotations
 }
 
-func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
+func (o Objective) IncreaseRules(opts GenerationOptions) (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 
 	countExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
@@ -802,7 +802,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 
 		objectiveReplacer{
 			metric:   o.Indicator.Latency.Total.Name,
-			matchers: o.Indicator.Latency.Total.LabelMatchers,
+			matchers: applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts),
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(expr)
@@ -820,7 +820,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 
 		objectiveReplacer{
 			metric:   o.Indicator.Latency.Success.Name,
-			matchers: o.Indicator.Latency.Success.LabelMatchers,
+			matchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(expr)
@@ -852,7 +852,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 
 			objectiveReplacer{
 				metric:   o.Indicator.Latency.Total.Name,
-				matchers: o.Indicator.Latency.Total.LabelMatchers,
+				matchers: applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts),
 			}.replace(expr)
 
 			alertLabels := make(map[string]string, len(ruleLabels)+1)
@@ -877,7 +877,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 
 			objectiveReplacer{
 				metric:   o.Indicator.Latency.Success.Name,
-				matchers: o.Indicator.Latency.Success.LabelMatchers,
+				matchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
 			}.replace(expr)
 
 			alertLabelsLe := make(map[string]string, len(ruleLabelsLe)+1)
@@ -1137,7 +1137,7 @@ func burnratesFromWindows(ws []Window) []time.Duration {
 
 var ErrGroupingUnsupported = errors.New("objective with grouping not supported in generic rules")
 
-func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
+func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup, error) {
 	sloName := o.Labels.Get(labels.MetricName)
 	var rules []monitoringv1.Rule
 
@@ -1281,6 +1281,8 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 				Name:  "slo",
 				Value: o.Name(),
 			})
+			// Apply Prometheus 3 migration to matchers
+			matchers = applyPrometheus3Migration(matchers, opts)
 
 			errorMetric := increaseName(o.Indicator.Latency.Success.Name, o.Window)
 			errorMatchers := o.Indicator.Latency.Success.LabelMatchers
@@ -1295,6 +1297,8 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 				Name:  "slo",
 				Value: o.Name(),
 			})
+			// Apply Prometheus 3 migration to errorMatchers
+			errorMatchers = applyPrometheus3Migration(errorMatchers, opts)
 
 			objectiveReplacer{
 				metric:        metric,
@@ -1327,7 +1331,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			}
 			objectiveReplacer{
 				metric:   metric,
-				matchers: matchers,
+				matchers: applyPrometheus3Migration(matchers, opts),
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
@@ -1363,9 +1367,9 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 			objectiveReplacer{
 				metric:        metric,
-				matchers:      matchers,
+				matchers:      applyPrometheus3Migration(matchers, opts),
 				errorMetric:   errorMetric,
-				errorMatchers: errorMatchers,
+				errorMatchers: applyPrometheus3Migration(errorMatchers, opts),
 			}.replace(errorsExpr)
 
 			rules = append(rules, monitoringv1.Rule{
