@@ -355,7 +355,7 @@ var (
 		}
 		o := objectiveUpTargets()
 		o.Indicator.BoolGauge.Grouping = []string{"job", "instance"}
-		o.Indicator.BoolGauge.Metric.LabelMatchers = append(o.Indicator.BoolGauge.LabelMatchers, matcher)
+		o.Indicator.BoolGauge.LabelMatchers = append(o.Indicator.BoolGauge.LabelMatchers, matcher)
 		return o
 	}
 )
