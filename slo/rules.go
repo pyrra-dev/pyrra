@@ -1421,8 +1421,8 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
 
-		totalMetric := countName(o.Indicator.BoolGauge.Metric.Name, o.Window)
-		totalMatchers := cloneMatchers(o.Indicator.BoolGauge.Metric.LabelMatchers)
+		totalMetric := countName(o.Indicator.BoolGauge.Name, o.Window)
+		totalMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range totalMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = totalMetric
@@ -1435,8 +1435,8 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			Value: o.Name(),
 		})
 
-		successMetric := sumName(o.Indicator.BoolGauge.Metric.Name, o.Window)
-		successMatchers := cloneMatchers(o.Indicator.BoolGauge.Metric.LabelMatchers)
+		successMetric := sumName(o.Indicator.BoolGauge.Name, o.Window)
+		successMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range successMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = successMetric
