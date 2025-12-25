@@ -214,7 +214,4 @@ message GraphDurationRequest {
 
 message GraphDurationResponse {
   repeated Timeseries timeseries = 1;
-
-  // unit of returned duration values, e.g. "s" or "ms". Optional.
-  string unit = 100;
 }

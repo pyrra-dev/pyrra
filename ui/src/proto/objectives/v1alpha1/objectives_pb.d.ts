@@ -1058,11 +1058,6 @@ export declare class GraphDurationResponse extends Message<GraphDurationResponse
    */
   timeseries: Timeseries[];
 
-  /**
-   * @generated from field: string unit = 100;
-   */
-  unit: string;
-
   constructor(data?: PartialMessage<GraphDurationResponse>);
 
   static readonly runtime: typeof proto3;

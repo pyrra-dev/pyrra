@@ -1915,7 +1915,6 @@ func (x *GraphDurationRequest) GetEnd() *timestamppb.Timestamp {
 type GraphDurationResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Timeseries    []*Timeseries          `protobuf:"bytes,1,rep,name=timeseries,proto3" json:"timeseries,omitempty"`
-	Unit          string                 `protobuf:"bytes,100,opt,name=unit,proto3" json:"unit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1955,13 +1954,6 @@ func (x *GraphDurationResponse) GetTimeseries() []*Timeseries {
 		return x.Timeseries
 	}
 	return nil
-}
-
-func (x *GraphDurationResponse) GetUnit() string {
-	if x != nil {
-		return x.Unit
-	}
-	return ""
 }
 
 var File_objectives_v1alpha1_objectives_proto protoreflect.FileDescriptor
@@ -2117,12 +2109,11 @@ const file_objectives_v1alpha1_objectives_proto_rawDesc = "" +
 	"\x04expr\x18\x01 \x01(\tR\x04expr\x12\x1a\n" +
 	"\bgrouping\x18\x02 \x01(\tR\bgrouping\x120\n" +
 	"\x05start\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12,\n" +
-	"\x03end\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\"l\n" +
+	"\x03end\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\"X\n" +
 	"\x15GraphDurationResponse\x12?\n" +
 	"\n" +
 	"timeseries\x18\x01 \x03(\v2\x1f.objectives.v1alpha1.TimeseriesR\n" +
-	"timeseries\x12\x12\n" +
-	"\x04unit\x18d \x01(\tR\x04unit2\xbc\x05\n" +
+	"timeseries2\xbc\x05\n" +
 	"\x10ObjectiveService\x12M\n" +
 	"\x04List\x12 .objectives.v1alpha1.ListRequest\x1a!.objectives.v1alpha1.ListResponse\"\x00\x12\\\n" +
 	"\tGetStatus\x12%.objectives.v1alpha1.GetStatusRequest\x1a&.objectives.v1alpha1.GetStatusResponse\"\x00\x12\\\n" +

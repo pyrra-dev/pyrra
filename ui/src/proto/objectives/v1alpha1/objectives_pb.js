@@ -388,7 +388,6 @@ export const GraphDurationResponse = proto3.makeMessageType(
   "objectives.v1alpha1.GraphDurationResponse",
   () => [
     { no: 1, name: "timeseries", kind: "message", T: Timeseries, repeated: true },
-    { no: 100, name: "unit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ],
 );
 
