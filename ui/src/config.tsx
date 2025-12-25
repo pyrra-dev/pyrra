@@ -62,7 +62,7 @@ export const parseUnitFromConfig = (config: string | undefined): string => {
     // Look for indicator.latency.unit or latency.unit or unit
     if (trimmed.includes('latency:') || trimmed.includes('unit:')) {
       const unitMatch = trimmed.match(/unit:\s*(?:['"]?)([^'"]+)(?:['"]?)/i)
-      if (unitMatch && unitMatch[1]) {
+      if (unitMatch?.[1]) {
         // Check if this unit is under latency (new format)
         const lines = config.split(/\r?\n/)
         const currentIndex = lines.findIndex(l => l.trim() === trimmed)
@@ -83,13 +83,8 @@ export const parseUnitFromConfig = (config: string | undefined): string => {
   return ''
 }
 
-// Get unit from objective config or response
-export const getUnit = (objective: Objective, responseUnit?: string): string => {
-  // Prefer unit from response (backend already parsed it)
-  if (responseUnit) {
-    return responseUnit.toLowerCase()
-  }
-  // Fallback to parsing from config
+// Get unit from objective config
+export const getUnit = (objective: Objective): string => {
   return parseUnitFromConfig(objective.config)
 }
 

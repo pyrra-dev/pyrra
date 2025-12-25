@@ -110,7 +110,7 @@ examples/openshift/manifests: examples/openshift/main.jsonnet jsonnet/controller
 	find examples/openshift/manifests -type f ! -name '*.yaml' -delete
 
 build-all:
-	@rm -rf pyrra
+	@rm -rf pyrra ./bin/pyrra
 	@rm -rf ui/build
 	@make ui/build
 	@make build

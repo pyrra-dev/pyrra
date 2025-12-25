@@ -1713,10 +1713,6 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 
 	unit := parseUnit(objective.Config)
 
-	fmt.Println("CONFIG")
-	fmt.Println(objective.Config)
-	fmt.Println("UNIT", unit)
-
 	return connect.NewResponse(&objectivesv1alpha1.GraphDurationResponse{
 		Timeseries: timeseries,
 		Unit:       unit,

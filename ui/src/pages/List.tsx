@@ -410,10 +410,10 @@ const columns = [
 ]
 
 const VolumeWarningTooltip = ({
-                                id,
-                                objective,
-                                total,
-                              }: {
+    id,
+    objective,
+    total,
+  }: {
   id: string
   objective: number
   total: number

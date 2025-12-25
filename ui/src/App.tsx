@@ -10,6 +10,7 @@ import {
 } from './proto/objectives/v1alpha1/objectives_pb'
 import {QueryClient, QueryClientProvider} from 'react-query'
 import {formatDuration, parseDuration} from './duration'
+import {getUnit} from './config'
 
 // @ts-expect-error - this is passed from the HTML template.
 export const PATH_PREFIX: string = window.PATH_PREFIX
@@ -66,63 +67,10 @@ export const hasObjectiveType = (o: Objective): ObjectiveType => {
   return ObjectiveType.Ratio
 }
 
-// Parse unit from config
-// Supports both YAML format (spec.indicator.latency.unit) and legacy format (spec.unit)
-const parseUnitFromObjective = (o: Objective): string => {
-  if (o.config === "") return ''
-
-  try {
-    const parsed = JSON.parse(o.config)
-    if ((Boolean(parsed)) && typeof parsed === 'object') {
-      // Check for new location: spec.indicator.latency.unit
-      if (parsed.spec?.indicator?.latency?.unit) {
-        return String(parsed.spec.indicator.latency.unit).toLowerCase()
-      }
-      // Check for legacy location: spec.unit
-      if (parsed.spec?.unit) {
-        return String(parsed.spec.unit).toLowerCase()
-      }
-      // Check for unit at root level
-      if (parsed.unit) {
-        return String(parsed.unit).toLowerCase()
-      }
-    }
-  } catch (_) {
-    // Not JSON, try line parsing
-  }
-
-  // Try line-based parsing
-  for (const line of o.config.split(/\r?\n/)) {
-    const trimmed = line.trim()
-    if (trimmed.includes('unit:')) {
-      const match = trimmed.match(/unit:\s*(?:['"]?)([^'"]+)(?:['"]?)/i)
-      if ((match?.[1]) != null) {
-        // Check if this unit is under latency section
-        const lines = o.config.split(/\r?\n/)
-        const currentIndex = lines.findIndex(l => l.trim() === trimmed)
-        // Look backwards to see if we're under latency section
-        for (let i = currentIndex - 1; i >= 0; i--) {
-          const prevLine = lines[i].trim()
-          if (prevLine.includes('latency:')) {
-            return match[1].trim().toLowerCase()
-          }
-          if (prevLine.includes('indicator:') || prevLine.includes('ratio:') || prevLine.includes('spec:')) {
-            break
-          }
-        }
-        // If not under latency, return anyway (legacy format)
-        return match[1].trim().toLowerCase()
-      }
-    }
-  }
-
-  return ''
-}
-
 // returns the latency target in milliseconds
 export const latencyTarget = (o: Objective): number | undefined => {
   const objectiveType = hasObjectiveType(o)
-  const unit = parseUnitFromObjective(o)
+  const unit = getUnit(o)
 
   if (objectiveType === ObjectiveType.Latency) {
     const latency: Latency = o.indicator?.options.value as Latency

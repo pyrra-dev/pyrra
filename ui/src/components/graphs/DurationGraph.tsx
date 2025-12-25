@@ -12,12 +12,14 @@ import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_conne
 import {Timestamp} from '@bufbuild/protobuf'
 import {
   GraphDurationResponse,
+  Objective,
   Series,
   Timeseries,
 } from '../../proto/objectives/v1alpha1/objectives_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {formatDuration} from '../../duration'
 import {buildExternalHRef, externalName} from '../../external'
+import {getUnit} from '../../config'
 
 interface DurationGraphProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -29,6 +31,7 @@ interface DurationGraphProps {
   updateTimeRange: (min: number, max: number, absolute: boolean) => void
   target: number
   latency: number | undefined
+  objective: Objective | null
   // latencyValue: number
 }
 
@@ -42,6 +45,7 @@ const DurationGraph = ({
                          updateTimeRange,
                          target,
                          latency,
+                         objective,
                          // latencyValue
                        }: DurationGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
@@ -78,7 +82,6 @@ const DurationGraph = ({
         end: Timestamp.fromDate(new Date(to)),
       })
       .then((resp: GraphDurationResponse) => {
-        const respUnit = (resp as any)?.unit as string | undefined
         let durationTimestamps: number[] = []
         const rawDurationData: number[][] = []
         const durationLabels: string[] = []
@@ -97,13 +100,12 @@ const DurationGraph = ({
           durationQueries.push(timeseries.query)
         })
 
-        // determine unit: prefer explicit unit from response, otherwise assume seconds
-        // Backend returns values in the unit specified (respUnit)
-        // If respUnit === 'ms', values are in milliseconds
-        // If respUnit === 's' or empty, values are in seconds
+        // determine unit: use getUnit for consistent approach (same as List.tsx)
+        // Parse unit from objective config only
+        const unit = objective ? getUnit(objective) : 's'
         let vUnit: 's' | 'ms' = 's'
 
-        if (respUnit === 'ms') {
+        if (unit === 'ms') {
           vUnit = 'ms'
         } else {
           // Default to seconds if not specified
@@ -112,7 +114,7 @@ const DurationGraph = ({
 
         setValueUnit(vUnit)
 
-        // console.log('DurationGraph response', {respUnit, valueUnit: vUnit, timestamps: durationTimestamps.length, seriesCount: rawDurationData.length, labelsCount: durationLabels.length})
+        // console.log('DurationGraph response', {valueUnit: vUnit, timestamps: durationTimestamps.length, seriesCount: rawDurationData.length, labelsCount: durationLabels.length})
 
         // Values are already in the correct unit from backend, no scaling needed
         // Just convert to milliseconds for internal representation (formatDuration expects ms)
@@ -163,7 +165,7 @@ const DurationGraph = ({
           // Add latency line to the data (values should match the unit of other series)
           durationData.unshift(Array(durationTimestamps.length).fill(latencyValue))
           durationLabels.unshift('{quantile="target"}')
-          console.log('DurationGraph latency', {latency, latencyValue, vUnit, respUnit})
+          console.log('DurationGraph latency', {latency, latencyValue, vUnit, unit})
         } else {
           setDisplayLatencyMs(undefined)
         }
@@ -180,7 +182,7 @@ const DurationGraph = ({
       .finally(() => {
         setDurationsLoading(false)
       })
-  }, [client, labels, grouping, from, to, latency, valueUnit])
+  }, [client, labels, grouping, from, to, latency, objective, valueUnit])
 
   return (
     <>
