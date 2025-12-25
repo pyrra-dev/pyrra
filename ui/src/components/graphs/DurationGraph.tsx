@@ -101,16 +101,9 @@ const DurationGraph = ({
         })
 
         // determine unit: use getUnit for consistent approach (same as List.tsx)
-        // Parse unit from objective config only
+        // Get unit from objective structure
         const unit = objective ? getUnit(objective) : 's'
-        let vUnit: 's' | 'ms' = 's'
-
-        if (unit === 'ms') {
-          vUnit = 'ms'
-        } else {
-          // Default to seconds if not specified
-          vUnit = 's'
-        }
+        const vUnit: 's' | 'ms' = unit === 'ms' ? 'ms' : 's'
 
         setValueUnit(vUnit)
 

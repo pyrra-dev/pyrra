@@ -495,6 +495,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 				LabelMatchers: totalMatchers,
 			},
 			Grouping: in.Spec.ServiceLevelIndicator.Latency.Grouping,
+			Unit:     in.Spec.ServiceLevelIndicator.Latency.Unit,
 		}
 	}
 

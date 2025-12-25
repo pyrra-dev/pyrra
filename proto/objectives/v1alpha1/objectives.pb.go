@@ -491,6 +491,7 @@ type Latency struct {
 	Total         *Query                 `protobuf:"bytes,1,opt,name=total,proto3" json:"total,omitempty"`
 	Success       *Query                 `protobuf:"bytes,2,opt,name=success,proto3" json:"success,omitempty"`
 	Grouping      []string               `protobuf:"bytes,3,rep,name=grouping,proto3" json:"grouping,omitempty"`
+	Unit          string                 `protobuf:"bytes,4,opt,name=unit,proto3" json:"unit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -544,6 +545,13 @@ func (x *Latency) GetGrouping() []string {
 		return x.Grouping
 	}
 	return nil
+}
+
+func (x *Latency) GetUnit() string {
+	if x != nil {
+		return x.Unit
+	}
+	return ""
 }
 
 type LatencyNative struct {
@@ -1988,11 +1996,12 @@ const file_objectives_v1alpha1_objectives_proto_rawDesc = "" +
 	"\x05Ratio\x120\n" +
 	"\x05total\x18\x01 \x01(\v2\x1a.objectives.v1alpha1.QueryR\x05total\x122\n" +
 	"\x06errors\x18\x02 \x01(\v2\x1a.objectives.v1alpha1.QueryR\x06errors\x12\x1a\n" +
-	"\bgrouping\x18\x03 \x03(\tR\bgrouping\"\x8d\x01\n" +
+	"\bgrouping\x18\x03 \x03(\tR\bgrouping\"\xa1\x01\n" +
 	"\aLatency\x120\n" +
 	"\x05total\x18\x01 \x01(\v2\x1a.objectives.v1alpha1.QueryR\x05total\x124\n" +
 	"\asuccess\x18\x02 \x01(\v2\x1a.objectives.v1alpha1.QueryR\asuccess\x12\x1a\n" +
-	"\bgrouping\x18\x03 \x03(\tR\bgrouping\"w\n" +
+	"\bgrouping\x18\x03 \x03(\tR\bgrouping\x12\x12\n" +
+	"\x04unit\x18\x04 \x01(\tR\x04unit\"w\n" +
 	"\rLatencyNative\x120\n" +
 	"\x05total\x18\x01 \x01(\v2\x1a.objectives.v1alpha1.QueryR\x05total\x12\x18\n" +
 	"\alatency\x18\x02 \x01(\tR\alatency\x12\x1a\n" +

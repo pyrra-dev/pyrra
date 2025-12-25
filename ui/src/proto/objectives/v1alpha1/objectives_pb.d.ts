@@ -214,6 +214,11 @@ export declare class Latency extends Message<Latency> {
    */
   grouping: string[];
 
+  /**
+   * @generated from field: string unit = 4;
+   */
+  unit: string;
+
   constructor(data?: PartialMessage<Latency>);
 
   static readonly runtime: typeof proto3;

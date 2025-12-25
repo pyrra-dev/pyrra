@@ -60,6 +60,7 @@ message Latency {
   Query total = 1;
   Query success = 2;
   repeated string grouping = 3;
+  string unit = 4;
 }
 
 message LatencyNative {
