@@ -25,6 +25,21 @@ const (
 	PrometheusServiceName = "prometheus.v1.PrometheusService"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// PrometheusServiceQueryProcedure is the fully-qualified name of the PrometheusService's Query RPC.
+	PrometheusServiceQueryProcedure = "/prometheus.v1.PrometheusService/Query"
+	// PrometheusServiceQueryRangeProcedure is the fully-qualified name of the PrometheusService's
+	// QueryRange RPC.
+	PrometheusServiceQueryRangeProcedure = "/prometheus.v1.PrometheusService/QueryRange"
+)
+
 // PrometheusServiceClient is a client for the prometheus.v1.PrometheusService service.
 type PrometheusServiceClient interface {
 	Query(context.Context, *connect_go.Request[v1.QueryRequest]) (*connect_go.Response[v1.QueryResponse], error)
@@ -43,12 +58,12 @@ func NewPrometheusServiceClient(httpClient connect_go.HTTPClient, baseURL string
 	return &prometheusServiceClient{
 		query: connect_go.NewClient[v1.QueryRequest, v1.QueryResponse](
 			httpClient,
-			baseURL+"/prometheus.v1.PrometheusService/Query",
+			baseURL+PrometheusServiceQueryProcedure,
 			opts...,
 		),
 		queryRange: connect_go.NewClient[v1.QueryRangeRequest, v1.QueryRangeResponse](
 			httpClient,
-			baseURL+"/prometheus.v1.PrometheusService/QueryRange",
+			baseURL+PrometheusServiceQueryRangeProcedure,
 			opts...,
 		),
 	}
@@ -82,18 +97,26 @@ type PrometheusServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewPrometheusServiceHandler(svc PrometheusServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle("/prometheus.v1.PrometheusService/Query", connect_go.NewUnaryHandler(
-		"/prometheus.v1.PrometheusService/Query",
+	prometheusServiceQueryHandler := connect_go.NewUnaryHandler(
+		PrometheusServiceQueryProcedure,
 		svc.Query,
 		opts...,
-	))
-	mux.Handle("/prometheus.v1.PrometheusService/QueryRange", connect_go.NewUnaryHandler(
-		"/prometheus.v1.PrometheusService/QueryRange",
+	)
+	prometheusServiceQueryRangeHandler := connect_go.NewUnaryHandler(
+		PrometheusServiceQueryRangeProcedure,
 		svc.QueryRange,
 		opts...,
-	))
-	return "/prometheus.v1.PrometheusService/", mux
+	)
+	return "/prometheus.v1.PrometheusService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case PrometheusServiceQueryProcedure:
+			prometheusServiceQueryHandler.ServeHTTP(w, r)
+		case PrometheusServiceQueryRangeProcedure:
+			prometheusServiceQueryRangeHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedPrometheusServiceHandler returns CodeUnimplemented from all methods.

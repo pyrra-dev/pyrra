@@ -19,6 +19,8 @@ import (
 	"syscall"
 	"time"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/alecthomas/kong"
 	"github.com/bufbuild/connect-go"
 	"github.com/dgraph-io/ristretto"
@@ -1657,8 +1659,67 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 		}
 	}
 
+	// parse unit from proto objective config if present (YAML parser)
+	parseUnit := func(cfg string) string {
+		if cfg == "" {
+			return ""
+		}
+		var data map[string]interface{}
+		if err := yaml.Unmarshal([]byte(cfg), &data); err != nil {
+			// fallback to simple line parse if invalid YAML
+			for _, line := range strings.Split(cfg, "\n") {
+				l := strings.TrimSpace(line)
+				if strings.HasPrefix(l, "unit:") {
+					val := strings.TrimSpace(strings.TrimPrefix(l, "unit:"))
+					val = strings.Trim(val, `"' `)
+					return val
+				}
+			}
+			return ""
+		}
+
+		// look for spec.indicator.latency.unit or spec.unit (legacy) or unit at root
+		if specRaw, ok := data["spec"]; ok {
+			if specMap, ok := specRaw.(map[string]interface{}); ok {
+				// Check for new location: spec.indicator.latency.unit
+				if indicatorRaw, ok := specMap["indicator"]; ok {
+					if indicatorMap, ok := indicatorRaw.(map[string]interface{}); ok {
+						if latencyRaw, ok := indicatorMap["latency"]; ok {
+							if latencyMap, ok := latencyRaw.(map[string]interface{}); ok {
+								if u, ok := latencyMap["unit"]; ok {
+									if s, ok := u.(string); ok {
+										return s
+									}
+								}
+							}
+						}
+					}
+				}
+				// Check for legacy location: spec.unit
+				if u, ok := specMap["unit"]; ok {
+					if s, ok := u.(string); ok {
+						return s
+					}
+				}
+			}
+		}
+		if u, ok := data["unit"]; ok {
+			if s, ok := u.(string); ok {
+				return s
+			}
+		}
+		return ""
+	}
+
+	unit := parseUnit(objective.Config)
+
+	fmt.Println("CONFIG")
+	fmt.Println(objective.Config)
+	fmt.Println("UNIT", unit)
+
 	return connect.NewResponse(&objectivesv1alpha1.GraphDurationResponse{
 		Timeseries: timeseries,
+		Unit:       unit,
 	}), nil
 }
 

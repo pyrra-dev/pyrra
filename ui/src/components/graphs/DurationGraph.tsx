@@ -29,19 +29,21 @@ interface DurationGraphProps {
   updateTimeRange: (min: number, max: number, absolute: boolean) => void
   target: number
   latency: number | undefined
+  // latencyValue: number
 }
 
 const DurationGraph = ({
-  client,
-  labels,
-  grouping,
-  from,
-  to,
-  uPlotCursor,
-  updateTimeRange,
-  target,
-  latency,
-}: DurationGraphProps): JSX.Element => {
+                         client,
+                         labels,
+                         grouping,
+                         from,
+                         to,
+                         uPlotCursor,
+                         updateTimeRange,
+                         target,
+                         latency,
+                         // latencyValue
+                       }: DurationGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
   const [durations, setDurations] = useState<AlignedData>()
@@ -49,6 +51,9 @@ const DurationGraph = ({
   const [durationLabels, setDurationLabels] = useState<string[]>([])
   const [durationsLoading, setDurationsLoading] = useState<boolean>(true)
   const [width, setWidth] = useState<number>(500)
+  const [displayLatencyMs, setDisplayLatencyMs] = useState<number | undefined>(undefined)
+  const [yRange, setYRange] = useState<{min: number; max: number}>({min: 0, max: 1})
+  const [valueUnit, setValueUnit] = useState<'s' | 'ms'>('s')
 
   const setWidthFromContainer = () => {
     if (targetRef !== undefined) {
@@ -63,6 +68,8 @@ const DurationGraph = ({
 
   useEffect(() => {
     setDurationsLoading(true)
+    setDisplayLatencyMs(undefined)
+    // console.log('GraphDuration request', {expr: labelsString(labels), grouping: labelsString(grouping), from, to})
     client
       .graphDuration({
         expr: labelsString(labels),
@@ -71,42 +78,109 @@ const DurationGraph = ({
         end: Timestamp.fromDate(new Date(to)),
       })
       .then((resp: GraphDurationResponse) => {
+        const respUnit = (resp as any)?.unit as string | undefined
         let durationTimestamps: number[] = []
-        const durationData: number[][] = []
+        const rawDurationData: number[][] = []
         const durationLabels: string[] = []
         const durationQueries: string[] = []
-
-        // The first series is a straight line (same latency target value for all timestamps)
-        // showing the objective.
-        if (latency !== undefined) {
-          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000))
-          durationLabels.push('{quantile="target"}')
-        }
 
         resp.timeseries.forEach((timeseries: Timeseries, i: number) => {
           const [x, ...series] = timeseries.series
           if (i === 0) {
             durationTimestamps = x.values
           }
-
+          // collect raw series values (no scaling yet)
           series.forEach((s: Series) => {
-            durationData.push(s.values)
+            rawDurationData.push(s.values)
           })
-
           durationLabels.push(...timeseries.labels)
           durationQueries.push(timeseries.query)
         })
+
+        // determine unit: prefer explicit unit from response, otherwise assume seconds
+        // Backend returns values in the unit specified (respUnit)
+        // If respUnit === 'ms', values are in milliseconds
+        // If respUnit === 's' or empty, values are in seconds
+        let vUnit: 's' | 'ms' = 's'
+
+        if (respUnit === 'ms') {
+          vUnit = 'ms'
+        } else {
+          // Default to seconds if not specified
+          vUnit = 's'
+        }
+
+        setValueUnit(vUnit)
+
+        // console.log('DurationGraph response', {respUnit, valueUnit: vUnit, timestamps: durationTimestamps.length, seriesCount: rawDurationData.length, labelsCount: durationLabels.length})
+
+        // Values are already in the correct unit from backend, no scaling needed
+        // Just convert to milliseconds for internal representation (formatDuration expects ms)
+        const durationData: number[][] = rawDurationData.map((arr) =>
+          arr.map((v) => {
+            if (v === null || v === undefined) return v
+            // If values are in seconds (vUnit === 's'), convert to milliseconds for formatDuration
+            // If values are already in milliseconds (vUnit === 'ms'), use as-is
+            return vUnit === 's' ? v * 1000 : v
+          })
+        )
+
+        // compute y range (values are in seconds)
+        const flattenedScaled = durationData.flat().filter((v) => Number.isFinite(v))
+        let computedMax = 1
+        const computedMin = 0
+        if (flattenedScaled.length > 0) {
+          computedMax = Math.max(...flattenedScaled)
+          // computedMin = Math.min(...flattenedScaled)
+          // add x2 padding
+          computedMax = computedMax * 1.5
+          // computedMin = computedMin * 0.5
+
+          // if (computedMax < 1) {
+          //   computedMax = 1
+          // }
+        }
+        // always set min to 0 for durations
+        setYRange({min: computedMin, max: computedMax})
+        console.log('valueUnit', valueUnit)
+        console.log('compute range', {computedMax, computedMin})
+
+        // latency is always in milliseconds from latencyTarget()
+        // Convert it to match the unit of the duration data
+        let latencyValue = 0
+        if (latency !== undefined && durationTimestamps.length > 0) {
+          // latency is in milliseconds, convert to match vUnit
+          if (vUnit === 'ms') {
+            // Data is in ms, latency is already in ms, use as-is
+            latencyValue = latency
+            setDisplayLatencyMs(latency)
+          } else {
+            // Data is in seconds, convert latency from ms to seconds
+            latencyValue = latency
+            // latencyValue = latency / 1000
+            setDisplayLatencyMs(latency) // Store original ms value for display
+          }
+          // Add latency line to the data (values should match the unit of other series)
+          durationData.unshift(Array(durationTimestamps.length).fill(latencyValue))
+          durationLabels.unshift('{quantile="target"}')
+          console.log('DurationGraph latency', {latency, latencyValue, vUnit, respUnit})
+        } else {
+          setDisplayLatencyMs(undefined)
+        }
+
         setDurations([durationTimestamps, ...durationData])
         setDurationLabels(durationLabels)
         setDurationQueries(durationQueries)
       })
-      .catch(() => {
+      .catch((err) => {
+        console.log('GraphDuration error', err)
         setDurations(undefined)
+        setDisplayLatencyMs(undefined)
       })
       .finally(() => {
         setDurationsLoading(false)
       })
-  }, [client, labels, grouping, from, to, latency])
+  }, [client, labels, grouping, from, to, latency, valueUnit])
 
   return (
     <>
@@ -142,7 +216,7 @@ const DurationGraph = ({
           How long do the requests take?
           {latency !== undefined ? (
             <>
-              <br />p{target * 100} must be faster than {formatDuration(latency)}.
+              <br />p{target * 100} must be faster than {formatDuration(displayLatencyMs ?? latency)}.
             </>
           ) : (
             ''
@@ -167,7 +241,8 @@ const DurationGraph = ({
                     dash: i === 0 ? [25, 10] : undefined,
                     label: parseLabelValue(label),
                     gaps: seriesGaps(from / 1000, to / 1000),
-                    value: (u, v) => (v == null ? '-' : formatDuration(v * 1000, 1)),
+                    // Values are already in milliseconds (converted above)
+                    value: (u, v) => (v == null ? '-' : formatDuration(v, 1)),
                   }
                 }),
               ],
@@ -175,16 +250,18 @@ const DurationGraph = ({
                 x: {min: from / 1000, max: to / 1000},
                 y: {
                   range: {
-                    min: {hard: 0},
-                    max: {hard: 100},
+                    min: {hard: yRange.min},
+                    max: {hard: yRange.max},
                   },
                 },
               },
               axes: [
                 {},
                 {
+                  // Values in durationData are already in milliseconds for formatDuration
+                  // formatDuration expects milliseconds, so we pass values as-is
                   values: (uplot: uPlot, v: number[]) =>
-                    v.map((v: number) => formatDuration(v * 1000)),
+                    v.map((v: number) => formatDuration(v)),
                 },
               ],
               hooks: {

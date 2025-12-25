@@ -77,7 +77,8 @@ docker-push:
 # download controller-gen if necessary
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
+#	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
@@ -107,3 +108,10 @@ examples/openshift/manifests: examples/openshift/main.jsonnet jsonnet/controller
 	jsonnetfmt -i examples/openshift/main.jsonnet
 	jsonnet -m examples/openshift/manifests examples/openshift/main.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
 	find examples/openshift/manifests -type f ! -name '*.yaml' -delete
+
+build-all:
+	@rm -rf pyrra
+	@rm -rf ui/build
+	@make ui/build
+	@make build
+	@cp pyrra ./bin/pyrra

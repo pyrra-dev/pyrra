@@ -1,0 +1,43 @@
+version: "3"
+
+#networks:
+#  pyrra:
+
+volumes:
+  prometheus_pyrra: {}
+  grafana_data: {}
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.7.2
+    container_name: prometheus
+    restart: always
+    network_mode: "host"
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=33d
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_pyrra:/etc/prometheus/pyrra
+
+#  grafana:
+#    image: grafana/grafana:latest
+#    container_name: grafana
+#    restart: always
+#    network_mode: "host"
+#    #    networks:
+#    #      - pyrra
+#    ports:
+#      - "3000:3000"
+#    environment:
+#      - GF_SECURITY_ADMIN_PASSWORD=admin
+#      - GF_USERS_ALLOW_SIGN_UP=false
+#    volumes:
+#      - grafana_data:/var/lib/grafana
+
+
+

@@ -98,12 +98,12 @@ type TableAction =
   | {type: TableActionType.DeleteObjective; lset: string}
   | {type: TableActionType.SetStatus; lset: string; status: ObjectiveStatus}
   | {
-      type: TableActionType.SetObjectiveWithStatus
-      lset: string
-      statusLabels: Labels
-      objective: Objective
-      status: ObjectiveStatus
-    }
+  type: TableActionType.SetObjectiveWithStatus
+  lset: string
+  statusLabels: Labels
+  objective: Objective
+  status: ObjectiveStatus
+}
   | {type: TableActionType.SetStatusNone; lset: string}
   | {type: TableActionType.SetStatusError; lset: string}
   | {type: TableActionType.SetAlert; labels: Labels; severity: string}
@@ -281,7 +281,7 @@ const columns = [
     sortingFn: (a: TableRow<row>, b: TableRow<row>, columnId: string): number => {
       const av: {lset: Labels; grouping: Labels} = a.getValue(columnId)
       const bv: {lset: Labels; grouping: Labels} = b.getValue(columnId)
-      
+
       // First compare by the metric name
       const aName = av.lset[MetricName] ?? ''
       const bName = bv.lset[MetricName] ?? ''
@@ -289,7 +289,7 @@ const columns = [
       if (nameComparison !== 0) {
         return nameComparison
       }
-      
+
       // If names are equal, compare by grouping labels only
       const aGrouping = labelsString(av.grouping)
       const bGrouping = labelsString(bv.grouping)
@@ -410,10 +410,10 @@ const columns = [
 ]
 
 const VolumeWarningTooltip = ({
-  id,
-  objective,
-  total,
-}: {
+                                id,
+                                objective,
+                                total,
+                              }: {
   id: string
   objective: number
   total: number
@@ -442,7 +442,7 @@ const VolumeWarningTooltip = ({
 const emptyData: row[] = []
 
 const List = () => {
-  console.log('render List')
+  // console.log('render List')
 
   document.title = 'Objectives - Pyrra'
   const navigate = useNavigate()
@@ -834,64 +834,64 @@ const List = () => {
           <div className="table-responsive">
             <Table hover={true}>
               <thead>
-                {reactTable.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className={header.column.getIsSorted() !== false ? 'active' : ''}
-                        onClick={header.column.getToggleSortingHandler()}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() && header.column.getIsSorted() === false ? (
-                          <IconArrowUpDown />
-                        ) : (
-                          ''
-                        )}
-                        {header.column.getIsSorted() === 'asc' ? <IconArrowUp /> : ''}
-                        {header.column.getIsSorted() === 'desc' ? <IconArrowDown /> : ''}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
+              {reactTable.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className={header.column.getIsSorted() !== false ? 'active' : ''}
+                      onClick={header.column.getToggleSortingHandler()}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getCanSort() && header.column.getIsSorted() === false ? (
+                        <IconArrowUpDown />
+                      ) : (
+                        ''
+                      )}
+                      {header.column.getIsSorted() === 'asc' ? <IconArrowUp /> : ''}
+                      {header.column.getIsSorted() === 'desc' ? <IconArrowDown /> : ''}
+                    </th>
+                  ))}
+                </tr>
+              ))}
               </thead>
               <tbody>
-                {reactTable.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    onClick={() => {
-                      const window: Duration | undefined = row.getValue('window')
-                      if (Number(window?.seconds) === 0) {
-                        // Don't navigate for invalid SLOs
-                        return
-                      }
-                      const labels: {lset: Labels; grouping: Labels} = row.getValue('lset')
-                      navigate(objectivePage(labels.lset, labels.grouping))
-                    }}
-                    className={
-                      row.getValue('alerts') !== ''
-                        ? 'table-row-clickable firing'
-                        : 'table-row-clickable'
-                    }>
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id}>
-                        <>
-                          {cell.column.id === 'lset' ? (
-                            <NameCell
-                              cell={cell}
-                              onFilter={(lset) => {
-                                updateFilter(lset)
-                              }}
-                            />
-                          ) : (
-                            flexRender(cell.column.columnDef.cell, cell.getContext())
-                          )}
-                        </>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+              {reactTable.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  onClick={() => {
+                    const window: Duration | undefined = row.getValue('window')
+                    if (Number(window?.seconds) === 0) {
+                      // Don't navigate for invalid SLOs
+                      return
+                    }
+                    const labels: {lset: Labels; grouping: Labels} = row.getValue('lset')
+                    navigate(objectivePage(labels.lset, labels.grouping))
+                  }}
+                  className={
+                    row.getValue('alerts') !== ''
+                      ? 'table-row-clickable firing'
+                      : 'table-row-clickable'
+                  }>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id}>
+                      <>
+                        {cell.column.id === 'lset' ? (
+                          <NameCell
+                            cell={cell}
+                            onFilter={(lset) => {
+                              updateFilter(lset)
+                            }}
+                          />
+                        ) : (
+                          flexRender(cell.column.columnDef.cell, cell.getContext())
+                        )}
+                      </>
+                    </td>
+                  ))}
+                </tr>
+              ))}
               </tbody>
             </Table>
           </div>

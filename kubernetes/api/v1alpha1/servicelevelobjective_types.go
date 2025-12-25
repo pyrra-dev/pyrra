@@ -156,6 +156,13 @@ type RatioIndicator struct {
 }
 
 type LatencyIndicator struct {
+	// +optional
+	// +kubebuilder:validation:Enum:=s;ms
+	// +kubebuilder:default:=s
+	// Unit is the unit of measurement for latency (e.g., "s" for seconds, "ms" for milliseconds).
+	// Defaults to "s" (seconds).
+	Unit string `json:"unit,omitempty"`
+
 	// Success is the metric that returns how many errors there are.
 	Success Query `json:"success"`
 	// Total is the metric that returns how many requests there are in total.

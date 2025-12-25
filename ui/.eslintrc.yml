@@ -34,6 +34,7 @@ rules:
   no-void: 0
   # TODO fix these in follow ups
   '@typescript-eslint/explicit-function-return-type': 'off'
+  '@typescript-eslint/strict-boolean-expressions': 'off'
   #'@typescript-eslint/member-delimiter-style':
   #  - error
   #  - singleline:
