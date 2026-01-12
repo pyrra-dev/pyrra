@@ -3,7 +3,7 @@
   "kind": "CustomResourceDefinition",
   "metadata": {
     "annotations": {
-      "controller-gen.kubebuilder.io/version": "v0.18.0"
+      "controller-gen.kubebuilder.io/version": "v0.19.0"
     },
     "name": "servicelevelobjectives.pyrra.dev"
   },
@@ -241,6 +241,10 @@
                       ""
                     ],
                     "type": "string"
+                  },
+                  "performance_over_accuracy": {
+                    "default": false,
+                    "type": "boolean"
                   },
                   "target": {
                     "description": "Target is a string that's casted to a float64 between 0 - 100.\nIt represents the desired availability of the service in the given window.\nfloat64 are not supported: https://github.com/kubernetes-sigs/controller-tools/issues/245",

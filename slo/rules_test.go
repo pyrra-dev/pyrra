@@ -1285,6 +1285,27 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "http-ratio-less-accuracy",
+		slo:  objectiveHTTPRatioGroupingLessAccurate(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-increase",
+			Interval: monitoringDuration("2m30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:increase5m",
+				Expr:   intstr.FromString(`sum by (code) (increase(http_requests_total{job="thanos-receive-default"}[5m]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:increase4w",
+				Expr:   intstr.FromString(`sum by (code) (sum_over_time(http_requests:increase5m{job="thanos-receive-default"}[4w:5m]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(http_requests_total{job="thanos-receive-default"}) == 1`),
+				For:    monitoringDuration("10m"),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors", "severity": "critical"},
+			}},
+		},
+	}, {
 		name: "http-ratio-grouping-regex",
 		slo:  objectiveHTTPRatioGroupingRegex(),
 		rules: monitoringv1.RuleGroup{
@@ -1336,6 +1357,27 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "grpc-errors-grouping-less-accuracy",
+		slo:  objectiveGRPCRatioGroupingLessAccuracy(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-grpc-errors-increase",
+			Interval: monitoringDuration("2m30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "grpc_server_handled:increase5m",
+				Expr:   intstr.FromString(`sum by (grpc_code, handler, job) (increase(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[5m]))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors"},
+			}, {
+				Record: "grpc_server_handled:increase4w",
+				Expr:   intstr.FromString(`sum by (grpc_code, handler, job) (sum_over_time(grpc_server_handled:increase5m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w:5m]))`),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(grpc_server_handled_total{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}) == 1`),
+				For:    monitoringDuration("3m"),
+				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors", "severity": "critical"},
+			}},
+		},
+	}, {
 		name: "http-latency",
 		slo:  objectiveHTTPLatency(),
 		rules: monitoringv1.RuleGroup{
@@ -1375,11 +1417,6 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`histogram_fraction(0, 1, sum(increase(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4w]))) * histogram_count(sum(increase(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}[4w])))`),
 				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "le": "1"},
-				// }, {
-				//	Alert:  "SLOMetricAbsent",
-				//	Expr:   intstr.FromString(`absent(http_request_duration_seconds{code=~"2..",job="metrics-service-thanos-receive-default"}) == 1`),
-				//	For:    monitoringDuration("2m"),
-				//	Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "severity": "critical"},
 			}},
 		},
 	}, {
@@ -1421,6 +1458,40 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}, {
 				Record: "http_request_duration_seconds:increase4w",
 				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[4w]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}) == 1`),
+				For:    monitoringDuration("6m"),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "severity": "critical"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}) == 1`),
+				For:    monitoringDuration("6m"),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1", "severity": "critical"},
+			}},
+		},
+	}, {
+		name: "http-latency-grouping-regex-less-accuracy",
+		slo:  objectiveHTTPLatencyGroupingRegexLessAccuracy(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-latency-increase",
+			Interval: monitoringDuration("2m30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_request_duration_seconds:increase5m",
+				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_request_duration_seconds_count{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[5m]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:increase5m",
+				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_request_duration_seconds_bucket{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[5m]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
+			}, {
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by (code, handler, job) (sum_over_time(http_request_duration_seconds:increase5m{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[4w:5m]))`),
+				Labels: map[string]string{"slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:increase4w",
+				Expr:   intstr.FromString(`sum by (code, handler, job) (sum_over_time(http_request_duration_seconds:increase5m{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[4w:5m]))`),
 				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
 			}, {
 				Alert:  "SLOMetricAbsent",
@@ -1625,7 +1696,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		},
 	}}
 
-	require.Len(t, testcases, 17)
+	require.Len(t, testcases, 20)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
