@@ -98,7 +98,7 @@ const Detail = () => {
   } = useObjectivesList(client, expr, grouping)
 
   const objective: Objective | null = objectiveResponse?.objectives[0] ?? null
-  
+
   const {response: totalResponse, status: totalStatus} = usePrometheusQuery(
     promClient,
     objective?.queries?.countTotal ?? '',
