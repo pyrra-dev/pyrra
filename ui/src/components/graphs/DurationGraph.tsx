@@ -101,8 +101,6 @@ const DurationGraph = ({
         const unit = objective != null ? getUnit(objective) : 's'
         const vUnit: 's' | 'ms' = unit === 'ms' ? 'ms' : 's'
 
-        // Values are already in the correct unit from backend, no scaling needed
-        // Just convert to milliseconds for internal representation (formatDuration expects ms)
         const durationData: number[][] = rawDurationData.map((arr) =>
           arr.map((v) => {
             if (v === null || v === undefined) return v
