@@ -32,22 +32,20 @@ interface DurationGraphProps {
   target: number
   latency: number | undefined
   objective: Objective | null
-  // latencyValue: number
 }
 
 const DurationGraph = ({
-                         client,
-                         labels,
-                         grouping,
-                         from,
-                         to,
-                         uPlotCursor,
-                         updateTimeRange,
-                         target,
-                         latency,
-                         objective,
-                         // latencyValue
-                       }: DurationGraphProps): JSX.Element => {
+  client,
+  labels,
+  grouping,
+  from,
+  to,
+  uPlotCursor,
+  updateTimeRange,
+  target,
+  latency,
+  objective,                       
+}: DurationGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
   const [durations, setDurations] = useState<AlignedData>()
@@ -102,12 +100,10 @@ const DurationGraph = ({
 
         // determine unit: use getUnit for consistent approach (same as List.tsx)
         // Get unit from objective structure
-        const unit = objective ? getUnit(objective) : 's'
+        const unit = objective != null ? getUnit(objective) : 's'
         const vUnit: 's' | 'ms' = unit === 'ms' ? 'ms' : 's'
 
         setValueUnit(vUnit)
-
-        // console.log('DurationGraph response', {valueUnit: vUnit, timestamps: durationTimestamps.length, seriesCount: rawDurationData.length, labelsCount: durationLabels.length})
 
         // Values are already in the correct unit from backend, no scaling needed
         // Just convert to milliseconds for internal representation (formatDuration expects ms)
@@ -126,14 +122,7 @@ const DurationGraph = ({
         const computedMin = 0
         if (flattenedScaled.length > 0) {
           computedMax = Math.max(...flattenedScaled)
-          // computedMin = Math.min(...flattenedScaled)
-          // add x2 padding
           computedMax = computedMax * 1.5
-          // computedMin = computedMin * 0.5
-
-          // if (computedMax < 1) {
-          //   computedMax = 1
-          // }
         }
         // always set min to 0 for durations
         setYRange({min: computedMin, max: computedMax})

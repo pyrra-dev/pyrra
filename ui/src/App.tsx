@@ -123,25 +123,25 @@ export const renderLatencyTarget = (o: Objective): string => {
 
 export const dateFormatter =
   (timeRange: number) =>
-    (t: number): string => {
-      const date = new Date(t * 1000)
-      const year = date.getUTCFullYear()
-      const month = date.getUTCMonth() + 1
-      const day = date.getUTCDate()
-      const hour = date.getUTCHours()
-      const minute = date.getUTCMinutes()
+  (t: number): string => {
+    const date = new Date(t * 1000)
+    const year = date.getUTCFullYear()
+    const month = date.getUTCMonth() + 1
+    const day = date.getUTCDate()
+    const hour = date.getUTCHours()
+    const minute = date.getUTCMinutes()
 
-      const monthLeading = month > 9 ? month : `0${month}`
-      const dayLeading = day > 9 ? day : `0${day}`
-      const hourLeading = hour > 9 ? hour : `0${hour}`
-      const minuteLeading = minute > 9 ? minute : `0${minute}`
+    const monthLeading = month > 9 ? month : `0${month}`
+    const dayLeading = day > 9 ? day : `0${day}`
+    const hourLeading = hour > 9 ? hour : `0${hour}`
+    const minuteLeading = minute > 9 ? minute : `0${minute}`
 
-      if (timeRange >= 24 * 3600 * 1000) {
+    if (timeRange >= 24 * 3600 * 1000) {
         return `${year}-${monthLeading}-${dayLeading} ${hourLeading}:${minuteLeading}`
-      }
-
-      return `${hourLeading}:${minuteLeading}`
     }
+
+    return `${hourLeading}:${minuteLeading}`
+  }
 
 export const dateFormatterFull = (t: number): string => {
   const date = new Date(t * 1000)
