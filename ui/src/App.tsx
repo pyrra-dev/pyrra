@@ -137,7 +137,7 @@ export const dateFormatter =
     const minuteLeading = minute > 9 ? minute : `0${minute}`
 
     if (timeRange >= 24 * 3600 * 1000) {
-        return `${year}-${monthLeading}-${dayLeading} ${hourLeading}:${minuteLeading}`
+      return `${year}-${monthLeading}-${dayLeading} ${hourLeading}:${minuteLeading}`
     }
 
     return `${hourLeading}:${minuteLeading}`

@@ -55,7 +55,6 @@ const DurationGraph = ({
   const [width, setWidth] = useState<number>(500)
   const [displayLatencyMs, setDisplayLatencyMs] = useState<number | undefined>(undefined)
   const [yRange, setYRange] = useState<{min: number; max: number}>({min: 0, max: 1})
-  const [valueUnit, setValueUnit] = useState<'s' | 'ms'>('s')
 
   const setWidthFromContainer = () => {
     if (targetRef !== undefined) {
@@ -71,7 +70,6 @@ const DurationGraph = ({
   useEffect(() => {
     setDurationsLoading(true)
     setDisplayLatencyMs(undefined)
-    // console.log('GraphDuration request', {expr: labelsString(labels), grouping: labelsString(grouping), from, to})
     client
       .graphDuration({
         expr: labelsString(labels),
@@ -103,8 +101,6 @@ const DurationGraph = ({
         const unit = objective != null ? getUnit(objective) : 's'
         const vUnit: 's' | 'ms' = unit === 'ms' ? 'ms' : 's'
 
-        setValueUnit(vUnit)
-
         // Values are already in the correct unit from backend, no scaling needed
         // Just convert to milliseconds for internal representation (formatDuration expects ms)
         const durationData: number[][] = rawDurationData.map((arr) =>
@@ -126,28 +122,13 @@ const DurationGraph = ({
         }
         // always set min to 0 for durations
         setYRange({min: computedMin, max: computedMax})
-        console.log('valueUnit', valueUnit)
-        console.log('compute range', {computedMax, computedMin})
 
-        // latency is always in milliseconds from latencyTarget()
-        // Convert it to match the unit of the duration data
-        let latencyValue = 0
         if (latency !== undefined && durationTimestamps.length > 0) {
-          // latency is in milliseconds, convert to match vUnit
-          if (vUnit === 'ms') {
-            // Data is in ms, latency is already in ms, use as-is
-            latencyValue = latency
-            setDisplayLatencyMs(latency)
-          } else {
-            // Data is in seconds, convert latency from ms to seconds
-            latencyValue = latency
-            // latencyValue = latency / 1000
-            setDisplayLatencyMs(latency) // Store original ms value for display
-          }
+          setDisplayLatencyMs(latency)
+          
           // Add latency line to the data (values should match the unit of other series)
-          durationData.unshift(Array(durationTimestamps.length).fill(latencyValue))
+          durationData.unshift(Array(durationTimestamps.length).fill(latency))
           durationLabels.unshift('{quantile="target"}')
-          console.log('DurationGraph latency', {latency, latencyValue, vUnit, unit})
         } else {
           setDisplayLatencyMs(undefined)
         }
@@ -156,15 +137,14 @@ const DurationGraph = ({
         setDurationLabels(durationLabels)
         setDurationQueries(durationQueries)
       })
-      .catch((err) => {
-        console.log('GraphDuration error', err)
+      .catch(() => {
         setDurations(undefined)
         setDisplayLatencyMs(undefined)
       })
       .finally(() => {
         setDurationsLoading(false)
       })
-  }, [client, labels, grouping, from, to, latency, objective, valueUnit])
+  }, [client, labels, grouping, from, to, latency, objective])
 
   return (
     <>
