@@ -46,6 +46,7 @@ func ToInternal(o *Objective) slo.Objective {
 				Success:  slo.Metric{Name: l.Success.GetName()},
 				Total:    slo.Metric{Name: l.Total.GetName()},
 				Grouping: l.GetGrouping(),
+				Unit:     l.GetUnit(),
 			}
 			for _, m := range l.Success.GetMatchers() {
 				latency.Success.LabelMatchers = append(latency.Success.LabelMatchers, &labels.Matcher{
@@ -151,6 +152,7 @@ func FromInternal(o slo.Objective) *Objective {
 	if l := o.Indicator.Latency; l != nil {
 		latency = &Latency{
 			Grouping: o.Grouping(),
+			Unit:     l.Unit,
 			Success: &Query{
 				Name:   l.Success.Name,
 				Metric: l.Success.Metric(),

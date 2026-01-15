@@ -422,6 +422,7 @@ const Detail = () => {
                   updateTimeRange={updateTimeRangeSelect}
                   target={objective.target}
                   latency={latencyTarget(objective)}
+                  objective={objective}
                 />
               </Col>
             )}
