@@ -110,17 +110,6 @@ const DurationGraph = ({
           })
         )
 
-        // compute y range (values are in seconds)
-        const flattenedScaled = durationData.flat().filter((v) => Number.isFinite(v))
-        let computedMax = 1
-        const computedMin = 0
-        if (flattenedScaled.length > 0) {
-          computedMax = Math.max(...flattenedScaled)
-          computedMax = computedMax * 1.5
-        }
-        // always set min to 0 for durations
-        setYRange({min: computedMin, max: computedMax})
-
         if (latency !== undefined && durationTimestamps.length > 0) {
           setDisplayLatencyMs(latency)
           
@@ -130,6 +119,17 @@ const DurationGraph = ({
         } else {
           setDisplayLatencyMs(undefined)
         }
+
+        // compute y range (values are in milliseconds)
+        const flattenedScaled = durationData.flat().filter((v) => Number.isFinite(v))
+        let computedMax = 1
+        const computedMin = 0
+        if (flattenedScaled.length > 0) {
+          computedMax = Math.max(...flattenedScaled)
+          computedMax = computedMax * 1.5
+        }
+        // always set min to 0 for durations
+        setYRange({min: computedMin, max: computedMax})
 
         setDurations([durationTimestamps, ...durationData])
         setDurationLabels(durationLabels)
