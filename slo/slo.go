@@ -170,7 +170,7 @@ type Metric struct {
 	LabelMatchers []*labels.Matcher
 }
 
-func (m Metric) Metric() string {
+func (m Metric) String() string {
 	v := parser.VectorSelector{Name: m.Name, LabelMatchers: m.LabelMatchers}
 	return v.String()
 }
