@@ -81,8 +81,12 @@ const (
 )
 
 func (o Objective) IndicatorType() IndicatorType {
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		return Ratio
+	if o.Indicator.Ratio != nil {
+		if o.Indicator.Ratio.Total.Name != "" ||
+			o.Indicator.Ratio.Errors.Name != "" ||
+			o.Indicator.Ratio.Success.Name != "" {
+			return Ratio
+		}
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		return Latency
@@ -137,6 +141,7 @@ type Indicator struct {
 type RatioIndicator struct {
 	Errors   Metric
 	Total    Metric
+	Success  Metric
 	Grouping []string
 }
 
