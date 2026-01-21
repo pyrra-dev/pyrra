@@ -1143,6 +1143,10 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 	ruleLabels := o.commonRuleLabels(sloName)
 
+	for k, v := range o.PassthroughLabels {
+		ruleLabels[k] = v
+	}
+
 	rules = append(rules, monitoringv1.Rule{
 		Record: "pyrra_objective",
 		Expr:   intstr.FromString(strconv.FormatFloat(o.Target, 'f', -1, 64)),
