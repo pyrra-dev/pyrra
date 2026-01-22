@@ -436,7 +436,7 @@ func TestObjective_QueryTotal(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.QueryTotal(tc.objective.Window))
+			require.Equal(t, tc.expected, tc.objective.QueryTotal(tc.objective.Window, GenerationOptions{}))
 		})
 	}
 }
@@ -517,7 +517,7 @@ func TestObjective_QueryErrors(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.QueryErrors(tc.objective.Window))
+			require.Equal(t, tc.expected, tc.objective.QueryErrors(tc.objective.Window, GenerationOptions{}))
 		})
 	}
 }
@@ -598,7 +598,7 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.QueryErrorBudget())
+			require.Equal(t, tc.expected, tc.objective.QueryErrorBudget(GenerationOptions{}))
 		})
 	}
 }
@@ -809,7 +809,7 @@ func TestObjective_RequestRange(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.RequestRange(tc.timerange))
+			require.Equal(t, tc.expected, tc.objective.RequestRange(tc.timerange, GenerationOptions{}))
 		})
 	}
 }
@@ -909,7 +909,7 @@ func TestObjective_ErrorsRange(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.ErrorsRange(tc.timerange))
+			require.Equal(t, tc.expected, tc.objective.ErrorsRange(tc.timerange, GenerationOptions{}))
 		})
 	}
 }
@@ -1034,9 +1034,9 @@ func TestObjective_Immutable(t *testing.T) {
 	for i, tc := range testcases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			objective := tc()
-			objective.QueryErrorBudget()
-			objective.QueryTotal(model.Duration(2 * time.Hour))
-			objective.QueryErrors(model.Duration(2 * time.Hour))
+			objective.QueryErrorBudget(GenerationOptions{})
+			objective.QueryTotal(model.Duration(2*time.Hour), GenerationOptions{})
+			objective.QueryErrors(model.Duration(2*time.Hour), GenerationOptions{})
 			objective.QueryBurnrate(2*time.Hour, nil)
 			require.Equal(t, tc(), objective)
 		})
@@ -1102,12 +1102,12 @@ func TestReplacer(t *testing.T) {
 func TestLatencyNativeBurnrateGrouping(t *testing.T) {
 	objective := objectiveHTTPNativeLatencyGrouping()
 
-	burnrateQuery := objective.Burnrate(5 * time.Minute)
+	burnrateQuery := objective.Burnrate(5*time.Minute, GenerationOptions{})
 	require.Equal(t, "1 - histogram_fraction(0, 1, sum by (handler, job) (rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[5m])))", burnrateQuery)
 
-	requestRangeQuery := objective.RequestRange(2 * time.Hour)
+	requestRangeQuery := objective.RequestRange(2*time.Hour, GenerationOptions{})
 	require.Equal(t, "sum by (job, handler) (histogram_count(rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[2h])))", requestRangeQuery)
 
-	errorsRangeQuery := objective.ErrorsRange(2 * time.Hour)
+	errorsRangeQuery := objective.ErrorsRange(2*time.Hour, GenerationOptions{})
 	require.Equal(t, "1 - histogram_fraction(0, 1, sum by (handler, job) (rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[2h])))", errorsRangeQuery)
 }

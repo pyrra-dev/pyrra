@@ -13,7 +13,7 @@ import (
 )
 
 // QueryTotal returns a PromQL query to get the total amount of requests served during the window.
-func (o Objective) QueryTotal(window model.Duration) string {
+func (o Objective) QueryTotal(window model.Duration, opts GenerationOptions) string {
 	expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
 	if err != nil {
 		return ""
@@ -73,7 +73,7 @@ func (o Objective) QueryTotal(window model.Duration) string {
 }
 
 // QueryErrors returns a PromQL query to get the amount of request errors during the window.
-func (o Objective) QueryErrors(window model.Duration) string {
+func (o Objective) QueryErrors(window model.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
@@ -126,7 +126,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		})
 
 		errorMetric := increaseName(o.Indicator.Latency.Success.Name, window)
-		errorMatchers := cloneMatchers(o.Indicator.Latency.Success.LabelMatchers)
+		errorMatchers := applyPrometheus3Migration(cloneMatchers(o.Indicator.Latency.Success.LabelMatchers), opts)
 		for _, m := range errorMatchers {
 			if m.Name == labels.MetricName {
 				m.Value = errorMetric
@@ -235,7 +235,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 	}
 }
 
-func (o Objective) QueryErrorBudget() string {
+func (o Objective) QueryErrorBudget(opts GenerationOptions) string {
 	indicatorType := o.IndicatorType()
 	switch indicatorType {
 	case Ratio:
@@ -325,7 +325,7 @@ func (o Objective) QueryErrorBudget() string {
 			metric = increaseName(o.Indicator.Latency.Total.Name, o.Window)
 			matchers = cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
 			errorMetric = increaseName(o.Indicator.Latency.Success.Name, o.Window)
-			errorMatchers = cloneMatchers(o.Indicator.Latency.Success.LabelMatchers)
+			errorMatchers = applyPrometheus3Migration(cloneMatchers(o.Indicator.Latency.Success.LabelMatchers), opts)
 			grouping = o.Indicator.Latency.Grouping
 		case LatencyNative:
 			metric = increaseName(o.Indicator.LatencyNative.Total.Name, o.Window)
@@ -628,7 +628,7 @@ func (r objectiveReplacer) replace(node parser.Node) {
 	}
 }
 
-func (o Objective) RequestRange(timerange time.Duration) string {
+func (o Objective) RequestRange(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (group) (rate(metric{}[1s])) > 0`)
@@ -665,7 +665,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 			metric:        o.Indicator.Latency.Total.Name,
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Latency.Success.Name,
-			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			errorMatchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
 			window:        timerange,
 		}.replace(expr)
 
@@ -704,7 +704,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 	}
 }
 
-func (o Objective) ErrorsRange(timerange time.Duration) string {
+func (o Objective) ErrorsRange(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
@@ -749,7 +749,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 			metric:        o.Indicator.Latency.Total.Name,
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Latency.Success.Name,
-			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			errorMatchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
 			window:        timerange,
 		}.replace(expr)
 

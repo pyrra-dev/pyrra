@@ -89,7 +89,7 @@ Objectives:
 	return objectives
 }
 
-func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules bool) int {
+func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules, enablePrometheus3Migration bool) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
 		Help: "The total amount of reconciles.",
@@ -179,7 +179,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "processing", "file", f)
 					reconcilesTotal.Inc()
 
-					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false)
+					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false, enablePrometheus3Migration)
 					if err != nil {
 						reconcilesErrors.Inc()
 						level.Error(logger).Log("msg", "error creating rule file", "file", f, "err", err)
@@ -301,7 +301,7 @@ func (s *FilesystemObjectiveServer) List(_ context.Context, req *connect.Request
 	}), nil
 }
 
-func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule bool) error {
+func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule, enablePrometheus3Migration bool) error {
 	kubeObjective, objective, err := objectiveFromFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to get objective: %w", err)
@@ -321,12 +321,16 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		return fmt.Errorf("invalid objective: %s - %w", file, err)
 	}
 
-	increases, err := objective.IncreaseRules()
+	opts := slo.GenerationOptions{
+		EnablePrometheus3Migration: enablePrometheus3Migration,
+	}
+
+	increases, err := objective.IncreaseRules(opts)
 	if err != nil {
 		return fmt.Errorf("failed to get increase rules: %w", err)
 	}
 
-	burnrates, err := objective.Burnrates()
+	burnrates, err := objective.Burnrates(opts)
 	if err != nil {
 		return fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
@@ -336,7 +340,7 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 	}
 
 	if genericRules {
-		rules, err := objective.GenericRules()
+		rules, err := objective.GenericRules(opts)
 		if err == nil {
 			rule.Groups = append(rule.Groups, rules)
 		} else {
