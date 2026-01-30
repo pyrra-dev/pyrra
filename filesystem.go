@@ -335,6 +335,17 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		Groups: []monitoringv1.RuleGroup{increases, burnrates},
 	}
 
+	// Add pre-aggregation block rules if enabled
+	if objective.PreAggregation.Enabled {
+		blockRules, err := objective.BlockRules()
+		if err != nil {
+			return fmt.Errorf("failed to get block rules: %w", err)
+		}
+		if len(blockRules.Rules) > 0 {
+			rule.Groups = append(rule.Groups, blockRules)
+		}
+	}
+
 	if genericRules {
 		rules, err := objective.GenericRules()
 		if err == nil {

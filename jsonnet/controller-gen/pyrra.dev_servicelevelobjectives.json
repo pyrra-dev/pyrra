@@ -3,7 +3,7 @@
   "kind": "CustomResourceDefinition",
   "metadata": {
     "annotations": {
-      "controller-gen.kubebuilder.io/version": "v0.18.0"
+      "controller-gen.kubebuilder.io/version": "v0.14.0"
     },
     "name": "servicelevelobjectives.pyrra.dev"
   },
@@ -241,6 +241,22 @@
                       ""
                     ],
                     "type": "string"
+                  },
+                  "preAggregation": {
+                    "description": "PreAggregation enables pre-computed hourly blocks for high-cardinality metrics.\nWhen enabled, burn rate calculations use pre-aggregated data to reduce query load.",
+                    "properties": {
+                      "blockWindow": {
+                        "default": "1h",
+                        "description": "BlockWindow is the interval for pre-aggregation blocks.\nBurn rate windows longer than this will use pre-aggregated data.\nValid time units are \"s\", \"m\", \"h\".",
+                        "type": "string"
+                      },
+                      "enabled": {
+                        "default": false,
+                        "description": "Enabled activates pre-aggregation for this objective.",
+                        "type": "boolean"
+                      }
+                    },
+                    "type": "object"
                   },
                   "target": {
                     "description": "Target is a string that's casted to a float64 between 0 - 100.\nIt represents the desired availability of the service in the given window.\nfloat64 are not supported: https://github.com/kubernetes-sigs/controller-tools/issues/245",

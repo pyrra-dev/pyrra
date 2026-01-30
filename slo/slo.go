@@ -24,8 +24,9 @@ type Objective struct {
 	Window      model.Duration
 	Config      string
 
-	Alerting  Alerting
-	Indicator Indicator
+	Alerting       Alerting
+	Indicator      Indicator
+	PreAggregation PreAggregation
 }
 
 func (o Objective) Name() string {
@@ -163,6 +164,30 @@ type Alerting struct {
 	Absent     bool
 	Name       string
 	AbsentName string
+}
+
+// PreAggregation configures pre-computed hourly blocks for high-cardinality metrics.
+// When enabled, Pyrra generates additional recording rules that pre-compute
+// increase() over fixed intervals (BlockWindow), then uses sum_over_time()
+// on these pre-aggregated metrics for long burn rate windows.
+// This dramatically reduces query load for high-cardinality metrics with long SLO windows.
+type PreAggregation struct {
+	// Enabled activates pre-aggregation for this objective.
+	Enabled bool
+	// BlockWindow is the interval for pre-aggregation blocks (default: 1h).
+	// Burn rate windows longer than this will use pre-aggregated data.
+	BlockWindow model.Duration
+}
+
+// DefaultBlockWindow is the default pre-aggregation block window (1 hour).
+const DefaultBlockWindow = model.Duration(time.Hour)
+
+// EffectiveBlockWindow returns the block window to use, defaulting to 1h if not set.
+func (p PreAggregation) EffectiveBlockWindow() model.Duration {
+	if p.BlockWindow == 0 {
+		return DefaultBlockWindow
+	}
+	return p.BlockWindow
 }
 
 type Metric struct {

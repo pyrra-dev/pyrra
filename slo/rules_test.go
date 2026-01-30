@@ -2014,3 +2014,216 @@ func TestObjective_AlertNameMetricAbsent(t *testing.T) {
 		})
 	}
 }
+
+func TestObjective_BlockRules(t *testing.T) {
+	testcases := []struct {
+		name  string
+		slo   Objective
+		rules monitoringv1.RuleGroup
+	}{{
+		name: "disabled-returns-empty",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: false}
+			return o
+		}(),
+		rules: monitoringv1.RuleGroup{},
+	}, {
+		name: "http-ratio-preagg-enabled",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: true}
+			return o
+		}(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-preagg",
+			Interval: monitoringDuration("1h"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:increase1h",
+				// code is included in grouping because errors metric has code=~"5.." regex matcher
+				Expr:   intstr.FromString(`sum by (code) (increase(http_requests_total{job="thanos-receive-default"}[1h]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:increase1h:errors",
+				Expr:   intstr.FromString(`sum by (code) (increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[1h]))`),
+				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
+			}},
+		},
+	}, {
+		name: "http-ratio-grouping-preagg-enabled",
+		slo: func() Objective {
+			o := objectiveHTTPRatioGrouping()
+			o.PreAggregation = PreAggregation{Enabled: true}
+			return o
+		}(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-preagg",
+			Interval: monitoringDuration("1h"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_requests:increase1h",
+				// code is included because errors metric has code=~"5.." regex matcher
+				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_requests_total{job="thanos-receive-default"}[1h]))`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}, {
+				Record: "http_requests:increase1h:errors",
+				Expr:   intstr.FromString(`sum by (code, handler, job) (increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[1h]))`),
+				Labels: map[string]string{"slo": "monitoring-http-errors"},
+			}},
+		},
+	}}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			group, err := tc.slo.BlockRules()
+			require.NoError(t, err)
+			require.Equal(t, tc.rules, group)
+		})
+	}
+}
+
+func TestObjective_BurnratePreagg(t *testing.T) {
+	testcases := []struct {
+		name     string
+		slo      Objective
+		window   time.Duration
+		expected string
+	}{{
+		name: "http-ratio-4d-window",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: true}
+			return o
+		}(),
+		window:   4 * 24 * time.Hour,
+		expected: `sum(sum_over_time(http_requests:increase1h:errors{slo="monitoring-http-errors"}[4d])) / sum(sum_over_time(http_requests:increase1h{slo="monitoring-http-errors"}[4d]))`,
+	}, {
+		name: "http-ratio-grouping-4d-window",
+		slo: func() Objective {
+			o := objectiveHTTPRatioGrouping()
+			o.PreAggregation = PreAggregation{Enabled: true}
+			return o
+		}(),
+		window:   4 * 24 * time.Hour,
+		expected: `sum by (handler, job)(sum_over_time(http_requests:increase1h:errors{slo="monitoring-http-errors"}[4d])) / sum by (handler, job)(sum_over_time(http_requests:increase1h{slo="monitoring-http-errors"}[4d]))`,
+	}, {
+		name: "http-ratio-1d-window",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: true}
+			return o
+		}(),
+		window:   24 * time.Hour,
+		expected: `sum(sum_over_time(http_requests:increase1h:errors{slo="monitoring-http-errors"}[1d])) / sum(sum_over_time(http_requests:increase1h{slo="monitoring-http-errors"}[1d]))`,
+	}}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.slo.BurnratePreagg(tc.window)
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestObjective_ShouldUsePreagg(t *testing.T) {
+	testcases := []struct {
+		name     string
+		slo      Objective
+		window   time.Duration
+		expected bool
+	}{{
+		name: "disabled-returns-false",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: false}
+			return o
+		}(),
+		window:   4 * 24 * time.Hour,
+		expected: false,
+	}, {
+		name: "enabled-short-window-returns-false",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: true} // default block window is 1h
+			return o
+		}(),
+		window:   30 * time.Minute,
+		expected: false,
+	}, {
+		name: "enabled-equal-window-returns-false",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: true} // default block window is 1h
+			return o
+		}(),
+		window:   1 * time.Hour,
+		expected: false,
+	}, {
+		name: "enabled-long-window-returns-true",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: true} // default block window is 1h
+			return o
+		}(),
+		window:   2 * time.Hour,
+		expected: true,
+	}, {
+		name: "enabled-4d-window-returns-true",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: true}
+			return o
+		}(),
+		window:   4 * 24 * time.Hour,
+		expected: true,
+	}}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.slo.ShouldUsePreagg(tc.window)
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestObjective_BurnrateExpr(t *testing.T) {
+	testcases := []struct {
+		name     string
+		slo      Objective
+		window   time.Duration
+		expected string
+	}{{
+		name: "disabled-uses-raw-rate",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: false}
+			return o
+		}(),
+		window:   4 * 24 * time.Hour,
+		expected: `sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[4d])) / sum(rate(http_requests_total{job="thanos-receive-default"}[4d]))`,
+	}, {
+		name: "enabled-short-window-uses-raw-rate",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: true}
+			return o
+		}(),
+		window:   30 * time.Minute,
+		expected: `sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[30m])) / sum(rate(http_requests_total{job="thanos-receive-default"}[30m]))`,
+	}, {
+		name: "enabled-long-window-uses-preagg",
+		slo: func() Objective {
+			o := objectiveHTTPRatio()
+			o.PreAggregation = PreAggregation{Enabled: true}
+			return o
+		}(),
+		window:   4 * 24 * time.Hour,
+		expected: `sum(sum_over_time(http_requests:increase1h:errors{slo="monitoring-http-errors"}[4d])) / sum(sum_over_time(http_requests:increase1h{slo="monitoring-http-errors"}[4d]))`,
+	}}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.slo.BurnrateExpr(tc.window)
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
