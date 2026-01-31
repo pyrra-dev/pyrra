@@ -1,0 +1,84 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "baseBranches": ["main", "release-0.8"],
+  "packageRules": [
+    {
+      "description": "Auto-merge minor and patch updates",
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "Go modules - daily schedule",
+      "matchManagers": ["gomod"],
+      "schedule": ["before 9am every weekday"]
+    },
+    {
+      "description": "GitHub Actions - daily schedule",
+      "matchManagers": ["github-actions"],
+      "schedule": ["before 9am every weekday"]
+    },
+    {
+      "description": "npm - weekly schedule",
+      "matchManagers": ["npm"],
+      "schedule": ["before 9am on monday"]
+    },
+    {
+      "description": "Docker - weekly schedule",
+      "matchManagers": ["dockerfile"],
+      "schedule": ["before 9am on monday"]
+    },
+    {
+      "description": "Release branch - disable patch updates",
+      "matchBaseBranches": ["release-0.8"],
+      "matchUpdateTypes": ["patch"],
+      "enabled": false
+    },
+    {
+      "description": "Release branch PRs get release label",
+      "matchBaseBranches": ["release-0.8"],
+      "addLabels": ["release"]
+    },
+    {
+      "description": "Group Kubernetes Go modules",
+      "matchManagers": ["gomod"],
+      "matchPackagePatterns": ["^k8s.io/"],
+      "groupName": "kubernetes packages"
+    },
+    {
+      "description": "Group sigs.k8s.io Go modules",
+      "matchManagers": ["gomod"],
+      "matchPackagePatterns": ["^sigs.k8s.io/"],
+      "groupName": "sigs.k8s.io packages"
+    },
+    {
+      "description": "Group Prometheus Go modules",
+      "matchManagers": ["gomod"],
+      "matchPackagePatterns": ["^github.com/prometheus/"],
+      "groupName": "prometheus packages"
+    },
+    {
+      "description": "Group React packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^react", "^@types/react"],
+      "groupName": "react packages"
+    },
+    {
+      "description": "Group testing packages (npm)",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@testing-library/", "^jest"],
+      "groupName": "testing packages"
+    },
+    {
+      "description": "Group ESLint packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^eslint", "^@typescript-eslint/"],
+      "groupName": "eslint packages"
+    },
+    {
+      "description": "Group GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
+  ]
+}
