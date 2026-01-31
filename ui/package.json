@@ -28,7 +28,7 @@
     "@bufbuild/protoc-gen-es": "^1.7.2",
     "@fontsource/inter": "^5.0.17",
     "@fontsource/lato": "^5.0.19",
-    "@types/node": "^20.11.28",
+    "@types/node": "^24.0.0",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.2.21",
     "cra-template-typescript": "^1.2.0",
