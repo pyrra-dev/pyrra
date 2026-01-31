@@ -162,6 +162,8 @@ github.com/polarsignals/connect-go-prometheus v0.0.0-20221209115647-3601eea3d0d0
 github.com/polarsignals/connect-go-prometheus v0.0.0-20221209115647-3601eea3d0d0/go.mod h1:sSI7kLoXZJRaxAofkQvoPRh9d2FU/GCFgIMj7HlptFo=
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.88.0 h1:eKVckm/elKIvnNKQAO9WXxBOudphxpkZmT9+bevtvDo=
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.88.0/go.mod h1:IJwk1oNs212afqGbNnE84GAB95OHtJR/BuI1rKESiYk=
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.88.1 h1:K/r+qPGyr/Fx9vbN7biV9q2/PV5ETj+bVVH5RUvqEG8=
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.88.1/go.mod h1:IJwk1oNs212afqGbNnE84GAB95OHtJR/BuI1rKESiYk=
 github.com/prometheus/client_golang v1.23.2 h1:Je96obch5RDVy3FDMndoUsjAhG5Edi49h0RJWRi/o0o=
 github.com/prometheus/client_golang v1.23.2/go.mod h1:Tb1a6LWHB3/SPIzCoaDXI4I8UHKeFTEQ1YCr+0Gyqmg=
 github.com/prometheus/client_model v0.6.2 h1:oBsgwpGs7iVziMvrGhE53c/GrLUsZdHnqNwqPLxwZyk=
