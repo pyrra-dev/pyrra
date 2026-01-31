@@ -96,5 +96,15 @@
         "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)(?: (?:packageName)=(?<packageName>.+?))?(?: versioning=(?<versioning>.+?))?\\s*-?\\s*plugin: ('|\")?.*:(?<currentValue>.+?)('|\")?\\s"
       ]
     }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update Go tool versions in Makefile",
+      "fileMatch": ["(^|/)Makefile$"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)\\s+go install .+@(?<currentValue>v[^\\s]+)"
+      ]
+    }
   ]
 }

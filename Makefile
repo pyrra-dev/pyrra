@@ -77,6 +77,7 @@ docker-push:
 # download controller-gen if necessary
 controller-gen:
 ifeq (, $(shell which controller-gen))
+	# renovate: datasource=go depName=sigs.k8s.io/controller-tools
 	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.20.0
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
