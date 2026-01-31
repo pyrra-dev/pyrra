@@ -30,9 +30,9 @@
       "schedule": ["before 9am on monday"]
     },
     {
-      "description": "Release branch - disable patch updates",
+      "description": "Release branch - only allow patch updates",
       "matchBaseBranches": ["release-0.8"],
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": ["major", "minor"],
       "enabled": false
     },
     {
