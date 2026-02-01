@@ -85,6 +85,11 @@
       "description": "One week stability period for Buf packages",
       "matchFileNames": ["buf.gen.yaml"],
       "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Node.js matrix versions - weekly schedule",
+      "matchDatasources": ["node-version"],
+      "schedule": ["before 9am on monday"]
     }
   ],
   "customManagers": [
@@ -95,15 +100,21 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)(?: (?:packageName)=(?<packageName>.+?))?(?: versioning=(?<versioning>.+?))?\\s*-?\\s*plugin: ('|\")?.*:(?<currentValue>.+?)('|\")?\\s"
       ]
-    }
-  ],
-  "customManagers": [
+    },
     {
       "customType": "regex",
       "description": "Update Go tool versions in Makefile",
       "fileMatch": ["(^|/)Makefile$"],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)\\s+go install .+@(?<currentValue>v[^\\s]+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "description": "Update Node.js versions in GitHub Actions matrix",
+      "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s+versioning=(?<versioning>\\S+)\\s*\\n\\s*-\\s*(?<currentValue>\\d+)\\.x"
       ]
     }
   ]
