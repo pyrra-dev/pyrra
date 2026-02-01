@@ -1085,7 +1085,7 @@ func (s *objectiveServer) GetAlerts(ctx context.Context, req *connect.Request[ob
 
 		vec := expr.(*parser.VectorSelector)
 		for _, m := range groupingMatchers {
-			if m.Name == labels.MetricName || m.Name == "slo" { // adding some safeguards that shouldn't be allowed.
+			if m.Name == model.MetricNameLabel || m.Name == "slo" { // adding some safeguards that shouldn't be allowed.
 				continue
 			}
 			vec.LabelMatchers = append(vec.LabelMatchers, m)
@@ -1238,7 +1238,7 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 				// check if each label of the objective is present in the alert.
 				// If it's present make sure the values match
 				name := l.Name
-				if name == labels.MetricName {
+				if name == model.MetricNameLabel {
 					// The __name__ is called slo in the ALERTS metrics.
 					name = "slo"
 				}
@@ -1290,7 +1290,7 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 					name == "severity" ||
 					name == "short" ||
 					name == "slo" ||
-					name == labels.MetricName {
+					name == model.MetricNameLabel {
 					continue
 				}
 				lset[name] = value

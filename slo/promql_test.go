@@ -14,7 +14,7 @@ import (
 var (
 	objectiveHTTPRatio = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-http-errors"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "monitoring-http-errors"),
 			Target: 0.99,
 			Window: model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -60,7 +60,7 @@ var (
 	}
 	objectiveGRPCRatio = func() Objective {
 		return Objective{
-			Labels:      labels.FromStrings(labels.MetricName, "monitoring-grpc-errors"),
+			Labels:      labels.FromStrings(model.MetricNameLabel, "monitoring-grpc-errors"),
 			Description: "",
 			Target:      0.999,
 			Window:      model.Duration(28 * 24 * time.Hour),
@@ -100,7 +100,7 @@ var (
 	}
 	objectiveHTTPLatency = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-http-latency"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "monitoring-http-latency"),
 			Target: 0.995,
 			Window: model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -170,7 +170,7 @@ var (
 	}
 	objectiveGRPCLatency = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-grpc-latency"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "monitoring-grpc-latency"),
 			Target: 0.995,
 			Window: model.Duration(7 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -209,7 +209,7 @@ var (
 	}
 	objectiveOperator = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-prometheus-operator-errors"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "monitoring-prometheus-operator-errors"),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -241,7 +241,7 @@ var (
 	}
 	objectiveAPIServerRatio = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "apiserver-write-response-errors"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "apiserver-write-response-errors"),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -285,7 +285,7 @@ var (
 	}
 	objectiveAPIServerLatency = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "apiserver-read-resource-latency"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "apiserver-read-resource-latency"),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -333,7 +333,7 @@ var (
 	}
 	objectiveUpTargets = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "up-targets"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "up-targets"),
 			Target: 0.99,
 			Window: model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{

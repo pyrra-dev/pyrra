@@ -31,7 +31,7 @@ type Objective struct {
 func (o Objective) Name() string {
 	var name string
 	o.Labels.Range(func(l labels.Label) {
-		if l.Name == labels.MetricName {
+		if l.Name == model.MetricNameLabel {
 			name = l.Value
 		}
 	})

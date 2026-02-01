@@ -28,6 +28,7 @@ import (
 	"github.com/go-kit/log"
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	"golang.org/x/net/http2"
@@ -183,7 +184,7 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				nameMatcher = m
 			}
 			if m.Name == "namespace" {

@@ -560,7 +560,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 		return slo.Objective{}, fmt.Errorf("failed to marshal resource as config")
 	}
 
-	labelsList := []labels.Label{{Name: labels.MetricName, Value: in.GetName()}}
+	labelsList := []labels.Label{{Name: model.MetricNameLabel, Value: in.GetName()}}
 
 	if in.GetNamespace() != "" {
 		labelsList = append(labelsList, labels.Label{
