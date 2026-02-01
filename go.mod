@@ -1,8 +1,6 @@
 module github.com/pyrra-dev/pyrra
 
-go 1.23.6
-
-toolchain go1.24.0
+go 1.24.0
 
 require (
 	github.com/alecthomas/kong v0.9.0
@@ -19,7 +17,7 @@ require (
 	github.com/prometheus/common v0.60.1
 	github.com/prometheus/prometheus v0.300.0
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
+	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
 	golang.org/x/net v0.36.0
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/yaml.v3 v3.0.1
