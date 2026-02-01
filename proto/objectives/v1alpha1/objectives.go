@@ -96,13 +96,13 @@ func ToInternal(o *Objective) slo.Objective {
 		}
 	}
 
-	ls := make([]labels.Label, 0, len(o.Labels))
+	labelsList := make([]labels.Label, 0, len(o.Labels))
 	for name, value := range o.Labels {
-		ls = append(ls, labels.Label{Name: name, Value: value})
+		labelsList = append(labelsList, labels.Label{Name: name, Value: value})
 	}
 
 	return slo.Objective{
-		Labels:      ls,
+		Labels:      labels.New(labelsList...),
 		Description: o.Description,
 		Target:      o.Target,
 		Window:      model.Duration(o.Window.AsDuration()),

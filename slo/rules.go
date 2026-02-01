@@ -596,11 +596,11 @@ func (o Objective) commonRuleLabels(sloName string) map[string]string {
 		"slo": sloName,
 	}
 
-	for _, label := range o.Labels {
+	o.Labels.Range(func(label labels.Label) {
 		if strings.HasPrefix(label.Name, PropagationLabelsPrefix) {
 			ruleLabels[strings.TrimPrefix(label.Name, PropagationLabelsPrefix)] = label.Value
 		}
-	}
+	})
 
 	return ruleLabels
 }

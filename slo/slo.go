@@ -29,12 +29,13 @@ type Objective struct {
 }
 
 func (o Objective) Name() string {
-	for _, l := range o.Labels {
+	var name string
+	o.Labels.Range(func(l labels.Label) {
 		if l.Name == labels.MetricName {
-			return l.Value
+			name = l.Value
 		}
-	}
-	return ""
+	})
+	return name
 }
 
 func (o Objective) Windows() []Window {

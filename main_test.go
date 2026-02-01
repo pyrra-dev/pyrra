@@ -210,10 +210,10 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			},
 		}},
 		objectives: []slo.Objective{{
-			Labels: labels.Labels{
-				{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
-				{Name: "namespace", Value: "monitoring"},
-			},
+			Labels: labels.New(
+				labels.Label{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
+				labels.Label{Name: "namespace", Value: "monitoring"},
+			),
 			Window: model.Duration(14 * 24 * time.Hour),
 		}},
 		alerts: []*objectivesv1alpha1.Alert{{
@@ -242,10 +242,10 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 		name:    "inactive",
 		metrics: []*model.Sample{},
 		objectives: []slo.Objective{{
-			Labels: labels.Labels{
-				{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
-				{Name: "namespace", Value: "monitoring"},
-			},
+			Labels: labels.New(
+				labels.Label{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
+				labels.Label{Name: "namespace", Value: "monitoring"},
+			),
 			Window: model.Duration(14 * 24 * time.Hour),
 		}},
 		inactive: true,
@@ -341,10 +341,10 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			},
 		}},
 		objectives: []slo.Objective{{
-			Labels: labels.Labels{
-				{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
-				{Name: "namespace", Value: "monitoring"},
-			},
+			Labels: labels.New(
+				labels.Label{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
+				labels.Label{Name: "namespace", Value: "monitoring"},
+			),
 			Window: model.Duration(14 * 24 * time.Hour),
 		}},
 		inactive: true,
