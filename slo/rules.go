@@ -57,7 +57,7 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 }
 
 func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
-	sloName := o.Labels.Get(labels.MetricName)
+	sloName := o.Labels.Get(model.MetricNameLabel)
 
 	ws := Windows(time.Duration(o.Window))
 	burnrates := burnratesFromWindows(ws)
@@ -74,7 +74,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -101,7 +101,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		var alertMatchers []string
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				continue
 			}
 			if _, ok := groupingMap[m.Name]; !ok {
@@ -120,7 +120,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels := o.commonRuleLabels(sloName)
 			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
-				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
 						alertLabels[m.Name] = m.Value
 					}
@@ -162,7 +162,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -189,7 +189,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		var alertMatchers []string
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				continue
 			}
 			if _, ok := groupingMap[m.Name]; !ok {
@@ -208,7 +208,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels := o.commonRuleLabels(sloName)
 			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
-				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
 						alertLabels[m.Name] = m.Value
 					}
@@ -250,7 +250,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -277,7 +277,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		var alertMatchers []string
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				continue
 			}
 			if _, ok := groupingMap[m.Name]; !ok {
@@ -296,7 +296,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels := o.commonRuleLabels(sloName)
 			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
-				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
 						alertLabels[m.Name] = m.Value
 					}
@@ -338,7 +338,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -365,7 +365,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		var alertMatchers []string
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				continue
 			}
 			if _, ok := groupingMap[m.Name]; !ok {
@@ -384,7 +384,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			alertLabels := o.commonRuleLabels(sloName)
 			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
-				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
 						alertLabels[m.Name] = m.Value
 					}
@@ -596,11 +596,11 @@ func (o Objective) commonRuleLabels(sloName string) map[string]string {
 		"slo": sloName,
 	}
 
-	for _, label := range o.Labels {
+	o.Labels.Range(func(label labels.Label) {
 		if strings.HasPrefix(label.Name, PropagationLabelsPrefix) {
 			ruleLabels[strings.TrimPrefix(label.Name, PropagationLabelsPrefix)] = label.Value
 		}
-	}
+	})
 
 	return ruleLabels
 }
@@ -620,7 +620,7 @@ func (o Objective) commonRuleAnnotations() map[string]string {
 }
 
 func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
-	sloName := o.Labels.Get(labels.MetricName)
+	sloName := o.Labels.Get(model.MetricNameLabel)
 
 	countExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
 		return parser.ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))`)
@@ -644,7 +644,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	case Ratio:
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -764,7 +764,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	case Latency:
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -898,7 +898,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	case LatencyNative:
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -946,7 +946,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 	case BoolGauge:
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -1138,7 +1138,7 @@ func burnratesFromWindows(ws []Window) []time.Duration {
 var ErrGroupingUnsupported = errors.New("objective with grouping not supported in generic rules")
 
 func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
-	sloName := o.Labels.Get(labels.MetricName)
+	sloName := o.Labels.Get(model.MetricNameLabel)
 	var rules []monitoringv1.Rule
 
 	ruleLabels := o.commonRuleLabels(sloName)
@@ -1171,7 +1171,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		totalMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Total.LabelMatchers))
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
 			value := m.Value
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				value = totalIncreaseName
 			}
 			totalMatchers = append(totalMatchers, &labels.Matcher{
@@ -1192,7 +1192,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		errorMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Errors.LabelMatchers))
 		for _, m := range o.Indicator.Ratio.Errors.LabelMatchers {
 			value := m.Value
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				value = errorsIncreaseName
 			}
 			errorMatchers = append(errorMatchers, &labels.Matcher{
@@ -1270,7 +1270,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			metric := increaseName(o.Indicator.Latency.Total.Name, o.Window)
 			matchers := o.Indicator.Latency.Total.LabelMatchers
 			for _, m := range matchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = metric
 					break
 				}
@@ -1285,7 +1285,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			errorMetric := increaseName(o.Indicator.Latency.Success.Name, o.Window)
 			errorMatchers := o.Indicator.Latency.Success.LabelMatchers
 			for _, m := range errorMatchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = errorMetric
 					break
 				}
@@ -1320,7 +1320,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			metric := o.Indicator.Latency.Total.Name
 			matchers := o.Indicator.Latency.Total.LabelMatchers
 			for _, m := range matchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = metric
 					break
 				}
@@ -1346,7 +1346,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			metric := o.Indicator.Latency.Total.Name
 			matchers := o.Indicator.Latency.Total.LabelMatchers
 			for _, m := range matchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = metric
 					break
 				}
@@ -1355,7 +1355,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			errorMetric := o.Indicator.Latency.Success.Name
 			errorMatchers := o.Indicator.Latency.Success.LabelMatchers
 			for _, m := range errorMatchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = errorMetric
 					break
 				}
@@ -1387,7 +1387,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			metric := increaseName(o.Indicator.LatencyNative.Total.Name, o.Window)
 			matchers := o.Indicator.LatencyNative.Total.LabelMatchers
 			for _, m := range matchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = metric
 					break
 				}
@@ -1424,7 +1424,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		totalMetric := countName(o.Indicator.BoolGauge.Name, o.Window)
 		totalMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range totalMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = totalMetric
 				break
 			}
@@ -1438,7 +1438,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		successMetric := sumName(o.Indicator.BoolGauge.Name, o.Window)
 		successMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range successMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = successMetric
 				break
 			}

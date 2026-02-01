@@ -1085,7 +1085,7 @@ func (s *objectiveServer) GetAlerts(ctx context.Context, req *connect.Request[ob
 
 		vec := expr.(*parser.VectorSelector)
 		for _, m := range groupingMatchers {
-			if m.Name == labels.MetricName || m.Name == "slo" { // adding some safeguards that shouldn't be allowed.
+			if m.Name == model.MetricNameLabel || m.Name == "slo" { // adding some safeguards that shouldn't be allowed.
 				continue
 			}
 			vec.LabelMatchers = append(vec.LabelMatchers, m)
@@ -1191,13 +1191,13 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 
 	if inactive {
 		for _, o := range objectives {
-			if len(o.Labels) == 0 {
+			if o.Labels.IsEmpty() {
 				continue
 			}
 			lset := map[string]string{}
-			for _, l := range o.Labels {
+			o.Labels.Range(func(l labels.Label) {
 				lset[l.Name] = l.Value
-			}
+			})
 			for _, w := range o.Windows() {
 				queryShort, _ := o.QueryBurnrate(w.Short, grouping)
 				queryLong, _ := o.QueryBurnrate(w.Long, grouping)
@@ -1228,26 +1228,31 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 	for _, sample := range metrics {
 	Objectives:
 		for _, o := range objectives {
-			if len(o.Labels) == 0 {
+			if o.Labels.IsEmpty() {
 				continue
 			}
 
 			lset := map[string]string{}
-			for _, l := range o.Labels {
+			matched := true
+			o.Labels.Range(func(l labels.Label) {
 				// check if each label of the objective is present in the alert.
 				// If it's present make sure the values match
 				name := l.Name
-				if name == labels.MetricName {
+				if name == model.MetricNameLabel {
 					// The __name__ is called slo in the ALERTS metrics.
 					name = "slo"
 				}
 				value, found := sample.Metric[model.LabelName(name)]
 				if found {
 					if string(value) != l.Value {
-						continue Objectives
+						matched = false
+					} else {
+						lset[l.Name] = l.Value
 					}
-					lset[l.Name] = l.Value
 				}
+			})
+			if !matched {
+				continue Objectives
 			}
 
 			short, err := model.ParseDuration(string(sample.Metric[model.LabelName("short")]))
@@ -1269,9 +1274,9 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 			}
 
 			// Add potentially missing labels from objective to alerts' labelset
-			for _, l := range o.Labels {
+			o.Labels.Range(func(l labels.Label) {
 				lset[l.Name] = l.Value
-			}
+			})
 
 			// Add potentially missing labels from metric to alerts' labelset.
 			// Excluding a couple ones that are part of the struct itself.
@@ -1285,7 +1290,7 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 					name == "severity" ||
 					name == "short" ||
 					name == "slo" ||
-					name == labels.MetricName {
+					name == model.MetricNameLabel {
 					continue
 				}
 				lset[name] = value

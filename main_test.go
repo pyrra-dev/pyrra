@@ -199,29 +199,29 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 		name: "firing",
 		metrics: []*model.Sample{{
 			Metric: model.Metric{
-				labels.MetricName: "ALERTS",
-				"alertname":       "ErrorBudgetBurn",
-				"alertstate":      "firing",
-				"job":             "prometheus",
-				"long":            "2d",
-				"severity":        "warning",
-				"short":           "3h",
-				"slo":             "prometheus-rule-evaluation-failures",
+				model.MetricNameLabel: "ALERTS",
+				"alertname":           "ErrorBudgetBurn",
+				"alertstate":          "firing",
+				"job":                 "prometheus",
+				"long":                "2d",
+				"severity":            "warning",
+				"short":               "3h",
+				"slo":                 "prometheus-rule-evaluation-failures",
 			},
 		}},
 		objectives: []slo.Objective{{
-			Labels: labels.Labels{
-				{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
-				{Name: "namespace", Value: "monitoring"},
-			},
+			Labels: labels.New(
+				labels.Label{Name: model.MetricNameLabel, Value: "prometheus-rule-evaluation-failures"},
+				labels.Label{Name: "namespace", Value: "monitoring"},
+			),
 			Window: model.Duration(14 * 24 * time.Hour),
 		}},
 		alerts: []*objectivesv1alpha1.Alert{{
 			// In the UI we identify the SLO by these labels.
 			Labels: map[string]string{
-				labels.MetricName: "prometheus-rule-evaluation-failures",
-				"namespace":       "monitoring",
-				"job":             "prometheus",
+				model.MetricNameLabel: "prometheus-rule-evaluation-failures",
+				"namespace":           "monitoring",
+				"job":                 "prometheus",
 			},
 			Severity: "warning",
 			State:    objectivesv1alpha1.Alert_firing,
@@ -242,17 +242,17 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 		name:    "inactive",
 		metrics: []*model.Sample{},
 		objectives: []slo.Objective{{
-			Labels: labels.Labels{
-				{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
-				{Name: "namespace", Value: "monitoring"},
-			},
+			Labels: labels.New(
+				labels.Label{Name: model.MetricNameLabel, Value: "prometheus-rule-evaluation-failures"},
+				labels.Label{Name: "namespace", Value: "monitoring"},
+			),
 			Window: model.Duration(14 * 24 * time.Hour),
 		}},
 		inactive: true,
 		alerts: []*objectivesv1alpha1.Alert{{
 			Labels: map[string]string{
-				labels.MetricName: "prometheus-rule-evaluation-failures",
-				"namespace":       "monitoring",
+				model.MetricNameLabel: "prometheus-rule-evaluation-failures",
+				"namespace":           "monitoring",
 				//"alertname":       "ErrorBudgetBurn",
 				//"job":             "prometheus",
 			},
@@ -270,8 +270,8 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			},
 		}, {
 			Labels: map[string]string{
-				labels.MetricName: "prometheus-rule-evaluation-failures",
-				"namespace":       "monitoring",
+				model.MetricNameLabel: "prometheus-rule-evaluation-failures",
+				"namespace":           "monitoring",
 				//"alertname":       "ErrorBudgetBurn",
 				//"job":             "prometheus",
 			},
@@ -289,8 +289,8 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			},
 		}, {
 			Labels: map[string]string{
-				labels.MetricName: "prometheus-rule-evaluation-failures",
-				"namespace":       "monitoring",
+				model.MetricNameLabel: "prometheus-rule-evaluation-failures",
+				"namespace":           "monitoring",
 				//"alertname":       "ErrorBudgetBurn",
 				//"job":             "prometheus",
 			},
@@ -308,8 +308,8 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			},
 		}, {
 			Labels: map[string]string{
-				labels.MetricName: "prometheus-rule-evaluation-failures",
-				"namespace":       "monitoring",
+				model.MetricNameLabel: "prometheus-rule-evaluation-failures",
+				"namespace":           "monitoring",
 				//"alertname":       "ErrorBudgetBurn",
 				//"job":             "prometheus",
 			},
@@ -330,28 +330,28 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 		name: "mixed",
 		metrics: []*model.Sample{{
 			Metric: model.Metric{
-				labels.MetricName: "ALERTS",
-				"alertname":       "ErrorBudgetBurn",
-				"alertstate":      "firing",
-				"job":             "prometheus",
-				"long":            "2d",
-				"severity":        "warning",
-				"short":           "3h",
-				"slo":             "prometheus-rule-evaluation-failures",
+				model.MetricNameLabel: "ALERTS",
+				"alertname":           "ErrorBudgetBurn",
+				"alertstate":          "firing",
+				"job":                 "prometheus",
+				"long":                "2d",
+				"severity":            "warning",
+				"short":               "3h",
+				"slo":                 "prometheus-rule-evaluation-failures",
 			},
 		}},
 		objectives: []slo.Objective{{
-			Labels: labels.Labels{
-				{Name: labels.MetricName, Value: "prometheus-rule-evaluation-failures"},
-				{Name: "namespace", Value: "monitoring"},
-			},
+			Labels: labels.New(
+				labels.Label{Name: model.MetricNameLabel, Value: "prometheus-rule-evaluation-failures"},
+				labels.Label{Name: "namespace", Value: "monitoring"},
+			),
 			Window: model.Duration(14 * 24 * time.Hour),
 		}},
 		inactive: true,
 		alerts: []*objectivesv1alpha1.Alert{{
 			Labels: map[string]string{
-				labels.MetricName: "prometheus-rule-evaluation-failures",
-				"namespace":       "monitoring",
+				model.MetricNameLabel: "prometheus-rule-evaluation-failures",
+				"namespace":           "monitoring",
 			},
 			Severity: "critical",
 			State:    objectivesv1alpha1.Alert_inactive,
@@ -367,8 +367,8 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			},
 		}, {
 			Labels: map[string]string{
-				labels.MetricName: "prometheus-rule-evaluation-failures",
-				"namespace":       "monitoring",
+				model.MetricNameLabel: "prometheus-rule-evaluation-failures",
+				"namespace":           "monitoring",
 			},
 			Severity: "critical",
 			State:    objectivesv1alpha1.Alert_inactive,
@@ -384,8 +384,8 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			},
 		}, {
 			Labels: map[string]string{
-				labels.MetricName: "prometheus-rule-evaluation-failures",
-				"namespace":       "monitoring",
+				model.MetricNameLabel: "prometheus-rule-evaluation-failures",
+				"namespace":           "monitoring",
 			},
 			Severity: "warning",
 			State:    objectivesv1alpha1.Alert_inactive,
@@ -401,8 +401,8 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			},
 		}, {
 			Labels: map[string]string{
-				labels.MetricName: "prometheus-rule-evaluation-failures",
-				"namespace":       "monitoring",
+				model.MetricNameLabel: "prometheus-rule-evaluation-failures",
+				"namespace":           "monitoring",
 			},
 			Severity: "warning",
 			State:    objectivesv1alpha1.Alert_firing,

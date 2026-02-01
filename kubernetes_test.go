@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/bufbuild/connect-go"
-	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,8 +28,8 @@ var (
 	c1, _ = yaml.Marshal(o1)
 	i1    = &objectivesv1alpha1.Objective{
 		Labels: map[string]string{
-			labels.MetricName: "objective-one",
-			"namespace":       "default",
+			model.MetricNameLabel: "objective-one",
+			"namespace":           "default",
 		},
 		Target: 0.99,
 		Window: durationpb.New(1 * 7 * 24 * time.Hour),
@@ -45,8 +45,8 @@ var (
 	c2, _ = yaml.Marshal(o2)
 	i2    = &objectivesv1alpha1.Objective{
 		Labels: map[string]string{
-			labels.MetricName: "objective-two",
-			"namespace":       "monitoring",
+			model.MetricNameLabel: "objective-two",
+			"namespace":           "monitoring",
 		},
 		Target: 0.98,
 		Window: durationpb.New(2 * 7 * 24 * time.Hour),
@@ -62,8 +62,8 @@ var (
 	c3, _ = yaml.Marshal(o3)
 	i3    = &objectivesv1alpha1.Objective{
 		Labels: map[string]string{
-			labels.MetricName: "objective-three",
-			"namespace":       "default",
+			model.MetricNameLabel: "objective-three",
+			"namespace":           "default",
 		},
 		Target: 0.42123,
 		Window: durationpb.New(3 * 7 * 24 * time.Hour),

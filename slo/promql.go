@@ -58,7 +58,7 @@ func (o Objective) QueryTotal(window model.Duration) string {
 	})
 
 	for _, m := range matchers {
-		if m.Name == labels.MetricName {
+		if m.Name == model.MetricNameLabel {
 			m.Value = metric
 		}
 	}
@@ -85,7 +85,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		matchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
 
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -112,7 +112,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		metric := increaseName(o.Indicator.Latency.Total.Name, window)
 		matchers := cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -128,7 +128,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		errorMetric := increaseName(o.Indicator.Latency.Success.Name, window)
 		errorMatchers := cloneMatchers(o.Indicator.Latency.Success.LabelMatchers)
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -157,7 +157,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		metric := increaseName(o.Indicator.LatencyNative.Total.Name, window)
 		matchers := cloneMatchers(o.Indicator.LatencyNative.Total.LabelMatchers)
 		for i, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				matchers[i].Value = metric
 				break
 			}
@@ -198,7 +198,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		errorMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -210,7 +210,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		})
 
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -259,7 +259,7 @@ func (o Objective) QueryErrorBudget() string {
 		metric := increaseName(o.Indicator.Ratio.Total.Name, o.Window)
 		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -273,7 +273,7 @@ func (o Objective) QueryErrorBudget() string {
 		errorMetric := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
 		errorMatchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -336,13 +336,13 @@ func (o Objective) QueryErrorBudget() string {
 		}
 
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
 		}
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -394,7 +394,7 @@ func (o Objective) QueryErrorBudget() string {
 		metric := countName(o.Indicator.BoolGauge.Name, o.Window)
 		matchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -408,7 +408,7 @@ func (o Objective) QueryErrorBudget() string {
 		errorMetric := sumName(o.Indicator.BoolGauge.Name, o.Window)
 		errorMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -448,7 +448,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		}
 		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				if _, ok := groupingMap[m.Name]; !ok {
 					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
 						Type:  m.Type,
@@ -466,7 +466,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		}
 		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				if _, ok := groupingMap[m.Name]; !ok {
 					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
 						Type:  m.Type,
@@ -484,7 +484,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		}
 		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				if _, ok := groupingMap[m.Name]; !ok {
 					matchers[m.Name] = &labels.Matcher{
 						Type:  m.Type,
@@ -502,7 +502,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		}
 		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				if _, ok := groupingMap[m.Name]; !ok {
 					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
 						Type:  m.Type,
@@ -524,7 +524,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 	}
 
 	for i, m := range matchers {
-		if m.Name == labels.MetricName {
+		if m.Name == model.MetricNameLabel {
 			matchers[i].Value = metric
 		}
 	}
@@ -638,7 +638,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 
 		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		for i, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				matchers[i].Value = o.Indicator.Ratio.Total.Name
 			}
 		}
@@ -714,14 +714,14 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 
 		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		for i, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				matchers[i].Value = o.Indicator.Ratio.Total.Name
 			}
 		}
 
 		errorMatchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
 		for i, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				errorMatchers[i].Value = o.Indicator.Ratio.Errors.Name
 			}
 		}

@@ -45,7 +45,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "http-errors",
+				model.MetricNameLabel, "http-errors",
 				"namespace", "monitoring",
 				"pyrra.dev/team", "foo",
 			),
@@ -64,14 +64,14 @@ spec:
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 							{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_requests_total"},
 						},
 					},
 					Total: slo.Metric{
 						Name: "http_requests_total",
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_requests_total"},
 						},
 					},
 				},
@@ -100,7 +100,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "grpc-errors",
+				model.MetricNameLabel, "grpc-errors",
 				"namespace", "monitoring",
 			),
 			Description: "",
@@ -119,7 +119,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 							{Type: labels.MatchRegexp, Name: "grpc_code", Value: "Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "grpc_server_handled_total"},
 						},
 					},
 					Total: slo.Metric{
@@ -128,7 +128,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "job", Value: "api"},
 							{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "grpc_server_handled_total"},
 						},
 					},
 				},
@@ -157,7 +157,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "http-latency",
+				model.MetricNameLabel, "http-latency",
 				"namespace", "monitoring",
 			),
 			Target: 0.995,
@@ -174,7 +174,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 							{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
 							{Type: labels.MatchEqual, Name: "le", Value: "1"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_bucket"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_request_duration_seconds_bucket"},
 						},
 					},
 					Total: slo.Metric{
@@ -182,7 +182,7 @@ spec:
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 							{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_count"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_request_duration_seconds_count"},
 						},
 					},
 				},
@@ -211,7 +211,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "grpc-latency",
+				model.MetricNameLabel, "grpc-latency",
 				"namespace", "monitoring",
 			),
 			Target: 0.995,
@@ -229,7 +229,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 							{Type: labels.MatchEqual, Name: "le", Value: "0.6"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_bucket"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "grpc_server_handling_seconds_bucket"},
 						},
 					},
 					Total: slo.Metric{
@@ -238,7 +238,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "job", Value: "api"},
 							{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_count"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "grpc_server_handling_seconds_count"},
 						},
 					},
 				},
@@ -267,7 +267,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "http-errorslatency",
+				model.MetricNameLabel, "http-errorslatency",
 				"namespace", "monitoring",
 			),
 			Target: 0.99,
@@ -285,7 +285,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "path", Value: "/"},
 							{Type: labels.MatchNotRegexp, Name: "status", Value: "5.."},
 							{Type: labels.MatchEqual, Name: "le", Value: "0.5"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "nginx_ingress_controller_request_duration_seconds_bucket"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "nginx_ingress_controller_request_duration_seconds_bucket"},
 						},
 					},
 					Total: slo.Metric{
@@ -293,7 +293,7 @@ spec:
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: "ingress", Value: "lastfm"},
 							{Type: labels.MatchEqual, Name: "path", Value: "/"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "nginx_ingress_controller_request_duration_seconds_count"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "nginx_ingress_controller_request_duration_seconds_count"},
 						},
 					},
 				},
@@ -322,7 +322,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "prometheus-operator-errors",
+				model.MetricNameLabel, "prometheus-operator-errors",
 				"namespace", "monitoring",
 			),
 			Target: 0.99,
@@ -336,13 +336,13 @@ spec:
 					Errors: slo.Metric{
 						Name: "prometheus_operator_reconcile_errors_total",
 						LabelMatchers: []*labels.Matcher{
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_errors_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "prometheus_operator_reconcile_errors_total"},
 						},
 					},
 					Total: slo.Metric{
 						Name: "prometheus_operator_reconcile_operations_total",
 						LabelMatchers: []*labels.Matcher{
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_operations_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "prometheus_operator_reconcile_operations_total"},
 						},
 					},
 				},
@@ -353,7 +353,7 @@ spec:
 
 func TestServiceLevelObjective_Internal(t *testing.T) {
 	for _, example := range examples {
-		t.Run(example.objective.Labels.Get(labels.MetricName), func(t *testing.T) {
+		t.Run(example.objective.Labels.Get(model.MetricNameLabel), func(t *testing.T) {
 			objective := v1alpha1.ServiceLevelObjective{}
 			err := yaml.UnmarshalStrict([]byte(example.config), &objective)
 			require.NoError(t, err)
