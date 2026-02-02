@@ -1795,6 +1795,27 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "http-latency-native-with-le-label",
+		slo:  objectiveHTTPNativeLatencyWithLeLabel(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-latency-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString("0.995"),
+				Labels: map[string]string{"slo": "monitoring-http-latency"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromString("2419200"),
+				Labels: map[string]string{"slo": "monitoring-http-latency"},
+			}, {
+				Record: "pyrra_availability",
+				// When the total metric already has an le label, it should NOT add le="" to prevent duplicate le labels
+				Expr:   intstr.FromString(`sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"} or vector(0)) / sum(http_request_duration_seconds:increase4w{code=~"2..",job="metrics-service-thanos-receive-default",le="+Inf",slo="monitoring-http-latency"})`),
+				Labels: map[string]string{"slo": "monitoring-http-latency"},
+			}},
+		},
+	}, {
 		name: "http-latency-grouping",
 		slo:  objectiveHTTPLatencyGrouping(),
 		err:  ErrGroupingUnsupported,
@@ -1932,7 +1953,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		err:  ErrGroupingUnsupported,
 	}}
 
-	require.Len(t, testcases, 17)
+	require.Len(t, testcases, 18)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

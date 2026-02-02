@@ -1398,9 +1398,27 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 				Value: o.Name(),
 			})
 
-			errorMatchers := slices.Clone(matchers)
+			// Only add le="" if the total metric doesn't already have a le label.
+			// This prevents duplicate le labels when users specify le="+Inf" in their total metric.
+			hasLeLabel := false
+			for _, m := range matchers {
+				if m.Name == "le" {
+					hasLeLabel = true
+					break
+				}
+			}
+			if !hasLeLabel {
+				matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
+			}
+
+			// Clone matchers and filter out any existing le label before adding the latency threshold
+			errorMatchers := make([]*labels.Matcher, 0, len(matchers)+1)
+			for _, m := range matchers {
+				if m.Name != "le" {
+					errorMatchers = append(errorMatchers, m)
+				}
+			}
 			errorMatchers = append(errorMatchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: fmt.Sprintf("%g", latencySeconds)})
-			matchers = append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
 
 			objectiveReplacer{
 				metric:        metric,
