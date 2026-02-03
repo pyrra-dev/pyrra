@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Go
     steps:
-      - uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
-      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/setup-go@a5f9b05d2d216f63e13859e0d847461041025775
         with:
           go-version-file: 'go.mod'
       - run: mkdir -p ui/build && touch ui/build/empty
