@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Generate Jsonnet examples
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: actions/setup-go@v6.2.0
       with:
         go-version-file: go.mod
-    - uses: zendesk/setup-jsonnet@v12
+    - uses: zendesk/setup-jsonnet@v16
     - run: go install github.com/brancz/gojsontoyaml@latest
     - run: make --always-make examples && git diff --exit-code
