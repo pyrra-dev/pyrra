@@ -15,7 +15,7 @@
     "react-async-hook": "^4.0.0",
     "react-bootstrap": "^2.10.2",
     "react-dom": "^18.2.0",
-    "react-query": "^3.39.3",
+    "@tanstack/react-query": "^4.0.5",
     "react-router-dom": "^6.22.3",
     "uplot": "1.6.32",
     "uplot-react": "^1.1.5",

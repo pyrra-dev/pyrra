@@ -202,9 +202,7 @@ const Detail = () => {
 
   const loading: boolean =
     totalStatus === 'loading' ||
-    totalStatus === 'idle' ||
-    errorStatus === 'loading' ||
-    errorStatus === 'idle'
+    errorStatus === 'loading'
 
   const success: boolean = totalStatus === 'success' && errorStatus === 'success'
 

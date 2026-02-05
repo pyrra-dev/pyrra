@@ -1,7 +1,7 @@
 import {QueryRangeResponse, QueryResponse} from './proto/prometheus/v1/prometheus_pb'
 import {PrometheusService} from './proto/prometheus/v1/prometheus_connect'
 import {ConnectError, PromiseClient} from '@connectrpc/connect'
-import {QueryStatus} from 'react-query/types/core/types'
+import {QueryStatus} from '@tanstack/react-query'
 import {QueryOptions, useConnectQuery} from './query'
 import {formatDuration} from './duration'
 
