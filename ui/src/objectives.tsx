@@ -1,5 +1,5 @@
 import {ConnectError, PromiseClient} from '@connectrpc/connect'
-import {QueryStatus} from 'react-query/types/core/types'
+import {QueryStatus} from '@tanstack/react-query'
 import {ObjectiveService} from './proto/objectives/v1alpha1/objectives_connect'
 import {Timestamp} from '@bufbuild/protobuf'
 import {QueryOptions, useConnectQuery} from './query'

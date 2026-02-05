@@ -125,7 +125,7 @@ const ErrorBudgetGraph = ({
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           Error Budget
-          {status === 'loading' || status === 'idle' ? (
+          {status === 'loading' ? (
             <Spinner
               animation="border"
               style={{

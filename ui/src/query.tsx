@@ -1,4 +1,4 @@
-import {useQuery, UseQueryResult} from 'react-query'
+import {useQuery, UseQueryResult} from '@tanstack/react-query'
 
 interface Props<ConnectResponse> {
   key: string | any[]
@@ -15,11 +15,11 @@ export const useConnectQuery = <ConnectResponse,>({
   func,
   options: {enabled = true} = {},
 }: Props<ConnectResponse>): UseQueryResult<ConnectResponse> => {
-  return useQuery<ConnectResponse>(
-    key,
-    async () => {
+  return useQuery<ConnectResponse>({
+    queryKey: Array.isArray(key) ? key : [key],
+    queryFn: async () => {
       return await func()
     },
-    {enabled},
-  )
+    enabled,
+  })
 }

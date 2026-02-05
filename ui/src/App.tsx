@@ -8,7 +8,7 @@ import {
   LatencyNative,
   Objective,
 } from './proto/objectives/v1alpha1/objectives_pb'
-import {QueryClient, QueryClientProvider} from 'react-query'
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {formatDuration, parseDuration} from './duration'
 
 // @ts-expect-error - this is passed from the HTML template.

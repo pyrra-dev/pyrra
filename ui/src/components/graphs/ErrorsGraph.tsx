@@ -59,7 +59,7 @@ const ErrorsGraph = ({
     step(from, to),
   )
 
-  if (status === 'loading' || status === 'idle') {
+  if (status === 'loading') {
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
