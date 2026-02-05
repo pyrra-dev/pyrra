@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "dependencyDashboard": true,
-  "baseBranches": ["main", "release-0.8"],
+  "baseBranches": ["main", "release-0.9"],
   "packageRules": [
     {
       "description": "Auto-merge minor and patch updates",
@@ -31,13 +31,13 @@
     },
     {
       "description": "Release branch - only allow patch updates",
-      "matchBaseBranches": ["release-0.8"],
+      "matchBaseBranches": ["release-0.9"],
       "matchUpdateTypes": ["major", "minor"],
       "enabled": false
     },
     {
       "description": "Release branch PRs get release label",
-      "matchBaseBranches": ["release-0.8"],
+      "matchBaseBranches": ["release-0.9"],
       "addLabels": ["release"]
     },
     {
