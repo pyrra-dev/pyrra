@@ -1,102 +1,172 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended"
+  ],
   "dependencyDashboard": true,
-  "baseBranches": ["main", "release-0.9"],
+  "baseBranchPatterns": [
+    "main",
+    "release-0.9"
+  ],
   "packageRules": [
     {
       "description": "Auto-merge minor and patch updates",
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "automerge": true
     },
     {
       "description": "Go modules - daily schedule",
-      "matchManagers": ["gomod"],
-      "schedule": ["before 9am every weekday"]
+      "matchManagers": [
+        "gomod"
+      ],
+      "schedule": [
+        "before 9am every weekday"
+      ]
     },
     {
       "description": "GitHub Actions - daily schedule",
-      "matchManagers": ["github-actions"],
-      "schedule": ["before 9am every weekday"]
+      "matchManagers": [
+        "github-actions"
+      ],
+      "schedule": [
+        "before 9am every weekday"
+      ]
     },
     {
       "description": "npm - weekly schedule",
-      "matchManagers": ["npm"],
-      "schedule": ["before 9am on monday"]
+      "matchManagers": [
+        "npm"
+      ],
+      "schedule": [
+        "before 9am on monday"
+      ]
     },
     {
       "description": "Docker - weekly schedule",
-      "matchManagers": ["dockerfile"],
-      "schedule": ["before 9am on monday"]
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "schedule": [
+        "before 9am on monday"
+      ]
     },
     {
       "description": "Release branch - only allow patch updates",
-      "matchBaseBranches": ["release-0.9"],
-      "matchUpdateTypes": ["major", "minor"],
+      "matchBaseBranches": [
+        "release-0.9"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
       "enabled": false
     },
     {
       "description": "Release branch PRs get release label",
-      "matchBaseBranches": ["release-0.9"],
-      "addLabels": ["release"]
+      "matchBaseBranches": [
+        "release-0.9"
+      ],
+      "addLabels": [
+        "release"
+      ]
     },
     {
       "description": "Group Kubernetes Go modules",
-      "matchManagers": ["gomod"],
-      "matchPackagePatterns": ["^k8s.io/"],
-      "groupName": "kubernetes packages"
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "kubernetes packages",
+      "matchPackageNames": [
+        "/^k8s.io//"
+      ]
     },
     {
       "description": "Group sigs.k8s.io Go modules",
-      "matchManagers": ["gomod"],
-      "matchPackagePatterns": ["^sigs.k8s.io/"],
-      "groupName": "sigs.k8s.io packages"
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "sigs.k8s.io packages",
+      "matchPackageNames": [
+        "/^sigs.k8s.io//"
+      ]
     },
     {
       "description": "Group Prometheus Go modules",
-      "matchManagers": ["gomod"],
-      "matchPackagePatterns": ["^github.com/prometheus/"],
-      "groupName": "prometheus packages"
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "prometheus packages",
+      "matchPackageNames": [
+        "/^github.com/prometheus//"
+      ]
     },
     {
       "description": "Group React packages",
-      "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^react", "^@types/react"],
-      "groupName": "react packages"
+      "matchManagers": [
+        "npm"
+      ],
+      "groupName": "react packages",
+      "matchPackageNames": [
+        "/^react/",
+        "/^@types/react/"
+      ]
     },
     {
       "description": "Group testing packages (npm)",
-      "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@testing-library/", "^jest"],
-      "groupName": "testing packages"
+      "matchManagers": [
+        "npm"
+      ],
+      "groupName": "testing packages",
+      "matchPackageNames": [
+        "/^@testing-library//",
+        "/^jest/"
+      ]
     },
     {
       "description": "Group ESLint packages",
-      "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^eslint", "^@typescript-eslint/"],
-      "groupName": "eslint packages"
+      "matchManagers": [
+        "npm"
+      ],
+      "groupName": "eslint packages",
+      "matchPackageNames": [
+        "/^eslint/",
+        "/^@typescript-eslint//"
+      ]
     },
     {
       "description": "Group GitHub Actions",
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "groupName": "github actions"
     },
     {
       "description": "One week stability period for Buf packages",
-      "matchFileNames": ["buf.gen.yaml"],
+      "matchFileNames": [
+        "buf.gen.yaml"
+      ],
       "minimumReleaseAge": "7 days"
     },
     {
       "description": "Node.js matrix versions - weekly schedule",
-      "matchDatasources": ["node-version"],
-      "schedule": ["before 9am on monday"]
+      "matchDatasources": [
+        "node-version"
+      ],
+      "schedule": [
+        "before 9am on monday"
+      ]
     }
   ],
   "customManagers": [
     {
       "customType": "regex",
       "description": "Update Buf plugins",
-      "fileMatch": ["(^|/)buf\\.gen\\.yaml$"],
+      "managerFilePatterns": [
+        "/(^|/)buf\\.gen\\.yaml$/"
+      ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)(?: (?:packageName)=(?<packageName>.+?))?(?: versioning=(?<versioning>.+?))?\\s*-?\\s*plugin: ('|\")?.*:(?<currentValue>.+?)('|\")?\\s"
       ]
@@ -104,7 +174,9 @@
     {
       "customType": "regex",
       "description": "Update Go tool versions in Makefile",
-      "fileMatch": ["(^|/)Makefile$"],
+      "managerFilePatterns": [
+        "/(^|/)Makefile$/"
+      ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)\\s+go install .+@(?<currentValue>v[^\\s]+)"
       ]
@@ -112,7 +184,9 @@
     {
       "customType": "regex",
       "description": "Update Node.js versions in GitHub Actions matrix",
-      "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"],
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
       "matchStrings": [
         "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s+versioning=(?<versioning>\\S+)\\s*\\n\\s*-\\s*(?<currentValue>\\d+)\\.x"
       ]
