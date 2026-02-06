@@ -26,7 +26,7 @@ import (
 
 	"github.com/bufbuild/connect-go"
 	"github.com/go-kit/log"
-	"github.com/go-logr/logr"
+	"github.com/go-logr/logr" //nolint:depguard // Required for logr.LogSink adapter bridging go-kit/log with controller-runtime.
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/common/model"
@@ -56,7 +56,7 @@ type goKitLogSink struct {
 	values []interface{}
 }
 
-// Ensure compile-time interface satisfaction
+// Ensure compile-time interface satisfaction.
 var _ logr.LogSink = &goKitLogSink{}
 
 func (l *goKitLogSink) Enabled(_ int) bool { return true }
@@ -83,7 +83,7 @@ func (l *goKitLogSink) WithName(name string) logr.LogSink {
 	}
 }
 
-func (l *goKitLogSink) Init(info logr.RuntimeInfo) {}
+func (l *goKitLogSink) Init(_ logr.RuntimeInfo) {}
 
 func newGoKitLogr(logger log.Logger) logr.Logger {
 	return logr.New(&goKitLogSink{logger: logger})
