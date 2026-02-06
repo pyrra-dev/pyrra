@@ -26,8 +26,6 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 
@@ -38,7 +36,7 @@ func init() {
 	SchemeBuilder.Register(&ServiceLevelObjective{}, &ServiceLevelObjectiveList{})
 }
 
-var _ webhook.CustomValidator = &ServiceLevelObjective{}
+var _ admission.Validator[*ServiceLevelObjective] = &ServiceLevelObjective{}
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -196,23 +194,15 @@ type ServiceLevelObjectiveStatus struct {
 	Type string `json:"type,omitempty"`
 }
 
-func (in *ServiceLevelObjective) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	slo, ok := obj.(*ServiceLevelObjective)
-	if !ok {
-		return nil, fmt.Errorf("expected ServiceLevelObjective but got %T", obj)
-	}
-	return slo.validate()
+func (in *ServiceLevelObjective) ValidateCreate(_ context.Context, obj *ServiceLevelObjective) (admission.Warnings, error) {
+	return obj.validate()
 }
 
-func (in *ServiceLevelObjective) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
-	slo, ok := newObj.(*ServiceLevelObjective)
-	if !ok {
-		return nil, fmt.Errorf("expected ServiceLevelObjective but got %T", newObj)
-	}
-	return slo.validate()
+func (in *ServiceLevelObjective) ValidateUpdate(_ context.Context, _, newObj *ServiceLevelObjective) (admission.Warnings, error) {
+	return newObj.validate()
 }
 
-func (in *ServiceLevelObjective) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (in *ServiceLevelObjective) ValidateDelete(_ context.Context, _ *ServiceLevelObjective) (admission.Warnings, error) {
 	return nil, nil
 }
 
