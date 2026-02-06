@@ -26,6 +26,7 @@ import (
 
 	"github.com/bufbuild/connect-go"
 	"github.com/go-kit/log"
+	"github.com/go-logr/logr" //nolint:depguard // Required for logr.LogSink adapter bridging go-kit/log with controller-runtime.
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/prometheus/common/model"
@@ -39,7 +40,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -50,6 +50,44 @@ import (
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	// +kubebuilder:scaffold:imports
 )
+
+type goKitLogSink struct {
+	logger log.Logger
+	values []interface{}
+}
+
+// Ensure compile-time interface satisfaction.
+var _ logr.LogSink = &goKitLogSink{}
+
+func (l *goKitLogSink) Enabled(_ int) bool { return true }
+
+func (l *goKitLogSink) Info(_ int, msg string, keysAndValues ...interface{}) {
+	_ = l.logger.Log(append(l.values, append([]interface{}{"msg", msg}, keysAndValues...)...)...)
+}
+
+func (l *goKitLogSink) Error(err error, msg string, keysAndValues ...interface{}) {
+	_ = l.logger.Log(append(l.values, append([]interface{}{"err", err, "msg", msg}, keysAndValues...)...)...)
+}
+
+func (l *goKitLogSink) WithValues(keysAndValues ...interface{}) logr.LogSink {
+	return &goKitLogSink{
+		logger: l.logger,
+		values: append(append([]interface{}{}, l.values...), keysAndValues...),
+	}
+}
+
+func (l *goKitLogSink) WithName(name string) logr.LogSink {
+	return &goKitLogSink{
+		logger: l.logger,
+		values: append(append([]interface{}{}, l.values...), "logger", name),
+	}
+}
+
+func (l *goKitLogSink) Init(_ logr.RuntimeInfo) {}
+
+func newGoKitLogr(logger log.Logger) logr.Logger {
+	return logr.New(&goKitLogSink{logger: logger})
+}
 
 var scheme = runtime.NewScheme()
 
@@ -69,7 +107,7 @@ func cmdKubernetes(
 	mimirWriteAlertingRules bool,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	ctrl.SetLogger(newGoKitLogr(logger))
 
 	webhookServer := webhook.NewServer(webhook.Options{Port: 9443})
 
