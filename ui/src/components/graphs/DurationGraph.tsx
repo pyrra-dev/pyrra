@@ -12,12 +12,14 @@ import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_conne
 import {Timestamp} from '@bufbuild/protobuf'
 import {
   GraphDurationResponse,
+  Objective,
   Series,
   Timeseries,
 } from '../../proto/objectives/v1alpha1/objectives_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {formatDuration} from '../../duration'
 import {buildExternalHRef, externalName} from '../../external'
+import {getUnit} from '../../config'
 
 interface DurationGraphProps {
   client: PromiseClient<typeof ObjectiveService>
@@ -29,6 +31,7 @@ interface DurationGraphProps {
   updateTimeRange: (min: number, max: number, absolute: boolean) => void
   target: number
   latency: number | undefined
+  objective: Objective | null
 }
 
 const DurationGraph = ({
@@ -41,6 +44,7 @@ const DurationGraph = ({
   updateTimeRange,
   target,
   latency,
+  objective,                       
 }: DurationGraphProps): JSX.Element => {
   const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
 
@@ -49,6 +53,8 @@ const DurationGraph = ({
   const [durationLabels, setDurationLabels] = useState<string[]>([])
   const [durationsLoading, setDurationsLoading] = useState<boolean>(true)
   const [width, setWidth] = useState<number>(500)
+  const [displayLatencyMs, setDisplayLatencyMs] = useState<number | undefined>(undefined)
+  const [yRange, setYRange] = useState<{min: number; max: number}>({min: 0, max: 1})
 
   const setWidthFromContainer = () => {
     if (targetRef !== undefined) {
@@ -63,6 +69,7 @@ const DurationGraph = ({
 
   useEffect(() => {
     setDurationsLoading(true)
+    setDisplayLatencyMs(undefined)
     client
       .graphDuration({
         expr: labelsString(labels),
@@ -72,41 +79,70 @@ const DurationGraph = ({
       })
       .then((resp: GraphDurationResponse) => {
         let durationTimestamps: number[] = []
-        const durationData: number[][] = []
+        const rawDurationData: number[][] = []
         const durationLabels: string[] = []
         const durationQueries: string[] = []
-
-        // The first series is a straight line (same latency target value for all timestamps)
-        // showing the objective.
-        if (latency !== undefined) {
-          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000))
-          durationLabels.push('{quantile="target"}')
-        }
 
         resp.timeseries.forEach((timeseries: Timeseries, i: number) => {
           const [x, ...series] = timeseries.series
           if (i === 0) {
             durationTimestamps = x.values
           }
-
+          // collect raw series values (no scaling yet)
           series.forEach((s: Series) => {
-            durationData.push(s.values)
+            rawDurationData.push(s.values)
           })
-
           durationLabels.push(...timeseries.labels)
           durationQueries.push(timeseries.query)
         })
+
+        // determine unit: use getUnit for consistent approach (same as List.tsx)
+        // Get unit from objective structure
+        const unit = objective != null ? getUnit(objective) : 's'
+        const vUnit: 's' | 'ms' = unit === 'ms' ? 'ms' : 's'
+
+        const durationData: number[][] = rawDurationData.map((arr) =>
+          arr.map((v) => {
+            if (v === null || v === undefined) return v
+            // If values are in seconds (vUnit === 's'), convert to milliseconds for formatDuration
+            // If values are already in milliseconds (vUnit === 'ms'), use as-is
+            return vUnit === 's' ? v * 1000 : v
+          })
+        )
+
+        if (latency !== undefined && durationTimestamps.length > 0) {
+          setDisplayLatencyMs(latency)
+          
+          // Add latency line to the data (values should match the unit of other series)
+          durationData.unshift(Array(durationTimestamps.length).fill(latency))
+          durationLabels.unshift('{quantile="target"}')
+        } else {
+          setDisplayLatencyMs(undefined)
+        }
+
+        // compute y range (values are in milliseconds)
+        const flattenedScaled = durationData.flat().filter((v) => Number.isFinite(v))
+        let computedMax = 1
+        const computedMin = 0
+        if (flattenedScaled.length > 0) {
+          computedMax = Math.max(...flattenedScaled)
+          computedMax = computedMax * 1.5
+        }
+        // always set min to 0 for durations
+        setYRange({min: computedMin, max: computedMax})
+
         setDurations([durationTimestamps, ...durationData])
         setDurationLabels(durationLabels)
         setDurationQueries(durationQueries)
       })
       .catch(() => {
         setDurations(undefined)
+        setDisplayLatencyMs(undefined)
       })
       .finally(() => {
         setDurationsLoading(false)
       })
-  }, [client, labels, grouping, from, to, latency])
+  }, [client, labels, grouping, from, to, latency, objective])
 
   return (
     <>
@@ -142,7 +178,7 @@ const DurationGraph = ({
           How long do the requests take?
           {latency !== undefined ? (
             <>
-              <br />p{target * 100} must be faster than {formatDuration(latency)}.
+              <br />p{target * 100} must be faster than {formatDuration(displayLatencyMs ?? latency)}.
             </>
           ) : (
             ''
@@ -167,7 +203,8 @@ const DurationGraph = ({
                     dash: i === 0 ? [25, 10] : undefined,
                     label: parseLabelValue(label),
                     gaps: seriesGaps(from / 1000, to / 1000),
-                    value: (u, v) => (v == null ? '-' : formatDuration(v * 1000, 1)),
+                    // Values are already in milliseconds (converted above)
+                    value: (u, v) => (v == null ? '-' : formatDuration(v, 1)),
                   }
                 }),
               ],
@@ -175,16 +212,18 @@ const DurationGraph = ({
                 x: {min: from / 1000, max: to / 1000},
                 y: {
                   range: {
-                    min: {hard: 0},
-                    max: {hard: 100},
+                    min: {hard: yRange.min},
+                    max: {hard: yRange.max},
                   },
                 },
               },
               axes: [
                 {},
                 {
+                  // Values in durationData are already in milliseconds for formatDuration
+                  // formatDuration expects milliseconds, so we pass values as-is
                   values: (uplot: uPlot, v: number[]) =>
-                    v.map((v: number) => formatDuration(v * 1000)),
+                    v.map((v: number) => formatDuration(v)),
                 },
               ],
               hooks: {
