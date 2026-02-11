@@ -54,6 +54,7 @@ message Ratio {
   Query total = 1;
   Query errors = 2;
   repeated string grouping = 3;
+  Query success = 4;
 }
 
 message Latency {
