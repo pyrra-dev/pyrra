@@ -360,6 +360,10 @@ func Test_makeConfigMap(t *testing.T) {
 						slo.PropagationLabelsPrefix + "team": "foo",
 						"team":                               "bar",
 					},
+					Annotations: map[string]string{
+						slo.PropagationLabelsPrefix + "description": "foo",
+						"description": "bar",
+					},
 				},
 				Data: map[string]string{
 					"http.rules.yaml": rules,
