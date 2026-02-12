@@ -25,7 +25,7 @@
     "@bufbuild/connect-web": "^0.13.0",
     "@bufbuild/protobuf": "^1.10.0",
     "@bufbuild/protoc-gen-connect-es": "^0.13.0",
-    "@bufbuild/protoc-gen-es": "^1.7.2",
+    "@bufbuild/protoc-gen-es": "^2.0.0",
     "@fontsource/inter": "^5.0.17",
     "@fontsource/lato": "^5.0.19",
     "@types/node": "^24.0.0",
