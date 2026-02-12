@@ -27,16 +27,18 @@ const ObjectiveTile = ({objective}: ObjectiveTileProps): React.JSX.Element => {
         </div>
       )
     case ObjectiveType.Latency:
-    case ObjectiveType.LatencyNative:
+    case ObjectiveType.LatencyNative: {
+      const latencyText = renderLatencyTarget(objective)
       return (
         <div>
           <h6 className="headline">Objective</h6>
           <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
           <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
           <br />
-          <p className="details">faster than {renderLatencyTarget(objective)}</p>
+          <p className="details">faster than {latencyText}</p>
         </div>
       )
+    }
     default:
       return <div></div>
   }
