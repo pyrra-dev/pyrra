@@ -114,20 +114,21 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	var rule monitoringv1.PrometheusRule
 	if err := r.Get(ctx, req.NamespacedName, &rule); err != nil {
 		if errors.IsNotFound(err) {
-			level.Info(logger).Log("msg", "creating prometheus rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
+			level.Info(logger).Log("msg", "creating prometheus rule", "namespace", newRule.GetNamespace(), "name", newRule.GetName())
 			if err := r.Create(ctx, newRule); err != nil {
 				return ctrl.Result{}, err
 			}
 		} else {
 			return ctrl.Result{}, fmt.Errorf("failed to get prometheus rule: %w", err)
 		}
-	}
+	} else {
+		// Resource exists, update it
+		newRule.ResourceVersion = rule.ResourceVersion
 
-	newRule.ResourceVersion = rule.ResourceVersion
-
-	level.Info(logger).Log("msg", "updating prometheus rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
-	if err := r.Update(ctx, newRule); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to update prometheus rule: %w", err)
+		level.Info(logger).Log("msg", "updating prometheus rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
+		if err := r.Update(ctx, newRule); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update prometheus rule: %w", err)
+		}
 	}
 
 	kubeObjective.Status.Type = "PrometheusRule"
@@ -189,13 +190,14 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
 		} else {
 			return ctrl.Result{}, fmt.Errorf("failed to get config map: %w", err)
 		}
-	}
+	} else {
+		// Resource exists, update it
+		newConfigMap.ResourceVersion = existingConfigMap.ResourceVersion
 
-	newConfigMap.ResourceVersion = existingConfigMap.ResourceVersion
-
-	level.Info(logger).Log("msg", "updating config map", "namespace", newConfigMap.GetNamespace(), "name", newConfigMap.GetName())
-	if err := r.Update(ctx, newConfigMap); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to update config map: %w", err)
+		level.Info(logger).Log("msg", "updating config map", "namespace", newConfigMap.GetNamespace(), "name", newConfigMap.GetName())
+		if err := r.Update(ctx, newConfigMap); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update config map: %w", err)
+		}
 	}
 
 	kubeObjective.Status.Type = "ConfigMap"
