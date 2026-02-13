@@ -32,12 +32,12 @@ jobs:
           cache: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238
+        uses: actions/setup-node@d02c89dce7e1ba9ef629ce0680989b3a1cc72edb
         with:
           node-version-file: .node-version
 
       - name: Build binaries
-        uses: goreleaser/goreleaser-action@4247c53b304edb39a4e6a0808f415d3eebad450a
+        uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29
         with:
           distribution: goreleaser
           version: ${{ env.GORELEASER_VERSION }}
@@ -90,7 +90,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@8c1e8f8e5bf845ba3773a14f3967965548a2341e
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
         with:
           context: .
           push: ${{ github.repository == 'pyrra-dev/pyrra' && github.event_name != 'pull_request' }}
