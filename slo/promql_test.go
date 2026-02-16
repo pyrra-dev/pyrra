@@ -151,6 +151,15 @@ var (
 		o.Indicator.LatencyNative.Grouping = []string{"job", "handler"}
 		return o
 	}
+	objectiveHTTPNativeLatencyWithLeLabel = func() Objective {
+		o := objectiveHTTPNativeLatency()
+		// Add le="+Inf" to the total metric matchers to simulate user specifying le label
+		o.Indicator.LatencyNative.Total.LabelMatchers = append(
+			o.Indicator.LatencyNative.Total.LabelMatchers,
+			&labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: "+Inf"},
+		)
+		return o
+	}
 	objectiveHTTPLatencyGrouping = func() Objective {
 		o := objectiveHTTPLatency()
 		o.Indicator.Latency.Grouping = []string{"job", "handler"}
