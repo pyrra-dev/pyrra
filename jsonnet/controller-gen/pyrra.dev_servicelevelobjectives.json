@@ -147,6 +147,15 @@
                               "metric"
                             ],
                             "type": "object"
+                          },
+                          "unit": {
+                            "default": "s",
+                            "description": "Unit is the unit of measurement for latency (e.g., \"s\" for seconds, \"ms\" for milliseconds).\nDefaults to \"s\" (seconds).",
+                            "enum": [
+                              "s",
+                              "ms"
+                            ],
+                            "type": "string"
                           }
                         },
                         "required": [

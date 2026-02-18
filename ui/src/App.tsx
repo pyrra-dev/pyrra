@@ -10,6 +10,7 @@ import {
 } from './proto/objectives/v1alpha1/objectives_pb'
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {formatDuration, parseDuration} from './duration'
+import {getUnit} from './config'
 
 // @ts-expect-error - this is passed from the HTML template.
 export const PATH_PREFIX: string = window.PATH_PREFIX
@@ -69,6 +70,7 @@ export const hasObjectiveType = (o: Objective): ObjectiveType => {
 // returns the latency target in milliseconds
 export const latencyTarget = (o: Objective): number | undefined => {
   const objectiveType = hasObjectiveType(o)
+  const unit = getUnit(o)
 
   if (objectiveType === ObjectiveType.Latency) {
     const latency: Latency = o.indicator?.options.value as Latency
@@ -78,7 +80,16 @@ export const latencyTarget = (o: Objective): number | undefined => {
     })
 
     if (m !== undefined) {
-      return parseFloat(m.value) * 1000
+      const value = parseFloat(m.value)
+      // Prometheus histogram buckets are always in seconds
+      // If unit is "ms", the value is already in milliseconds (e.g., le="50.0" = 50ms)
+      // If unit is not "ms" or empty, value is in seconds (e.g., le="0.05" = 50ms)
+      if (unit === 'ms') {
+        // Value is already in milliseconds
+        return value
+      }
+      // Value is in seconds, convert to milliseconds
+      return value * 1000
     }
   }
 
@@ -99,6 +110,7 @@ export const renderLatencyTarget = (o: Objective): string => {
       return ''
     }
 
+    // latencyTarget always returns milliseconds
     return formatDuration(latency)
   }
   if (objectiveType === ObjectiveType.LatencyNative) {

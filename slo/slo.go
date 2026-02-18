@@ -145,6 +145,7 @@ type LatencyIndicator struct {
 	Success  Metric
 	Total    Metric
 	Grouping []string
+	Unit     string
 }
 
 type LatencyNativeIndicator struct {
