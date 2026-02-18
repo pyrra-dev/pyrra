@@ -232,6 +232,13 @@
                     },
                     "type": "object"
                   },
+                  "labels": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Labels is a passthrough value where the labels provided in the ServiceLevelObjective\nwill be passed into the metrics generated.",
+                    "type": "object"
+                  },
                   "partial_response_strategy": {
                     "default": "abort",
                     "description": "PartialResponseStrategy is only used by ThanosRuler and will\nbe ignored by Prometheus instances.\nMore info: https://github.com/thanos-io/thanos/blob/main/docs/components/rule.md#partial-response",
@@ -253,6 +260,7 @@
                 },
                 "required": [
                   "indicator",
+                  "labels",
                   "target",
                   "window"
                 ],
