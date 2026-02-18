@@ -23,6 +23,7 @@ import (
 	"github.com/bufbuild/connect-go"
 	"github.com/dgraph-io/ristretto"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -314,6 +315,7 @@ func cmdAPI(
 	}
 
 	r := chi.NewRouter()
+	r.Use(middleware.Heartbeat("/healthz"))
 	r.Use(cors.Handler(cors.Options{
 		AllowedHeaders: []string{
 			"Content-Type",

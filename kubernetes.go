@@ -116,9 +116,10 @@ func cmdKubernetes(
 		Metrics: metricsserver.Options{
 			BindAddress: metricsAddr,
 		},
-		WebhookServer:    webhookServer,
-		LeaderElection:   false,
-		LeaderElectionID: "9d76195a.pyrra.dev",
+		WebhookServer:          webhookServer,
+		LeaderElection:         false,
+		LeaderElectionID:       "9d76195a.pyrra.dev",
+		HealthProbeBindAddress: ":8081",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
