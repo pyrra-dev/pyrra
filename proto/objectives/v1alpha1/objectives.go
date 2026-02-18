@@ -21,23 +21,37 @@ func ToInternal(o *Objective) slo.Objective {
 	if o.Indicator != nil {
 		if r := o.Indicator.GetRatio(); r != nil {
 			ratio = &slo.RatioIndicator{
-				Errors:   slo.Metric{Name: r.Errors.GetName()},
-				Total:    slo.Metric{Name: r.Total.GetName()},
 				Grouping: r.GetGrouping(),
 			}
-			for _, m := range r.Errors.GetMatchers() {
-				ratio.Errors.LabelMatchers = append(ratio.Errors.LabelMatchers, &labels.Matcher{
-					Type:  labels.MatchType(m.GetType()),
-					Name:  m.GetName(),
-					Value: m.GetValue(),
-				})
+			if rq := r.GetErrors(); rq != nil {
+				ratio.Errors = slo.Metric{Name: rq.GetName()}
+				for _, m := range rq.GetMatchers() {
+					ratio.Errors.LabelMatchers = append(ratio.Errors.LabelMatchers, &labels.Matcher{
+						Type:  labels.MatchType(m.GetType()),
+						Name:  m.GetName(),
+						Value: m.GetValue(),
+					})
+				}
 			}
-			for _, m := range r.Total.GetMatchers() {
-				ratio.Total.LabelMatchers = append(ratio.Total.LabelMatchers, &labels.Matcher{
-					Type:  labels.MatchType(m.GetType()),
-					Name:  m.GetName(),
-					Value: m.GetValue(),
-				})
+			if rq := r.GetTotal(); rq != nil {
+				ratio.Total = slo.Metric{Name: rq.GetName()}
+				for _, m := range rq.GetMatchers() {
+					ratio.Total.LabelMatchers = append(ratio.Total.LabelMatchers, &labels.Matcher{
+						Type:  labels.MatchType(m.GetType()),
+						Name:  m.GetName(),
+						Value: m.GetValue(),
+					})
+				}
+			}
+			if rq := r.GetSuccess(); rq != nil {
+				ratio.Success = slo.Metric{Name: rq.GetName()}
+				for _, m := range rq.GetMatchers() {
+					ratio.Success.LabelMatchers = append(ratio.Success.LabelMatchers, &labels.Matcher{
+						Type:  labels.MatchType(m.GetType()),
+						Name:  m.GetName(),
+						Value: m.GetValue(),
+					})
+				}
 			}
 		}
 
@@ -122,28 +136,45 @@ func FromInternal(o slo.Objective) *Objective {
 	if r := o.Indicator.Ratio; r != nil {
 		ratio = &Ratio{
 			Grouping: o.Grouping(),
-			Errors: &Query{
+		}
+		if r.Errors.Name != "" {
+			ratio.Errors = &Query{
 				Name:   r.Errors.Name,
 				Metric: r.Errors.Metric(),
-			},
-			Total: &Query{
+			}
+			for _, m := range r.Errors.LabelMatchers {
+				ratio.Errors.Matchers = append(ratio.Errors.Matchers, &LabelMatcher{
+					Type:  LabelMatcher_Type(m.Type),
+					Name:  m.Name,
+					Value: m.Value,
+				})
+			}
+		}
+		if r.Total.Name != "" {
+			ratio.Total = &Query{
 				Name:   r.Total.Name,
 				Metric: r.Total.Metric(),
-			},
+			}
+			for _, m := range r.Total.LabelMatchers {
+				ratio.Total.Matchers = append(ratio.Total.Matchers, &LabelMatcher{
+					Type:  LabelMatcher_Type(m.Type),
+					Name:  m.Name,
+					Value: m.Value,
+				})
+			}
 		}
-		for _, m := range r.Total.LabelMatchers {
-			ratio.Total.Matchers = append(ratio.Total.Matchers, &LabelMatcher{
-				Type:  LabelMatcher_Type(m.Type),
-				Name:  m.Name,
-				Value: m.Value,
-			})
-		}
-		for _, m := range r.Errors.LabelMatchers {
-			ratio.Errors.Matchers = append(ratio.Errors.Matchers, &LabelMatcher{
-				Type:  LabelMatcher_Type(m.Type),
-				Name:  m.Name,
-				Value: m.Value,
-			})
+		if r.Success.Name != "" {
+			ratio.Success = &Query{
+				Name:   r.Success.Name,
+				Metric: r.Success.Metric(),
+			}
+			for _, m := range r.Success.LabelMatchers {
+				ratio.Success.Matchers = append(ratio.Success.Matchers, &LabelMatcher{
+					Type:  LabelMatcher_Type(m.Type),
+					Name:  m.Name,
+					Value: m.Value,
+				})
+			}
 		}
 	}
 

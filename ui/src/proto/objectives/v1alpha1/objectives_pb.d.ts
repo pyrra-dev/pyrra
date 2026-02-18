@@ -180,6 +180,11 @@ export declare class Ratio extends Message<Ratio> {
    */
   grouping: string[];
 
+  /**
+   * @generated from field: objectives.v1alpha1.Query success = 4;
+   */
+  success?: Query;
+
   constructor(data?: PartialMessage<Ratio>);
 
   static readonly runtime: typeof proto3;
