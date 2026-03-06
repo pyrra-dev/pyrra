@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
-      - uses: actions/setup-go@a5f9b05d2d216f63e13859e0d847461041025775
+      - uses: actions/setup-go@27fdb267c15a8835f1ead03dfa07f89be2bb741a
         with:
           go-version-file: 'go.mod'
       - name: Build UI
