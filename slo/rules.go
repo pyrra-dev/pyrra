@@ -698,7 +698,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels[k] = v
 		}
 		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
+		alertLabels["severity"] = o.AlertSeverityAbsent()
 
 		// add the absent alert if configured
 		if o.Alerting.Absent {
@@ -860,7 +860,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				alertLabels[k] = v
 			}
 			// Add severity label for alerts
-			alertLabels["severity"] = string(critical)
+			alertLabels["severity"] = o.AlertSeverityAbsent()
 
 			rules = append(rules, monitoringv1.Rule{
 				Alert:       o.AlertNameAbsent(),
@@ -885,7 +885,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				alertLabelsLe[k] = v
 			}
 			// Add severity label for alerts
-			alertLabelsLe["severity"] = string(critical)
+			alertLabelsLe["severity"] = o.AlertSeverityAbsent()
 
 			rules = append(rules, monitoringv1.Rule{
 				Alert:       o.AlertNameAbsent(),
@@ -1026,7 +1026,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				alertLabels[k] = v
 			}
 			// Add severity label for alerts
-			alertLabels["severity"] = string(critical)
+			alertLabels["severity"] = o.AlertSeverityAbsent()
 
 			rules = append(rules, monitoringv1.Rule{
 				Alert:       o.AlertNameAbsent(),

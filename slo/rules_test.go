@@ -2014,3 +2014,46 @@ func TestObjective_AlertNameMetricAbsent(t *testing.T) {
 		})
 	}
 }
+
+func TestObjective_AlertSeverityAbsent(t *testing.T) {
+	tests := []struct {
+		name      string
+		objective Objective
+		want      string
+	}{
+		{
+			name: "AlertSeverityAbsentDefault",
+			objective: Objective{
+				Alerting: Alerting{},
+			},
+			want: "critical",
+		},
+		{
+			name: "AlertSeverityAbsentCustom",
+			objective: Objective{
+				Alerting: Alerting{
+					AbsentSeverity: "warning",
+				},
+			},
+			want: "warning",
+		},
+		{
+			name: "AlertSeverityAbsentInfo",
+			objective: Objective{
+				Alerting: Alerting{
+					AbsentSeverity: "info",
+				},
+			},
+			want: "info",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			o := tt.objective
+			got := o.AlertSeverityAbsent()
+			if got != tt.want {
+				t.Errorf("AlertSeverityAbsent() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

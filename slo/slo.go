@@ -11,9 +11,10 @@ import (
 const (
 	// PropagationLabelsPrefix provides a way to propagate labels from the
 	// ObjectMeta to the PrometheusRule.
-	PropagationLabelsPrefix = "pyrra.dev/"
-	defaultAlertname        = "ErrorBudgetBurn"
-	defaultAlertnameAbsent  = "SLOMetricAbsent"
+	PropagationLabelsPrefix    = "pyrra.dev/"
+	defaultAlertname           = "ErrorBudgetBurn"
+	defaultAlertnameAbsent     = "SLOMetricAbsent"
+	defaultAbsentAlertSeverity = "critical"
 )
 
 type Objective struct {
@@ -128,6 +129,14 @@ func (o Objective) AlertNameAbsent() string {
 	return defaultAlertnameAbsent
 }
 
+func (o Objective) AlertSeverityAbsent() string {
+	if o.Alerting.AbsentSeverity != "" {
+		return o.Alerting.AbsentSeverity
+	}
+
+	return defaultAbsentAlertSeverity
+}
+
 type Indicator struct {
 	Ratio         *RatioIndicator
 	Latency       *LatencyIndicator
@@ -159,11 +168,12 @@ type BoolGaugeIndicator struct {
 }
 
 type Alerting struct {
-	Disabled   bool // deprecated, use Burnrates instead
-	Burnrates  bool
-	Absent     bool
-	Name       string
-	AbsentName string
+	Disabled       bool // deprecated, use Burnrates instead
+	Burnrates      bool
+	Absent         bool
+	Name           string
+	AbsentName     string
+	AbsentSeverity string
 }
 
 type Metric struct {

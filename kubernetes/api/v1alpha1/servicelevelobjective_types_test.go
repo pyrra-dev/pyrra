@@ -731,3 +731,57 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 		})
 	})
 }
+
+func TestServiceLevelObjective_Internal_AbsentSeverity(t *testing.T) {
+	bTrue := true
+	tests := []struct {
+		name     string
+		severity string
+		want     string
+	}{
+		{
+			name:     "default severity when empty",
+			severity: "",
+			want:     "",
+		},
+		{
+			name:     "custom severity warning",
+			severity: "warning",
+			want:     "warning",
+		},
+		{
+			name:     "custom severity info",
+			severity: "info",
+			want:     "info",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sloObj := v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					Alerting: v1alpha1.Alerting{
+						Burnrates:      &bTrue,
+						Absent:         &bTrue,
+						AbsentSeverity: tt.severity,
+					},
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						Ratio: &v1alpha1.RatioIndicator{
+							Errors: v1alpha1.Query{Metric: `errors_total{job="test"}`},
+							Total:  v1alpha1.Query{Metric: `requests_total{job="test"}`},
+						},
+					},
+				},
+			}
+
+			internal, err := sloObj.Internal()
+			require.NoError(t, err)
+			require.Equal(t, tt.want, internal.Alerting.AbsentSeverity)
+		})
+	}
+}
