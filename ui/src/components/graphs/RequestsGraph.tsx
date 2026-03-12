@@ -59,7 +59,7 @@ const RequestsGraph = ({
     step(from, to),
   )
 
-  if (status === 'loading') {
+  if (status === 'pending') {
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
