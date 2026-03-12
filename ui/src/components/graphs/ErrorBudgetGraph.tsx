@@ -77,7 +77,7 @@ const ErrorBudgetGraph = ({
     }
   }
 
-  if (status !== 'loading' && samples.length === 0) {
+  if (status !== 'pending' && samples.length === 0) {
     return (
       <>
         <h4 className="graphs-headline">Error Budget</h4>
@@ -125,7 +125,7 @@ const ErrorBudgetGraph = ({
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           Error Budget
-          {status === 'loading' ? (
+          {status === 'pending' ? (
             <Spinner
               animation="border"
               style={{

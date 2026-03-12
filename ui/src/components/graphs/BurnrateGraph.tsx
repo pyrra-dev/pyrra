@@ -70,8 +70,8 @@ const BurnrateGraph = ({
 
   // TODO: Improve to show graph if one is succeeded already
   if (
-    shortStatus === 'loading' ||
-    longStatus === 'loading'
+    shortStatus === 'pending' ||
+    longStatus === 'pending'
   ) {
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>

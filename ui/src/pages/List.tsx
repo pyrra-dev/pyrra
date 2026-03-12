@@ -692,7 +692,7 @@ const List = () => {
     )}`
   }
 
-  if (objectiveStatus === 'loading') {
+  if (objectiveStatus === 'pending') {
     return (
       <>
         <Navbar />

@@ -201,8 +201,8 @@ const Detail = () => {
     objectiveType === ObjectiveType.Latency || objectiveType === ObjectiveType.LatencyNative
 
   const loading: boolean =
-    totalStatus === 'loading' ||
-    errorStatus === 'loading'
+    totalStatus === 'pending' ||
+    errorStatus === 'pending'
 
   const success: boolean = totalStatus === 'success' && errorStatus === 'success'
 
