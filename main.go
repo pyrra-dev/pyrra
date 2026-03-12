@@ -21,7 +21,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/bufbuild/connect-go"
-	"github.com/dgraph-io/ristretto"
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/go-kit/log"
@@ -289,10 +289,9 @@ func cmdAPI(
 	level.Info(logger).Log("msg", "using API at", "url", apiURL.String())
 	level.Info(logger).Log("msg", "using route prefix", "prefix", routePrefix)
 
-	cache, err := ristretto.NewCache(&ristretto.Config{
+	cache, err := ristretto.NewCache(&ristretto.Config[string, any]{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
-		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to create cache", "err", err)
@@ -465,10 +464,9 @@ func cmdAPI(
 }
 
 func newBackendClientCache(client objectivesv1alpha1connect.ObjectiveBackendServiceClient) objectivesv1alpha1connect.ObjectiveBackendServiceClient {
-	cache, err := ristretto.NewCache(&ristretto.Config{
+	cache, err := ristretto.NewCache(&ristretto.Config[string, any]{
 		NumCounters: 100,
 		MaxCost:     10 * 1000, // 10 seconds
-		BufferItems: 64,
 	})
 	if err != nil {
 		panic(err)
@@ -478,7 +476,7 @@ func newBackendClientCache(client objectivesv1alpha1connect.ObjectiveBackendServ
 
 type backendClientCache struct {
 	client objectivesv1alpha1connect.ObjectiveBackendServiceClient
-	cache  *ristretto.Cache
+	cache  *ristretto.Cache[string, any]
 }
 
 // List calls the backend service and caches the result for 10 seconds if the request is successful.
@@ -589,7 +587,7 @@ func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusa
 
 type promCache struct {
 	api   prometheusAPI
-	cache *ristretto.Cache
+	cache *ristretto.Cache[string, any]
 }
 
 type promCacheKeyType string
