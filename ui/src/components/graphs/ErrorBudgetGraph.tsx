@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react'
+import React, {JSX, useEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
@@ -32,12 +32,12 @@ const ErrorBudgetGraph = ({
   updateTimeRange,
   absolute = false,
 }: ErrorBudgetGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [width, setWidth] = useState<number>(1000)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined) {
+    if (targetRef.current !== undefined && targetRef.current !== null) {
       setWidth(targetRef.current.offsetWidth)
     }
   }

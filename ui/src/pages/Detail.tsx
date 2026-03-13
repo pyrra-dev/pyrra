@@ -121,7 +121,7 @@ const Detail = () => {
         fromStr = `now-${formatDuration(to - from)}`
         toStr = 'now'
       }
-      navigate(
+      void navigate(
         `/objectives?expr=${encodeURI(expr)}&grouping=${encodeURI(groupingExpr ?? '')}&from=${fromStr}&to=${toStr}`,
       )
     },

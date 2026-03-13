@@ -1,4 +1,4 @@
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
+import React, {JSX, useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
 import uPlot, {AlignedData} from 'uplot'
@@ -42,7 +42,7 @@ const DurationGraph = ({
   target,
   latency,
 }: DurationGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [durations, setDurations] = useState<AlignedData>()
   const [durationQueries, setDurationQueries] = useState<string[]>([])
@@ -51,7 +51,7 @@ const DurationGraph = ({
   const [width, setWidth] = useState<number>(500)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined) {
+    if (targetRef.current !== undefined && targetRef.current !== null) {
       setWidth(targetRef.current.offsetWidth)
     }
   }

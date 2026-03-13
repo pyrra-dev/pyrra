@@ -493,19 +493,19 @@ const List = () => {
     console.log('hasSearch', hasSearch, 'hasLabels', hasLabels, labels)
 
     if (!hasSearch && !hasLabels) {
-      navigate('?')
+      void navigate('?')
       return
     }
     if (hasSearch && !hasLabels) {
-      navigate(`?search=${encodeURI(search)}`)
+      void navigate(`?search=${encodeURI(search)}`)
       return
     }
     if (!hasSearch && hasLabels) {
-      navigate(`?filter=${encodeURI(labelsString(labels))}`)
+      void navigate(`?filter=${encodeURI(labelsString(labels))}`)
       return
     }
 
-    navigate(`?search=${encodeURI(search)}&filter=${encodeURI(labelsString(labels))}`)
+    void navigate(`?search=${encodeURI(search)}&filter=${encodeURI(labelsString(labels))}`)
   }
 
   const initialTableState: TableState = {objectives: {}}
@@ -867,7 +867,7 @@ const List = () => {
                         return
                       }
                       const labels: {lset: Labels; grouping: Labels} = row.getValue('lset')
-                      navigate(objectivePage(labels.lset, labels.grouping))
+                      void navigate(objectivePage(labels.lset, labels.grouping))
                     }}
                     className={
                       row.getValue('alerts') !== ''
