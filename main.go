@@ -292,6 +292,7 @@ func cmdAPI(
 	cache, err := ristretto.NewCache(&ristretto.Config[string, any]{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
+		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
 		level.Error(logger).Log("msg", "failed to create cache", "err", err)
@@ -467,6 +468,7 @@ func newBackendClientCache(client objectivesv1alpha1connect.ObjectiveBackendServ
 	cache, err := ristretto.NewCache(&ristretto.Config[string, any]{
 		NumCounters: 100,
 		MaxCost:     10 * 1000, // 10 seconds
+		BufferItems: 64,        // number of keys per Get buffer.
 	})
 	if err != nil {
 		panic(err)
