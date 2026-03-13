@@ -23,11 +23,11 @@ import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
 import AlertsTable from '../components/AlertsTable'
 import Toggle from '../components/Toggle'
 import DurationGraph from '../components/graphs/DurationGraph'
-import uPlot from 'uplot'
+import type uPlot from 'uplot'
 import {PrometheusService} from '../proto/prometheus/v1/prometheus_connect'
 import {replaceInterval, usePrometheusQuery} from '../prometheus'
 import {useObjectivesList} from '../objectives'
-import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
+import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
 import ObjectiveTile from '../components/tiles/ObjectiveTile'
 import AvailabilityTile from '../components/tiles/AvailabilityTile'
@@ -36,7 +36,7 @@ import Tiles from '../components/tiles/Tiles'
 import {IconChartArea, IconChartLine} from '../components/Icons'
 
 const Detail = () => {
-  const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
+  const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
 
   const client = useMemo(() => {
     return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
@@ -52,12 +52,11 @@ const Detail = () => {
   const {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels} = useMemo(() => {
     const query = new URLSearchParams(search)
 
-    const queryExpr = query.get('expr')
-    const expr = queryExpr == null ? '' : queryExpr
+    const expr = query.get('expr') ?? ''
     const labels = parseLabels(expr)
 
     const groupingExpr = query.get('grouping')
-    const grouping = groupingExpr == null ? '' : groupingExpr
+    const grouping = groupingExpr ?? ''
     const groupingLabels = parseLabels(grouping)
 
     const name: string = labels[MetricName]
@@ -307,7 +306,7 @@ const Detail = () => {
                     <span>
                       <Toggle
                         checked={autoReload}
-                        onChange={() => setAutoReload(!autoReload)}
+                        onChange={() => { setAutoReload(!autoReload); }}
                         onText={formatDuration(interval)}
                       />
                     </span>

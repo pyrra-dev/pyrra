@@ -1,4 +1,4 @@
-import React, {EventHandler, JSX, useRef} from 'react'
+import React, {type EventHandler, type JSX, useRef} from 'react'
 
 interface ToggleProps {
   checked?: boolean
@@ -35,14 +35,14 @@ const Toggle = ({checked, onChange, onText, offText}: ToggleProps): JSX.Element 
       <input type="checkbox" checked={checked} />
       <div className="toggle-group">
         <label htmlFor="" className="btn btn-light active toggle-on" ref={elementOn}>
-          {onText !== undefined ? onText : 'On'}
+          {onText ?? 'On'}
         </label>
         <label
           htmlFor=""
           className="btn btn-light toggle-off"
           ref={elementOff}
-          style={{width: width}}>
-          {offText !== undefined ? offText : 'Off'}
+          style={{width}}>
+          {offText ?? 'Off'}
         </label>
         <span className="toggle-handle btn btn-light"></span>
       </div>

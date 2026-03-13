@@ -1,6 +1,6 @@
 import React from 'react'
 import {Spinner} from 'react-bootstrap'
-import {Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {type Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 
 interface ErrorBudgetTileProps {
   objective: Objective

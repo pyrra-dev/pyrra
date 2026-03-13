@@ -1,15 +1,16 @@
-import {PromiseClient} from '@connectrpc/connect'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
-import uPlot, {AlignedData} from 'uplot'
-import React, {JSX, useLayoutEffect, useRef, useState} from 'react'
+import {type PromiseClient} from '@connectrpc/connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type AlignedData} from 'uplot'
+import type uPlot from 'uplot'
+import React, {type JSX, useLayoutEffect, useRef, useState} from 'react'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {step} from './step'
 import UplotReact from 'uplot-react'
-import {AlignedDataResponse, convertAlignedData, mergeAlignedData} from './aligneddata'
+import {type AlignedDataResponse, convertAlignedData, mergeAlignedData} from './aligneddata'
 import {Spinner} from 'react-bootstrap'
 import {seriesGaps} from './gaps'
 import {blues, greys, reds} from './colors'
-import {Alert} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {type Alert} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../../duration'
 
 interface BurnrateGraphProps {
@@ -50,7 +51,7 @@ const BurnrateGraph = ({
 
   const {response: shortResponse, status: shortStatus} = usePrometheusQueryRange(
     client,
-    // @ts-expect-error
+    // @ts-expect-error query may be undefined but is guarded by enabled option
     alert.short.query,
     from / 1000,
     to / 1000,
@@ -60,7 +61,7 @@ const BurnrateGraph = ({
 
   const {response: longResponse, status: longStatus} = usePrometheusQueryRange(
     client,
-    // @ts-expect-error
+    // @ts-expect-error query may be undefined but is guarded by enabled option
     alert.long.query,
     from / 1000,
     to / 1000,
@@ -175,8 +176,8 @@ const BurnrateGraph = ({
     )
   }
 
-  const shortFormatted = formatDuration(Number(alert.short?.window?.seconds) * 1000 ?? 0)
-  const longFormatted = formatDuration(Number(alert.long?.window?.seconds) * 1000 ?? 0)
+  const shortFormatted = formatDuration(Number(alert.short?.window?.seconds ?? 0) * 1000)
+  const longFormatted = formatDuration(Number(alert.long?.window?.seconds ?? 0) * 1000)
   const pendingColor = 'rgb(244,163,42)'
   const pendingBackgroundColor = 'rgba(244,163,42,0.1)'
   const firingColor = 'rgb(244,99,99)'

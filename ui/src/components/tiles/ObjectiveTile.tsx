@@ -1,7 +1,7 @@
 import React from 'react'
 import {hasObjectiveType, ObjectiveType, renderLatencyTarget} from '../../App'
 import {formatDuration} from '../../duration'
-import {Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {type Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 
 interface ObjectiveTileProps {
   objective: Objective

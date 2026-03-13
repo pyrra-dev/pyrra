@@ -15,32 +15,32 @@ import {
 import {API_BASEPATH, latencyTarget} from '../App'
 import {useLocation, useNavigate} from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import {Labels, labelsString, MetricName, parseLabels} from '../labels'
+import {type Labels, labelsString, MetricName, parseLabels} from '../labels'
 import {createConnectTransport} from '@bufbuild/connect-web'
 import {createPromiseClient, Code} from '@connectrpc/connect'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
 import {
-  Alert as ObjectiveAlert,
+  type Alert as ObjectiveAlert,
   Alert_State,
-  GetAlertsResponse,
-  GetStatusResponse,
-  Objective,
-  ObjectiveStatus,
+  type GetAlertsResponse,
+  type GetStatusResponse,
+  type Objective,
+  type ObjectiveStatus,
 } from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../duration'
 import {
-  Cell,
+  type Cell,
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  Row as TableRow,
-  SortingFnOption,
-  SortingState,
+  type Row as TableRow,
+  type SortingFnOption,
+  type SortingState,
   useReactTable,
-  VisibilityState,
+  type VisibilityState,
 } from '@tanstack/react-table'
-import {Duration} from '@bufbuild/protobuf'
+import {type Duration} from '@bufbuild/protobuf'
 import {useObjectivesList} from '../objectives'
 import {
   IconArrowDown,
@@ -80,7 +80,7 @@ interface TableAvailability {
 }
 
 interface TableState {
-  objectives: {[key: string]: TableObjective}
+  objectives: Record<string, TableObjective>
 }
 
 enum TableActionType {
@@ -164,7 +164,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             lset: action.lset,
             groupingLabels: action.statusLabels,
             state: TableObjectiveState.Success,
-            severity: severity,
+            severity,
             availability: {
               errors: action.status.availability?.errors ?? 0,
               total: action.status.availability?.total ?? 0,
@@ -449,7 +449,7 @@ const List = () => {
   const {search} = useLocation()
 
   const client = useMemo(() => {
-    const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
+    const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
     return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [])
 
@@ -525,7 +525,7 @@ const List = () => {
   // but as the search function is debounced, it does not
   // fire a new request on each keystroke
   useAsync(async () => {
-    return debouncedSearchFunction(searchInput, filterLabels)
+    debouncedSearchFunction(searchInput, filterLabels);
   }, [debouncedSearchFunction, searchInput, filterLabels])
 
   // TODO: Persist the column visibility in the browser's state
@@ -579,7 +579,7 @@ const List = () => {
             }
           })
         })
-        .catch((err) => console.log(err))
+        .catch((err) => { console.log(err); })
 
       objectiveResponse.objectives.forEach((o: Objective) => {
         dispatchTable({
@@ -605,7 +605,7 @@ const List = () => {
               resp.status.forEach((s: ObjectiveStatus) => {
                 const so = o.clone()
                 // Identify by the combined labels
-                const sLabels: Labels = s.labels !== undefined ? s.labels : {}
+                const sLabels: Labels = s.labels ?? {}
                 const soLabels: Labels = {...o.labels, ...sLabels}
 
                 dispatchTable({
@@ -659,7 +659,7 @@ const List = () => {
             total: o.availability?.total,
             availability: o.availability?.percentage,
             budget: o.budget,
-            alerts: o.severity !== null ? o.severity : '',
+            alerts: o.severity ?? '',
           }
           return r
         }) ?? null
@@ -777,7 +777,7 @@ const List = () => {
                   variant="light"
                   size="sm"
                   className="filter-close"
-                  onClick={() => removeFilterLabel(k)}>
+                  onClick={() => { removeFilterLabel(k); }}>
                   {`${k}=${filterLabels[k]}`}
                   <span className="btn-close"></span>
                 </Button>
@@ -813,10 +813,10 @@ const List = () => {
                           checked={columnVisibility[id]}
                           id={id}
                           onChange={() =>
-                            setColumnVisibility({
+                            { setColumnVisibility({
                               ...columnVisibility,
                               [id]: !columnVisibility[id],
-                            })
+                            }); }
                           }
                         />
                         <label htmlFor={id} style={{marginLeft: 8}}>

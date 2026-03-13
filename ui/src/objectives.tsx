@@ -1,9 +1,9 @@
-import {ConnectError, PromiseClient} from '@connectrpc/connect'
-import {QueryStatus} from '@tanstack/react-query'
-import {ObjectiveService} from './proto/objectives/v1alpha1/objectives_connect'
+import {type ConnectError, type PromiseClient} from '@connectrpc/connect'
+import {type QueryStatus} from '@tanstack/react-query'
+import {type ObjectiveService} from './proto/objectives/v1alpha1/objectives_connect'
 import {Timestamp} from '@bufbuild/protobuf'
-import {QueryOptions, useConnectQuery} from './query'
-import {GetStatusResponse, ListResponse} from './proto/objectives/v1alpha1/objectives_pb'
+import {type QueryOptions, useConnectQuery} from './query'
+import {type GetStatusResponse, type ListResponse} from './proto/objectives/v1alpha1/objectives_pb'
 
 export interface ObjectivesListResponse {
   response: ListResponse | null
