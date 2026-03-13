@@ -48,6 +48,7 @@ linters:
         path: _test.go
     paths:
       - proto/
+      - node_modules/
       - third_party$
       - builtin$
       - examples$
@@ -65,6 +66,7 @@ formatters:
     generated: lax
     paths:
       - proto/
+      - node_modules/
       - third_party$
       - builtin$
       - examples$
