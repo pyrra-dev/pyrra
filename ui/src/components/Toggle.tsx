@@ -1,4 +1,4 @@
-import React, {EventHandler, useRef} from 'react'
+import React, {EventHandler, JSX, useRef} from 'react'
 
 interface ToggleProps {
   checked?: boolean

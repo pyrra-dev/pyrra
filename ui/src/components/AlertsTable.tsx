@@ -1,5 +1,5 @@
 import {OverlayTrigger, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
-import React, {useEffect, useState} from 'react'
+import React, {JSX, useEffect, useState} from 'react'
 import {IconChevron, IconExternal} from './Icons'
 import {Labels, labelsString} from '../labels'
 import {

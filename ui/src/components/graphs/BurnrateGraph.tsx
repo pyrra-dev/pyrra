@@ -1,7 +1,7 @@
 import {PromiseClient} from '@connectrpc/connect'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
 import uPlot, {AlignedData} from 'uplot'
-import React, {useLayoutEffect, useRef, useState} from 'react'
+import React, {JSX, useLayoutEffect, useRef, useState} from 'react'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {step} from './step'
 import UplotReact from 'uplot-react'
@@ -33,7 +33,7 @@ const BurnrateGraph = ({
   firingData,
   uPlotCursor,
 }: BurnrateGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [width, setWidth] = useState<number>(500)
 
