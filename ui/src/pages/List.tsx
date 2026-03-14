@@ -13,9 +13,11 @@ import {
   Tooltip as OverlayTooltip,
 } from 'react-bootstrap'
 import {API_BASEPATH, latencyTarget} from '../App'
-import {useLocation, useNavigate} from 'react-router-dom'
+import {useNavigate} from 'react-router-dom'
+import {useQueryState, parseAsString} from 'nuqs'
 import Navbar from '../components/Navbar'
-import {type Labels, labelsString, MetricName, parseLabels} from '../labels'
+import {type Labels, labelsString, MetricName} from '../labels'
+import {parseAsLabels} from '../searchParams'
 import {createConnectTransport} from '@bufbuild/connect-web'
 import {createPromiseClient, Code} from '@connectrpc/connect'
 import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
@@ -446,37 +448,15 @@ const List = () => {
 
   document.title = 'Objectives - Pyrra'
   const navigate = useNavigate()
-  const {search} = useLocation()
 
   const client = useMemo(() => {
     const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
     return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [])
 
-  const [filterSearch] = useMemo((): [string] => {
-    const query = new URLSearchParams(search)
-    const querySearch = query.get('search')
-    return [querySearch ?? '']
-  }, [search])
-
-  const [filterLabels, filterError] = useMemo((): [Labels, boolean] => {
-    const query = new URLSearchParams(search)
-    const queryFilter = query.get('filter')
-    try {
-      if (queryFilter !== null) {
-        if (queryFilter.indexOf('=') > 0) {
-          return [parseLabels(queryFilter), false]
-        } else {
-          filterLabels[MetricName] = queryFilter
-          return [filterLabels, false]
-        }
-      }
-    } catch (e) {
-      console.log(e)
-      return [{}, true]
-    }
-    return [{}, false]
-  }, [search])
+  const [filterSearch, setFilterSearch] = useQueryState('search', parseAsString.withDefault(''))
+  const [filterLabels, setFilterLabels] = useQueryState('filter', parseAsLabels.withDefault({}))
+  const [filterError] = useState<boolean>(false)
 
   // TODO: Pass in the search to the useObjectivesList hook
   const {
@@ -484,29 +464,6 @@ const List = () => {
     error: objectiveError,
     status: objectiveStatus,
   } = useObjectivesList(client, labelsString(filterLabels), '')
-
-  const navigateFilterURL = (search: string, labels: Labels) => {
-    // TODO: use something like URLState?
-
-    const hasSearch = search.length > 0
-    const hasLabels = Object.keys(labels).length > 0
-    console.log('hasSearch', hasSearch, 'hasLabels', hasLabels, labels)
-
-    if (!hasSearch && !hasLabels) {
-      void navigate('?')
-      return
-    }
-    if (hasSearch && !hasLabels) {
-      void navigate(`?search=${encodeURI(search)}`)
-      return
-    }
-    if (!hasSearch && hasLabels) {
-      void navigate(`?filter=${encodeURI(labelsString(labels))}`)
-      return
-    }
-
-    void navigate(`?search=${encodeURI(search)}&filter=${encodeURI(labelsString(labels))}`)
-  }
 
   const initialTableState: TableState = {objectives: {}}
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
@@ -516,8 +473,8 @@ const List = () => {
 
   // Only update the URL when the user stops typing for 1 second
   const debouncedSearchFunction = useConstant(() =>
-    AwesomeDebouncePromise((search: string, labels: Labels) => {
-      navigateFilterURL(search, labels)
+    AwesomeDebouncePromise((search: string) => {
+      setFilterSearch(search || null)
     }, 1000),
   )
 
@@ -525,8 +482,8 @@ const List = () => {
   // but as the search function is debounced, it does not
   // fire a new request on each keystroke
   useAsync(async () => {
-    debouncedSearchFunction(searchInput, filterLabels);
-  }, [debouncedSearchFunction, searchInput, filterLabels])
+    return debouncedSearchFunction(searchInput)
+  }, [debouncedSearchFunction, searchInput])
 
   // TODO: Persist the column visibility in the browser's state
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
@@ -542,22 +499,13 @@ const List = () => {
   })
 
   const updateFilter = (lset: Labels) => {
-    // Copy existing filterLabels (from router) and add/overwrite k-v-pairs
-    const updatedFilter: Labels = {...filterLabels}
-    for (const l in lset) {
-      updatedFilter[l] = lset[l]
-    }
-    navigateFilterURL(searchInput, updatedFilter)
+    const updated: Labels = {...filterLabels, ...lset}
+    setFilterLabels(Object.keys(updated).length > 0 ? updated : null)
   }
 
   const removeFilterLabel = (k: string) => {
-    const updatedFilter: Labels = {}
-    for (const name in filterLabels) {
-      if (name !== k) {
-        updatedFilter[name] = filterLabels[name]
-      }
-    }
-    navigateFilterURL(searchInput, updatedFilter)
+    const {[k]: _, ...rest} = filterLabels
+    setFilterLabels(Object.keys(rest).length > 0 ? rest : null)
   }
 
   useEffect(() => {

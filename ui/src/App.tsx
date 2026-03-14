@@ -1,5 +1,6 @@
 import React from 'react'
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v6'
 import List from './pages/List'
 import Detail from './pages/Detail'
 import {
@@ -37,10 +38,12 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={basename}>
-        <Routes>
-          <Route path="/" element={<List />} />
-          <Route path="/objectives" element={<Detail />} />
-        </Routes>
+        <NuqsAdapter>
+          <Routes>
+            <Route path="/" element={<List />} />
+            <Route path="/objectives" element={<Detail />} />
+          </Routes>
+        </NuqsAdapter>
       </BrowserRouter>
     </QueryClientProvider>
   )

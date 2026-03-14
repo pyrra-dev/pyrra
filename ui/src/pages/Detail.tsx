@@ -1,5 +1,6 @@
-import {Link, useLocation, useNavigate} from 'react-router-dom'
+import {Link} from 'react-router-dom'
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import {useQueryState, parseAsString} from 'nuqs'
 import {
   Badge,
   Button,
@@ -46,46 +47,39 @@ const Detail = () => {
     return createPromiseClient(PrometheusService, createConnectTransport({baseUrl}))
   }, [baseUrl])
 
-  const navigate = useNavigate()
-  const {search} = useLocation()
+  const [expr] = useQueryState('expr', parseAsString.withDefault(''))
+  const [groupingParam] = useQueryState('grouping', parseAsString.withDefault(''))
+  const [fromParam, setFromParam] = useQueryState('from', parseAsString)
+  const [toParam, setToParam] = useQueryState('to', parseAsString)
 
-  const {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels} = useMemo(() => {
-    const query = new URLSearchParams(search)
-
-    const expr = query.get('expr') ?? ''
+  const {from, to, groupingLabels, name, labels} = useMemo(() => {
     const labels = parseLabels(expr)
-
-    const groupingExpr = query.get('grouping')
-    const grouping = groupingExpr ?? ''
-    const groupingLabels = parseLabels(grouping)
-
+    const groupingLabels = parseLabels(groupingParam)
     const name: string = labels[MetricName]
 
     let to: number = Date.now()
-    const toQuery = query.get('to')
-    if (toQuery !== null) {
-      if (!toQuery.includes('now')) {
-        to = parseInt(toQuery)
+    if (toParam !== null) {
+      if (!toParam.includes('now')) {
+        to = parseInt(toParam)
       }
     }
 
     let from: number = to - 60 * 60 * 1000
-    const fromQuery = query.get('from')
-    if (fromQuery !== null) {
-      if (fromQuery.includes('now')) {
-        const duration = parseDuration(fromQuery.substring(4)) // omit first 4 chars: `now-`
+    if (fromParam !== null) {
+      if (fromParam.includes('now')) {
+        const duration = parseDuration(fromParam.substring(4)) // omit first 4 chars: `now-`
         if (duration !== null) {
           from = to - duration
         }
       } else {
-        from = parseInt(fromQuery)
+        from = parseInt(fromParam)
       }
     }
 
     document.title = `${name} - Pyrra`
 
-    return {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels}
-  }, [search])
+    return {from, to, groupingLabels, name, labels}
+  }, [expr, groupingParam, fromParam, toParam])
 
   const [autoReload, setAutoReload] = useState<boolean>(true)
   const [absolute, setAbsolute] = useState<boolean>(true)
@@ -94,7 +88,7 @@ const Detail = () => {
     response: objectiveResponse,
     error: objectiveError,
     status: objectiveStatus,
-  } = useObjectivesList(client, expr, grouping)
+  } = useObjectivesList(client, expr, groupingParam)
 
   const objective: Objective | null = objectiveResponse?.objectives[0] ?? null
 
@@ -120,11 +114,10 @@ const Detail = () => {
         fromStr = `now-${formatDuration(to - from)}`
         toStr = 'now'
       }
-      void navigate(
-        `/objectives?expr=${encodeURI(expr)}&grouping=${encodeURI(groupingExpr ?? '')}&from=${fromStr}&to=${toStr}`,
-      )
+      setFromParam(fromStr)
+      setToParam(toStr)
     },
-    [navigate, expr, groupingExpr],
+    [setFromParam, setToParam],
   )
 
   const updateTimeRangeSelect = (min: number, max: number, absolute: boolean) => {
