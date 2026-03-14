@@ -114,8 +114,8 @@ const Detail = () => {
         fromStr = `now-${formatDuration(to - from)}`
         toStr = 'now'
       }
-      setFromParam(fromStr)
-      setToParam(toStr)
+      void setFromParam(fromStr)
+      void setToParam(toStr)
     },
     [setFromParam, setToParam],
   )

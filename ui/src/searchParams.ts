@@ -1,5 +1,6 @@
 import {createParser} from 'nuqs'
-import {Labels, MetricName, labelsString, parseLabels} from './labels'
+import type {Labels} from './labels'
+import {MetricName, labelsString, parseLabels} from './labels'
 
 export const parseAsLabels = createParser<Labels>({
   parse: (value: string): Labels => {

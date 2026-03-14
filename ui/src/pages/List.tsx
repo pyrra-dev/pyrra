@@ -474,7 +474,7 @@ const List = () => {
   // Only update the URL when the user stops typing for 1 second
   const debouncedSearchFunction = useConstant(() =>
     AwesomeDebouncePromise((search: string) => {
-      setFilterSearch(search || null)
+      void setFilterSearch(search !== '' ? search : null)
     }, 1000),
   )
 
@@ -482,7 +482,7 @@ const List = () => {
   // but as the search function is debounced, it does not
   // fire a new request on each keystroke
   useAsync(async () => {
-    return debouncedSearchFunction(searchInput)
+    debouncedSearchFunction(searchInput)
   }, [debouncedSearchFunction, searchInput])
 
   // TODO: Persist the column visibility in the browser's state
@@ -500,12 +500,12 @@ const List = () => {
 
   const updateFilter = (lset: Labels) => {
     const updated: Labels = {...filterLabels, ...lset}
-    setFilterLabels(Object.keys(updated).length > 0 ? updated : null)
+    void setFilterLabels(Object.keys(updated).length > 0 ? updated : null)
   }
 
   const removeFilterLabel = (k: string) => {
     const {[k]: _, ...rest} = filterLabels
-    setFilterLabels(Object.keys(rest).length > 0 ? rest : null)
+    void setFilterLabels(Object.keys(rest).length > 0 ? rest : null)
   }
 
   useEffect(() => {
