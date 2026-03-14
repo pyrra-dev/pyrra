@@ -1,15 +1,16 @@
-import React, {JSX, useEffect, useRef, useState} from 'react'
+import React, {type JSX, useEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
-import uPlot, {AlignedData} from 'uplot'
+import {type AlignedData} from 'uplot';
+import type uPlot from 'uplot'
 
 import {IconExternal} from '../Icons'
 import {greens, reds} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type PromiseClient} from '@connectrpc/connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
 import {usePrometheusQueryRange} from '../../prometheus'
-import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
+import {type SamplePair, type SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {buildExternalHRef, externalName} from '../../external'
 
@@ -161,7 +162,7 @@ const ErrorBudgetGraph = ({
         {samples.length > 0 ? (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 300,
               padding: [canvasPadding, 0, 0, canvasPadding],
               cursor: uPlotCursor,

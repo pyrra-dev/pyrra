@@ -1,4 +1,4 @@
-import {useQuery, UseQueryResult} from '@tanstack/react-query'
+import {useQuery, type UseQueryResult} from '@tanstack/react-query'
 
 interface Props<ConnectResponse> {
   key: string | any[]

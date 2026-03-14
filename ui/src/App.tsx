@@ -3,10 +3,10 @@ import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import List from './pages/List'
 import Detail from './pages/Detail'
 import {
-  LabelMatcher,
-  Latency,
-  LatencyNative,
-  Objective,
+  type LabelMatcher,
+  type Latency,
+  type LatencyNative,
+  type Objective,
 } from './proto/objectives/v1alpha1/objectives_pb'
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {formatDuration, parseDuration} from './duration'

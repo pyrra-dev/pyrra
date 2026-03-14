@@ -1,19 +1,20 @@
-import React, {JSX, useEffect, useLayoutEffect, useRef, useState} from 'react'
+import React, {type JSX, useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
-import uPlot, {AlignedData} from 'uplot'
+import {type AlignedData} from 'uplot';
+import type uPlot from 'uplot'
 import {EXTERNAL_URL} from '../../App'
 import {IconExternal} from '../Icons'
-import {Labels, labelsString, parseLabelValue} from '../../labels'
+import {type Labels, labelsString, parseLabelValue} from '../../labels'
 import {colorful, greys} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
-import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connect'
+import {type PromiseClient} from '@connectrpc/connect'
+import {type ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connect'
 import {Timestamp} from '@bufbuild/protobuf'
 import {
-  GraphDurationResponse,
-  Series,
-  Timeseries,
+  type GraphDurationResponse,
+  type Series,
+  type Timeseries,
 } from '../../proto/objectives/v1alpha1/objectives_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {formatDuration} from '../../duration'
@@ -79,7 +80,7 @@ const DurationGraph = ({
         // The first series is a straight line (same latency target value for all timestamps)
         // showing the objective.
         if (latency !== undefined) {
-          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000))
+          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000) as number[])
           durationLabels.push('{quantile="target"}')
         }
 
@@ -154,7 +155,7 @@ const DurationGraph = ({
         {durations !== undefined ? (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 150,
               padding: [15, 0, 0, 25],
               cursor: uPlotCursor,
@@ -196,7 +197,7 @@ const DurationGraph = ({
         ) : (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 150,
               padding: [15, 0, 0, 0],
               series: [{}, {}],

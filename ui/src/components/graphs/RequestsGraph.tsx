@@ -1,18 +1,18 @@
-import React, {JSX, useLayoutEffect, useRef, useState} from 'react'
+import React, {type JSX, useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
-import uPlot from 'uplot'
+import type uPlot from 'uplot'
 import {ObjectiveType} from '../../App'
 import {IconExternal} from '../Icons'
 import {blues, greens, reds, yellows} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
+import {type PromiseClient} from '@connectrpc/connect'
 import {usePrometheusQueryRange} from '../../prometheus'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
-import {Labels, labelValues} from '../../labels'
+import {type Labels, labelValues} from '../../labels'
 import {buildExternalHRef, externalName} from '../../external';
 
 interface RequestsGraphProps {
@@ -126,7 +126,7 @@ const RequestsGraph = ({
         {data.length > 0 ? (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 150,
               padding: [15, 0, 0, 0],
               cursor: uPlotCursor,
@@ -160,7 +160,7 @@ const RequestsGraph = ({
         ) : (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 150,
               padding: [15, 0, 0, 0],
               series: [{}, {}],
@@ -177,7 +177,7 @@ const RequestsGraph = ({
   )
 }
 
-const labelColor = (picked: {[color: string]: number}, label: string): string => {
+const labelColor = (picked: Record<string, number>, label: string): string => {
   label = label !== undefined ? label.toLowerCase() : ''
   let color = ''
   if (label === '{}' || label === '' || label === 'value') {

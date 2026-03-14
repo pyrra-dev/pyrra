@@ -1,4 +1,4 @@
-import React, {JSX} from 'react'
+import React, {type JSX} from 'react'
 
 interface SizeProps {
   height: number

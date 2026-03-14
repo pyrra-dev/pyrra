@@ -1,6 +1,4 @@
-export interface Labels {
-  [key: string]: string
-}
+export type Labels = Record<string, string>;
 
 export const MetricName = '__name__'
 
@@ -25,7 +23,7 @@ export const parseLabels = (expr: string | null): Labels => {
   if (expr == null) {
     return {}
   }
-  const lset: {[key: string]: string} = {}
+  const lset: Record<string, string> = {}
   for (const match of expr.matchAll(/(?<label>[a-zA-Z0-9_]+)="(?<value>[^"]+)/g)) {
     if (match.groups?.label !== undefined) {
       lset[match.groups.label] = match.groups.value
