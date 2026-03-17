@@ -52,9 +52,6 @@ import {
   IconTableColumns,
   IconWarning,
 } from '../components/Icons'
-import AwesomeDebouncePromise from 'awesome-debounce-promise'
-import useConstant from 'use-constant'
-import {useAsync} from 'react-async-hook'
 
 enum TableObjectiveState {
   Unknown,
@@ -469,22 +466,6 @@ const List = () => {
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
 
   const [sorting, setSorting] = React.useState<SortingState>([{id: 'budget', desc: false}])
-  const [searchInput, setSearchInput] = React.useState<string>(filterSearch)
-
-  // Only update the URL when the user stops typing for 1 second
-  const debouncedSearchFunction = useConstant(() =>
-    AwesomeDebouncePromise((search: string) => {
-      void setFilterSearch(search !== '' ? search : null)
-    }, 1000),
-  )
-
-  // The async callback is run each time the text changes,
-  // but as the search function is debounced, it does not
-  // fire a new request on each keystroke
-  useAsync(async () => {
-    debouncedSearchFunction(searchInput)
-  }, [debouncedSearchFunction, searchInput])
-
   // TODO: Persist the column visibility in the browser's state
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     lset: true,
@@ -594,7 +575,7 @@ const List = () => {
           }
           // if all labels match, filter for the search string
           // TODO: Use fuzzy search
-          return k.toLowerCase().includes(searchInput.toLowerCase())
+          return k.toLowerCase().includes(filterSearch.toLowerCase())
         })
         .map((k: string) => {
           const o = table.objectives[k]
@@ -612,7 +593,7 @@ const List = () => {
           return r
         }) ?? null
     )
-  }, [table.objectives, searchInput, filterLabels])
+  }, [table.objectives, filterSearch, filterLabels])
 
   const reactTable = useReactTable({
     data: reactTableData,
@@ -709,9 +690,9 @@ const List = () => {
                 placeholder="Search name"
                 aria-label="Search"
                 style={{paddingLeft: 40}}
-                value={searchInput}
+                value={filterSearch}
                 onChange={(e) => {
-                  setSearchInput(e.target.value)
+                  void setFilterSearch(e.target.value !== '' ? e.target.value : null)
                 }}
               />
             </div>
