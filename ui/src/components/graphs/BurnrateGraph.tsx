@@ -1,5 +1,5 @@
-import {type PromiseClient} from '@connectrpc/connect'
-import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type Client} from '@connectrpc/connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
 import {type AlignedData} from 'uplot'
 import type uPlot from 'uplot'
 import React, {type JSX, useLayoutEffect, useRef, useState} from 'react'
@@ -14,7 +14,7 @@ import {type Alert} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../../duration'
 
 interface BurnrateGraphProps {
-  client: PromiseClient<typeof PrometheusService>
+  client: Client<typeof PrometheusService>
   alert: Alert
   threshold: number
   from: number

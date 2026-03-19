@@ -18,9 +18,10 @@ import {useQueryState, parseAsString} from 'nuqs'
 import Navbar from '../components/Navbar'
 import {type Labels, labelsString, MetricName} from '../labels'
 import {parseAsLabels} from '../searchParams'
-import {createConnectTransport} from '@bufbuild/connect-web'
-import {createPromiseClient, Code} from '@connectrpc/connect'
-import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
+import {createConnectTransport} from '@connectrpc/connect-web'
+import {createClient, Code} from '@connectrpc/connect'
+import {clone} from '@bufbuild/protobuf'
+import {ObjectiveService, ObjectiveSchema} from '../proto/objectives/v1alpha1/objectives_pb'
 import {
   type Alert as ObjectiveAlert,
   Alert_State,
@@ -42,7 +43,7 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
-import {type Duration} from '@bufbuild/protobuf'
+import {type Duration} from '@bufbuild/protobuf/wkt'
 import {useObjectivesList} from '../objectives'
 import {
   IconArrowDown,
@@ -448,7 +449,7 @@ const List = () => {
 
   const client = useMemo(() => {
     const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
-    return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
+    return createClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [])
 
   const [filterSearch, setFilterSearch] = useQueryState('search', parseAsString.withDefault(''))
@@ -532,7 +533,7 @@ const List = () => {
               dispatchTable({type: TableActionType.DeleteObjective, lset: labelsString(o.labels)})
 
               resp.status.forEach((s: ObjectiveStatus) => {
-                const so = o.clone()
+                const so = clone(ObjectiveSchema, o)
                 // Identify by the combined labels
                 const sLabels: Labels = s.labels ?? {}
                 const soLabels: Labels = {...o.labels, ...sLabels}

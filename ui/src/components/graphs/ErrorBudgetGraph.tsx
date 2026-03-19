@@ -7,15 +7,15 @@ import type uPlot from 'uplot'
 import {IconExternal} from '../Icons'
 import {greens, reds} from './colors'
 import {seriesGaps} from './gaps'
-import {type PromiseClient} from '@connectrpc/connect'
-import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type Client} from '@connectrpc/connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {type SamplePair, type SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {buildExternalHRef, externalName} from '../../external'
 
 interface ErrorBudgetGraphProps {
-  client: PromiseClient<typeof PrometheusService>
+  client: Client<typeof PrometheusService>
   query: string
   from: number
   to: number

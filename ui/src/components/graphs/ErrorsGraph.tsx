@@ -6,9 +6,9 @@ import {ObjectiveType} from '../../App'
 import {IconExternal} from '../Icons'
 import {reds} from './colors'
 import {seriesGaps} from './gaps'
-import {type PromiseClient} from '@connectrpc/connect'
+import {type Client} from '@connectrpc/connect'
 import {usePrometheusQueryRange} from '../../prometheus'
-import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
@@ -16,7 +16,7 @@ import {type Labels, labelValues} from '../../labels'
 import {buildExternalHRef, externalName} from '../../external';
 
 interface ErrorsGraphProps {
-  client: PromiseClient<typeof PrometheusService>
+  client: Client<typeof PrometheusService>
   type: ObjectiveType
   query: string
   from: number

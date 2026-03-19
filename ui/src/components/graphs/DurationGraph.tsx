@@ -8,9 +8,9 @@ import {IconExternal} from '../Icons'
 import {type Labels, labelsString, parseLabelValue} from '../../labels'
 import {colorful, greys} from './colors'
 import {seriesGaps} from './gaps'
-import {type PromiseClient} from '@connectrpc/connect'
-import {type ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connect'
-import {Timestamp} from '@bufbuild/protobuf'
+import {type Client} from '@connectrpc/connect'
+import {type ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {timestampFromDate} from '@bufbuild/protobuf/wkt'
 import {
   type GraphDurationResponse,
   type Series,
@@ -21,7 +21,7 @@ import {formatDuration} from '../../duration'
 import {buildExternalHRef, externalName} from '../../external'
 
 interface DurationGraphProps {
-  client: PromiseClient<typeof ObjectiveService>
+  client: Client<typeof ObjectiveService>
   labels: Labels
   grouping: Labels
   from: number
@@ -68,8 +68,8 @@ const DurationGraph = ({
       .graphDuration({
         expr: labelsString(labels),
         grouping: labelsString(grouping),
-        start: Timestamp.fromDate(new Date(from)),
-        end: Timestamp.fromDate(new Date(to)),
+        start: timestampFromDate(new Date(from)),
+        end: timestampFromDate(new Date(to)),
       })
       .then((resp: GraphDurationResponse) => {
         let durationTimestamps: number[] = []

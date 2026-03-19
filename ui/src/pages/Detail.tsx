@@ -18,14 +18,14 @@ import {MetricName, parseLabels} from '../labels'
 import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
 import RequestsGraph from '../components/graphs/RequestsGraph'
 import ErrorsGraph from '../components/graphs/ErrorsGraph'
-import {createConnectTransport} from '@bufbuild/connect-web'
-import {createPromiseClient} from '@connectrpc/connect'
-import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
+import {createConnectTransport} from '@connectrpc/connect-web'
+import {createClient} from '@connectrpc/connect'
+import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_pb'
 import AlertsTable from '../components/AlertsTable'
 import Toggle from '../components/Toggle'
 import DurationGraph from '../components/graphs/DurationGraph'
 import type uPlot from 'uplot'
-import {PrometheusService} from '../proto/prometheus/v1/prometheus_connect'
+import {PrometheusService} from '../proto/prometheus/v1/prometheus_pb'
 import {replaceInterval, usePrometheusQuery} from '../prometheus'
 import {useObjectivesList} from '../objectives'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
@@ -40,11 +40,11 @@ const Detail = () => {
   const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
 
   const client = useMemo(() => {
-    return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
+    return createClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [baseUrl])
 
   const promClient = useMemo(() => {
-    return createPromiseClient(PrometheusService, createConnectTransport({baseUrl}))
+    return createClient(PrometheusService, createConnectTransport({baseUrl}))
   }, [baseUrl])
 
   const [expr] = useQueryState('expr', parseAsString.withDefault(''))

@@ -1,7 +1,7 @@
-import {type ConnectError, type PromiseClient} from '@connectrpc/connect'
+import {type ConnectError, type Client} from '@connectrpc/connect'
 import {type QueryStatus} from '@tanstack/react-query'
-import {type ObjectiveService} from './proto/objectives/v1alpha1/objectives_connect'
-import {Timestamp} from '@bufbuild/protobuf'
+import {type ObjectiveService} from './proto/objectives/v1alpha1/objectives_pb'
+import {timestampFromDate} from '@bufbuild/protobuf/wkt'
 import {type QueryOptions, useConnectQuery} from './query'
 import {type GetStatusResponse, type ListResponse} from './proto/objectives/v1alpha1/objectives_pb'
 
@@ -12,7 +12,7 @@ export interface ObjectivesListResponse {
 }
 
 export const useObjectivesList = (
-  client: PromiseClient<typeof ObjectiveService>,
+  client: Client<typeof ObjectiveService>,
   expr: string,
   grouping: string,
   options?: QueryOptions,
@@ -36,7 +36,7 @@ export interface ObjectivesQueryResponse {
 
 // TODO: Probably not needed anymore with PrometheusService's existence now.
 export const useObjectivesStatus = (
-  client: PromiseClient<typeof ObjectiveService>,
+  client: Client<typeof ObjectiveService>,
   expr: string,
   grouping: string,
   to: number,
@@ -45,7 +45,7 @@ export const useObjectivesStatus = (
   const {data, error, status} = useConnectQuery({
     key: ['status', expr, grouping],
     func: async () => {
-      return await client.getStatus({expr, grouping, time: Timestamp.fromDate(new Date(to))})
+      return await client.getStatus({expr, grouping, time: timestampFromDate(new Date(to))})
     },
     options,
   })
