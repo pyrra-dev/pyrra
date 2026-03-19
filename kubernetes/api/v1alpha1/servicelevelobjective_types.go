@@ -144,10 +144,15 @@ type Alerting struct {
 }
 
 type RatioIndicator struct {
+	// Exactly two of errors, total, and success must be set.
+	// The missing metric will be derived as total = errors + success.
 	// Errors is the metric that returns how many errors there are.
-	Errors Query `json:"errors"`
+	Errors Query `json:"errors,omitempty"`
 	// Total is the metric that returns how many requests there are in total.
-	Total Query `json:"total"`
+	Total Query `json:"total,omitempty"`
+	// Success is the metric that returns how many successful requests there are.
+	// +optional
+	Success Query `json:"success,omitempty"`
 	// +optional
 	// Grouping allows an SLO to be defined for many SLI at once, like HTTP handlers for example.
 	Grouping []string `json:"grouping"`
@@ -247,24 +252,41 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 
 	if in.Spec.ServiceLevelIndicator.Ratio != nil {
 		ratio := in.Spec.ServiceLevelIndicator.Ratio
-		if ratio.Total.Metric == "" {
-			return warnings, fmt.Errorf("ratio total metric must be set")
+
+		// Exactly two of total, errors, and success must be set.
+		set := 0
+		if ratio.Total.Metric != "" {
+			set++
 		}
-		if ratio.Errors.Metric == "" {
-			return warnings, fmt.Errorf("ratio errors metric must be set")
+		if ratio.Errors.Metric != "" {
+			set++
+		}
+		if ratio.Success.Metric != "" {
+			set++
+		}
+		if set != 2 {
+			return warnings, fmt.Errorf("ratio indicator must set exactly two of total, errors, and success metrics")
 		}
 
-		if ratio.Errors.Metric == ratio.Total.Metric {
+		// Parse whichever metrics are set.
+		if ratio.Total.Metric != "" {
+			if _, err := parser.ParseExpr(ratio.Total.Metric); err != nil {
+				return warnings, fmt.Errorf("failed to parse ratio total metric: %w", err)
+			}
+		}
+		if ratio.Errors.Metric != "" {
+			if _, err := parser.ParseExpr(ratio.Errors.Metric); err != nil {
+				return warnings, fmt.Errorf("failed to parse ratio error metric: %w", err)
+			}
+		}
+		if ratio.Success.Metric != "" {
+			if _, err := parser.ParseExpr(ratio.Success.Metric); err != nil {
+				return warnings, fmt.Errorf("failed to parse ratio success metric: %w", err)
+			}
+		}
+
+		if ratio.Errors.Metric != "" && ratio.Total.Metric != "" && ratio.Errors.Metric == ratio.Total.Metric {
 			warnings = append(warnings, "ratio errors metric should be different from ratio total metric")
-		}
-
-		_, err := parser.ParseExpr(ratio.Total.Metric)
-		if err != nil {
-			return warnings, fmt.Errorf("failed to parse ratio total metric: %w", err)
-		}
-		_, err = parser.ParseExpr(ratio.Errors.Metric)
-		if err != nil {
-			return warnings, fmt.Errorf("failed to parse ratio error metric: %w", err)
 		}
 	}
 
@@ -395,42 +417,57 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 	var ratio *slo.RatioIndicator
 	if in.Spec.ServiceLevelIndicator.Ratio != nil {
-		totalExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Ratio.Total.Metric)
-		if err != nil {
-			return slo.Objective{}, err
-		}
-
-		totalVec, ok := totalExpr.(*parser.VectorSelector)
-		if !ok {
-			return slo.Objective{}, fmt.Errorf("ratio total metric is not a VectorSelector")
-		}
-
-		errorExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Ratio.Errors.Metric)
-		if err != nil {
-			return slo.Objective{}, err
-		}
-
-		errorVec, ok := errorExpr.(*parser.VectorSelector)
-		if !ok {
-			return slo.Objective{}, fmt.Errorf("ratio error metric is not a VectorSelector")
-		}
-
-		// Copy the matchers to get rid of the re field for unit testing...
-		errorMatchers := make([]*labels.Matcher, len(errorVec.LabelMatchers))
-		for i, matcher := range errorVec.LabelMatchers {
-			errorMatchers[i] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
-		}
+		specRatio := in.Spec.ServiceLevelIndicator.Ratio
 
 		ratio = &slo.RatioIndicator{
-			Errors: slo.Metric{
-				Name:          errorVec.Name,
-				LabelMatchers: errorMatchers,
-			},
-			Total: slo.Metric{
+			Grouping: specRatio.Grouping,
+		}
+
+		// Parse whichever of total, errors, and success are set. Validation already
+		// ensured that exactly two are present.
+		if specRatio.Total.Metric != "" {
+			totalExpr, err := parser.ParseExpr(specRatio.Total.Metric)
+			if err != nil {
+				return slo.Objective{}, err
+			}
+			totalVec, ok := totalExpr.(*parser.VectorSelector)
+			if !ok {
+				return slo.Objective{}, fmt.Errorf("ratio total metric is not a VectorSelector")
+			}
+			ratio.Total = slo.Metric{
 				Name:          totalVec.Name,
-				LabelMatchers: totalVec.LabelMatchers,
-			},
-			Grouping: in.Spec.ServiceLevelIndicator.Ratio.Grouping,
+				LabelMatchers: cloneLabelMatchers(totalVec.LabelMatchers),
+			}
+		}
+
+		if specRatio.Errors.Metric != "" {
+			errorExpr, err := parser.ParseExpr(specRatio.Errors.Metric)
+			if err != nil {
+				return slo.Objective{}, err
+			}
+			errorVec, ok := errorExpr.(*parser.VectorSelector)
+			if !ok {
+				return slo.Objective{}, fmt.Errorf("ratio error metric is not a VectorSelector")
+			}
+			ratio.Errors = slo.Metric{
+				Name:          errorVec.Name,
+				LabelMatchers: cloneLabelMatchers(errorVec.LabelMatchers),
+			}
+		}
+
+		if specRatio.Success.Metric != "" {
+			successExpr, err := parser.ParseExpr(specRatio.Success.Metric)
+			if err != nil {
+				return slo.Objective{}, err
+			}
+			successVec, ok := successExpr.(*parser.VectorSelector)
+			if !ok {
+				return slo.Objective{}, fmt.Errorf("ratio success metric is not a VectorSelector")
+			}
+			ratio.Success = slo.Metric{
+				Name:          successVec.Name,
+				LabelMatchers: cloneLabelMatchers(successVec.LabelMatchers),
+			}
 		}
 	}
 
@@ -581,4 +618,20 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 			BoolGauge:     boolGauge,
 		},
 	}, nil
+}
+
+// cloneLabelMatchers returns a deep copy of the provided label matchers slice.
+func cloneLabelMatchers(in []*labels.Matcher) []*labels.Matcher {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]*labels.Matcher, len(in))
+	for i, m := range in {
+		out[i] = &labels.Matcher{
+			Type:  m.Type,
+			Name:  m.Name,
+			Value: m.Value,
+		}
+	}
+	return out
 }

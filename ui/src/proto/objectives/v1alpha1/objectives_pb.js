@@ -64,6 +64,7 @@ export const Ratio = proto3.makeMessageType(
     { no: 1, name: "total", kind: "message", T: Query },
     { no: 2, name: "errors", kind: "message", T: Query },
     { no: 3, name: "grouping", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "success", kind: "message", T: Query },
   ],
 );
 
