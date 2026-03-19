@@ -12,7 +12,3 @@ plugins:
   - plugin: buf.build/bufbuild/es:v2.11.0
     out: ui/src/proto
     opt: target=js+dts
-  # renovate: datasource=github-releases depName=connectrpc/connect-es
-  - plugin: buf.build/connectrpc/es:v2.1.1
-    out: ui/src/proto
-    opt: target=js+dts

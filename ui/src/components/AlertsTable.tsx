@@ -7,13 +7,13 @@ import {
   Alert_State,
   type GetAlertsResponse,
   type Objective,
+  type ObjectiveService,
 } from '../proto/objectives/v1alpha1/objectives_pb'
-import {type PromiseClient} from '@connectrpc/connect'
-import {type ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
+import {type Client} from '@connectrpc/connect'
 import BurnrateGraph from './graphs/BurnrateGraph'
 import {type AlignedData} from 'uplot';
 import type uPlot from 'uplot'
-import {type PrometheusService} from '../proto/prometheus/v1/prometheus_connect'
+import {type PrometheusService} from '../proto/prometheus/v1/prometheus_pb'
 import {usePrometheusQueryRange} from '../prometheus'
 import {step} from './graphs/step'
 import {convertAlignedData} from './graphs/aligneddata'
@@ -21,8 +21,8 @@ import {formatDuration} from '../duration'
 import {buildExternalHRef, externalName} from '../external';
 
 interface AlertsTableProps {
-  client: PromiseClient<typeof ObjectiveService>
-  promClient: PromiseClient<typeof PrometheusService>
+  client: Client<typeof ObjectiveService>
+  promClient: Client<typeof PrometheusService>
   objective: Objective
   grouping: Labels
   from: number

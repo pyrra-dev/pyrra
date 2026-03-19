@@ -5,7 +5,9 @@
   "type": "module",
   "homepage": "./",
   "dependencies": {
-    "@connectrpc/connect": "^1.4.0",
+    "@bufbuild/protobuf": "^2.0.0",
+    "@connectrpc/connect": "^2.0.0",
+    "@connectrpc/connect-web": "^2.0.0",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-table": "^8.13.2",
     "@testing-library/jest-dom": "^6.0.0",
@@ -21,10 +23,6 @@
     "uplot-react": "^1.1.5"
   },
   "devDependencies": {
-    "@bufbuild/connect-web": "^0.13.0",
-    "@bufbuild/protobuf": "^1.10.0",
-    "@bufbuild/protoc-gen-connect-es": "^0.13.0",
-    "@bufbuild/protoc-gen-es": "^1.7.2",
     "@fontsource/inter": "^5.0.17",
     "@fontsource/lato": "^5.0.19",
     "@types/node": "^24.0.0",

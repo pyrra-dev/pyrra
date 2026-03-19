@@ -1,6 +1,5 @@
-import {type QueryRangeResponse, type QueryResponse} from './proto/prometheus/v1/prometheus_pb'
-import {type PrometheusService} from './proto/prometheus/v1/prometheus_connect'
-import {type ConnectError, type PromiseClient} from '@connectrpc/connect'
+import {type PrometheusService, type QueryRangeResponse, type QueryResponse} from './proto/prometheus/v1/prometheus_pb'
+import {type ConnectError, type Client} from '@connectrpc/connect'
 import {type QueryStatus} from '@tanstack/react-query'
 import {type QueryOptions, useConnectQuery} from './query'
 import {formatDuration} from './duration'
@@ -12,7 +11,7 @@ export interface PrometheusQueryResponse {
 }
 
 export const usePrometheusQuery = (
-  client: PromiseClient<typeof PrometheusService>,
+  client: Client<typeof PrometheusService>,
   query: string,
   time: number,
   options?: QueryOptions,
@@ -36,7 +35,7 @@ export interface PrometheusQueryRangeResponse {
 }
 
 export const usePrometheusQueryRange = (
-  client: PromiseClient<typeof PrometheusService>,
+  client: Client<typeof PrometheusService>,
   query: string,
   start: number,
   end: number,
