@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
       - name: Set up Go
-        uses: actions/setup-go@8f19afcc704763637be6b1718da0af52ca05785d
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version-file: go.mod
           check-latest: true
@@ -85,7 +85,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@dde548f1603e003959483c86c72ec03454216f9c
+        uses: docker/metadata-action@d24d429af23073facc066506898a0eae1f24b9ad
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
