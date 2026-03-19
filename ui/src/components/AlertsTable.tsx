@@ -7,9 +7,9 @@ import {
   Alert_State,
   type GetAlertsResponse,
   type Objective,
+  type ObjectiveService,
 } from '../proto/objectives/v1alpha1/objectives_pb'
 import {type Client} from '@connectrpc/connect'
-import {type ObjectiveService} from '../proto/objectives/v1alpha1/objectives_pb'
 import BurnrateGraph from './graphs/BurnrateGraph'
 import {type AlignedData} from 'uplot';
 import type uPlot from 'uplot'

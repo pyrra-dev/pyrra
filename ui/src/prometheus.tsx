@@ -1,5 +1,4 @@
-import {type QueryRangeResponse, type QueryResponse} from './proto/prometheus/v1/prometheus_pb'
-import {type PrometheusService} from './proto/prometheus/v1/prometheus_pb'
+import {type PrometheusService, type QueryRangeResponse, type QueryResponse} from './proto/prometheus/v1/prometheus_pb'
 import {type ConnectError, type Client} from '@connectrpc/connect'
 import {type QueryStatus} from '@tanstack/react-query'
 import {type QueryOptions, useConnectQuery} from './query'

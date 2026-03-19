@@ -9,13 +9,13 @@ import {type Labels, labelsString, parseLabelValue} from '../../labels'
 import {colorful, greys} from './colors'
 import {seriesGaps} from './gaps'
 import {type Client} from '@connectrpc/connect'
-import {type ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_pb'
-import {timestampFromDate} from '@bufbuild/protobuf/wkt'
 import {
   type GraphDurationResponse,
+  type ObjectiveService,
   type Series,
   type Timeseries,
 } from '../../proto/objectives/v1alpha1/objectives_pb'
+import {timestampFromDate} from '@bufbuild/protobuf/wkt'
 import {selectTimeRange} from './selectTimeRange'
 import {formatDuration} from '../../duration'
 import {buildExternalHRef, externalName} from '../../external'

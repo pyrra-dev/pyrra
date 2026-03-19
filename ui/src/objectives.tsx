@@ -1,9 +1,8 @@
 import {type ConnectError, type Client} from '@connectrpc/connect'
 import {type QueryStatus} from '@tanstack/react-query'
-import {type ObjectiveService} from './proto/objectives/v1alpha1/objectives_pb'
+import {type GetStatusResponse, type ListResponse, type ObjectiveService} from './proto/objectives/v1alpha1/objectives_pb'
 import {timestampFromDate} from '@bufbuild/protobuf/wkt'
 import {type QueryOptions, useConnectQuery} from './query'
-import {type GetStatusResponse, type ListResponse} from './proto/objectives/v1alpha1/objectives_pb'
 
 export interface ObjectivesListResponse {
   response: ListResponse | null
