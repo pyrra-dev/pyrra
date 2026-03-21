@@ -51,7 +51,13 @@ import (
 //go:embed ui/build
 var ui embed.FS
 
+var (
+	version = "dev"
+	commit  = "none"
+)
+
 var CLI struct {
+	Version kong.VersionFlag `help:"Print version information and quit."`
 	LoggerConfig
 	API struct {
 		PrometheusURL               *url.URL          `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
@@ -100,12 +106,25 @@ var CLI struct {
 }
 
 func main() {
-	ctx := kong.Parse(&CLI)
+	ctx := kong.Parse(&CLI,
+		kong.Vars{"version": version + " (" + commit + ")"},
+	)
 
 	logger := configureLogger(CLI.LoggerConfig)
+	level.Info(logger).Log("msg", "starting Pyrra", "version", version, "commit", commit)
+
+	buildInfo := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "pyrra_build_info",
+			Help: "A metric with a constant '1' value labeled by version and commit from which Pyrra was built.",
+		},
+		[]string{"version", "commit"},
+	)
+	buildInfo.WithLabelValues(version, commit).Set(1)
 
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(
+		buildInfo,
 		collectors.NewBuildInfoCollector(),
 		collectors.NewGoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
@@ -379,12 +398,14 @@ func cmdAPI(
 				ExternalGrafanaOrgID        string
 				PathPrefix                  string
 				APIBasepath                 string
+				Version                     string
 			}{
 				ExternalURL:                 externalURL.String(),
 				ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
 				ExternalGrafanaOrgID:        externalGrafanaOrgID,
 				PathPrefix:                  uiRoutePrefix,
 				APIBasepath:                 uiRoutePrefix,
+				Version:                     version,
 			})
 			if err != nil {
 				level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
@@ -399,12 +420,14 @@ func cmdAPI(
 					ExternalGrafanaOrgID        string
 					PathPrefix                  string
 					APIBasepath                 string
+					Version                     string
 				}{
 					ExternalURL:                 externalURL.String(),
 					ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
 					ExternalGrafanaOrgID:        externalGrafanaOrgID,
 					PathPrefix:                  uiRoutePrefix,
 					APIBasepath:                 uiRoutePrefix,
+					Version:                     version,
 				})
 				if err != nil {
 					level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
