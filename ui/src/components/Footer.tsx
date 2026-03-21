@@ -6,7 +6,7 @@ interface FooterProps {
 }
 
 const Footer = ({version}: FooterProps): JSX.Element => {
-  if (!version) {
+  if (version === undefined || version === '') {
     return <></>
   }
 
