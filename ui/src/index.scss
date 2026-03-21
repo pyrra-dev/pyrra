@@ -136,6 +136,10 @@ pre {
 
 // Add some generic global application CSS
 
+html, body, #root {
+  height: 100%;
+}
+
 .content {
   margin: 100px auto;
 }
