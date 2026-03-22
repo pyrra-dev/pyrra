@@ -136,6 +136,10 @@ pre {
 
 // Add some generic global application CSS
 
+html, body, #root {
+  height: 100%;
+}
+
 .content {
   margin: 100px auto;
 }
@@ -159,3 +163,4 @@ a.external-prometheus {
 @import 'components/AlertsTable';
 @import 'components/graphs/BurnrateGraph';
 @import "components/tiles/Tiles";
+@import 'components/Footer';

@@ -3,6 +3,7 @@ import {BrowserRouter, Route, Routes} from 'react-router-dom'
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6'
 import List from './pages/List'
 import Detail from './pages/Detail'
+import Footer from './components/Footer'
 import {
   type LabelMatcher,
   type Latency,
@@ -22,6 +23,8 @@ export const EXTERNAL_URL: string = window.EXTERNAL_URL
 export const EXTERNAL_GRAFANA_DATASOURCE_ID: string = window.EXTERNAL_GRAFANA_DATASOURCE_ID
 // @ts-expect-error - this is passed from the HTML template.
 export const EXTERNAL_GRAFANA_ORG_ID: string = window.EXTERNAL_GRAFANA_ORG_ID
+// @ts-expect-error - this is passed from the HTML template.
+export const VERSION: string = window.VERSION
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +46,7 @@ const App = () => {
             <Route path="/" element={<List />} />
             <Route path="/objectives" element={<Detail />} />
           </Routes>
+          <Footer version={VERSION} />
         </NuqsAdapter>
       </BrowserRouter>
     </QueryClientProvider>

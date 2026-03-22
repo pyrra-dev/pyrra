@@ -40,7 +40,7 @@ build: pyrra
 
 # Build api binary
 pyrra: fmt vet
-	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o pyrra
+	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags "-static" -X main.version=$(shell git describe --tags --always --dirty) -X main.commit=$(shell git rev-parse HEAD)' -o pyrra
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
