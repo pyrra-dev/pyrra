@@ -1,20 +1,20 @@
-import React, {useEffect, useRef, useState} from 'react'
+import React, {type JSX, useEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
-import uPlot, {AlignedData} from 'uplot'
+import {type AlignedData} from 'uplot';
+import type uPlot from 'uplot'
 
 import {IconExternal} from '../Icons'
 import {greens, reds} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type Client} from '@connectrpc/connect'
+import {type PrometheusService, type SamplePair, type SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {usePrometheusQueryRange} from '../../prometheus'
-import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {buildExternalHRef, externalName} from '../../external'
 
 interface ErrorBudgetGraphProps {
-  client: PromiseClient<typeof PrometheusService>
+  client: Client<typeof PrometheusService>
   query: string
   from: number
   to: number
@@ -32,12 +32,12 @@ const ErrorBudgetGraph = ({
   updateTimeRange,
   absolute = false,
 }: ErrorBudgetGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [width, setWidth] = useState<number>(1000)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined) {
+    if (targetRef.current !== undefined && targetRef.current !== null) {
       setWidth(targetRef.current.offsetWidth)
     }
   }
@@ -77,7 +77,7 @@ const ErrorBudgetGraph = ({
     }
   }
 
-  if (status !== 'loading' && samples.length === 0) {
+  if (status !== 'pending' && samples.length === 0) {
     return (
       <>
         <h4 className="graphs-headline">Error Budget</h4>
@@ -125,7 +125,7 @@ const ErrorBudgetGraph = ({
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           Error Budget
-          {status === 'loading' ? (
+          {status === 'pending' ? (
             <Spinner
               animation="border"
               style={{
@@ -161,7 +161,7 @@ const ErrorBudgetGraph = ({
         {samples.length > 0 ? (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 300,
               padding: [canvasPadding, 0, 0, canvasPadding],
               cursor: uPlotCursor,

@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         node-version:
-          # renovate: datasource=node-version depName=node versioning=node
+          # renovate: datasource=node-version depName=node versioning=node allowedVersions=^22
           - 22.x
           # renovate: datasource=node-version depName=node versioning=node
           - 24.x
@@ -32,7 +32,7 @@ jobs:
     strategy:
       matrix:
         node-version:
-          # renovate: datasource=node-version depName=node versioning=node
+          # renovate: datasource=node-version depName=node versioning=node allowedVersions=^22
           - 22.x
           # renovate: datasource=node-version depName=node versioning=node
           - 24.x

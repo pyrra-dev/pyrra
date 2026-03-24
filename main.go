@@ -21,7 +21,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/bufbuild/connect-go"
-	"github.com/dgraph-io/ristretto"
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/go-kit/log"
@@ -51,7 +51,13 @@ import (
 //go:embed ui/build
 var ui embed.FS
 
+var (
+	version = "dev"
+	commit  = "none"
+)
+
 var CLI struct {
+	Version kong.VersionFlag `help:"Print version information and quit."`
 	LoggerConfig
 	API struct {
 		PrometheusURL               *url.URL          `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
@@ -100,12 +106,25 @@ var CLI struct {
 }
 
 func main() {
-	ctx := kong.Parse(&CLI)
+	ctx := kong.Parse(&CLI,
+		kong.Vars{"version": version + " (" + commit + ")"},
+	)
 
 	logger := configureLogger(CLI.LoggerConfig)
+	level.Info(logger).Log("msg", "starting Pyrra", "version", version, "commit", commit)
+
+	buildInfo := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "pyrra_build_info",
+			Help: "A metric with a constant '1' value labeled by version and commit from which Pyrra was built.",
+		},
+		[]string{"version", "commit"},
+	)
+	buildInfo.WithLabelValues(version, commit).Set(1)
 
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(
+		buildInfo,
 		collectors.NewBuildInfoCollector(),
 		collectors.NewGoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
@@ -289,7 +308,7 @@ func cmdAPI(
 	level.Info(logger).Log("msg", "using API at", "url", apiURL.String())
 	level.Info(logger).Log("msg", "using route prefix", "prefix", routePrefix)
 
-	cache, err := ristretto.NewCache(&ristretto.Config{
+	cache, err := ristretto.NewCache(&ristretto.Config[string, any]{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
 		BufferItems: 64,      // number of keys per Get buffer.
@@ -379,12 +398,14 @@ func cmdAPI(
 				ExternalGrafanaOrgID        string
 				PathPrefix                  string
 				APIBasepath                 string
+				Version                     string
 			}{
 				ExternalURL:                 externalURL.String(),
 				ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
 				ExternalGrafanaOrgID:        externalGrafanaOrgID,
 				PathPrefix:                  uiRoutePrefix,
 				APIBasepath:                 uiRoutePrefix,
+				Version:                     version,
 			})
 			if err != nil {
 				level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
@@ -399,12 +420,14 @@ func cmdAPI(
 					ExternalGrafanaOrgID        string
 					PathPrefix                  string
 					APIBasepath                 string
+					Version                     string
 				}{
 					ExternalURL:                 externalURL.String(),
 					ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
 					ExternalGrafanaOrgID:        externalGrafanaOrgID,
 					PathPrefix:                  uiRoutePrefix,
 					APIBasepath:                 uiRoutePrefix,
+					Version:                     version,
 				})
 				if err != nil {
 					level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
@@ -465,10 +488,10 @@ func cmdAPI(
 }
 
 func newBackendClientCache(client objectivesv1alpha1connect.ObjectiveBackendServiceClient) objectivesv1alpha1connect.ObjectiveBackendServiceClient {
-	cache, err := ristretto.NewCache(&ristretto.Config{
+	cache, err := ristretto.NewCache(&ristretto.Config[string, any]{
 		NumCounters: 100,
 		MaxCost:     10 * 1000, // 10 seconds
-		BufferItems: 64,
+		BufferItems: 64,        // number of keys per Get buffer.
 	})
 	if err != nil {
 		panic(err)
@@ -478,7 +501,7 @@ func newBackendClientCache(client objectivesv1alpha1connect.ObjectiveBackendServ
 
 type backendClientCache struct {
 	client objectivesv1alpha1connect.ObjectiveBackendServiceClient
-	cache  *ristretto.Cache
+	cache  *ristretto.Cache[string, any]
 }
 
 // List calls the backend service and caches the result for 10 seconds if the request is successful.
@@ -589,7 +612,7 @@ func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusa
 
 type promCache struct {
 	api   prometheusAPI
-	cache *ristretto.Cache
+	cache *ristretto.Cache[string, any]
 }
 
 type promCacheKeyType string

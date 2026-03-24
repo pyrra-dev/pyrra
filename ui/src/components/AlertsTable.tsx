@@ -1,18 +1,19 @@
 import {OverlayTrigger, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
-import React, {useEffect, useState} from 'react'
+import React, {type JSX, useEffect, useState} from 'react'
 import {IconChevron, IconExternal} from './Icons'
-import {Labels, labelsString} from '../labels'
+import {type Labels, labelsString} from '../labels'
 import {
-  Alert,
+  type Alert,
   Alert_State,
-  GetAlertsResponse,
-  Objective,
+  type GetAlertsResponse,
+  type Objective,
+  type ObjectiveService,
 } from '../proto/objectives/v1alpha1/objectives_pb'
-import {PromiseClient} from '@connectrpc/connect'
-import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
+import {type Client} from '@connectrpc/connect'
 import BurnrateGraph from './graphs/BurnrateGraph'
-import uPlot, {AlignedData} from 'uplot'
-import {PrometheusService} from '../proto/prometheus/v1/prometheus_connect'
+import {type AlignedData} from 'uplot';
+import type uPlot from 'uplot'
+import {type PrometheusService} from '../proto/prometheus/v1/prometheus_pb'
 import {usePrometheusQueryRange} from '../prometheus'
 import {step} from './graphs/step'
 import {convertAlignedData} from './graphs/aligneddata'
@@ -20,8 +21,8 @@ import {formatDuration} from '../duration'
 import {buildExternalHRef, externalName} from '../external';
 
 interface AlertsTableProps {
-  client: PromiseClient<typeof ObjectiveService>
-  promClient: PromiseClient<typeof PrometheusService>
+  client: Client<typeof ObjectiveService>
+  promClient: Client<typeof PrometheusService>
   objective: Objective
   grouping: Labels
   from: number
@@ -60,7 +61,7 @@ const AlertsTable = ({
       .then((resp: GetAlertsResponse) => {
         setAlerts(resp.alerts)
       })
-      .catch((err) => console.log(err))
+      .catch((err) => { console.log(err); })
   }, [client, objective, grouping])
 
   const {response: alertsRangeResponse} = usePrometheusQueryRange(

@@ -1,12 +1,14 @@
 import React from 'react'
 import {BrowserRouter, Route, Routes} from 'react-router-dom'
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v6'
 import List from './pages/List'
 import Detail from './pages/Detail'
+import Footer from './components/Footer'
 import {
-  LabelMatcher,
-  Latency,
-  LatencyNative,
-  Objective,
+  type LabelMatcher,
+  type Latency,
+  type LatencyNative,
+  type Objective,
 } from './proto/objectives/v1alpha1/objectives_pb'
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {formatDuration, parseDuration} from './duration'
@@ -21,6 +23,8 @@ export const EXTERNAL_URL: string = window.EXTERNAL_URL
 export const EXTERNAL_GRAFANA_DATASOURCE_ID: string = window.EXTERNAL_GRAFANA_DATASOURCE_ID
 // @ts-expect-error - this is passed from the HTML template.
 export const EXTERNAL_GRAFANA_ORG_ID: string = window.EXTERNAL_GRAFANA_ORG_ID
+// @ts-expect-error - this is passed from the HTML template.
+export const VERSION: string = window.VERSION
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,10 +41,13 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={basename}>
-        <Routes>
-          <Route path="/" element={<List />} />
-          <Route path="/objectives" element={<Detail />} />
-        </Routes>
+        <NuqsAdapter>
+          <Routes>
+            <Route path="/" element={<List />} />
+            <Route path="/objectives" element={<Detail />} />
+          </Routes>
+          <Footer version={VERSION} />
+        </NuqsAdapter>
       </BrowserRouter>
     </QueryClientProvider>
   )

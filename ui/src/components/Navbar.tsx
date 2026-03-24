@@ -1,4 +1,4 @@
-import {ReactNode} from 'react'
+import {type JSX, type ReactNode} from 'react'
 import {Col, Container, Navbar as BootstrapNavbar} from 'react-bootstrap'
 import {Link} from 'react-router-dom'
 import logo from '../logo.svg'

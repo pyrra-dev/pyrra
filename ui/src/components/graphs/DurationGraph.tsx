@@ -1,26 +1,27 @@
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
+import React, {type JSX, useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
-import uPlot, {AlignedData} from 'uplot'
+import {type AlignedData} from 'uplot';
+import type uPlot from 'uplot'
 import {EXTERNAL_URL} from '../../App'
 import {IconExternal} from '../Icons'
-import {Labels, labelsString, parseLabelValue} from '../../labels'
+import {type Labels, labelsString, parseLabelValue} from '../../labels'
 import {colorful, greys} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
-import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connect'
-import {Timestamp} from '@bufbuild/protobuf'
+import {type Client} from '@connectrpc/connect'
 import {
-  GraphDurationResponse,
-  Series,
-  Timeseries,
+  type GraphDurationResponse,
+  type ObjectiveService,
+  type Series,
+  type Timeseries,
 } from '../../proto/objectives/v1alpha1/objectives_pb'
+import {timestampFromDate} from '@bufbuild/protobuf/wkt'
 import {selectTimeRange} from './selectTimeRange'
 import {formatDuration} from '../../duration'
 import {buildExternalHRef, externalName} from '../../external'
 
 interface DurationGraphProps {
-  client: PromiseClient<typeof ObjectiveService>
+  client: Client<typeof ObjectiveService>
   labels: Labels
   grouping: Labels
   from: number
@@ -42,7 +43,7 @@ const DurationGraph = ({
   target,
   latency,
 }: DurationGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [durations, setDurations] = useState<AlignedData>()
   const [durationQueries, setDurationQueries] = useState<string[]>([])
@@ -51,7 +52,7 @@ const DurationGraph = ({
   const [width, setWidth] = useState<number>(500)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined) {
+    if (targetRef.current !== undefined && targetRef.current !== null) {
       setWidth(targetRef.current.offsetWidth)
     }
   }
@@ -67,8 +68,8 @@ const DurationGraph = ({
       .graphDuration({
         expr: labelsString(labels),
         grouping: labelsString(grouping),
-        start: Timestamp.fromDate(new Date(from)),
-        end: Timestamp.fromDate(new Date(to)),
+        start: timestampFromDate(new Date(from)),
+        end: timestampFromDate(new Date(to)),
       })
       .then((resp: GraphDurationResponse) => {
         let durationTimestamps: number[] = []
@@ -79,7 +80,7 @@ const DurationGraph = ({
         // The first series is a straight line (same latency target value for all timestamps)
         // showing the objective.
         if (latency !== undefined) {
-          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000))
+          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000) as number[])
           durationLabels.push('{quantile="target"}')
         }
 
@@ -154,7 +155,7 @@ const DurationGraph = ({
         {durations !== undefined ? (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 150,
               padding: [15, 0, 0, 25],
               cursor: uPlotCursor,
@@ -196,7 +197,7 @@ const DurationGraph = ({
         ) : (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 150,
               padding: [15, 0, 0, 0],
               series: [{}, {}],

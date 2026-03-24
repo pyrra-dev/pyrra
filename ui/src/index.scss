@@ -8,15 +8,17 @@ $gray-700: #818181;
 $gray-800: #606060;
 $gray-900: #3c3c3c;
 
+@use 'sass:color';
+
 $blue: #005397;
-$blue-text: lighten($blue, 65%);
+$blue-text: color.adjust($blue, $lightness: 65%);
 $red: #f46363;
-$red-text: lighten($red, 30%);
-$red-text-dark: darken($red, 30%);
+$red-text: color.adjust($red, $lightness: 30%);
+$red-text-dark: color.adjust($red, $lightness: -30%);
 $yellow: #f4a32a;
-$yellow-text: lighten($yellow, 40%);
+$yellow-text: color.adjust($yellow, $lightness: 40%);
 $green: #32b67a;
-$green-text: lighten($green, 50%);
+$green-text: color.adjust($green, $lightness: 50%);
 
 $light: $gray-300;
 
@@ -41,11 +43,11 @@ $table-th-font-weight: 600;
 // The diff should make it easier to upgrade in the future too.
 
 // Configuration
-@import '~bootstrap/scss/functions';
-@import '~bootstrap/scss/variables';
-@import '~bootstrap/scss/maps';
-@import '~bootstrap/scss/mixins';
-@import '~bootstrap/scss/utilities';
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/mixins';
+@import 'bootstrap/scss/utilities';
 
 $grid-breakpoints: map-merge($grid-breakpoints, (
   xxxl: 1700px,
@@ -56,43 +58,43 @@ $container-max-widths:map-merge($container-max-widths, (
 ));
 
 // Layout & components
-@import '~bootstrap/scss/root';
-@import '~bootstrap/scss/reboot';
-@import '~bootstrap/scss/type';
-//@import "~bootstrap/scss/images";
-@import '~bootstrap/scss/containers';
-@import '~bootstrap/scss/grid';
-@import '~bootstrap/scss/tables';
-@import '~bootstrap/scss/forms';
-@import '~bootstrap/scss/buttons';
-//@import "~bootstrap/scss/transitions";
-@import "~bootstrap/scss/dropdown";
-@import '~bootstrap/scss/button-group';
-@import '~bootstrap/scss/nav';
-@import '~bootstrap/scss/navbar';
-//@import "~bootstrap/scss/card";
-//@import "~bootstrap/scss/accordion";
-//@import "~bootstrap/scss/breadcrumb";
-//@import "~bootstrap/scss/pagination";
-@import '~bootstrap/scss/badge';
-@import '~bootstrap/scss/alert';
-//@import "~bootstrap/scss/progress";
-//@import "~bootstrap/scss/list-group";
-@import '~bootstrap/scss/close';
-//@import "~bootstrap/scss/toasts";
-//@import "~bootstrap/scss/modal";
-@import '~bootstrap/scss/tooltip';
-//@import "~bootstrap/scss/popover";
-//@import "~bootstrap/scss/carousel";
-@import '~bootstrap/scss/spinners';
-@import '~bootstrap/scss/offcanvas';
-@import '~bootstrap/scss/placeholders';
+@import 'bootstrap/scss/root';
+@import 'bootstrap/scss/reboot';
+@import 'bootstrap/scss/type';
+//@import "bootstrap/scss/images";
+@import 'bootstrap/scss/containers';
+@import 'bootstrap/scss/grid';
+@import 'bootstrap/scss/tables';
+@import 'bootstrap/scss/forms';
+@import 'bootstrap/scss/buttons';
+//@import "bootstrap/scss/transitions";
+@import "bootstrap/scss/dropdown";
+@import 'bootstrap/scss/button-group';
+@import 'bootstrap/scss/nav';
+@import 'bootstrap/scss/navbar';
+//@import "bootstrap/scss/card";
+//@import "bootstrap/scss/accordion";
+//@import "bootstrap/scss/breadcrumb";
+//@import "bootstrap/scss/pagination";
+@import 'bootstrap/scss/badge';
+@import 'bootstrap/scss/alert';
+//@import "bootstrap/scss/progress";
+//@import "bootstrap/scss/list-group";
+@import 'bootstrap/scss/close';
+//@import "bootstrap/scss/toasts";
+//@import "bootstrap/scss/modal";
+@import 'bootstrap/scss/tooltip';
+//@import "bootstrap/scss/popover";
+//@import "bootstrap/scss/carousel";
+@import 'bootstrap/scss/spinners';
+@import 'bootstrap/scss/offcanvas';
+@import 'bootstrap/scss/placeholders';
 
 // Helpers
-@import '~bootstrap/scss/helpers';
+@import 'bootstrap/scss/helpers';
 
 // Utilities
-@import '~bootstrap/scss/utilities/api';
+@import 'bootstrap/scss/utilities/api';
 // scss-docs-end import-stack
 
 // Add our application specific overwrites.
@@ -134,6 +136,10 @@ pre {
 
 // Add some generic global application CSS
 
+html, body, #root {
+  height: 100%;
+}
+
 .content {
   margin: 100px auto;
 }
@@ -148,7 +154,7 @@ a.external-prometheus {
   }
 }
 
-@import '~uplot/dist/uPlot.min.css';
+@import 'uplot/dist/uPlot.min.css';
 
 // Import our own components now
 @import 'pages/List';
@@ -157,3 +163,4 @@ a.external-prometheus {
 @import 'components/AlertsTable';
 @import 'components/graphs/BurnrateGraph';
 @import "components/tiles/Tiles";
+@import 'components/Footer';

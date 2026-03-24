@@ -1,5 +1,6 @@
-import {Link, useLocation, useNavigate} from 'react-router-dom'
+import {Link} from 'react-router-dom'
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import {useQueryState, parseAsString} from 'nuqs'
 import {
   Badge,
   Button,
@@ -17,17 +18,17 @@ import {MetricName, parseLabels} from '../labels'
 import ErrorBudgetGraph from '../components/graphs/ErrorBudgetGraph'
 import RequestsGraph from '../components/graphs/RequestsGraph'
 import ErrorsGraph from '../components/graphs/ErrorsGraph'
-import {createConnectTransport} from '@bufbuild/connect-web'
-import {createPromiseClient} from '@connectrpc/connect'
-import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
+import {createConnectTransport} from '@connectrpc/connect-web'
+import {createClient} from '@connectrpc/connect'
+import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_pb'
 import AlertsTable from '../components/AlertsTable'
 import Toggle from '../components/Toggle'
 import DurationGraph from '../components/graphs/DurationGraph'
-import uPlot from 'uplot'
-import {PrometheusService} from '../proto/prometheus/v1/prometheus_connect'
+import type uPlot from 'uplot'
+import {PrometheusService} from '../proto/prometheus/v1/prometheus_pb'
 import {replaceInterval, usePrometheusQuery} from '../prometheus'
 import {useObjectivesList} from '../objectives'
-import {Objective} from '../proto/objectives/v1alpha1/objectives_pb'
+import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
 import ObjectiveTile from '../components/tiles/ObjectiveTile'
 import AvailabilityTile from '../components/tiles/AvailabilityTile'
@@ -36,57 +37,49 @@ import Tiles from '../components/tiles/Tiles'
 import {IconChartArea, IconChartLine} from '../components/Icons'
 
 const Detail = () => {
-  const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
+  const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
 
   const client = useMemo(() => {
-    return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
+    return createClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [baseUrl])
 
   const promClient = useMemo(() => {
-    return createPromiseClient(PrometheusService, createConnectTransport({baseUrl}))
+    return createClient(PrometheusService, createConnectTransport({baseUrl}))
   }, [baseUrl])
 
-  const navigate = useNavigate()
-  const {search} = useLocation()
+  const [expr] = useQueryState('expr', parseAsString.withDefault(''))
+  const [groupingParam] = useQueryState('grouping', parseAsString.withDefault(''))
+  const [fromParam, setFromParam] = useQueryState('from', parseAsString)
+  const [toParam, setToParam] = useQueryState('to', parseAsString)
 
-  const {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels} = useMemo(() => {
-    const query = new URLSearchParams(search)
-
-    const queryExpr = query.get('expr')
-    const expr = queryExpr == null ? '' : queryExpr
+  const {from, to, groupingLabels, name, labels} = useMemo(() => {
     const labels = parseLabels(expr)
-
-    const groupingExpr = query.get('grouping')
-    const grouping = groupingExpr == null ? '' : groupingExpr
-    const groupingLabels = parseLabels(grouping)
-
+    const groupingLabels = parseLabels(groupingParam)
     const name: string = labels[MetricName]
 
     let to: number = Date.now()
-    const toQuery = query.get('to')
-    if (toQuery !== null) {
-      if (!toQuery.includes('now')) {
-        to = parseInt(toQuery)
+    if (toParam !== null) {
+      if (!toParam.includes('now')) {
+        to = parseInt(toParam)
       }
     }
 
     let from: number = to - 60 * 60 * 1000
-    const fromQuery = query.get('from')
-    if (fromQuery !== null) {
-      if (fromQuery.includes('now')) {
-        const duration = parseDuration(fromQuery.substring(4)) // omit first 4 chars: `now-`
+    if (fromParam !== null) {
+      if (fromParam.includes('now')) {
+        const duration = parseDuration(fromParam.substring(4)) // omit first 4 chars: `now-`
         if (duration !== null) {
           from = to - duration
         }
       } else {
-        from = parseInt(fromQuery)
+        from = parseInt(fromParam)
       }
     }
 
     document.title = `${name} - Pyrra`
 
-    return {from, to, expr, grouping, groupingExpr, groupingLabels, name, labels}
-  }, [search])
+    return {from, to, groupingLabels, name, labels}
+  }, [expr, groupingParam, fromParam, toParam])
 
   const [autoReload, setAutoReload] = useState<boolean>(true)
   const [absolute, setAbsolute] = useState<boolean>(true)
@@ -95,7 +88,7 @@ const Detail = () => {
     response: objectiveResponse,
     error: objectiveError,
     status: objectiveStatus,
-  } = useObjectivesList(client, expr, grouping)
+  } = useObjectivesList(client, expr, groupingParam)
 
   const objective: Objective | null = objectiveResponse?.objectives[0] ?? null
 
@@ -121,11 +114,10 @@ const Detail = () => {
         fromStr = `now-${formatDuration(to - from)}`
         toStr = 'now'
       }
-      navigate(
-        `/objectives?expr=${encodeURI(expr)}&grouping=${encodeURI(groupingExpr ?? '')}&from=${fromStr}&to=${toStr}`,
-      )
+      void setFromParam(fromStr)
+      void setToParam(toStr)
     },
-    [navigate, expr, groupingExpr],
+    [setFromParam, setToParam],
   )
 
   const updateTimeRangeSelect = (min: number, max: number, absolute: boolean) => {
@@ -201,8 +193,8 @@ const Detail = () => {
     objectiveType === ObjectiveType.Latency || objectiveType === ObjectiveType.LatencyNative
 
   const loading: boolean =
-    totalStatus === 'loading' ||
-    errorStatus === 'loading'
+    totalStatus === 'pending' ||
+    errorStatus === 'pending'
 
   const success: boolean = totalStatus === 'success' && errorStatus === 'success'
 
@@ -307,7 +299,7 @@ const Detail = () => {
                     <span>
                       <Toggle
                         checked={autoReload}
-                        onChange={() => setAutoReload(!autoReload)}
+                        onChange={() => { setAutoReload(!autoReload); }}
                         onText={formatDuration(interval)}
                       />
                     </span>

@@ -1,22 +1,22 @@
-import React, {useLayoutEffect, useRef, useState} from 'react'
+import React, {type JSX, useLayoutEffect, useRef, useState} from 'react'
 import {Spinner} from 'react-bootstrap'
 import UplotReact from 'uplot-react'
-import uPlot from 'uplot'
+import type uPlot from 'uplot'
 import {ObjectiveType} from '../../App'
 import {IconExternal} from '../Icons'
 import {reds} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
+import {type Client} from '@connectrpc/connect'
 import {usePrometheusQueryRange} from '../../prometheus'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
-import {Labels, labelValues} from '../../labels'
+import {type Labels, labelValues} from '../../labels'
 import {buildExternalHRef, externalName} from '../../external';
 
 interface ErrorsGraphProps {
-  client: PromiseClient<typeof PrometheusService>
+  client: Client<typeof PrometheusService>
   type: ObjectiveType
   query: string
   from: number
@@ -36,7 +36,7 @@ const ErrorsGraph = ({
   updateTimeRange,
   absolute = false,
 }: ErrorsGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [width, setWidth] = useState<number>(500)
 
@@ -59,7 +59,7 @@ const ErrorsGraph = ({
     step(from, to),
   )
 
-  if (status === 'loading') {
+  if (status === 'pending') {
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
@@ -83,7 +83,7 @@ const ErrorsGraph = ({
     return (
       <UplotReact
         options={{
-          width: width,
+          width,
           height: 150,
           padding: [15, 0, 0, 0],
           series: [{}, {}],
@@ -135,7 +135,7 @@ const ErrorsGraph = ({
       <div ref={targetRef}>
         <UplotReact
           options={{
-            width: width,
+            width,
             height: 150,
             padding: [15, 0, 0, 0],
             cursor: uPlotCursor,

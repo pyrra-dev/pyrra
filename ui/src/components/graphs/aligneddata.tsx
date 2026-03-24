@@ -1,6 +1,6 @@
-import {QueryRangeResponse, SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
-import {AlignedData} from 'uplot'
-import {Labels} from '../../labels'
+import {type QueryRangeResponse, type SamplePair, type SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
+import {type AlignedData} from 'uplot'
+import {type Labels} from '../../labels'
 
 export interface AlignedDataResponse {
   labels: Labels[]
@@ -51,7 +51,7 @@ export const convertAlignedData = (response: QueryRangeResponse | null): Aligned
 
     const keys = samples.keys()
     for (let i = 0; i < samples.size; i++) {
-      times.push(keys.next().value)
+      times.push(keys.next().value ?? 0)
     }
 
     const sortedTimes = Array.from(samples.keys()).sort((a: number, b: number) => a - b)

@@ -13,34 +13,37 @@ import {
   Tooltip as OverlayTooltip,
 } from 'react-bootstrap'
 import {API_BASEPATH, latencyTarget} from '../App'
-import {useLocation, useNavigate} from 'react-router-dom'
+import {useNavigate} from 'react-router-dom'
+import {useQueryState, parseAsString} from 'nuqs'
 import Navbar from '../components/Navbar'
-import {Labels, labelsString, MetricName, parseLabels} from '../labels'
-import {createConnectTransport} from '@bufbuild/connect-web'
-import {createPromiseClient, Code} from '@connectrpc/connect'
-import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
+import {type Labels, labelsString, MetricName} from '../labels'
+import {parseAsLabels} from '../searchParams'
+import {createConnectTransport} from '@connectrpc/connect-web'
+import {createClient, Code} from '@connectrpc/connect'
+import {clone} from '@bufbuild/protobuf'
+import {ObjectiveService, ObjectiveSchema} from '../proto/objectives/v1alpha1/objectives_pb'
 import {
-  Alert as ObjectiveAlert,
+  type Alert as ObjectiveAlert,
   Alert_State,
-  GetAlertsResponse,
-  GetStatusResponse,
-  Objective,
-  ObjectiveStatus,
+  type GetAlertsResponse,
+  type GetStatusResponse,
+  type Objective,
+  type ObjectiveStatus,
 } from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../duration'
 import {
-  Cell,
+  type Cell,
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  Row as TableRow,
-  SortingFnOption,
-  SortingState,
+  type Row as TableRow,
+  type SortingFnOption,
+  type SortingState,
   useReactTable,
-  VisibilityState,
+  type VisibilityState,
 } from '@tanstack/react-table'
-import {Duration} from '@bufbuild/protobuf'
+import {type Duration} from '@bufbuild/protobuf/wkt'
 import {useObjectivesList} from '../objectives'
 import {
   IconArrowDown,
@@ -50,9 +53,6 @@ import {
   IconTableColumns,
   IconWarning,
 } from '../components/Icons'
-import AwesomeDebouncePromise from 'awesome-debounce-promise'
-import useConstant from 'use-constant'
-import {useAsync} from 'react-async-hook'
 
 enum TableObjectiveState {
   Unknown,
@@ -80,7 +80,7 @@ interface TableAvailability {
 }
 
 interface TableState {
-  objectives: {[key: string]: TableObjective}
+  objectives: Record<string, TableObjective>
 }
 
 enum TableActionType {
@@ -164,7 +164,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             lset: action.lset,
             groupingLabels: action.statusLabels,
             state: TableObjectiveState.Success,
-            severity: severity,
+            severity,
             availability: {
               errors: action.status.availability?.errors ?? 0,
               total: action.status.availability?.total ?? 0,
@@ -446,37 +446,15 @@ const List = () => {
 
   document.title = 'Objectives - Pyrra'
   const navigate = useNavigate()
-  const {search} = useLocation()
 
   const client = useMemo(() => {
-    const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
-    return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
+    const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
+    return createClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [])
 
-  const [filterSearch] = useMemo((): [string] => {
-    const query = new URLSearchParams(search)
-    const querySearch = query.get('search')
-    return [querySearch ?? '']
-  }, [search])
-
-  const [filterLabels, filterError] = useMemo((): [Labels, boolean] => {
-    const query = new URLSearchParams(search)
-    const queryFilter = query.get('filter')
-    try {
-      if (queryFilter !== null) {
-        if (queryFilter.indexOf('=') > 0) {
-          return [parseLabels(queryFilter), false]
-        } else {
-          filterLabels[MetricName] = queryFilter
-          return [filterLabels, false]
-        }
-      }
-    } catch (e) {
-      console.log(e)
-      return [{}, true]
-    }
-    return [{}, false]
-  }, [search])
+  const [filterSearch, setFilterSearch] = useQueryState('search', parseAsString.withDefault(''))
+  const [filterLabels, setFilterLabels] = useQueryState('filter', parseAsLabels.withDefault({}))
+  const [filterError] = useState<boolean>(false)
 
   // TODO: Pass in the search to the useObjectivesList hook
   const {
@@ -485,49 +463,10 @@ const List = () => {
     status: objectiveStatus,
   } = useObjectivesList(client, labelsString(filterLabels), '')
 
-  const navigateFilterURL = (search: string, labels: Labels) => {
-    // TODO: use something like URLState?
-
-    const hasSearch = search.length > 0
-    const hasLabels = Object.keys(labels).length > 0
-    console.log('hasSearch', hasSearch, 'hasLabels', hasLabels, labels)
-
-    if (!hasSearch && !hasLabels) {
-      navigate('?')
-      return
-    }
-    if (hasSearch && !hasLabels) {
-      navigate(`?search=${encodeURI(search)}`)
-      return
-    }
-    if (!hasSearch && hasLabels) {
-      navigate(`?filter=${encodeURI(labelsString(labels))}`)
-      return
-    }
-
-    navigate(`?search=${encodeURI(search)}&filter=${encodeURI(labelsString(labels))}`)
-  }
-
   const initialTableState: TableState = {objectives: {}}
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
 
   const [sorting, setSorting] = React.useState<SortingState>([{id: 'budget', desc: false}])
-  const [searchInput, setSearchInput] = React.useState<string>(filterSearch)
-
-  // Only update the URL when the user stops typing for 1 second
-  const debouncedSearchFunction = useConstant(() =>
-    AwesomeDebouncePromise((search: string, labels: Labels) => {
-      navigateFilterURL(search, labels)
-    }, 1000),
-  )
-
-  // The async callback is run each time the text changes,
-  // but as the search function is debounced, it does not
-  // fire a new request on each keystroke
-  useAsync(async () => {
-    return debouncedSearchFunction(searchInput, filterLabels)
-  }, [debouncedSearchFunction, searchInput, filterLabels])
-
   // TODO: Persist the column visibility in the browser's state
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     lset: true,
@@ -542,22 +481,13 @@ const List = () => {
   })
 
   const updateFilter = (lset: Labels) => {
-    // Copy existing filterLabels (from router) and add/overwrite k-v-pairs
-    const updatedFilter: Labels = {...filterLabels}
-    for (const l in lset) {
-      updatedFilter[l] = lset[l]
-    }
-    navigateFilterURL(searchInput, updatedFilter)
+    const updated: Labels = {...filterLabels, ...lset}
+    void setFilterLabels(Object.keys(updated).length > 0 ? updated : null)
   }
 
   const removeFilterLabel = (k: string) => {
-    const updatedFilter: Labels = {}
-    for (const name in filterLabels) {
-      if (name !== k) {
-        updatedFilter[name] = filterLabels[name]
-      }
-    }
-    navigateFilterURL(searchInput, updatedFilter)
+    const {[k]: _, ...rest} = filterLabels
+    void setFilterLabels(Object.keys(rest).length > 0 ? rest : null)
   }
 
   useEffect(() => {
@@ -579,7 +509,7 @@ const List = () => {
             }
           })
         })
-        .catch((err) => console.log(err))
+        .catch((err) => { console.log(err); })
 
       objectiveResponse.objectives.forEach((o: Objective) => {
         dispatchTable({
@@ -603,9 +533,9 @@ const List = () => {
               dispatchTable({type: TableActionType.DeleteObjective, lset: labelsString(o.labels)})
 
               resp.status.forEach((s: ObjectiveStatus) => {
-                const so = o.clone()
+                const so = clone(ObjectiveSchema, o)
                 // Identify by the combined labels
-                const sLabels: Labels = s.labels !== undefined ? s.labels : {}
+                const sLabels: Labels = s.labels ?? {}
                 const soLabels: Labels = {...o.labels, ...sLabels}
 
                 dispatchTable({
@@ -646,7 +576,7 @@ const List = () => {
           }
           // if all labels match, filter for the search string
           // TODO: Use fuzzy search
-          return k.toLowerCase().includes(searchInput.toLowerCase())
+          return k.toLowerCase().includes(filterSearch.toLowerCase())
         })
         .map((k: string) => {
           const o = table.objectives[k]
@@ -659,12 +589,12 @@ const List = () => {
             total: o.availability?.total,
             availability: o.availability?.percentage,
             budget: o.budget,
-            alerts: o.severity !== null ? o.severity : '',
+            alerts: o.severity ?? '',
           }
           return r
         }) ?? null
     )
-  }, [table.objectives, searchInput, filterLabels])
+  }, [table.objectives, filterSearch, filterLabels])
 
   const reactTable = useReactTable({
     data: reactTableData,
@@ -692,7 +622,7 @@ const List = () => {
     )}`
   }
 
-  if (objectiveStatus === 'loading') {
+  if (objectiveStatus === 'pending') {
     return (
       <>
         <Navbar />
@@ -761,9 +691,9 @@ const List = () => {
                 placeholder="Search name"
                 aria-label="Search"
                 style={{paddingLeft: 40}}
-                value={searchInput}
+                value={filterSearch}
                 onChange={(e) => {
-                  setSearchInput(e.target.value)
+                  void setFilterSearch(e.target.value !== '' ? e.target.value : null)
                 }}
               />
             </div>
@@ -777,7 +707,7 @@ const List = () => {
                   variant="light"
                   size="sm"
                   className="filter-close"
-                  onClick={() => removeFilterLabel(k)}>
+                  onClick={() => { removeFilterLabel(k); }}>
                   {`${k}=${filterLabels[k]}`}
                   <span className="btn-close"></span>
                 </Button>
@@ -813,10 +743,10 @@ const List = () => {
                           checked={columnVisibility[id]}
                           id={id}
                           onChange={() =>
-                            setColumnVisibility({
+                            { setColumnVisibility({
                               ...columnVisibility,
                               [id]: !columnVisibility[id],
-                            })
+                            }); }
                           }
                         />
                         <label htmlFor={id} style={{marginLeft: 8}}>
@@ -867,7 +797,7 @@ const List = () => {
                         return
                       }
                       const labels: {lset: Labels; grouping: Labels} = row.getValue('lset')
-                      navigate(objectivePage(labels.lset, labels.grouping))
+                      void navigate(objectivePage(labels.lset, labels.grouping))
                     }}
                     className={
                       row.getValue('alerts') !== ''
