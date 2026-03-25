@@ -39,7 +39,7 @@ jobs:
           node-version-file: .node-version
 
       - name: Build and release binaries
-        uses: goreleaser/goreleaser-action@4be059cdedc660b9567bdf0a6f2824c3d2fe653f
+        uses: goreleaser/goreleaser-action@fdcf0b9df926c8dd93d4e7f15c508dd346e09eb1
         with:
           distribution: goreleaser
           version: ${{ env.GORELEASER_VERSION }}
@@ -68,12 +68,12 @@ jobs:
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@b99055d79363ee29ab720d5409f9c7007360c18b
+        uses: docker/setup-qemu-action@6804d313191b81cfc5feb5065848250370954232
         with:
           platforms: amd64.arm64,arm
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8016837eba79c3b51bf2025379f48b6fc50f1236
+        uses: docker/setup-buildx-action@172dff065fb2e54aaed577fd667975cd412819fb
 
       - uses: actions/download-artifact@484a0b528fb4d7bd804637ccb632e47a0e638317
         with:
@@ -81,7 +81,7 @@ jobs:
           path: dist
 
       - name: Log in to the Container registry
-        uses: docker/login-action@c144859092e8e353f3e118b0b329679a62351c3e
+        uses: docker/login-action@a0d57b8e43b6ef1cca20559d68cec2227e63fccd
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -89,12 +89,12 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@d24d429af23073facc066506898a0eae1f24b9ad
+        uses: docker/metadata-action@4378dc6be7f72231dfe78ac7e0364a44f1c9f54b
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@eb6512707bea5740b2608f2a43ece7bc543cb75b
+        uses: docker/build-push-action@b66d8774c665b789105b440514f0c97e6f19b06f
         with:
           context: .
           push: true
