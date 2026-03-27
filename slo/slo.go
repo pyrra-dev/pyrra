@@ -164,6 +164,15 @@ type Alerting struct {
 	Absent     bool
 	Name       string
 	AbsentName string
+	Severities AlertingSeverities
+}
+
+type AlertingSeverities struct {
+	Absent       string
+	FastBurn     string
+	MediumBurn   string
+	SlowBurn     string
+	LongTermBurn string
 }
 
 type Metric struct {

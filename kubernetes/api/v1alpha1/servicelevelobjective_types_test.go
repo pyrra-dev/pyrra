@@ -730,4 +730,112 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			require.Nil(t, warn)
 		})
 	})
+
+	t.Run("alerting severities", func(t *testing.T) {
+		ctx := context.Background()
+
+		t.Run("valid custom severities", func(t *testing.T) {
+			slo := &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-slo",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						Ratio: &v1alpha1.RatioIndicator{
+							Errors: v1alpha1.Query{Metric: `errors{foo="bar"}`},
+							Total:  v1alpha1.Query{Metric: `total{foo="bar"}`},
+						},
+					},
+					Alerting: v1alpha1.Alerting{
+						Severities: &v1alpha1.AlertingSeverities{
+							Absent:       "warning",
+							FastBurn:     "page",
+							MediumBurn:   "high",
+							SlowBurn:     "medium",
+							LongTermBurn: "low",
+						},
+					},
+				},
+			}
+
+			warn, err := slo.ValidateCreate(ctx, slo)
+			require.NoError(t, err)
+			require.Nil(t, warn)
+
+			internal, err := slo.Internal()
+			require.NoError(t, err)
+			require.Equal(t, "warning", internal.Alerting.Severities.Absent)
+			require.Equal(t, "page", internal.Alerting.Severities.FastBurn)
+			require.Equal(t, "high", internal.Alerting.Severities.MediumBurn)
+			require.Equal(t, "medium", internal.Alerting.Severities.SlowBurn)
+			require.Equal(t, "low", internal.Alerting.Severities.LongTermBurn)
+		})
+
+		t.Run("nil severities results in empty", func(t *testing.T) {
+			slo := &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-slo",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						Ratio: &v1alpha1.RatioIndicator{
+							Errors: v1alpha1.Query{Metric: `errors{foo="bar"}`},
+							Total:  v1alpha1.Query{Metric: `total{foo="bar"}`},
+						},
+					},
+					Alerting: v1alpha1.Alerting{
+						Severities: nil,
+					},
+				},
+			}
+
+			internal, err := slo.Internal()
+			require.NoError(t, err)
+			require.Empty(t, internal.Alerting.Severities.Absent)
+			require.Empty(t, internal.Alerting.Severities.FastBurn)
+			require.Empty(t, internal.Alerting.Severities.MediumBurn)
+			require.Empty(t, internal.Alerting.Severities.SlowBurn)
+			require.Empty(t, internal.Alerting.Severities.LongTermBurn)
+		})
+
+		t.Run("partial severities", func(t *testing.T) {
+			slo := &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-slo",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						Ratio: &v1alpha1.RatioIndicator{
+							Errors: v1alpha1.Query{Metric: `errors{foo="bar"}`},
+							Total:  v1alpha1.Query{Metric: `total{foo="bar"}`},
+						},
+					},
+					Alerting: v1alpha1.Alerting{
+						Severities: &v1alpha1.AlertingSeverities{
+							FastBurn: "page",
+							SlowBurn: "info",
+							// MediumBurn, LongTermBurn, and Absent not set
+						},
+					},
+				},
+			}
+
+			internal, err := slo.Internal()
+			require.NoError(t, err)
+			require.Empty(t, internal.Alerting.Severities.Absent)
+			require.Equal(t, "page", internal.Alerting.Severities.FastBurn)
+			require.Empty(t, internal.Alerting.Severities.MediumBurn)
+			require.Equal(t, "info", internal.Alerting.Severities.SlowBurn)
+			require.Empty(t, internal.Alerting.Severities.LongTermBurn)
+		})
+	})
 }

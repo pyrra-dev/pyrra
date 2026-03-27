@@ -43,7 +43,7 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 		}
 
 		mbras[i] = MultiBurnRateAlert{
-			Severity:   string(w.Severity),
+			Severity:   o.alertSeverityLabel(i, w),
 			Short:      w.Short,
 			Long:       w.Long,
 			For:        w.For,
@@ -116,7 +116,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		sort.Strings(alertMatchers)
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
-		for _, w := range ws {
+		for i, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
 			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
@@ -130,7 +130,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
-			alertLabels["severity"] = string(w.Severity)
+			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
@@ -204,7 +204,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		sort.Strings(alertMatchers)
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
-		for _, w := range ws {
+		for i, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
 			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
@@ -218,7 +218,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
-			alertLabels["severity"] = string(w.Severity)
+			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
@@ -292,7 +292,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		sort.Strings(alertMatchers)
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
-		for _, w := range ws {
+		for i, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
 			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
@@ -306,7 +306,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
-			alertLabels["severity"] = string(w.Severity)
+			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
@@ -380,7 +380,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		sort.Strings(alertMatchers)
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
-		for _, w := range ws {
+		for i, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
 			alertAnnotations := o.commonRuleAnnotations()
 			for _, m := range matchers {
@@ -394,7 +394,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
-			alertLabels["severity"] = string(w.Severity)
+			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
@@ -698,7 +698,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			alertLabels[k] = v
 		}
 		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
+		alertLabels["severity"] = o.alertSeverityLabelAbsent()
 
 		// add the absent alert if configured
 		if o.Alerting.Absent {
@@ -860,7 +860,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				alertLabels[k] = v
 			}
 			// Add severity label for alerts
-			alertLabels["severity"] = string(critical)
+			alertLabels["severity"] = o.alertSeverityLabelAbsent()
 
 			rules = append(rules, monitoringv1.Rule{
 				Alert:       o.AlertNameAbsent(),
@@ -885,7 +885,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				alertLabelsLe[k] = v
 			}
 			// Add severity label for alerts
-			alertLabelsLe["severity"] = string(critical)
+			alertLabelsLe["severity"] = o.alertSeverityLabelAbsent()
 
 			rules = append(rules, monitoringv1.Rule{
 				Alert:       o.AlertNameAbsent(),
@@ -1026,7 +1026,7 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				alertLabels[k] = v
 			}
 			// Add severity label for alerts
-			alertLabels["severity"] = string(critical)
+			alertLabels["severity"] = o.alertSeverityLabelAbsent()
 
 			rules = append(rules, monitoringv1.Rule{
 				Alert:       o.AlertNameAbsent(),
@@ -1521,4 +1521,32 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 func monitoringDuration(d string) *monitoringv1.Duration {
 	md := monitoringv1.Duration(d)
 	return &md
+}
+
+// alertSeverityLabel returns the severity label for the given window index.
+// If the severity is not set, it returns the severity from the default window.
+func (o Objective) alertSeverityLabel(windowIndex int, w Window) string {
+	var v string
+	switch windowIndex {
+	case 0:
+		v = o.Alerting.Severities.FastBurn
+	case 1:
+		v = o.Alerting.Severities.MediumBurn
+	case 2:
+		v = o.Alerting.Severities.SlowBurn
+	case 3:
+		v = o.Alerting.Severities.LongTermBurn
+	}
+	if v != "" {
+		return v
+	}
+
+	return string(w.Severity)
+}
+
+func (o Objective) alertSeverityLabelAbsent() string {
+	if o.Alerting.Severities.Absent != "" {
+		return o.Alerting.Severities.Absent
+	}
+	return string(critical)
 }
