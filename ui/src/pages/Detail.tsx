@@ -1,17 +1,12 @@
 import {Link} from 'react-router-dom'
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import {useQueryState, parseAsString} from 'nuqs'
-import {
-  Badge,
-  Button,
-  ButtonGroup,
-  Col,
-  Container,
-  OverlayTrigger,
-  Row,
-  Spinner,
-  Tooltip as OverlayTooltip,
-} from 'react-bootstrap'
+import {Badge} from '@/components/ui/badge'
+import {Button} from '@/components/ui/button'
+import {Spinner} from '@/components/ui/spinner'
+import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip'
+import {ToggleGroup, ToggleGroupItem} from '@/components/ui/toggle-group'
+import {cn} from '@/lib/utils'
 import {API_BASEPATH, hasObjectiveType, latencyTarget, ObjectiveType} from '../App'
 import Navbar from '../components/Navbar'
 import {MetricName, parseLabels} from '../labels'
@@ -34,7 +29,7 @@ import ObjectiveTile from '../components/tiles/ObjectiveTile'
 import AvailabilityTile from '../components/tiles/AvailabilityTile'
 import ErrorBudgetTile from '../components/tiles/ErrorBudgetTile'
 import Tiles from '../components/tiles/Tiles'
-import {IconChartArea, IconChartLine} from '../components/Icons'
+import {ChartArea, ChartLine} from 'lucide-react'
 
 const Detail = () => {
   const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
@@ -153,25 +148,23 @@ const Detail = () => {
     return (
       <>
         <Navbar />
-        <Container>
-          <div className="header">
+        <div className="container-responsive">
+          <div>
             <h3></h3>
             <br />
-            <Link to="/" className="btn btn-light">
+            <Link to="/" className="inline-flex items-center rounded-md bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-secondary/80">
               Go Back
             </Link>
           </div>
-        </Container>
+        </div>
       </>
     )
   }
 
   if (objective == null) {
     return (
-      <div style={{marginTop: '50px', textAlign: 'center'}}>
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
+      <div className="mt-12 text-center flex justify-center">
+        <Spinner />
       </div>
     )
   }
@@ -213,7 +206,7 @@ const Detail = () => {
   const labelBadges = Object.entries({...objective.labels, ...groupingLabels})
     .filter((l: [string, string]) => l[0] !== MetricName)
     .map((l: [string, string]) => (
-      <Badge key={l[0]} bg="light" text="dark" className="fw-normal">
+      <Badge key={l[0]} variant="secondary" className="mr-1 font-normal">
         {l[0]}={l[1]}
       </Badge>
     ))
@@ -234,27 +227,25 @@ const Detail = () => {
         </div>
       </Navbar>
 
-      <div className="content detail">
-        <Container>
-          <Row>
-            <Col xs={12} className="col-xxxl-10 offset-xxxl-1 header">
+      <div className="mt-[100px]">
+        <div className="container-responsive">
+          <div className="mb-24 flex flex-wrap">
+            <div className="w-full 3xl:w-10/12 3xl:mx-auto">
               <h3>{name}</h3>
               {labelBadges}
-            </Col>
+            </div>
             {objective.description !== undefined && objective.description !== '' ? (
-              <Col
-                xs={12}
-                md={6}
-                style={{marginTop: labelBadges.length > 0 ? 12 : 0}}
-                className="col-xxxl-5 offset-xxxl-1">
+              <div
+                className="w-full md:w-1/2 3xl:w-5/12 3xl:ml-[8.33%]"
+                style={{marginTop: labelBadges.length > 0 ? 12 : 0}}>
                 <p>{objective.description}</p>
-              </Col>
+              </div>
             ) : (
               <></>
             )}
-          </Row>
-          <Row>
-            <Col className="col-xxxl-10 offset-xxxl-1">
+          </div>
+          <div className="mb-24 flex flex-wrap">
+            <div className="w-full 3xl:w-10/12 3xl:mx-auto">
               <Tiles>
                 <ObjectiveTile objective={objective} />
                 <AvailabilityTile
@@ -272,80 +263,40 @@ const Detail = () => {
                   total={total}
                 />
               </Tiles>
-            </Col>
-          </Row>
-          <Row>
-            <Col className="text-center timerange">
-              <div className="inner">
-                <div className="time">
-                  <ButtonGroup aria-label="Time Range">
+            </div>
+          </div>
+          <div className="mb-24 flex flex-wrap">
+            <div className="w-full text-center py-8 bg-[linear-gradient(0deg,transparent_45%,var(--muted)_50%,transparent_55%)]">
+              <div className="mx-auto flex flex-col items-center gap-5 bg-background sm:w-2/3 md:w-1/2 xl:flex-row xl:justify-center">
+                <div className="flex gap-5 justify-center">
+                  <ToggleGroup variant="outline" value={[String(to - from)]} onValueChange={(val) => { if (val.length > 0) handleTimeRangeClick(Number(val[val.length - 1]))() }}>
                     {timeRanges.map((t: number) => (
-                      <Button
-                        key={t}
-                        variant="light"
-                        onClick={handleTimeRangeClick(t)}
-                        active={to - from === t}>
+                      <ToggleGroupItem key={t} value={String(t)} variant="outline" aria-label={formatDuration(t)}>
                         {formatDuration(t)}
-                      </Button>
+                      </ToggleGroupItem>
                     ))}
-                  </ButtonGroup>
-                  <OverlayTrigger
-                    key="auto-reload"
-                    overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>
-                        Automatically reload
-                      </OverlayTooltip>
-                    }>
-                    <span>
-                      <Toggle
-                        checked={autoReload}
-                        onChange={() => { setAutoReload(!autoReload); }}
-                        onText={formatDuration(interval)}
-                      />
-                    </span>
-                  </OverlayTrigger>
+                  </ToggleGroup>
+                  <Toggle
+                    checked={autoReload}
+                    onChange={() => { setAutoReload(!autoReload) }}
+                    onText={formatDuration(interval)}
+                  />
                 </div>
-                <ButtonGroup aria-label="Charts" className="scale">
-                  <OverlayTrigger
-                    key="auto-reload"
-                    overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>
-                        Absolute scale gives a good impression of the big picture.
-                      </OverlayTooltip>
-                    }>
-                    <Button
-                      variant="light"
-                      onClick={() => {
-                        setAbsolute(true)
-                      }}
-                      active={absolute}>
-                      <IconChartArea width={16} height={16} fill={absolute ? 'white' : 'black'} />
-                      Absolute
-                    </Button>
-                  </OverlayTrigger>
-                  <OverlayTrigger
-                    key="auto-reload"
-                    overlay={
-                      <OverlayTooltip id={`tooltip-auto-reload`}>
-                        Relative scale gives a good impression of every detail.
-                      </OverlayTooltip>
-                    }>
-                    <Button
-                      variant="light"
-                      onClick={() => {
-                        setAbsolute(false)
-                      }}
-                      active={!absolute}>
-                      <IconChartLine width={16} height={16} fill={!absolute ? 'white' : 'black'} />
-                      Relative
-                    </Button>
-                  </OverlayTrigger>
-                </ButtonGroup>
+                <ToggleGroup variant="outline" value={[absolute ? 'absolute' : 'relative']} onValueChange={(val) => { if (val.length > 0) setAbsolute(val[val.length - 1] === 'absolute') }}>
+                  <ToggleGroupItem value="absolute" variant="outline" aria-label="Absolute scale">
+                    <ChartArea size={16} color={absolute ? 'white' : 'currentColor'} />
+                    <span className="ml-2">Absolute</span>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="relative" variant="outline" aria-label="Relative scale">
+                    <ChartLine size={16} color={!absolute ? 'white' : 'currentColor'} />
+                    <span className="ml-2">Relative</span>
+                  </ToggleGroupItem>
+                </ToggleGroup>
               </div>
-            </Col>
-          </Row>
-          <Row>
-            <Col>
+            </div>
+          </div>
+          <div className="mb-24 flex flex-wrap">
+            <div className="w-full">
               {objective.queries?.graphErrorBudget !== undefined ? (
                 <ErrorBudgetGraph
                   client={promClient}
@@ -359,13 +310,10 @@ const Detail = () => {
               ) : (
                 <></>
               )}
-            </Col>
-          </Row>
-          <Row>
-            <Col
-              xs={12}
-              md={objectiveTypeLatency ? 12 : 6}
-              className={objectiveTypeLatency ? 'col-xxxl-4' : ''}>
+            </div>
+          </div>
+          <div className="mb-24 flex flex-wrap -mx-3">
+            <div className={cn('w-full px-3', objectiveTypeLatency ? '3xl:w-1/3' : 'md:w-1/2')}>
               {objective.queries?.graphRequests !== undefined ? (
                 <RequestsGraph
                   client={promClient}
@@ -380,11 +328,8 @@ const Detail = () => {
               ) : (
                 <></>
               )}
-            </Col>
-            <Col
-              xs={12}
-              md={objectiveTypeLatency ? 12 : 6}
-              className={objectiveTypeLatency ? 'col-xxxl-4' : ''}>
+            </div>
+            <div className={cn('w-full px-3', objectiveTypeLatency ? '3xl:w-1/3' : 'md:w-1/2')}>
               {objective.queries?.graphErrors !== undefined ? (
                 <ErrorsGraph
                   client={promClient}
@@ -399,9 +344,9 @@ const Detail = () => {
               ) : (
                 <></>
               )}
-            </Col>
+            </div>
             {objectiveTypeLatency && (
-              <Col xs={12} className="col-xxxl-4">
+              <div className="w-full px-3 3xl:w-1/3">
                 <DurationGraph
                   client={client}
                   labels={labels}
@@ -413,11 +358,11 @@ const Detail = () => {
                   target={objective.target}
                   latency={latencyTarget(objective)}
                 />
-              </Col>
+              </div>
             )}
-          </Row>
-          <Row>
-            <Col>
+          </div>
+          <div className="mb-24 flex flex-wrap">
+            <div className="w-full">
               <h4>Multi Burn Rate Alerts</h4>
               <AlertsTable
                 client={client}
@@ -428,17 +373,17 @@ const Detail = () => {
                 to={to}
                 uPlotCursor={uPlotCursor}
               />
-            </Col>
-          </Row>
-          <Row>
-            <Col>
+            </div>
+          </div>
+          <div className="mb-24 flex flex-wrap">
+            <div className="w-full">
               <h4>Config</h4>
-              <pre style={{padding: 20, borderRadius: 4}}>
+              <pre className="rounded bg-muted p-5">
                 <code>{objective.config}</code>
               </pre>
-            </Col>
-          </Row>
-        </Container>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   )

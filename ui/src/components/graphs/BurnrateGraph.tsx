@@ -7,7 +7,7 @@ import {usePrometheusQueryRange} from '../../prometheus'
 import {step} from './step'
 import UplotReact from 'uplot-react'
 import {type AlignedDataResponse, convertAlignedData, mergeAlignedData} from './aligneddata'
-import {Spinner} from 'react-bootstrap'
+import {Spinner} from '@/components/ui/spinner'
 import {seriesGaps} from './gaps'
 import {blues, greys, reds} from './colors'
 import {type Alert} from '../../proto/objectives/v1alpha1/objectives_pb'
@@ -78,14 +78,7 @@ const BurnrateGraph = ({
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           <Spinner
-            animation="border"
-            style={{
-              marginLeft: '1rem',
-              marginBottom: '0.5rem',
-              width: '1rem',
-              height: '1rem',
-              borderWidth: '1px',
-            }}
+            className="ml-4 mb-2 h-4 w-4 border-1"
           />
         </h4>
       </div>

@@ -12,29 +12,29 @@ const ObjectiveTile = ({objective}: ObjectiveTileProps): React.JSX.Element => {
   switch (objectiveType) {
     case ObjectiveType.Ratio:
       return (
-        <div>
-          <h6 className="headline">Objective</h6>
-          <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
+        <div className="rounded-lg bg-card p-9 text-card-foreground">
+          <h6 className="font-sans text-xl font-semibold opacity-50">Objective</h6>
+          <h2 className="inline-block mr-2 font-sans text-[40px] font-normal mb-0">{(100 * objective.target).toFixed(3)}%</h2>
           <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
         </div>
       )
     case ObjectiveType.BoolGauge:
       return (
-        <div>
-          <h6 className="headline">Objective</h6>
-          <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
+        <div className="rounded-lg bg-card p-9 text-card-foreground">
+          <h6 className="font-sans text-xl font-semibold opacity-50">Objective</h6>
+          <h2 className="inline-block mr-2 font-sans text-[40px] font-normal mb-0">{(100 * objective.target).toFixed(3)}%</h2>
           <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
         </div>
       )
     case ObjectiveType.Latency:
     case ObjectiveType.LatencyNative:
       return (
-        <div>
-          <h6 className="headline">Objective</h6>
-          <h2 className="metric">{(100 * objective.target).toFixed(3)}%</h2>
+        <div className="rounded-lg bg-card p-9 text-card-foreground">
+          <h6 className="font-sans text-xl font-semibold opacity-50">Objective</h6>
+          <h2 className="inline-block mr-2 font-sans text-[40px] font-normal mb-0">{(100 * objective.target).toFixed(3)}%</h2>
           <>in {formatDuration(Number(objective.window?.seconds) * 1000)}</>
           <br />
-          <p className="details">faster than {renderLatencyTarget(objective)}</p>
+          <p className="opacity-50 font-medium">faster than {renderLatencyTarget(objective)}</p>
         </div>
       )
     default:

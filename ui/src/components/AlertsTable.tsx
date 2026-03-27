@@ -1,6 +1,8 @@
-import {OverlayTrigger, Table, Tooltip as OverlayTooltip} from 'react-bootstrap'
 import React, {type JSX, useEffect, useState} from 'react'
-import {IconChevron, IconExternal} from './Icons'
+import {Table, TableHeader, TableBody, TableRow, TableHead, TableCell} from '@/components/ui/table'
+import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip'
+import {cn} from '@/lib/utils'
+import {ChevronRight, ExternalLink} from 'lucide-react'
 import {type Labels, labelsString} from '../labels'
 import {
   type Alert,
@@ -78,24 +80,24 @@ const AlertsTable = ({
   } = convertAlignedData(alertsRangeResponse)
 
   return (
-    <div className="table-responsive">
-      <Table className="table-alerts">
-        <thead>
-          <tr>
-            <th style={{width: '5%'}}></th>
-            <th style={{width: '10%'}}>State</th>
-            <th style={{width: '10%'}}>Severity</th>
-            <th style={{width: '10%', textAlign: 'right'}}>Exhaustion</th>
-            <th style={{width: '12%', textAlign: 'right'}}>Threshold</th>
-            <th style={{width: '5%'}} />
-            <th style={{width: '10%', textAlign: 'left'}}>Short Burn</th>
-            <th style={{width: '5%'}} />
-            <th style={{width: '10%', textAlign: 'left'}}>Long Burn</th>
-            <th style={{width: '5%', textAlign: 'right'}}>For</th>
-            <th style={{width: '10%', textAlign: 'left'}}>{externalName()}</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead style={{width: '5%'}}></TableHead>
+            <TableHead style={{width: '10%'}}>State</TableHead>
+            <TableHead style={{width: '10%'}}>Severity</TableHead>
+            <TableHead style={{width: '10%', textAlign: 'right'}}>Exhaustion</TableHead>
+            <TableHead style={{width: '12%', textAlign: 'right'}}>Threshold</TableHead>
+            <TableHead style={{width: '5%'}} />
+            <TableHead style={{width: '10%', textAlign: 'left'}}>Short Burn</TableHead>
+            <TableHead style={{width: '5%'}} />
+            <TableHead style={{width: '10%', textAlign: 'left'}}>Long Burn</TableHead>
+            <TableHead style={{width: '5%', textAlign: 'right'}}>For</TableHead>
+            <TableHead style={{width: '10%', textAlign: 'left'}}>{externalName()}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {alerts.map((a: Alert, i: number) => {
             // TODO: Refactor all of this to read the current value from alertsSeries
             let shortCurrent = ''
@@ -140,75 +142,77 @@ const AlertsTable = ({
             }
 
             return (
-              <>
-                <tr key={i} className={alertStateString[a.state]}>
-                  <td>
+              <React.Fragment key={i}>
+                <TableRow className={cn(
+                  a.state === Alert_State.pending && 'bg-warning/20 border-l-4 border-l-warning text-warning-foreground',
+                  a.state === Alert_State.firing && 'bg-destructive/20 border-l-4 border-l-destructive text-destructive',
+                  a.state === Alert_State.inactive && 'border-l-4 border-l-transparent',
+                )}>
+                  <TableCell>
                     <button
-                      className={showBurnrate[i] ? 'accordion down' : 'accordion'}
+                      className={cn('border-0 bg-transparent p-0 [&_svg]:transition-transform', showBurnrate[i] && '[&_svg]:rotate-90')}
                       onClick={() => {
                         const updated = [...showBurnrate]
                         updated[i] = !showBurnrate[i]
                         setShowBurnrate(updated)
                       }}>
-                      <IconChevron height={16} width={16} />
+                      <ChevronRight size={16} />
                     </button>
-                  </td>
-                  <td>{alertStateString[a.state]}</td>
-                  <td>{a.severity}</td>
-                  <td style={{textAlign: 'right'}}>
-                    <OverlayTrigger
-                      key={i}
-                      overlay={
-                        <OverlayTooltip id={`tooltip-${i}`}>
-                          If this alert is firing, the entire Error Budget can be burnt within that
-                          time frame.
-                        </OverlayTooltip>
-                      }>
-                      <span>
-                        {formatDuration((Number(objective.window?.seconds) * 1000) / a.factor)}
-                      </span>
-                    </OverlayTrigger>
-                  </td>
-                  <td style={{textAlign: 'right'}}>
-                    <OverlayTrigger
-                      key={i}
-                      overlay={
-                        <OverlayTooltip id={`tooltip-${i}`}>
-                          {a.factor} * (1 - {objective.target})
-                        </OverlayTooltip>
-                      }>
-                      <span>{(a.factor * (1 - objective?.target)).toFixed(3)}</span>
-                    </OverlayTrigger>
-                  </td>
-                  <td style={{textAlign: 'center'}}>
+                  </TableCell>
+                  <TableCell>{alertStateString[a.state]}</TableCell>
+                  <TableCell>{a.severity}</TableCell>
+                  <TableCell style={{textAlign: 'right'}}>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span>
+                          {formatDuration((Number(objective.window?.seconds) * 1000) / a.factor)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        If this alert is firing, the entire Error Budget can be burnt within that
+                        time frame.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell style={{textAlign: 'right'}}>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span>{(a.factor * (1 - objective?.target)).toFixed(3)}</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {a.factor} * (1 - {objective.target})
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell style={{textAlign: 'center'}}>
                     <small style={{opacity: 0.5}}>&gt;</small>
-                  </td>
-                  <td style={{textAlign: 'left'}}>
+                  </TableCell>
+                  <TableCell style={{textAlign: 'left'}}>
                     {shortCurrent} ({formatDuration(Number(a.short?.window?.seconds) * 1000)})
-                  </td>
-                  <td style={{textAlign: 'left'}}>
+                  </TableCell>
+                  <TableCell style={{textAlign: 'left'}}>
                     <small style={{opacity: 0.5}}>and</small>
-                  </td>
-                  <td style={{textAlign: 'left'}}>
+                  </TableCell>
+                  <TableCell style={{textAlign: 'left'}}>
                     {longCurrent} ({formatDuration(Number(a.long?.window?.seconds) * 1000)})
-                  </td>
-                  <td style={{textAlign: 'right'}}>
+                  </TableCell>
+                  <TableCell style={{textAlign: 'right'}}>
                     {formatDuration(Number(a.for?.seconds) * 1000)}
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <a
-                      className="external-prometheus"
+                      className="text-foreground no-underline [&_svg]:mr-1 [&_svg]:-mt-0.5"
                       target="_blank"
                       rel="noreferrer"
                       href={buildExternalHRef([a.long?.query ?? '', a.short?.query ?? ''], from, to)}>
-                      <IconExternal height={20} width={20} />
+                      <ExternalLink size={20} />
                     </a>
                     {showBurnrate[i]}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
                 {a.short !== undefined && a.long !== undefined && showBurnrate[i] ? (
-                  <tr key={i + 10} className="burnrate">
-                    <td colSpan={11}>
+                  <TableRow key={i + 10} className="bg-background">
+                    <TableCell colSpan={11}>
                       <BurnrateGraph
                         client={promClient}
                         alert={a}
@@ -219,15 +223,15 @@ const AlertsTable = ({
                         firingData={firingAlignedData}
                         uPlotCursor={uPlotCursor}
                       />
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   <></>
                 )}
-              </>
+              </React.Fragment>
             )
           })}
-        </tbody>
+        </TableBody>
       </Table>
     </div>
   )
