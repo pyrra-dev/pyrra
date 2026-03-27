@@ -37,7 +37,6 @@ import {Badge} from '@/components/ui/badge'
 import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert'
 import {Button} from '@/components/ui/button'
 import {Spinner} from '@/components/ui/spinner'
-import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -416,7 +415,7 @@ const columns = [
 ]
 
 const VolumeWarningTooltip = ({
-  id,
+  id: _id,
   objective,
   total,
 }: {

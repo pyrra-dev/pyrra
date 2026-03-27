@@ -17,11 +17,11 @@ const Toggle = ({checked, onChange, onText, offText}: ToggleProps): JSX.Element 
       onClick={onChange}
       className={cn(
         'inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm transition-colors',
-        checked
+        checked === true
           ? 'bg-foreground text-background'
           : 'bg-secondary text-secondary-foreground'
       )}>
-      {checked ? (onText ?? 'On') : (offText ?? 'Off')}
+      {checked === true ? (onText ?? 'On') : (offText ?? 'Off')}
     </button>
   )
 }
