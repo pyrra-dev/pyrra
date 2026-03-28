@@ -733,7 +733,7 @@ func (o Objective) splitIncreaseRulesForType(sloName string, opts GenerationOpti
 func (o Objective) increaseRulesRatio(sloName string) (shortRules, longRules []monitoringv1.Rule, err error) {
 	ruleLabels := o.commonRuleLabels(sloName)
 	for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-		if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+		if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 			ruleLabels[m.Name] = m.Value
 		}
 	}
@@ -942,7 +942,7 @@ func (o Objective) buildSubqueryMatchers(original []*labels.Matcher, subqueryNam
 	matchers := make([]*labels.Matcher, 0, len(original))
 	for _, m := range original {
 		value := m.Value
-		if m.Name == labels.MetricName {
+		if m.Name == model.MetricNameLabel {
 			value = subqueryName
 		}
 		matchers = append(matchers, &labels.Matcher{
@@ -957,7 +957,7 @@ func (o Objective) buildSubqueryMatchers(original []*labels.Matcher, subqueryNam
 func (o Objective) increaseRuleLatency(sloName string, opts GenerationOptions) (shortRules, longRules []monitoringv1.Rule, err error) {
 	ruleLabels := o.commonRuleLabels(sloName)
 	for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-		if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+		if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 			ruleLabels[m.Name] = m.Value
 		}
 	}
@@ -1153,7 +1153,7 @@ func (o Objective) increaseRuleLatencyNative(sloName string) ([]monitoringv1.Rul
 
 	ruleLabels := o.commonRuleLabels(sloName)
 	for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
-		if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+		if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 			ruleLabels[m.Name] = m.Value
 		}
 	}
@@ -1207,7 +1207,7 @@ func (o Objective) increaseRuleBoolGauge(sloName string) ([]monitoringv1.Rule, e
 
 	ruleLabels := o.commonRuleLabels(sloName)
 	for _, m := range o.Indicator.BoolGauge.LabelMatchers {
-		if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+		if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 			ruleLabels[m.Name] = m.Value
 		}
 	}

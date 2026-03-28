@@ -131,7 +131,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceLevelObjectiveReconciler) reconcileSplitPrometheusRules(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+func (r *ServiceLevelObjectiveReconciler) reconcileSplitPrometheusRules(ctx context.Context, logger kitlog.Logger, _ ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
 	shortRule, longRule, err := makeSplitPrometheusRules(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration)
 	if err != nil {
 		return ctrl.Result{}, err

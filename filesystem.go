@@ -409,7 +409,7 @@ func writeRuleFileSplit(logger log.Logger, kubeObjective v1alpha1.ServiceLevelOb
 	return writeRuleSpec(logger, kubeObjective, longSpec, file, prometheusFolder, operatorRule)
 }
 
-func writeRuleSpec(logger log.Logger, kubeObjective v1alpha1.ServiceLevelObjective, rule monitoringv1.PrometheusRuleSpec, file, prometheusFolder string, operatorRule bool) error {
+func writeRuleSpec(_ log.Logger, kubeObjective v1alpha1.ServiceLevelObjective, rule monitoringv1.PrometheusRuleSpec, file, prometheusFolder string, operatorRule bool) error {
 	bytes, err := yaml.Marshal(rule)
 	if err != nil {
 		return fmt.Errorf("failed to marshal rules: %w", err)

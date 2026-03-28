@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.20.1
+    controller-gen.kubebuilder.io/version: v0.20.0
   name: servicelevelobjectives.pyrra.dev
 spec:
   group: pyrra.dev
@@ -206,6 +206,31 @@ spec:
                 - warn
                 - ""
                 type: string
+              performance_over_accuracy:
+                default: false
+                type: boolean
+              rule_output:
+                description: |-
+                  RuleOutput configures labels on the generated PrometheusRule resources
+                  when performance_over_accuracy is enabled. This allows routing the short
+                  (5m increase) rules and long (subquery + burnrate) rules to different
+                  Prometheus/Thanos instances via label selectors.
+                properties:
+                  long_rules_labels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      LongRulesLabels are merged into the labels of the PrometheusRule
+                      containing the long (subquery + burnrate + alert) rules.
+                    type: object
+                  short_rules_labels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      ShortRulesLabels are merged into the labels of the PrometheusRule
+                      containing the short (5m increase) recording rules.
+                    type: object
+                type: object
               target:
                 description: |-
                   Target is a string that's casted to a float64 between 0 - 100.
