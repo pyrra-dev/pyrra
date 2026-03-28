@@ -135,7 +135,7 @@ func TestObjective_BurnratesWithCustomSeverities(t *testing.T) {
 			},
 		}
 
-		ruleGroup, err := o.Burnrates()
+		ruleGroup, err := o.Burnrates(GenerationOptions{})
 		require.NoError(t, err)
 
 		// Find alert rules (skip recording rules)
@@ -198,7 +198,7 @@ func TestObjective_BurnratesWithCustomSeverities(t *testing.T) {
 			},
 		}
 
-		ruleGroup, err := o.Burnrates()
+		ruleGroup, err := o.Burnrates(GenerationOptions{})
 		require.NoError(t, err)
 
 		var alertRules []struct {
@@ -252,7 +252,7 @@ func TestObjective_IncreaseRulesWithCustomAbsentSeverity(t *testing.T) {
 			},
 		}
 
-		ruleGroup, err := o.IncreaseRules()
+		ruleGroup, err := o.IncreaseRules(GenerationOptions{})
 		require.NoError(t, err)
 
 		// Find absent alert rules
@@ -307,7 +307,7 @@ func TestObjective_IncreaseRulesWithCustomAbsentSeverity(t *testing.T) {
 			},
 		}
 
-		ruleGroup, err := o.IncreaseRules()
+		ruleGroup, err := o.IncreaseRules(GenerationOptions{})
 		require.NoError(t, err)
 
 		var absentAlerts []struct {
@@ -353,7 +353,7 @@ func TestObjective_IncreaseRulesWithCustomAbsentSeverity(t *testing.T) {
 			},
 		}
 
-		ruleGroup, err := o.IncreaseRules()
+		ruleGroup, err := o.IncreaseRules(GenerationOptions{})
 		require.NoError(t, err)
 
 		var absentAlerts []struct {

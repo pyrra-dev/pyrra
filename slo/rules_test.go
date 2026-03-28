@@ -14,6 +14,7 @@ func TestObjective_Burnrates(t *testing.T) {
 	testcases := []struct {
 		name  string
 		slo   Objective
+		opts  GenerationOptions
 		rules monitoringv1.RuleGroup
 	}{{
 		name: "http-ratio",
@@ -1151,13 +1152,70 @@ func TestObjective_Burnrates(t *testing.T) {
 				Labels: map[string]string{"severity": "warning", "long": "4d", "slo": "up-targets", "short": "6h", "exhaustion": "4w"},
 			}},
 		},
+	}, {
+		name: "http-latency-prom3-migration",
+		slo:  objectiveHTTPLatency(),
+		opts: GenerationOptions{EnablePrometheus3Migration: true},
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-latency",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "http_request_duration_seconds:burnrate5m",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le=~"1(\\.0)?"}[5m]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[5m]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate30m",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[30m])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le=~"1(\\.0)?"}[30m]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[30m]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate1h",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1h])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le=~"1(\\.0)?"}[1h]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1h]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate2h",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[2h])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le=~"1(\\.0)?"}[2h]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[2h]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate6h",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[6h])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le=~"1(\\.0)?"}[6h]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[6h]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate1d",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1d])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le=~"1(\\.0)?"}[1d]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[1d]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Record: "http_request_duration_seconds:burnrate4d",
+				Expr:   intstr.FromString(`(sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4d])) - sum(rate(http_request_duration_seconds_bucket{code=~"2..",job="metrics-service-thanos-receive-default",le=~"1(\\.0)?"}[4d]))) / sum(rate(http_request_duration_seconds_count{code=~"2..",job="metrics-service-thanos-receive-default"}[4d]))`),
+				Labels: map[string]string{"job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("2m"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate5m{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (14 * (1-0.995)) and http_request_duration_seconds:burnrate1h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (14 * (1-0.995))`),
+				Labels: map[string]string{"severity": "critical", "long": "1h", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "5m", "exhaustion": "2d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("15m"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate30m{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (7 * (1-0.995)) and http_request_duration_seconds:burnrate6h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (7 * (1-0.995))`),
+				Labels: map[string]string{"severity": "critical", "long": "6h", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "30m", "exhaustion": "4d"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("1h"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate2h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (2 * (1-0.995)) and http_request_duration_seconds:burnrate1d{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (2 * (1-0.995))`),
+				Labels: map[string]string{"severity": "warning", "long": "1d", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "2h", "exhaustion": "2w"},
+			}, {
+				Alert:  "ErrorBudgetBurn",
+				For:    monitoringDuration("3h"),
+				Expr:   intstr.FromString(`http_request_duration_seconds:burnrate6h{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (1 * (1-0.995)) and http_request_duration_seconds:burnrate4d{job="metrics-service-thanos-receive-default",slo="monitoring-http-latency"} > (1 * (1-0.995))`),
+				Labels: map[string]string{"severity": "warning", "long": "4d", "job": "metrics-service-thanos-receive-default", "slo": "monitoring-http-latency", "short": "6h", "exhaustion": "4w"},
+			}},
+		},
 	}}
 
-	require.Len(t, testcases, 21)
+	require.Len(t, testcases, 22)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			group, err := tc.slo.Burnrates(GenerationOptions{})
+			group, err := tc.slo.Burnrates(tc.opts)
 			require.NoError(t, err)
 			require.Equal(t, tc.rules, group)
 		})

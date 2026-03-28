@@ -33,7 +33,7 @@ func (o Objective) QueryTotal(window model.Duration, opts GenerationOptions) str
 		metric = increaseName(o.Indicator.Latency.Total.Name, window)
 		grouping = slices.Clone(o.Indicator.Latency.Grouping)
 		matchers = append(
-			cloneMatchers(o.Indicator.Latency.Total.LabelMatchers),
+			applyPrometheus3Migration(cloneMatchers(o.Indicator.Latency.Total.LabelMatchers), opts),
 			&labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""},
 		)
 	case LatencyNative:
