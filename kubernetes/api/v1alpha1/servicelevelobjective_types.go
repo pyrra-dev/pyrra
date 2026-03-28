@@ -101,6 +101,26 @@ type ServiceLevelObjectiveSpec struct {
 	// +optional
 	// +kubebuilder:default:=false
 	PerformanceOverAccuracy bool `json:"performance_over_accuracy,omitempty"`
+
+	// +optional
+	// RuleOutput configures labels on the generated PrometheusRule resources
+	// when performance_over_accuracy is enabled. This allows routing the short
+	// (5m increase) rules and long (subquery + burnrate) rules to different
+	// Prometheus/Thanos instances via label selectors.
+	RuleOutput *RuleOutput `json:"rule_output,omitempty"`
+}
+
+// RuleOutput configures per-rule-file labels when performance_over_accuracy is true.
+type RuleOutput struct {
+	// +optional
+	// ShortRulesLabels are merged into the labels of the PrometheusRule
+	// containing the short (5m increase) recording rules.
+	ShortRulesLabels map[string]string `json:"short_rules_labels,omitempty"`
+
+	// +optional
+	// LongRulesLabels are merged into the labels of the PrometheusRule
+	// containing the long (subquery + burnrate + alert) rules.
+	LongRulesLabels map[string]string `json:"long_rules_labels,omitempty"`
 }
 
 // ServiceLevelIndicator defines the underlying indicator that is a Prometheus metric.
