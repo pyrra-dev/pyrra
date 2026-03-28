@@ -107,7 +107,7 @@ type ServiceLevelObjectiveSpec struct {
 	// when performance_over_accuracy is enabled. This allows routing the short
 	// (5m increase) rules and long (subquery + burnrate) rules to different
 	// Prometheus/Thanos instances via label selectors.
-	RuleOutput *RuleOutput `json:"rule_output,omitempty"`
+	RuleOutput *RuleOutput `json:"ruleOutput,omitempty"`
 }
 
 // RuleOutput configures per-rule-file labels when performance_over_accuracy is true.
@@ -115,12 +115,12 @@ type RuleOutput struct {
 	// +optional
 	// ShortRulesLabels are merged into the labels of the PrometheusRule
 	// containing the short (5m increase) recording rules.
-	ShortRulesLabels map[string]string `json:"short_rules_labels,omitempty"`
+	ShortRulesLabels map[string]string `json:"shortRulesLabels,omitempty"`
 
 	// +optional
 	// LongRulesLabels are merged into the labels of the PrometheusRule
 	// containing the long (subquery + burnrate + alert) rules.
-	LongRulesLabels map[string]string `json:"long_rules_labels,omitempty"`
+	LongRulesLabels map[string]string `json:"longRulesLabels,omitempty"`
 }
 
 // ServiceLevelIndicator defines the underlying indicator that is a Prometheus metric.
