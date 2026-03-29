@@ -187,6 +187,64 @@ picked up by a Prometheus instance. While running Pyrra on its own works, there
 won't be any SLO configured, nor will there be any data from a Prometheus to
 work with. It's designed to work alongside a Prometheus.
 
+## Performance Mode
+
+By default, Pyrra generates recording rules that compute increases over the full SLO window (e.g. `increase(metric[28d])`). This is accurate but expensive — Prometheus has to scan the full window on every evaluation, which can put significant load on your Prometheus instance at longer windows.
+
+**Performance mode** trades a small amount of accuracy for much lower query cost. Instead of computing the increase directly over the full window, Pyrra first records short 5-minute increases and then uses a [subquery](https://prometheus.io/docs/prometheus/latest/querying/basics/#subquery) to sum them up. This way Prometheus only needs to evaluate 5-minute windows, while Thanos (or a remote-write receiver) handles the full-window aggregation.
+
+Enable it by setting `performanceOverAccuracy: true` in the SLO spec:
+
+```yaml
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: pyrra-api-errors
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  target: "99"
+  window: 2w
+  indicator:
+    ratio:
+      errors:
+        metric: http_requests_total{job="pyrra",code=~"5.."}
+      total:
+        metric: http_requests_total{job="pyrra"}
+  performanceOverAccuracy: true
+```
+
+### How It Works
+
+When `performanceOverAccuracy` is enabled, Pyrra generates **two separate PrometheusRule resources** instead of one:
+
+| | Short rules (`{name}-increase`) | Long rules (`{name}`) |
+|---|---|---|
+| **Contents** | 5-minute increase recording rules + absent alerts | Subquery-based full-window rules + burnrates + alerts |
+| **Evaluation interval** | 30s | ~2-3 minutes (computed from window) |
+| **Target** | Prometheus | Thanos / remote storage |
+| **Example rule** | `increase(http_requests_total[5m])` | `sum_over_time(http_requests:increase5m[2w:5m])` |
+
+The short rules are cheap and fast to evaluate in Prometheus. The long rules consume the recorded 5-minute increases via a subquery, which Thanos can evaluate efficiently since the underlying data is already pre-aggregated.
+
+### Routing Rules to Different Instances
+
+If you run Prometheus and Thanos in the same cluster, you can use the `ruleOutput` field to attach different labels to each PrometheusRule. The [Prometheus Operator](https://prometheus-operator.dev) uses label selectors to decide which Prometheus or ThanosRuler instance picks up a rule.
+
+```yaml
+spec:
+  performanceOverAccuracy: true
+  ruleOutput:
+    shortRulesLabels:
+      prometheus: k8s         # picked up by Prometheus
+    longRulesLabels:
+      prometheus: thanos-k8s  # picked up by ThanosRuler
+```
+
+This way the short increase rules run on your in-cluster Prometheus and the expensive full-window subqueries run on ThanosRuler, which is designed to handle them.
+
 ## Configuration Options
 
 ### API Command Flags
