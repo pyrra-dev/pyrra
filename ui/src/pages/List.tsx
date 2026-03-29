@@ -32,10 +32,10 @@ import {
 } from '@tanstack/react-table'
 import {type Duration} from '@bufbuild/protobuf/wkt'
 import {useObjectivesList} from '../objectives'
-import {ArrowDown, ArrowUp, ArrowUpDown, Columns2, Search, TriangleAlert} from 'lucide-react'
+import {ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Columns2, Search, TriangleAlert} from 'lucide-react'
 import {Badge} from '@/components/ui/badge'
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
 import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert'
-import {Button} from '@/components/ui/button'
 import {Spinner} from '@/components/ui/spinner'
 import {
   DropdownMenu,
@@ -428,11 +428,14 @@ const VolumeWarningTooltip = ({
   if (!show) return <></>
 
   return (
-    <span
-      className="ml-2 inline-flex align-middle"
-      title="Too few requests! Adjust your objective or wait for events.">
-      <TriangleAlert size={20} color="#b10d0d" />
-    </span>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger render={<span className="ml-2 inline-flex align-middle" />}>
+          <TriangleAlert size={20} color="#b10d0d" />
+        </TooltipTrigger>
+        <TooltipContent>Too few requests!<br />Adjust your objective or wait for events.</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
@@ -696,15 +699,14 @@ const List = () => {
             {Object.keys(filterLabels)
               .sort((a, b) => a.localeCompare(b))
               .map((k: string) => (
-                <Button
+                <Badge
                   key={k}
                   variant="secondary"
-                  size="sm"
-                  className="mr-2 mb-2 md:mb-0"
+                  className="mr-2 mb-2 cursor-pointer font-normal md:mb-0"
                   onClick={() => { removeFilterLabel(k); }}>
                   {`${k}=${filterLabels[k]}`}
-                  <span className="ml-1 text-xs">✕</span>
-                </Button>
+                  <span className="ml-1">✕</span>
+                </Badge>
               ))}
             {filterError && (
               <Alert variant="destructive">
@@ -720,6 +722,7 @@ const List = () => {
                 className="inline-flex shrink-0 items-center justify-center rounded-md border border-border bg-background px-2.5 py-1 text-sm font-medium hover:bg-muted">
                 <Columns2 size={16} />
                 <span className="ml-2">Columns</span>
+                <ChevronDown size={14} className="ml-1" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {columns.map((c) => {
@@ -846,9 +849,7 @@ const NameCell = ({cell, onFilter}: NameCellProps): React.JSX.Element => {
           console.log('filter', lset)
           onFilter(lset)
         }}>
-        <a>
-          {l[0]}={l[1]}
-        </a>
+        {l[0]}={l[1]}
       </Badge>
     ))
 
