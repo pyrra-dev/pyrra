@@ -100,7 +100,7 @@ type ServiceLevelObjectiveSpec struct {
 
 	// +optional
 	// +kubebuilder:default:=false
-	PerformanceOverAccuracy bool `json:"performance_over_accuracy,omitempty"`
+	PerformanceOverAccuracy bool `json:"performanceOverAccuracy,omitempty"`
 
 	// +optional
 	// RuleOutput configures labels on the generated PrometheusRule resources

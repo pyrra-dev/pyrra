@@ -263,7 +263,7 @@
                     ],
                     "type": "string"
                   },
-                  "performance_over_accuracy": {
+                  "performanceOverAccuracy": {
                     "default": false,
                     "type": "boolean"
                   },
