@@ -1,4 +1,5 @@
-import React, {type EventHandler, type JSX, useRef} from 'react'
+import React, {type EventHandler, type JSX} from 'react'
+import {cn} from '@/lib/utils'
 
 interface ToggleProps {
   checked?: boolean
@@ -8,45 +9,20 @@ interface ToggleProps {
 }
 
 const Toggle = ({checked, onChange, onText, offText}: ToggleProps): JSX.Element => {
-  const element = useRef<HTMLDivElement>(null)
-  const elementOn = useRef<HTMLLabelElement>(null)
-  const elementOff = useRef<HTMLLabelElement>(null)
-
-  let width = 0
-  let height = 0
-  if (element.current !== null && elementOn.current !== null && elementOff.current !== null) {
-    width = elementOn.current.clientWidth
-    height = Math.max(elementOn.current.clientHeight, elementOff.current.clientHeight)
-  }
-
-  const defaultClasses = ['toggle', 'btn']
-  const classes =
-    checked !== undefined && checked
-      ? defaultClasses.concat('btn-dark')
-      : defaultClasses.concat('btn-light off')
-
   return (
-    <div
-      className={classes.join(' ')}
-      role="button"
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
       onClick={onChange}
-      style={{width, height}}
-      ref={element}>
-      <input type="checkbox" checked={checked} />
-      <div className="toggle-group">
-        <label htmlFor="" className="btn btn-light active toggle-on" ref={elementOn}>
-          {onText ?? 'On'}
-        </label>
-        <label
-          htmlFor=""
-          className="btn btn-light toggle-off"
-          ref={elementOff}
-          style={{width}}>
-          {offText ?? 'Off'}
-        </label>
-        <span className="toggle-handle btn btn-light"></span>
-      </div>
-    </div>
+      className={cn(
+        'inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm transition-colors',
+        checked === true
+          ? 'bg-foreground text-background'
+          : 'bg-secondary text-secondary-foreground'
+      )}>
+      {checked === true ? (onText ?? 'On') : (offText ?? 'Off')}
+    </button>
   )
 }
 

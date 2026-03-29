@@ -1,10 +1,10 @@
 import React, {type JSX, useEffect, useRef, useState} from 'react'
-import {Spinner} from 'react-bootstrap'
+import {Spinner} from '@/components/ui/spinner'
 import UplotReact from 'uplot-react'
 import {type AlignedData} from 'uplot';
 import type uPlot from 'uplot'
 
-import {IconExternal} from '../Icons'
+import {ExternalLink} from 'lucide-react'
 import {greens, reds} from './colors'
 import {seriesGaps} from './gaps'
 import {type Client} from '@connectrpc/connect'
@@ -127,14 +127,7 @@ const ErrorBudgetGraph = ({
           Error Budget
           {status === 'pending' ? (
             <Spinner
-              animation="border"
-              style={{
-                marginLeft: '1rem',
-                marginBottom: '0.5rem',
-                width: '1rem',
-                height: '1rem',
-                borderWidth: '1px',
-              }}
+              className="ml-4 mb-2 h-4 w-4 border-1"
             />
           ) : (
             <></>
@@ -146,7 +139,7 @@ const ErrorBudgetGraph = ({
             target="_blank"
             rel="noreferrer"
             href={buildExternalHRef([query], from, to)}>
-            <IconExternal height={20} width={20} />
+            <ExternalLink size={20} />
             {externalName()}
           </a>
         ) : (

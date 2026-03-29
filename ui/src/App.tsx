@@ -4,6 +4,7 @@ import {NuqsAdapter} from 'nuqs/adapters/react-router/v6'
 import List from './pages/List'
 import Detail from './pages/Detail'
 import Footer from './components/Footer'
+import {TooltipProvider} from '@/components/ui/tooltip'
 import {
   type LabelMatcher,
   type Latency,
@@ -40,15 +41,17 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename={basename}>
-        <NuqsAdapter>
-          <Routes>
-            <Route path="/" element={<List />} />
-            <Route path="/objectives" element={<Detail />} />
-          </Routes>
-          <Footer version={VERSION} />
-        </NuqsAdapter>
-      </BrowserRouter>
+      <TooltipProvider>
+        <BrowserRouter basename={basename}>
+          <NuqsAdapter>
+            <Routes>
+              <Route path="/" element={<List />} />
+              <Route path="/objectives" element={<Detail />} />
+            </Routes>
+            <Footer version={VERSION} />
+          </NuqsAdapter>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   )
 }

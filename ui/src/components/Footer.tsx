@@ -1,5 +1,4 @@
 import {type JSX} from 'react'
-import {Container} from 'react-bootstrap'
 
 interface FooterProps {
   version?: string
@@ -11,10 +10,10 @@ const Footer = ({version}: FooterProps): JSX.Element => {
   }
 
   return (
-    <footer className="footer">
-      <Container>
-        <small>Pyrra {version}</small>
-      </Container>
+    <footer className="sticky top-[100vh] py-6 text-center">
+      <div className="container-responsive">
+        <small className="text-muted-foreground">Pyrra {version}</small>
+      </div>
     </footer>
   )
 }

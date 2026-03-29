@@ -1,5 +1,6 @@
 import React from 'react'
-import {Spinner} from 'react-bootstrap'
+import {Spinner} from '@/components/ui/spinner'
+import {cn} from '@/lib/utils'
 import {type Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 
 interface ErrorBudgetTileProps {
@@ -11,23 +12,13 @@ interface ErrorBudgetTileProps {
 }
 
 const ErrorBudgetTile = ({objective, loading, success, errors, total}: ErrorBudgetTileProps) => {
-  const headline = <h6 className="headline">Error Budget</h6>
+  const headline = <h6 className="font-sans text-xl font-semibold opacity-50">Error Budget</h6>
 
   if (loading) {
     return (
-      <div>
+      <div className="rounded-lg bg-card p-9 text-card-foreground">
         {headline}
-        <Spinner
-          animation={'border'}
-          style={{
-            width: 50,
-            height: 50,
-            padding: 0,
-            borderRadius: 50,
-            borderWidth: 2,
-            opacity: 0.25,
-          }}
-        />
+        <Spinner className="h-12 w-12 opacity-25" />
       </div>
     )
   }
@@ -38,14 +29,14 @@ const ErrorBudgetTile = ({objective, loading, success, errors, total}: ErrorBudg
       const availableBudget = (budget - unavailability) / budget
 
       return (
-        <div className={availableBudget > 0 ? 'good' : 'bad'}>
+        <div className={cn('rounded-lg p-9 font-sans', availableBudget > 0 ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground')}>
           {headline}
-          <h2 className="metric">{(100 * availableBudget).toFixed(3)}%</h2>
+          <h2 className="inline-block mr-2 font-sans text-[40px] font-normal mb-0">{(100 * availableBudget).toFixed(3)}%</h2>
         </div>
       )
     } else {
       return (
-        <div>
+        <div className="rounded-lg bg-card p-9 text-card-foreground">
           {headline}
           <h2>No data</h2>
         </div>
@@ -53,9 +44,9 @@ const ErrorBudgetTile = ({objective, loading, success, errors, total}: ErrorBudg
     }
   }
   return (
-    <div>
+    <div className="rounded-lg bg-card p-9 text-card-foreground">
       {headline}
-      <h2 className="error">Error</h2>
+      <h2 className="text-destructive font-sans text-[40px] font-normal">Error</h2>
     </div>
   )
 }

@@ -1,20 +1,31 @@
+import path from 'path'
 import {defineConfig} from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   base: './',
-  css: {
-    preprocessorOptions: {
-      scss: {
-        // Bootstrap 5 uses deprecated Sass features that won't be fixed until Bootstrap 6.
-        silenceDeprecations: ['import', 'global-builtin', 'color-functions', 'if-function'],
-      },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {
     port: 3000,
+    proxy: {
+      '/objectives.v1alpha1.ObjectiveService': {
+        target: 'https://demo.pyrra.dev',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/prometheus.v1.PrometheusService': {
+        target: 'https://demo.pyrra.dev',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   build: {
     outDir: 'build',
