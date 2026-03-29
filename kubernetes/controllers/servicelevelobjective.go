@@ -107,29 +107,20 @@ func (r *ServiceLevelObjectiveReconciler) Reconcile(ctx context.Context, req ctr
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+	if kubeObjective.Spec.PerformanceOverAccuracy {
+		return r.reconcileSplitPrometheusRules(ctx, logger, req, kubeObjective)
+	}
+
+	// Clean up stale increase rule if user toggled performance_over_accuracy from true to false.
+	r.cleanupStaleIncreaseRule(ctx, logger, req)
+
 	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	var rule monitoringv1.PrometheusRule
-	if err := r.Get(ctx, req.NamespacedName, &rule); err != nil {
-		if errors.IsNotFound(err) {
-			level.Info(logger).Log("msg", "creating prometheus rule", "namespace", newRule.GetNamespace(), "name", newRule.GetName())
-			if err := r.Create(ctx, newRule); err != nil {
-				return ctrl.Result{}, err
-			}
-		} else {
-			return ctrl.Result{}, fmt.Errorf("failed to get prometheus rule: %w", err)
-		}
-	} else {
-		// Resource exists, update it
-		newRule.ResourceVersion = rule.ResourceVersion
-
-		level.Info(logger).Log("msg", "updating prometheus rule", "namespace", rule.GetNamespace(), "name", rule.GetName())
-		if err := r.Update(ctx, newRule); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to update prometheus rule: %w", err)
-		}
+	if err := r.upsertPrometheusRule(ctx, logger, newRule); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	kubeObjective.Status.Type = "PrometheusRule"
@@ -138,6 +129,59 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *ServiceLevelObjectiveReconciler) reconcileSplitPrometheusRules(ctx context.Context, logger kitlog.Logger, _ ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+	shortRule, longRule, err := makeSplitPrometheusRules(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.upsertPrometheusRule(ctx, logger, shortRule); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.upsertPrometheusRule(ctx, logger, longRule); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	kubeObjective.Status.Type = "PrometheusRule"
+	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *ServiceLevelObjectiveReconciler) upsertPrometheusRule(ctx context.Context, logger kitlog.Logger, newRule *monitoringv1.PrometheusRule) error {
+	var existing monitoringv1.PrometheusRule
+	key := client.ObjectKey{Namespace: newRule.GetNamespace(), Name: newRule.GetName()}
+
+	if err := r.Get(ctx, key, &existing); err != nil {
+		if errors.IsNotFound(err) {
+			level.Info(logger).Log("msg", "creating prometheus rule", "namespace", newRule.GetNamespace(), "name", newRule.GetName())
+			return r.Create(ctx, newRule)
+		}
+		return fmt.Errorf("failed to get prometheus rule: %w", err)
+	}
+
+	newRule.ResourceVersion = existing.ResourceVersion
+	level.Info(logger).Log("msg", "updating prometheus rule", "namespace", newRule.GetNamespace(), "name", newRule.GetName())
+	return r.Update(ctx, newRule)
+}
+
+func (r *ServiceLevelObjectiveReconciler) cleanupStaleIncreaseRule(ctx context.Context, logger kitlog.Logger, req ctrl.Request) {
+	increaseRuleName := req.Name + "-increase"
+	var staleRule monitoringv1.PrometheusRule
+	if err := r.Get(ctx, client.ObjectKey{
+		Namespace: req.Namespace,
+		Name:      increaseRuleName,
+	}, &staleRule); err == nil {
+		level.Info(logger).Log("msg", "cleaning up stale increase rule", "name", increaseRuleName)
+		if err := r.Delete(ctx, &staleRule); err != nil {
+			level.Error(logger).Log("msg", "failed to delete stale increase rule", "name", increaseRuleName, "err", err)
+		}
+	}
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Context, logger kitlog.Logger, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
@@ -424,6 +468,74 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 		rule.Groups[i].PartialResponseStrategy = kubeObjective.Spec.PartialResponseStrategy
 	}
 
+	return newPrometheusRule(kubeObjective, kubeObjective.GetLabels(), rule), nil
+}
+
+func makeSplitPrometheusRules(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, enablePrometheus3Migration bool) (*monitoringv1.PrometheusRule, *monitoringv1.PrometheusRule, error) {
+	objective, err := kubeObjective.Internal()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get objective: %w", err)
+	}
+
+	opts := slo.GenerationOptions{
+		EnablePrometheus3Migration: enablePrometheus3Migration,
+	}
+
+	shortGroup, longIncreaseGroup, err := objective.SplitIncreaseRules(opts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get split increase rules: %w", err)
+	}
+
+	burnrates, err := objective.Burnrates(opts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get burn rate rules: %w", err)
+	}
+
+	// Short PrometheusRule: only the short increase rules
+	shortSpec := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{shortGroup},
+	}
+
+	// Long PrometheusRule: subquery increase + burnrates + generic
+	longSpec := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{longIncreaseGroup, burnrates},
+	}
+
+	if genericRules {
+		rules, err := objective.GenericRules(opts)
+		if err != nil {
+			if err != slo.ErrGroupingUnsupported {
+				return nil, nil, fmt.Errorf("failed to get generic rules: %w", err)
+			}
+		} else {
+			longSpec.Groups = append(longSpec.Groups, rules)
+		}
+	}
+
+	for i := range shortSpec.Groups {
+		shortSpec.Groups[i].PartialResponseStrategy = kubeObjective.Spec.PartialResponseStrategy
+	}
+	for i := range longSpec.Groups {
+		longSpec.Groups[i].PartialResponseStrategy = kubeObjective.Spec.PartialResponseStrategy
+	}
+
+	// Determine labels for each PrometheusRule
+	shortLabels := mergeLabels(kubeObjective.GetLabels(), nil)
+	longLabels := mergeLabels(kubeObjective.GetLabels(), nil)
+	if ro := kubeObjective.Spec.RuleOutput; ro != nil {
+		shortLabels = mergeLabels(kubeObjective.GetLabels(), ro.ShortRulesLabels)
+		longLabels = mergeLabels(kubeObjective.GetLabels(), ro.LongRulesLabels)
+	}
+
+	shortRule := newPrometheusRule(kubeObjective, shortLabels, shortSpec)
+	shortRule.Name = kubeObjective.GetName() + "-increase"
+
+	longRule := newPrometheusRule(kubeObjective, longLabels, longSpec)
+
+	return shortRule, longRule, nil
+}
+
+func newPrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, lbls map[string]string, spec monitoringv1.PrometheusRuleSpec) *monitoringv1.PrometheusRule {
 	isController := true
 	return &monitoringv1.PrometheusRule{
 		TypeMeta: metav1.TypeMeta{
@@ -433,7 +545,7 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kubeObjective.GetName(),
 			Namespace: kubeObjective.GetNamespace(),
-			Labels:    kubeObjective.GetLabels(),
+			Labels:    lbls,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: kubeObjective.APIVersion,
@@ -444,6 +556,19 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 				},
 			},
 		},
-		Spec: rule,
-	}, nil
+		Spec: spec,
+	}
+}
+
+// mergeLabels merges override labels into base labels.
+// Override labels take precedence over base labels with the same key.
+func mergeLabels(base, override map[string]string) map[string]string {
+	result := make(map[string]string, len(base)+len(override))
+	for k, v := range base {
+		result[k] = v
+	}
+	for k, v := range override {
+		result[k] = v
+	}
+	return result
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -325,6 +326,10 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		EnablePrometheus3Migration: enablePrometheus3Migration,
 	}
 
+	if objective.PerformanceOverAccuracy {
+		return writeRuleFileSplit(logger, kubeObjective, objective, file, prometheusFolder, genericRules, operatorRule, opts)
+	}
+
 	increases, err := objective.IncreaseRules(opts)
 	if err != nil {
 		return fmt.Errorf("failed to get increase rules: %w", err)
@@ -354,6 +359,57 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 		}
 	}
 
+	return writeRuleSpec(logger, kubeObjective, rule, file, prometheusFolder, operatorRule)
+}
+
+func writeRuleFileSplit(logger log.Logger, kubeObjective v1alpha1.ServiceLevelObjective, objective slo.Objective, file, prometheusFolder string, genericRules, operatorRule bool, opts slo.GenerationOptions) error {
+	shortGroup, longGroup, err := objective.SplitIncreaseRules(opts)
+	if err != nil {
+		return fmt.Errorf("failed to get split increase rules: %w", err)
+	}
+
+	burnrates, err := objective.Burnrates(opts)
+	if err != nil {
+		return fmt.Errorf("failed to get burn rate rules: %w", err)
+	}
+
+	// Write short rules (5m increase) to {name}-increase.yaml
+	shortSpec := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{shortGroup},
+	}
+
+	_, f := filepath.Split(file)
+	ext := filepath.Ext(f)
+	shortFile := strings.TrimSuffix(f, ext) + "-increase" + ext
+
+	if err := writeRuleSpec(logger, kubeObjective, shortSpec, shortFile, prometheusFolder, operatorRule); err != nil {
+		return fmt.Errorf("failed to write short rules: %w", err)
+	}
+
+	// Write long rules (subquery + burnrates + generic) to {name}.yaml
+	longSpec := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{longGroup, burnrates},
+	}
+
+	if genericRules {
+		rules, err := objective.GenericRules(opts)
+		if err == nil {
+			longSpec.Groups = append(longSpec.Groups, rules)
+		} else {
+			if err != slo.ErrGroupingUnsupported {
+				return fmt.Errorf("failed to get generic rules: %w", err)
+			}
+			level.Warn(logger).Log(
+				"msg", "objective with grouping unsupported with generic rules",
+				"objective", objective.Name(),
+			)
+		}
+	}
+
+	return writeRuleSpec(logger, kubeObjective, longSpec, file, prometheusFolder, operatorRule)
+}
+
+func writeRuleSpec(_ log.Logger, kubeObjective v1alpha1.ServiceLevelObjective, rule monitoringv1.PrometheusRuleSpec, file, prometheusFolder string, operatorRule bool) error {
 	bytes, err := yaml.Marshal(rule)
 	if err != nil {
 		return fmt.Errorf("failed to marshal rules: %w", err)

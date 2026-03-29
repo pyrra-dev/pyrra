@@ -97,6 +97,30 @@ type ServiceLevelObjectiveSpec struct {
 	// be ignored by Prometheus instances.
 	// More info: https://github.com/thanos-io/thanos/blob/main/docs/components/rule.md#partial-response
 	PartialResponseStrategy string `json:"partial_response_strategy,omitempty"`
+
+	// +optional
+	// +kubebuilder:default:=false
+	PerformanceOverAccuracy bool `json:"performanceOverAccuracy,omitempty"`
+
+	// +optional
+	// RuleOutput configures labels on the generated PrometheusRule resources
+	// when performance_over_accuracy is enabled. This allows routing the short
+	// (5m increase) rules and long (subquery + burnrate) rules to different
+	// Prometheus/Thanos instances via label selectors.
+	RuleOutput *RuleOutput `json:"ruleOutput,omitempty"`
+}
+
+// RuleOutput configures per-rule-file labels when performance_over_accuracy is true.
+type RuleOutput struct {
+	// +optional
+	// ShortRulesLabels are merged into the labels of the PrometheusRule
+	// containing the short (5m increase) recording rules.
+	ShortRulesLabels map[string]string `json:"shortRulesLabels,omitempty"`
+
+	// +optional
+	// LongRulesLabels are merged into the labels of the PrometheusRule
+	// containing the long (subquery + burnrate + alert) rules.
+	LongRulesLabels map[string]string `json:"longRulesLabels,omitempty"`
 }
 
 // ServiceLevelIndicator defines the underlying indicator that is a Prometheus metric.
@@ -386,6 +410,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 	if err != nil {
 		return slo.Objective{}, fmt.Errorf("failed to parse objective window: %w", err)
 	}
+
 	var alerting slo.Alerting
 	alerting.Disabled = false
 	if in.Spec.Alerting.Disabled != nil {
@@ -593,13 +618,14 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 	ls := labels.New(labelsList...)
 
 	return slo.Objective{
-		Labels:      ls,
-		Annotations: in.Annotations,
-		Description: in.Spec.Description,
-		Target:      target / 100,
-		Window:      window,
-		Config:      string(config),
-		Alerting:    alerting,
+		Labels:                  ls,
+		Annotations:             in.Annotations,
+		Description:             in.Spec.Description,
+		Target:                  target / 100,
+		Window:                  window,
+		PerformanceOverAccuracy: in.Spec.PerformanceOverAccuracy,
+		Config:                  string(config),
+		Alerting:                alerting,
 		Indicator: slo.Indicator{
 			Ratio:         ratio,
 			Latency:       latency,

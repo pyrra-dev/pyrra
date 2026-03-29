@@ -206,6 +206,31 @@ spec:
                 - warn
                 - ""
                 type: string
+              performanceOverAccuracy:
+                default: false
+                type: boolean
+              ruleOutput:
+                description: |-
+                  RuleOutput configures labels on the generated PrometheusRule resources
+                  when performance_over_accuracy is enabled. This allows routing the short
+                  (5m increase) rules and long (subquery + burnrate) rules to different
+                  Prometheus/Thanos instances via label selectors.
+                properties:
+                  longRulesLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      LongRulesLabels are merged into the labels of the PrometheusRule
+                      containing the long (subquery + burnrate + alert) rules.
+                    type: object
+                  shortRulesLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      ShortRulesLabels are merged into the labels of the PrometheusRule
+                      containing the short (5m increase) recording rules.
+                    type: object
+                type: object
               target:
                 description: |-
                   Target is a string that's casted to a float64 between 0 - 100.

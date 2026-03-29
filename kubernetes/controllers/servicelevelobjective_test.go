@@ -198,6 +198,69 @@ func Test_makePrometheusRule(t *testing.T) {
 	}
 }
 
+func Test_makeSplitPrometheusRules(t *testing.T) {
+	perfSLO := httpSLO.DeepCopy()
+	perfSLO.Spec.PerformanceOverAccuracy = true
+	perfSLO.Spec.RuleOutput = &pyrrav1alpha1.RuleOutput{
+		ShortRulesLabels: map[string]string{"prometheus": "k8s"},
+		LongRulesLabels:  map[string]string{"prometheus": "thanos-k8s"},
+	}
+
+	shortRule, longRule, err := makeSplitPrometheusRules(*perfSLO, false, false)
+	require.NoError(t, err)
+
+	// Short rule should have name "{name}-increase"
+	require.Equal(t, "http-increase", shortRule.Name)
+	// Short rule should have merged labels with ShortRulesLabels
+	require.Equal(t, "k8s", shortRule.Labels["prometheus"])
+	require.Equal(t, "foo", shortRule.Labels[slo.PropagationLabelsPrefix+"team"])
+	// Short rule should have owner reference
+	require.Len(t, shortRule.OwnerReferences, 1)
+	require.Equal(t, "http", shortRule.OwnerReferences[0].Name)
+	// Short rule should have 1 group with short rules
+	require.Len(t, shortRule.Spec.Groups, 1)
+
+	// Long rule should keep original name
+	require.Equal(t, "http", longRule.Name)
+	// Long rule should have merged labels with LongRulesLabels
+	require.Equal(t, "thanos-k8s", longRule.Labels["prometheus"])
+	require.Equal(t, "foo", longRule.Labels[slo.PropagationLabelsPrefix+"team"])
+	// Long rule should have owner reference
+	require.Len(t, longRule.OwnerReferences, 1)
+	// Long rule should have 2 groups (increase + burnrates)
+	require.Len(t, longRule.Spec.Groups, 2)
+
+	// Both should have partial response strategy
+	require.Equal(t, "warn", shortRule.Spec.Groups[0].PartialResponseStrategy)
+	require.Equal(t, "warn", longRule.Spec.Groups[0].PartialResponseStrategy)
+}
+
+func Test_makeSplitPrometheusRulesWithoutRuleOutput(t *testing.T) {
+	perfSLO := httpSLO.DeepCopy()
+	perfSLO.Spec.PerformanceOverAccuracy = true
+	// No RuleOutput set — both should inherit SLO labels
+
+	shortRule, longRule, err := makeSplitPrometheusRules(*perfSLO, false, false)
+	require.NoError(t, err)
+
+	// Both should have the SLO's labels
+	require.Equal(t, "foo", shortRule.Labels[slo.PropagationLabelsPrefix+"team"])
+	require.Equal(t, "bar", shortRule.Labels["team"])
+	require.Equal(t, "foo", longRule.Labels[slo.PropagationLabelsPrefix+"team"])
+	require.Equal(t, "bar", longRule.Labels["team"])
+}
+
+func Test_mergeLabels(t *testing.T) {
+	base := map[string]string{"a": "1", "b": "2"}
+	override := map[string]string{"b": "3", "c": "4"}
+	result := mergeLabels(base, override)
+	require.Equal(t, map[string]string{"a": "1", "b": "3", "c": "4"}, result)
+
+	// nil override should preserve base
+	result = mergeLabels(base, nil)
+	require.Equal(t, map[string]string{"a": "1", "b": "2"}, result)
+}
+
 func Test_makeConfigMap(t *testing.T) {
 	rules := `groups:
 - interval: 2m30s
