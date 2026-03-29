@@ -40,7 +40,7 @@ build: pyrra
 
 # Build api binary
 pyrra: fmt vet
-	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags '-static'' -o pyrra
+	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags "-static" -X main.version=$(shell git describe --tags --always --dirty) -X main.commit=$(shell git rev-parse HEAD)' -o pyrra
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
@@ -63,7 +63,7 @@ vet:
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: generate
 generate: controller-gen gojsontoyaml ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd rbac:roleName="pyrra-kubernetes" webhook paths="./..." output:crd:artifacts:config=jsonnet/controller-gen
+	$(CONTROLLER_GEN) object:headerFile="kubernetes/hack/boilerplate.go.txt" crd rbac:roleName="pyrra-kubernetes" webhook paths="./..." output:crd:artifacts:config=jsonnet/controller-gen
 	find jsonnet/controller-gen -name '*.yaml' -print0 | xargs -0 -I{} sh -c '$(GOJSONTOYAML) -yamltojson < "$$1" | jq > "$(PWD)/jsonnet/controller-gen/$$(basename -s .yaml $$1).json"' -- {}
 	find jsonnet/controller-gen -type f ! -name '*.json' -delete
 
@@ -77,6 +77,7 @@ docker-push:
 # download controller-gen if necessary
 controller-gen:
 ifeq (, $(shell which controller-gen))
+	# renovate: datasource=go depName=sigs.k8s.io/controller-tools
 	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.20.1
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
