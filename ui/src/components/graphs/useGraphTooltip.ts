@@ -11,12 +11,14 @@ export const formatDate = (unix: number): string => {
 }
 
 // For x-axis tick labels, adapts format to the tick interval:
-//   day-scale (≥1d apart): MM-DD, full yyyy-MM-dd only at year boundaries
-//   sub-day: HH:mm:ss, full yyyy-MM-dd at midnight day boundaries
+//   ≥1d:  MM-DD, full yyyy-MM-dd only at year boundaries
+//   ≥4h:  HH:mm intraday, MM-DD at midnight
+//   <4h:  HH:mm:ss intraday, yyyy-MM-dd at midnight day boundaries
 export const formatAxisDates = (splits: number[]): string[] => {
   if (splits.length < 2) return splits.map(v => formatDate(v))
 
   const interval = splits[1] - splits[0]
+  const FOUR_HOURS = 4 * 3600
   const ONE_DAY = 86400
 
   if (interval >= ONE_DAY) {
@@ -33,6 +35,17 @@ export const formatAxisDates = (splits: number[]): string[] => {
     const d = new Date(v * 1000)
     return d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate()
   })
+
+  if (interval >= FOUR_HOURS) {
+    return splits.map((v: number, i: number) => {
+      const d = new Date(v * 1000)
+      if (i > 0 && days[i] !== days[i - 1]) {
+        return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+      }
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+    })
+  }
+
   return splits.map((v: number, i: number) => {
     const d = new Date(v * 1000)
     const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
