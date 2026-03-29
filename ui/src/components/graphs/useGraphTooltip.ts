@@ -10,9 +10,25 @@ export const formatDate = (unix: number): string => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
-// For x-axis tick labels: full date only when the day changes between consecutive ticks,
-// time-only otherwise. At midnight (00:00:00) show just the date — the time is redundant.
+// For x-axis tick labels, adapts format to the tick interval:
+//   day-scale (≥1d apart): MM-DD, full yyyy-MM-dd only at year boundaries
+//   sub-day: HH:mm:ss, full yyyy-MM-dd at midnight day boundaries
 export const formatAxisDates = (splits: number[]): string[] => {
+  if (splits.length < 2) return splits.map(v => formatDate(v))
+
+  const interval = splits[1] - splits[0]
+  const ONE_DAY = 86400
+
+  if (interval >= ONE_DAY) {
+    return splits.map((v: number, i: number) => {
+      const d = new Date(v * 1000)
+      if (i > 0 && new Date(splits[i - 1] * 1000).getFullYear() !== d.getFullYear()) {
+        return formatDate(v)
+      }
+      return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    })
+  }
+
   const days = splits.map(v => {
     const d = new Date(v * 1000)
     return d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate()
