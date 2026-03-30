@@ -290,7 +290,7 @@ const Detail = () => {
                         onBlur={handleCustomRangeSubmit}
                         placeholder={formatDuration(timeRanges[0] * 2)}
                         className={cn(
-                          'h-8 w-14 rounded-l-lg rounded-r-none border border-r-0 border-input bg-transparent pl-2 pr-5 text-sm font-medium outline-none transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:z-10',
+                          'h-8 w-14 rounded-l-lg rounded-r-none border border-r-0 border-input bg-muted/50 shadow-inner pl-2 pr-5 text-sm font-medium outline-none transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:z-10',
                           customRangeError && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20'
                         )}
                       />
