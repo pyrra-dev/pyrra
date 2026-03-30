@@ -76,7 +76,7 @@ export const useGraphTooltip = (containerHeight: number) => {
 
     over.addEventListener('mouseleave', () => {
       isHoveredRef.current = false
-      if (tooltipRef.current) tooltipRef.current.style.visibility = 'hidden'
+      if (tooltipRef.current !== null) tooltipRef.current.style.visibility = 'hidden'
     })
 
     // Capture phase fires before uPlot's own mousemove listener,
@@ -93,7 +93,7 @@ export const useGraphTooltip = (containerHeight: number) => {
   const setCursorHook = useCallback(
     (u: uPlot) => {
       const el = tooltipRef.current
-      if (!el) return
+      if (el === null) return
 
       if (u.cursor.idx == null) {
         el.style.visibility = 'hidden'
@@ -118,26 +118,26 @@ export const useGraphTooltip = (containerHeight: number) => {
       el.style.bottom = flipY ? `${containerHeight - y}px` : ''
 
       const tsEl = el.querySelector<HTMLElement>('[data-tooltip-ts]')
-      if (tsEl) tsEl.textContent = formatDate((u.data[0] as number[])[idx])
+      if (tsEl !== null) tsEl.textContent = formatDate((u.data[0] as number[])[idx])
 
       const rowsEl = el.querySelector<HTMLElement>('[data-tooltip-rows]')
-      if (!rowsEl) return
+      if (rowsEl === null) return
 
       let html = ''
       for (let si = 1; si < u.series.length; si++) {
         const s = u.series[si]
-        if (!s.show) continue
-        const rawVal = (u.data[si] as (number | null)[])[idx]
+        if (s.show !== true) continue
+        const rawVal = (u.data[si] as Array<number | null>)[idx]
         const formatted =
-          typeof s.value === 'function'
-            ? String(s.value(u, rawVal as number, si, idx))
+          typeof s.value === 'function' && rawVal !== null
+            ? String(s.value(u, rawVal, si, idx))
             : String(rawVal ?? '-')
         const stroke = (s as any)._stroke
         const color = typeof stroke === 'string' ? stroke : '#888'
         html += `<div class="flex items-center justify-between gap-3 py-0.5">
         <div class="flex items-center gap-1.5 min-w-0">
           <span class="inline-block h-2 w-2 rounded-full shrink-0" style="background-color:${color}"></span>
-          <span class="truncate text-muted-foreground">${s.label ?? ''}</span>
+          <span class="truncate text-muted-foreground">${typeof s.label === 'string' ? s.label : ''}</span>
         </div>
         <span class="font-medium tabular-nums">${formatted}</span>
       </div>`
