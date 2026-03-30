@@ -630,7 +630,9 @@ func (o Objective) commonRuleAnnotations(externalURL string) map[string]string {
 
 			externalURLParsed, err := url.Parse(externalURL)
 			if err != nil {
-				return nil
+				fmt.Printf("Error parsing external URL: %v\n", err)
+				// Continue without adding pyrra_url
+				return annotations
 			}
 
 			params := url.Values{}
@@ -646,9 +648,15 @@ func (o Objective) commonRuleAnnotations(externalURL string) map[string]string {
 			if grouping := o.Grouping(); len(grouping) > 0 {
 				groups := make([]string, 0, len(grouping))
 				for _, l := range grouping {
-					groups = append(groups, l+"=%22{{$labels."+l+"}}%22")
+					// Use a placeholder for the template expression to prevent url.QueryEscape from encoding it.
+					// Prometheus needs {{$labels.<name>}} as-is to template the actual value at alert time.
+					groups = append(groups, l+`="__TPL_`+l+`__"`)
 				}
-				annotations["pyrra_url"] += "&grouping=%7B" + strings.Join(groups, ",") + "%7D"
+				groupingParam := url.QueryEscape("{" + strings.Join(groups, ",") + "}")
+				for _, l := range grouping {
+					groupingParam = strings.ReplaceAll(groupingParam, "__TPL_"+l+"__", "{{$labels."+l+"}}")
+				}
+				annotations["pyrra_url"] += "&grouping=" + groupingParam
 			}
 		}
 	}
