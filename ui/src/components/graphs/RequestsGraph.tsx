@@ -13,7 +13,9 @@ import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
 import {type Labels, labelValues} from '../../labels'
-import {buildExternalHRef, externalName} from '../../external';
+import {buildExternalHRef, externalName} from '../../external'
+import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
+import GraphTooltip from './GraphTooltip'
 
 interface RequestsGraphProps {
   client: Client<typeof PrometheusService>
@@ -58,6 +60,8 @@ const RequestsGraph = ({
     to / 1000,
     step(from, to),
   )
+
+  const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(150)
 
   if (status === 'pending') {
     return (
@@ -115,41 +119,52 @@ const RequestsGraph = ({
         <p>{description}</p>
       </div>
 
-      <div ref={targetRef}>
+      <div ref={targetRef} className="relative">
         {data.length > 0 ? (
-          <UplotReact
-            options={{
-              width,
-              height: 150,
-              padding: [15, 0, 0, 0],
-              cursor: uPlotCursor,
-              series: [
-                {},
-                ...labels.map((label: Labels): uPlot.Series => {
-                  const value = labelValues(label)[0]
-                  return {
-                    label: value,
-                    stroke: `#${labelColor(pickedColors, value)}`,
-                    gaps: seriesGaps(from / 1000, to / 1000),
-                    value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
-                  }
-                }),
-              ],
-              scales: {
-                x: {min: from / 1000, max: to / 1000},
-                y: {
-                  range: {
-                    min: absolute ? {hard: 0, mode: 1, soft: 0} : {hard: 0},
-                    max: {},
+          <>
+            <UplotReact
+              options={{
+                width,
+                height: 150,
+                padding: [15, 0, 0, 0],
+                cursor: uPlotCursor,
+                legend: {show: false},
+                series: [
+                  {},
+                  ...labels.map((label: Labels): uPlot.Series => {
+                    const value = labelValues(label)[0]
+                    return {
+                      label: value,
+                      stroke: `#${labelColor(pickedColors, value)}`,
+                      gaps: seriesGaps(from / 1000, to / 1000),
+                      value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
+                    }
+                  }),
+                ],
+                scales: {
+                  x: {min: from / 1000, max: to / 1000},
+                  y: {
+                    range: {
+                      min: absolute ? {hard: 0, mode: 1, soft: 0} : {hard: 0},
+                      max: {},
+                    },
                   },
                 },
-              },
-              hooks: {
-                setSelect: [selectTimeRange(updateTimeRange)],
-              },
-            }}
-            data={data}
-          />
+                axes: [
+                  {
+                    values: (uplot: uPlot, v: number[]) => formatAxisDates(v),
+                  },
+                ],
+                hooks: {
+                  setSelect: [selectTimeRange(updateTimeRange)],
+                  setCursor: [setCursorHook],
+                  init: [initHook],
+                },
+              }}
+              data={data}
+            />
+            <GraphTooltip tooltipRef={tooltipRef} />
+          </>
         ) : (
           <UplotReact
             options={{

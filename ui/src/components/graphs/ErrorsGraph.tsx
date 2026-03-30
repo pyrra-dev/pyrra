@@ -13,7 +13,9 @@ import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
 import {type Labels, labelValues} from '../../labels'
-import {buildExternalHRef, externalName} from '../../external';
+import {buildExternalHRef, externalName} from '../../external'
+import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
+import GraphTooltip from './GraphTooltip'
 
 interface ErrorsGraphProps {
   client: Client<typeof PrometheusService>
@@ -58,6 +60,8 @@ const ErrorsGraph = ({
     to / 1000,
     step(from, to),
   )
+
+  const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(150)
 
   if (status === 'pending') {
     return (
@@ -125,13 +129,14 @@ const ErrorsGraph = ({
         <p>{description}</p>
       </div>
 
-      <div ref={targetRef}>
+      <div ref={targetRef} className="relative">
         <UplotReact
           options={{
             width,
             height: 150,
             padding: [15, 0, 0, 0],
             cursor: uPlotCursor,
+            legend: {show: false},
             series: [
               {},
               ...labels.map((label: Labels, i: number): uPlot.Series => {
@@ -154,7 +159,9 @@ const ErrorsGraph = ({
               },
             },
             axes: [
-              {},
+              {
+                values: (uplot: uPlot, v: number[]) => formatAxisDates(v),
+              },
               {
                 values: (uplot: uPlot, v: number[]) =>
                   v.map((v: number) => `${(100 * v).toFixed(0)}%`),
@@ -162,10 +169,13 @@ const ErrorsGraph = ({
             ],
             hooks: {
               setSelect: [selectTimeRange(updateTimeRange)],
+              setCursor: [setCursorHook],
+              init: [initHook],
             },
           }}
           data={data}
         />
+        <GraphTooltip tooltipRef={tooltipRef} />
       </div>
     </>
   )

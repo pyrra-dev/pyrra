@@ -12,6 +12,8 @@ import {seriesGaps} from './gaps'
 import {blues, greys, reds} from './colors'
 import {type Alert} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../../duration'
+import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
+import GraphTooltip from './GraphTooltip'
 
 interface BurnrateGraphProps {
   client: Client<typeof PrometheusService>
@@ -68,6 +70,8 @@ const BurnrateGraph = ({
     step(from, to),
     {enabled: alert.long?.query !== undefined},
   )
+
+  const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(150)
 
   // TODO: Improve to show graph if one is succeeded already
   if (
@@ -177,7 +181,7 @@ const BurnrateGraph = ({
   const firingBackgroundColor = 'rgba(244,99,99,0.1)'
 
   return (
-    <div ref={targetRef} className="burnrate">
+    <div ref={targetRef} className="burnrate relative">
       <h5 className="graphs-headline">Burnrate</h5>
       <div className="graphs-description">
         <p>
@@ -194,6 +198,7 @@ const BurnrateGraph = ({
           height: 150,
           padding: [15, 0, 0, 0],
           cursor: uPlotCursor,
+          legend: {show: false},
           series: [
             {},
             {
@@ -221,12 +226,16 @@ const BurnrateGraph = ({
             x: {min: from / 1000, max: to / 1000},
           },
           axes: [
-            {},
+            {
+              values: (uplot: uPlot, v: number[]) => formatAxisDates(v),
+            },
             {
               values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(1)}`),
             },
           ],
           hooks: {
+            setCursor: [setCursorHook],
+            init: [initHook],
             drawAxes: [
               (u: uPlot) => {
                 if (pendingSeries === undefined && firingSeries === undefined) {
@@ -293,6 +302,7 @@ const BurnrateGraph = ({
         }}
         data={data}
       />
+      <GraphTooltip tooltipRef={tooltipRef} />
     </div>
   )
 }

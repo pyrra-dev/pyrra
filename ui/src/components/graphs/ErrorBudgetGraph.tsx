@@ -7,6 +7,8 @@ import type uPlot from 'uplot'
 import {ExternalLink} from 'lucide-react'
 import {greens, reds} from './colors'
 import {seriesGaps} from './gaps'
+import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
+import GraphTooltip from './GraphTooltip'
 import {type Client} from '@connectrpc/connect'
 import {type PrometheusService, type SamplePair, type SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {usePrometheusQueryRange} from '../../prometheus'
@@ -76,6 +78,8 @@ const ErrorBudgetGraph = ({
       samples = [times, values]
     }
   }
+
+  const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(300)
 
   if (status !== 'pending' && samples.length === 0) {
     return (
@@ -150,43 +154,51 @@ const ErrorBudgetGraph = ({
         <p>What percentage of the error budget is left over time?</p>
       </div>
 
-      <div ref={targetRef}>
+      <div ref={targetRef} className="relative">
         {samples.length > 0 ? (
-          <UplotReact
-            options={{
-              width,
-              height: 300,
-              padding: [canvasPadding, 0, 0, canvasPadding],
-              cursor: uPlotCursor,
-              series: [
-                {},
-                {
-                  fill: budgetGradient,
-                  gaps: seriesGaps(from / 1000, to / 1000),
-                  value: (u: uPlot, v: number) => (v == null ? '-' : v.toFixed(2) + '%'),
-                },
-              ],
-              scales: {
-                x: {min: from / 1000, max: to / 1000},
-                y: {
-                  range: {
-                    min: absolute ? {mode: 1, soft: 0} : {},
-                    max: absolute ? {hard: 100, mode: 1, soft: 0} : {hard: 100},
+          <>
+            <UplotReact
+              options={{
+                width,
+                height: 300,
+                padding: [canvasPadding, 0, 0, canvasPadding],
+                cursor: uPlotCursor,
+                legend: {show: false},
+                series: [
+                  {},
+                  {
+                    fill: budgetGradient,
+                    gaps: seriesGaps(from / 1000, to / 1000),
+                    value: (u: uPlot, v: number) => (v == null ? '-' : v.toFixed(2) + '%'),
+                  },
+                ],
+                scales: {
+                  x: {min: from / 1000, max: to / 1000},
+                  y: {
+                    range: {
+                      min: absolute ? {mode: 1, soft: 0} : {},
+                      max: absolute ? {hard: 100, mode: 1, soft: 0} : {hard: 100},
+                    },
                   },
                 },
-              },
-              axes: [
-                {},
-                {
-                  values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(2)}%`),
+                axes: [
+                  {
+                    values: (uplot: uPlot, v: number[]) => formatAxisDates(v),
+                  },
+                  {
+                    values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(2)}%`),
+                  },
+                ],
+                hooks: {
+                  setSelect: [selectTimeRange(updateTimeRange)],
+                  setCursor: [setCursorHook],
+                  init: [initHook],
                 },
-              ],
-              hooks: {
-                setSelect: [selectTimeRange(updateTimeRange)],
-              },
-            }}
-            data={samples}
-          />
+              }}
+              data={samples}
+            />
+            <GraphTooltip tooltipRef={tooltipRef} />
+          </>
         ) : (
           <UplotReact
             options={{
