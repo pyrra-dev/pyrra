@@ -51,6 +51,7 @@ type ServiceLevelObjectiveReconciler struct {
 	ConfigMapMode              bool
 	GenericRules               bool
 	EnablePrometheus3Migration bool
+	PyrraExternalURL           string
 }
 
 // +kubebuilder:rbac:groups=pyrra.dev,resources=servicelevelobjectives,verbs=get;list;watch;create;update;patch;delete
@@ -114,7 +115,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	// Clean up stale increase rule if user toggled performance_over_accuracy from true to false.
 	r.cleanupStaleIncreaseRule(ctx, logger, req)
 
-	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration)
+	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration, r.PyrraExternalURL)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -132,7 +133,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileSplitPrometheusRules(ctx context.Context, logger kitlog.Logger, _ ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	shortRule, longRule, err := makeSplitPrometheusRules(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration)
+	shortRule, longRule, err := makeSplitPrometheusRules(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration, r.PyrraExternalURL)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -185,7 +186,7 @@ func (r *ServiceLevelObjectiveReconciler) cleanupStaleIncreaseRule(ctx context.C
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Context, logger kitlog.Logger, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules, r.EnablePrometheus3Migration)
+	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules, r.EnablePrometheus3Migration, r.PyrraExternalURL)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -217,7 +218,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcileConfigMap(
 ) (ctrl.Result, error) {
 	name := fmt.Sprintf("pyrra-recording-rule-%s", kubeObjective.GetName())
 
-	newConfigMap, err := makeConfigMap(name, kubeObjective, r.GenericRules, r.EnablePrometheus3Migration)
+	newConfigMap, err := makeConfigMap(name, kubeObjective, r.GenericRules, r.EnablePrometheus3Migration, r.PyrraExternalURL)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -266,7 +267,7 @@ func (r *ServiceLevelObjectiveReconciler) SetupWebhookWithManager(mgr ctrl.Manag
 		Complete()
 }
 
-func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, enablePrometheus3Migration bool) (*corev1.ConfigMap, error) {
+func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, enablePrometheus3Migration bool, externalURL string) (*corev1.ConfigMap, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -274,6 +275,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 
 	opts := slo.GenerationOptions{
 		EnablePrometheus3Migration: enablePrometheus3Migration,
+		ExternalURL:                externalURL,
 	}
 
 	increases, err := objective.IncreaseRules(opts)
@@ -339,7 +341,7 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}, nil
 }
 
-func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, writeAlertingRules, enablePrometheus3Migration bool) (*rulefmt.RuleGroup, error) {
+func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, writeAlertingRules, enablePrometheus3Migration bool, externalURL string) (*rulefmt.RuleGroup, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -347,6 +349,7 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 
 	opts := slo.GenerationOptions{
 		EnablePrometheus3Migration: enablePrometheus3Migration,
+		ExternalURL:                externalURL,
 	}
 
 	increases, err := objective.IncreaseRules(opts)
@@ -429,7 +432,7 @@ func prometheusRulesToMimirRules(promRules []monitoringv1.Rule, writeAlertingRul
 	return rules
 }
 
-func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, enablePrometheus3Migration bool) (*monitoringv1.PrometheusRule, error) {
+func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, enablePrometheus3Migration bool, externalURL string) (*monitoringv1.PrometheusRule, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -437,6 +440,7 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 
 	opts := slo.GenerationOptions{
 		EnablePrometheus3Migration: enablePrometheus3Migration,
+		ExternalURL:                externalURL,
 	}
 
 	increases, err := objective.IncreaseRules(opts)
@@ -471,7 +475,7 @@ func makePrometheusRule(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	return newPrometheusRule(kubeObjective, kubeObjective.GetLabels(), rule), nil
 }
 
-func makeSplitPrometheusRules(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, enablePrometheus3Migration bool) (*monitoringv1.PrometheusRule, *monitoringv1.PrometheusRule, error) {
+func makeSplitPrometheusRules(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, enablePrometheus3Migration bool, externalURL string) (*monitoringv1.PrometheusRule, *monitoringv1.PrometheusRule, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get objective: %w", err)
@@ -479,6 +483,7 @@ func makeSplitPrometheusRules(kubeObjective pyrrav1alpha1.ServiceLevelObjective,
 
 	opts := slo.GenerationOptions{
 		EnablePrometheus3Migration: enablePrometheus3Migration,
+		ExternalURL:                externalURL,
 	}
 
 	shortGroup, longIncreaseGroup, err := objective.SplitIncreaseRules(opts)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -90,7 +91,7 @@ Objectives:
 	return objectives
 }
 
-func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules, enablePrometheus3Migration bool) int {
+func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules, enablePrometheus3Migration bool, pyrraExternalURL *url.URL) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
 		Help: "The total amount of reconciles.",
@@ -180,7 +181,12 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 					level.Debug(logger).Log("msg", "processing", "file", f)
 					reconcilesTotal.Inc()
 
-					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false, enablePrometheus3Migration)
+					pyrraURL := ""
+					if pyrraExternalURL != nil {
+						pyrraURL = pyrraExternalURL.String()
+					}
+
+					err := writeRuleFile(logger, f, prometheusFolder, genericRules, false, enablePrometheus3Migration, pyrraURL)
 					if err != nil {
 						reconcilesErrors.Inc()
 						level.Error(logger).Log("msg", "error creating rule file", "file", f, "err", err)
@@ -302,7 +308,7 @@ func (s *FilesystemObjectiveServer) List(_ context.Context, req *connect.Request
 	}), nil
 }
 
-func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule, enablePrometheus3Migration bool) error {
+func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule, enablePrometheus3Migration bool, externalURL string) error {
 	kubeObjective, objective, err := objectiveFromFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to get objective: %w", err)
@@ -324,6 +330,7 @@ func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRule
 
 	opts := slo.GenerationOptions{
 		EnablePrometheus3Migration: enablePrometheus3Migration,
+		ExternalURL:                externalURL,
 	}
 
 	if objective.PerformanceOverAccuracy {

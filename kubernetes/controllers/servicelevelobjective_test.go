@@ -191,7 +191,7 @@ func Test_makePrometheusRule(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			prometheusRule, err := makePrometheusRule(tt.objective, false, false)
+			prometheusRule, err := makePrometheusRule(tt.objective, false, false, "")
 			require.NoError(t, err)
 			require.Equal(t, tt.rules, prometheusRule)
 		})
@@ -206,7 +206,7 @@ func Test_makeSplitPrometheusRules(t *testing.T) {
 		LongRulesLabels:  map[string]string{"prometheus": "thanos-k8s"},
 	}
 
-	shortRule, longRule, err := makeSplitPrometheusRules(*perfSLO, false, false)
+	shortRule, longRule, err := makeSplitPrometheusRules(*perfSLO, false, false, "")
 	require.NoError(t, err)
 
 	// Short rule should have name "{name}-increase"
@@ -240,7 +240,7 @@ func Test_makeSplitPrometheusRulesWithoutRuleOutput(t *testing.T) {
 	perfSLO.Spec.PerformanceOverAccuracy = true
 	// No RuleOutput set — both should inherit SLO labels
 
-	shortRule, longRule, err := makeSplitPrometheusRules(*perfSLO, false, false)
+	shortRule, longRule, err := makeSplitPrometheusRules(*perfSLO, false, false, "")
 	require.NoError(t, err)
 
 	// Both should have the SLO's labels
@@ -437,7 +437,7 @@ func Test_makeConfigMap(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			configMap, err := makeConfigMap(tc.configMapName, tc.objective, false, false)
+			configMap, err := makeConfigMap(tc.configMapName, tc.objective, false, false, "")
 
 			if tc.err != nil {
 				require.Error(t, err)
