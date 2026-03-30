@@ -622,7 +622,7 @@ func (o Objective) commonRuleAnnotations(externalURL string) map[string]string {
 
 	// Add External URL if provided
 	if externalURL != "" {
-		sloName := o.Labels.Get(labels.MetricName)
+		sloName := o.Labels.Get(model.MetricNameLabel)
 		if sloName != "" {
 			if annotations == nil {
 				annotations = make(map[string]string)
