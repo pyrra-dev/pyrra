@@ -23,11 +23,12 @@ import {replaceInterval, usePrometheusQuery} from '../prometheus'
 import {useObjectivesList} from '../objectives'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
+import {computeTimeRangePresets} from '../timeRangePresets'
 import ObjectiveTile from '../components/tiles/ObjectiveTile'
 import AvailabilityTile from '../components/tiles/AvailabilityTile'
 import ErrorBudgetTile from '../components/tiles/ErrorBudgetTile'
 import Tiles from '../components/tiles/Tiles'
-import {ChartArea, ChartLine} from 'lucide-react'
+import {ChartArea, ChartLine, CornerDownLeft} from 'lucide-react'
 
 const Detail = () => {
   const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
@@ -76,6 +77,8 @@ const Detail = () => {
 
   const [autoReload, setAutoReload] = useState<boolean>(true)
   const [absolute, setAbsolute] = useState<boolean>(true)
+  const [customRange, setCustomRange] = useState('')
+  const [customRangeError, setCustomRangeError] = useState(false)
 
   const {
     response: objectiveResponse,
@@ -142,6 +145,16 @@ const Detail = () => {
     updateTimeRange(from, to, false)
   }
 
+  const handleCustomRangeSubmit = () => {
+    const ms = parseDuration(customRange)
+    if (ms !== null && ms > 0) {
+      setCustomRangeError(false)
+      handleTimeRangeClick(ms)()
+    } else if (customRange !== '') {
+      setCustomRangeError(true)
+    }
+  }
+
   if (objectiveError !== null) {
     return (
       <>
@@ -171,13 +184,8 @@ const Detail = () => {
     return <></>
   }
 
-  const timeRanges = [
-    28 * 24 * 3600 * 1000, // 4w
-    7 * 24 * 3600 * 1000, // 1w
-    24 * 3600 * 1000, // 1d
-    12 * 3600 * 1000, // 12h
-    3600 * 1000, // 1h
-  ]
+  const windowMs = Number(objective.window?.seconds ?? 0) * 1000
+  const timeRanges = computeTimeRangePresets(windowMs > 0 ? windowMs : 28 * 24 * 3600 * 1000)
 
   const objectiveType = hasObjectiveType(objective)
   const objectiveTypeLatency =
@@ -267,13 +275,35 @@ const Detail = () => {
             <div className="w-full text-center py-8 bg-[linear-gradient(0deg,transparent_45%,var(--muted)_50%,transparent_55%)]">
               <div className="mx-auto flex flex-col items-center gap-5 bg-background sm:w-2/3 md:w-1/2 xl:flex-row xl:justify-center">
                 <div className="flex gap-5 justify-center">
-                  <ToggleGroup variant="outline" value={[String(to - from)]} onValueChange={(val) => { if (val.length > 0) handleTimeRangeClick(Number(val[val.length - 1]))() }}>
-                    {timeRanges.map((t: number) => (
-                      <ToggleGroupItem key={t} value={String(t)} variant="outline" aria-label={formatDuration(t)}>
-                        {formatDuration(t)}
-                      </ToggleGroupItem>
-                    ))}
-                  </ToggleGroup>
+                  <div className="flex items-center">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={customRange}
+                        onChange={(e) => {
+                          setCustomRange(e.target.value)
+                          setCustomRangeError(false)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleCustomRangeSubmit()
+                        }}
+                        onBlur={handleCustomRangeSubmit}
+                        placeholder={formatDuration(timeRanges[0] * 2)}
+                        className={cn(
+                          'h-8 w-14 rounded-l-lg rounded-r-none border border-r-0 border-input bg-muted/50 shadow-inner pl-2 pr-5 text-sm font-medium outline-none transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:z-10',
+                          customRangeError && 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20'
+                        )}
+                      />
+                      {customRange !== '' && <CornerDownLeft size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />}
+                    </div>
+                    <ToggleGroup variant="outline" value={[String(to - from)]} onValueChange={(val) => { if (val.length > 0) { setCustomRange(''); setCustomRangeError(false); handleTimeRangeClick(Number(val[val.length - 1]))() } }}>
+                      {timeRanges.map((t: number, i: number) => (
+                        <ToggleGroupItem key={t} value={String(t)} variant="outline" aria-label={formatDuration(t)} className={i === 0 ? 'rounded-l-none!' : undefined}>
+                          {formatDuration(t)}
+                        </ToggleGroupItem>
+                      ))}
+                    </ToggleGroup>
+                  </div>
                   <Toggle
                     checked={autoReload}
                     onChange={() => { setAutoReload(!autoReload) }}
