@@ -258,6 +258,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 			connect.WithInterceptors(prometheusInterceptor),
 		))
 		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		router.Handle("/healthz", http.HandlerFunc(healthCheckHandler))
 
 		server := http.Server{
 			Addr:    ":9444",
@@ -468,4 +469,9 @@ func objectiveFromFile(file string) (v1alpha1.ServiceLevelObjective, slo.Objecti
 	}
 
 	return config, objective, nil
+}
+
+func healthCheckHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "Status: OK")
 }
