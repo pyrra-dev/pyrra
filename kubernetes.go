@@ -63,11 +63,35 @@ var _ logr.LogSink = &goKitLogSink{}
 func (l *goKitLogSink) Enabled(_ int) bool { return true }
 
 func (l *goKitLogSink) Info(_ int, msg string, keysAndValues ...interface{}) {
-	_ = l.logger.Log(append(l.values, append([]interface{}{"msg", msg}, keysAndValues...)...)...)
+	_ = l.logger.Log(append(l.values, append([]interface{}{"msg", msg}, sanitizeLogValues(keysAndValues)...)...)...)
 }
 
 func (l *goKitLogSink) Error(err error, msg string, keysAndValues ...interface{}) {
-	_ = l.logger.Log(append(l.values, append([]interface{}{"err", err, "msg", msg}, keysAndValues...)...)...)
+	_ = l.logger.Log(append(l.values, append([]interface{}{"err", err, "msg", msg}, sanitizeLogValues(keysAndValues)...)...)...)
+}
+
+// sanitizeLogValues converts values in logr key-value pairs that go-kit/log's
+// logfmt encoder cannot handle (e.g. maps, slices, structs) to their string
+// representation, preventing "unsupported value type" output.
+func sanitizeLogValues(keysAndValues []interface{}) []interface{} {
+	if len(keysAndValues) == 0 {
+		return keysAndValues
+	}
+	result := make([]interface{}, len(keysAndValues))
+	for i, v := range keysAndValues {
+		if i%2 == 1 { // odd indices are values
+			switch v.(type) {
+			case string, bool, int, int8, int16, int32, int64,
+				uint, uint8, uint16, uint32, uint64, float32, float64, error:
+				result[i] = v
+			default:
+				result[i] = fmt.Sprintf("%v", v)
+			}
+		} else {
+			result[i] = v
+		}
+	}
+	return result
 }
 
 func (l *goKitLogSink) WithValues(keysAndValues ...interface{}) logr.LogSink {
