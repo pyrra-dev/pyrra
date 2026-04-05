@@ -101,6 +101,8 @@ var CLI struct {
 		MimirDeploymentMode        string   `default:"standalone" help:"Mimir deployment mode. Possible values: standalone (default), distributed"`
 		EnablePrometheus3Migration bool     `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
 		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
+		EnableLeaderElection       bool     `default:"false" help:"Enable leader election for controller manager to enable running multiple replicas."`
+		LeaderElectionNamespace    string   `default:"" help:"Namespace used to perform leader election. Defaults to the namespace the controller is running in."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
 		ConfigFiles                string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
@@ -275,6 +277,8 @@ func main() {
 			CLI.Kubernetes.MimirWriteAlertingRules,
 			CLI.Kubernetes.EnablePrometheus3Migration,
 			CLI.Kubernetes.ExternalURL,
+			CLI.Kubernetes.EnableLeaderElection,
+			CLI.Kubernetes.LeaderElectionNamespace,
 		)
 	case "generate":
 		code = cmdGenerate(
