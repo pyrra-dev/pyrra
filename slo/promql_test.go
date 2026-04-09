@@ -377,6 +377,11 @@ var (
 		o.Indicator.BoolGauge.LabelMatchers = append(o.Indicator.BoolGauge.LabelMatchers, matcher)
 		return o
 	}
+	objectiveUpTargetsLessAccuracy = func() Objective {
+		o := objectiveUpTargets()
+		o.PerformanceOverAccuracy = true
+		return o
+	}
 )
 
 func TestObjective_QueryTotal(t *testing.T) {
