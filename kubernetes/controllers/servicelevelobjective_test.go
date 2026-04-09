@@ -263,50 +263,6 @@ func Test_makeSplitPrometheusRules(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-	}
-
-	expectedLongRule := &monitoringv1.PrometheusRule{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: monitoring.GroupName + "/" + monitoringv1.Version,
-			Kind:       monitoringv1.PrometheusRuleKind,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "http",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: pyrrav1alpha1.GroupVersion.Version,
-					Kind:       "ServiceLevelObjective",
-					Name:       "http",
-					UID:        "123",
-					Controller: &trueBool,
-				},
-			},
-			Labels: map[string]string{
-				"pyrra.dev/team": "foo",
-				"team":           "bar",
-				"prometheus":     "thanos-k8s",
-			},
-		},
-		Spec: monitoringv1.PrometheusRuleSpec{
-			Groups: []monitoringv1.RuleGroup{
-				{
-					Name:                    "http-increase",
-					PartialResponseStrategy: "warn",
-					Interval:                monitoringDuration("2m30s"),
-					Rules: []monitoringv1.Rule{
-						{
-							Record: "http_requests:increase4w",
-							Expr:   intstr.FromString(`sum by (status) (sum_over_time(http_requests:increase5m{job="app"}[4w:5m]))`),
-							Labels: map[string]string{
-								"job":  "app",
-								"slo":  "http",
-								"team": "foo",
-							},
-						},
-					},
-				},
 				{
 					Name:                    "http",
 					PartialResponseStrategy: "warn",
@@ -374,6 +330,50 @@ func Test_makeSplitPrometheusRules(t *testing.T) {
 							For:         monitoringDuration("3h0m0s"),
 							Labels:      map[string]string{"severity": "warning", "job": "app", "long": "4d", "slo": "http", "short": "6h", "team": "foo", "exhaustion": "4w"},
 							Annotations: map[string]string{"description": "foo"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	expectedLongRule := &monitoringv1.PrometheusRule{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: monitoring.GroupName + "/" + monitoringv1.Version,
+			Kind:       monitoringv1.PrometheusRuleKind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "http",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: pyrrav1alpha1.GroupVersion.Version,
+					Kind:       "ServiceLevelObjective",
+					Name:       "http",
+					UID:        "123",
+					Controller: &trueBool,
+				},
+			},
+			Labels: map[string]string{
+				"pyrra.dev/team": "foo",
+				"team":           "bar",
+				"prometheus":     "thanos-k8s",
+			},
+		},
+		Spec: monitoringv1.PrometheusRuleSpec{
+			Groups: []monitoringv1.RuleGroup{
+				{
+					Name:                    "http-increase",
+					PartialResponseStrategy: "warn",
+					Interval:                monitoringDuration("2m30s"),
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "http_requests:increase4w",
+							Expr:   intstr.FromString(`sum by (status) (sum_over_time(http_requests:increase5m{job="app"}[4w:5m]))`),
+							Labels: map[string]string{
+								"job":  "app",
+								"slo":  "http",
+								"team": "foo",
+							},
 						},
 					},
 				},

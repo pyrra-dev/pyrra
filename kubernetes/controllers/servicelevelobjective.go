@@ -496,14 +496,14 @@ func makeSplitPrometheusRules(kubeObjective pyrrav1alpha1.ServiceLevelObjective,
 		return nil, nil, fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
 
-	// Short PrometheusRule: only the short increase rules
+	// Short PrometheusRule: short increase rules + burnrates (with alerts)
 	shortSpec := monitoringv1.PrometheusRuleSpec{
-		Groups: []monitoringv1.RuleGroup{shortGroup},
+		Groups: []monitoringv1.RuleGroup{shortGroup, burnrates},
 	}
 
-	// Long PrometheusRule: subquery increase + burnrates + generic
+	// Long PrometheusRule: only the long increase rules (subquery for full window)
 	longSpec := monitoringv1.PrometheusRuleSpec{
-		Groups: []monitoringv1.RuleGroup{longIncreaseGroup, burnrates},
+		Groups: []monitoringv1.RuleGroup{longIncreaseGroup},
 	}
 
 	if genericRules {
