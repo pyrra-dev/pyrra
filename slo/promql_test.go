@@ -45,6 +45,10 @@ var (
 	objectiveHTTPRatioGroupingLessAccurate = func() Objective {
 		o := objectiveHTTPRatio()
 		o.PerformanceOverAccuracy = true
+		o.RuleOutput = RuleOutput{
+			ShortRulesLabels: map[string]string{"prometheus": "k8s"},
+			LongRulesLabels:  map[string]string{"prometheus": "thanos-k8s"},
+		}
 		return o
 	}
 	objectiveHTTPRatioGrouping = func() Objective {

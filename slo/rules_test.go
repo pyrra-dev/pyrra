@@ -1925,6 +1925,23 @@ func TestObjective_SplitIncreaseRules(t *testing.T) {
 		require.Len(t, long.Rules, 1)
 		require.Equal(t, "grpc_server_handled:increase4w", long.Rules[0].Record)
 	})
+
+	t.Run("rule-output-labels-not-on-individual-rules", func(t *testing.T) {
+		o := objectiveHTTPRatioGroupingLessAccurate()
+		short, long, err := o.SplitIncreaseRules(GenerationOptions{})
+		require.NoError(t, err)
+
+		// RuleOutput labels should NOT appear on individual recording/alerting rules.
+		// They are only applied to the PrometheusRule Kubernetes object labels.
+		for _, r := range short.Rules {
+			require.NotContains(t, r.Labels, "prometheus",
+				"short rule %q should not have RuleOutput labels", r.Record+r.Alert)
+		}
+		for _, r := range long.Rules {
+			require.NotContains(t, r.Labels, "prometheus",
+				"long rule %q should not have RuleOutput labels", r.Record+r.Alert)
+		}
+	})
 }
 
 func Test_windows(t *testing.T) {

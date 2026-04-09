@@ -25,6 +25,7 @@ type Objective struct {
 	Config      string
 
 	PerformanceOverAccuracy bool
+	RuleOutput              RuleOutput
 
 	Alerting  Alerting
 	Indicator Indicator
@@ -185,4 +186,9 @@ type Metric struct {
 func (m Metric) Metric() string {
 	v := parser.VectorSelector{Name: m.Name, LabelMatchers: m.LabelMatchers}
 	return v.String()
+}
+
+type RuleOutput struct {
+	ShortRulesLabels map[string]string
+	LongRulesLabels  map[string]string
 }
