@@ -270,6 +270,10 @@
                   "ruleOutput": {
                     "description": "RuleOutput configures labels on the generated PrometheusRule resources\nwhen performance_over_accuracy is enabled. This allows routing the short\n(5m increase) rules and long (subquery + burnrate) rules to different\nPrometheus/Thanos instances via label selectors.",
                     "properties": {
+                      "enableDescriptionAsLabel": {
+                        "description": "EnableDescriptionAsLabel configures whether the description should be added as\na label to the generated PrometheusRule resources. This allows the\ndescription to be used in visualization tools like Grafana and in alert\nnotifications, but can cause performance issues if the description is\nvery long. Use with caution.",
+                        "type": "boolean"
+                      },
                       "longRulesLabels": {
                         "additionalProperties": {
                           "type": "string"

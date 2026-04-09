@@ -216,6 +216,14 @@ spec:
                   (5m increase) rules and long (subquery + burnrate) rules to different
                   Prometheus/Thanos instances via label selectors.
                 properties:
+                  enableDescriptionAsLabel:
+                    description: |-
+                      EnableDescriptionAsLabel configures whether the description should be added as
+                      a label to the generated PrometheusRule resources. This allows the
+                      description to be used in visualization tools like Grafana and in alert
+                      notifications, but can cause performance issues if the description is
+                      very long. Use with caution.
+                    type: boolean
                   longRulesLabels:
                     additionalProperties:
                       type: string
