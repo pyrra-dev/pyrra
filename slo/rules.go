@@ -769,8 +769,7 @@ func (o Objective) splitIncreaseRulesForType(sloName string, opts GenerationOpti
 		rules, err := o.increaseRuleLatencyNative(sloName)
 		return nil, rules, err
 	case BoolGauge:
-		rules, err := o.increaseRuleBoolGauge(sloName)
-		return nil, rules, err
+		return o.increaseRuleBoolGauge(sloName)
 	}
 	return nil, nil, nil
 }
@@ -1247,9 +1246,7 @@ func (o Objective) increaseRuleLatencyNative(sloName string) ([]monitoringv1.Rul
 	return rules, nil
 }
 
-func (o Objective) increaseRuleBoolGauge(sloName string) ([]monitoringv1.Rule, error) {
-	var rules []monitoringv1.Rule
-
+func (o Objective) increaseRuleBoolGauge(sloName string) (shortRules, longRules []monitoringv1.Rule, err error) {
 	ruleLabels := o.commonRuleLabels(sloName)
 	for _, m := range o.Indicator.BoolGauge.LabelMatchers {
 		if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
@@ -1282,44 +1279,111 @@ func (o Objective) increaseRuleBoolGauge(sloName string) ([]monitoringv1.Rule, e
 
 	count, err := o.countExpr()
 	if err != nil {
-		return rules, err
+		return nil, nil, err
 	}
 
 	sum, err := o.sumExpr()
 	if err != nil {
-		return rules, err
+		return nil, nil, err
 	}
 
-	objectiveReplacer{
-		metric:   o.Indicator.BoolGauge.Name,
-		matchers: o.Indicator.BoolGauge.LabelMatchers,
-		grouping: grouping,
-		window:   time.Duration(o.Window),
-	}.replace(count)
+	if o.PerformanceOverAccuracy {
+		// Short rules: 5m window count_over_time + sum_over_time
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   5 * time.Minute,
+		}.replace(count)
 
-	objectiveReplacer{
-		metric:   o.Indicator.BoolGauge.Name,
-		matchers: o.Indicator.BoolGauge.LabelMatchers,
-		grouping: grouping,
-		window:   time.Duration(o.Window),
-	}.replace(sum)
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   5 * time.Minute,
+		}.replace(sum)
 
-	rules = append(rules, monitoringv1.Rule{
-		Record: countName(o.Indicator.BoolGauge.Name, o.Window),
-		Expr:   intstr.FromString(count.String()),
-		Labels: ruleLabels,
-	})
+		countSubqueryName := countName(o.Indicator.BoolGauge.Name, model.Duration(5*time.Minute))
+		sumSubqueryName := sumName(o.Indicator.BoolGauge.Name, model.Duration(5*time.Minute))
 
-	rules = append(rules, monitoringv1.Rule{
-		Record: sumName(o.Indicator.BoolGauge.Name, o.Window),
-		Expr:   intstr.FromString(sum.String()),
-		Labels: ruleLabels,
-	})
+		shortRules = append(shortRules, monitoringv1.Rule{
+			Record: countSubqueryName,
+			Expr:   intstr.FromString(count.String()),
+			Labels: ruleLabels,
+		})
+
+		shortRules = append(shortRules, monitoringv1.Rule{
+			Record: sumSubqueryName,
+			Expr:   intstr.FromString(sum.String()),
+			Labels: ruleLabels,
+		})
+
+		// Long rules: sum_over_time subqueries over the 5m recording rules
+		countSubExpr, err := o.increaseSubqueryExpr()
+		if err != nil {
+			return nil, nil, err
+		}
+		objectiveReplacer{
+			metric:   countSubqueryName,
+			matchers: o.buildSubqueryMatchers(o.Indicator.BoolGauge.LabelMatchers, countSubqueryName),
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(countSubExpr)
+
+		longRules = append(longRules, monitoringv1.Rule{
+			Record: countName(o.Indicator.BoolGauge.Name, o.Window),
+			Expr:   intstr.FromString(countSubExpr.String()),
+			Labels: ruleLabels,
+		})
+
+		sumSubExpr, err := o.increaseSubqueryExpr()
+		if err != nil {
+			return nil, nil, err
+		}
+		objectiveReplacer{
+			metric:   sumSubqueryName,
+			matchers: o.buildSubqueryMatchers(o.Indicator.BoolGauge.LabelMatchers, sumSubqueryName),
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(sumSubExpr)
+
+		longRules = append(longRules, monitoringv1.Rule{
+			Record: sumName(o.Indicator.BoolGauge.Name, o.Window),
+			Expr:   intstr.FromString(sumSubExpr.String()),
+			Labels: ruleLabels,
+		})
+	} else {
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(count)
+
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(sum)
+
+		longRules = append(longRules, monitoringv1.Rule{
+			Record: countName(o.Indicator.BoolGauge.Name, o.Window),
+			Expr:   intstr.FromString(count.String()),
+			Labels: ruleLabels,
+		})
+
+		longRules = append(longRules, monitoringv1.Rule{
+			Record: sumName(o.Indicator.BoolGauge.Name, o.Window),
+			Expr:   intstr.FromString(sum.String()),
+			Labels: ruleLabels,
+		})
+	}
 
 	if o.Alerting.Absent {
 		expr, err := o.absentExpr()
 		if err != nil {
-			return rules, err
+			return nil, nil, err
 		}
 
 		objectiveReplacer{
@@ -1334,16 +1398,21 @@ func (o Objective) increaseRuleBoolGauge(sloName string) ([]monitoringv1.Rule, e
 		// Add severity label for alerts
 		alertLabels["severity"] = o.alertSeverityLabelAbsent()
 
-		rules = append(rules, monitoringv1.Rule{
+		absentRule := monitoringv1.Rule{
 			Alert:       o.AlertNameAbsent(),
 			Expr:        intstr.FromString(expr.String()),
 			For:         monitoringDuration(o.AbsentDuration().String()),
 			Labels:      alertLabels,
 			Annotations: o.commonRuleAnnotations(""),
-		})
+		}
+		if o.PerformanceOverAccuracy {
+			shortRules = append(shortRules, absentRule)
+		} else {
+			longRules = append(longRules, absentRule)
+		}
 	}
 
-	return rules, nil
+	return shortRules, longRules, nil
 }
 
 type severity string

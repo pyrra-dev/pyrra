@@ -617,6 +617,14 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 	ls := labels.New(labelsList...)
 
+	var ruleOutput slo.RuleOutput
+	if in.Spec.RuleOutput != nil {
+		ruleOutput = slo.RuleOutput{
+			ShortRulesLabels: in.Spec.RuleOutput.ShortRulesLabels,
+			LongRulesLabels:  in.Spec.RuleOutput.LongRulesLabels,
+		}
+	}
+
 	return slo.Objective{
 		Labels:                  ls,
 		Annotations:             in.Annotations,
@@ -624,6 +632,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 		Target:                  target / 100,
 		Window:                  window,
 		PerformanceOverAccuracy: in.Spec.PerformanceOverAccuracy,
+		RuleOutput:              ruleOutput,
 		Config:                  string(config),
 		Alerting:                alerting,
 		Indicator: slo.Indicator{

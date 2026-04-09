@@ -45,6 +45,10 @@ var (
 	objectiveHTTPRatioGroupingLessAccurate = func() Objective {
 		o := objectiveHTTPRatio()
 		o.PerformanceOverAccuracy = true
+		o.RuleOutput = RuleOutput{
+			ShortRulesLabels: map[string]string{"prometheus": "k8s"},
+			LongRulesLabels:  map[string]string{"prometheus": "thanos-k8s"},
+		}
 		return o
 	}
 	objectiveHTTPRatioGrouping = func() Objective {
@@ -371,6 +375,11 @@ var (
 		o := objectiveUpTargets()
 		o.Indicator.BoolGauge.Grouping = []string{"job", "instance"}
 		o.Indicator.BoolGauge.LabelMatchers = append(o.Indicator.BoolGauge.LabelMatchers, matcher)
+		return o
+	}
+	objectiveUpTargetsLessAccuracy = func() Objective {
+		o := objectiveUpTargets()
+		o.PerformanceOverAccuracy = true
 		return o
 	}
 )

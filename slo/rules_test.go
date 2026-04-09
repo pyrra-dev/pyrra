@@ -1827,6 +1827,35 @@ func TestObjective_IncreaseRules(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "prometheus-up-targets-less-accuracy",
+		slo:  objectiveUpTargetsLessAccuracy(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "up-targets-increase",
+			Interval: monitoringDuration("2m30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "up:count5m",
+				Expr:   intstr.FromString(`sum(count_over_time(up[5m]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:sum5m",
+				Expr:   intstr.FromString(`sum(sum_over_time(up[5m]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Alert:  "SLOMetricAbsent",
+				Expr:   intstr.FromString(`absent(up) == 1`),
+				For:    monitoringDuration("10m"),
+				Labels: map[string]string{"severity": "critical", "slo": "up-targets"},
+			}, {
+				Record: "up:count4w",
+				Expr:   intstr.FromString(`sum(sum_over_time(up:count5m[4w:5m]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}, {
+				Record: "up:sum4w",
+				Expr:   intstr.FromString(`sum(sum_over_time(up:sum5m[4w:5m]))`),
+				Labels: map[string]string{"slo": "up-targets"},
+			}},
+		},
+	}, {
 		name: "prometheus-up-targets-grouping-regex",
 		slo:  objectiveUpTargetsGroupingRegex(),
 		rules: monitoringv1.RuleGroup{
@@ -1849,7 +1878,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 		},
 	}}
 
-	require.Len(t, testcases, 20)
+	require.Len(t, testcases, 21)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1924,6 +1953,57 @@ func TestObjective_SplitIncreaseRules(t *testing.T) {
 		// Long: total increase4w subquery
 		require.Len(t, long.Rules, 1)
 		require.Equal(t, "grpc_server_handled:increase4w", long.Rules[0].Record)
+	})
+
+	t.Run("boolgauge-performance-over-accuracy", func(t *testing.T) {
+		o := objectiveUpTargetsLessAccuracy()
+		short, long, err := o.SplitIncreaseRules(GenerationOptions{})
+		require.NoError(t, err)
+
+		// Short: count5m + sum5m + absent alert
+		require.Len(t, short.Rules, 3)
+		require.Equal(t, "up:count5m", short.Rules[0].Record)
+		require.Equal(t, "up:sum5m", short.Rules[1].Record)
+		require.Equal(t, "SLOMetricAbsent", short.Rules[2].Alert)
+		require.Equal(t, monitoringDuration("30s"), short.Interval)
+
+		// Long: count4w + sum4w subqueries
+		require.Len(t, long.Rules, 2)
+		require.Equal(t, "up:count4w", long.Rules[0].Record)
+		require.Equal(t, "up:sum4w", long.Rules[1].Record)
+		require.Contains(t, long.Rules[0].Expr.String(), "sum_over_time")
+		require.Contains(t, long.Rules[1].Expr.String(), "sum_over_time")
+	})
+
+	t.Run("latencynative-performance-over-accuracy-falls-back-to-long", func(t *testing.T) {
+		o := objectiveHTTPNativeLatency()
+		o.PerformanceOverAccuracy = true
+		short, long, err := o.SplitIncreaseRules(GenerationOptions{})
+		require.NoError(t, err)
+
+		// LatencyNative does not support splitting — short should be empty
+		require.Empty(t, short.Rules)
+
+		// All rules should be in long
+		require.NotEmpty(t, long.Rules)
+		require.Equal(t, "http_request_duration_seconds:increase4w", long.Rules[0].Record)
+	})
+
+	t.Run("rule-output-labels-not-on-individual-rules", func(t *testing.T) {
+		o := objectiveHTTPRatioGroupingLessAccurate()
+		short, long, err := o.SplitIncreaseRules(GenerationOptions{})
+		require.NoError(t, err)
+
+		// RuleOutput labels should NOT appear on individual recording/alerting rules.
+		// They are only applied to the PrometheusRule Kubernetes object labels.
+		for _, r := range short.Rules {
+			require.NotContains(t, r.Labels, "prometheus",
+				"short rule %q should not have RuleOutput labels", r.Record+r.Alert)
+		}
+		for _, r := range long.Rules {
+			require.NotContains(t, r.Labels, "prometheus",
+				"long rule %q should not have RuleOutput labels", r.Record+r.Alert)
+		}
 	})
 }
 
