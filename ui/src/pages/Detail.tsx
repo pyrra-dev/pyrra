@@ -406,7 +406,7 @@ const Detail = () => {
           <div className="mb-24 flex flex-wrap">
             <div className="w-full">
               <h4>Config</h4>
-              <pre className="rounded bg-muted p-5">
+              <pre className="rounded bg-muted p-5 overflow-auto max-w-full">
                 <code>{objective.config}</code>
               </pre>
             </div>
