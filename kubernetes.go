@@ -132,6 +132,8 @@ func cmdKubernetes(
 	mimirWriteAlertingRules bool,
 	enablePrometheus3Migration bool,
 	pyrraExternalURL *url.URL,
+	enableLeaderElection bool,
+	leaderElectionNamespace string,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(newGoKitLogr(logger))
@@ -143,9 +145,10 @@ func cmdKubernetes(
 		Metrics: metricsserver.Options{
 			BindAddress: metricsAddr,
 		},
-		WebhookServer:    webhookServer,
-		LeaderElection:   false,
-		LeaderElectionID: "9d76195a.pyrra.dev",
+		WebhookServer:           webhookServer,
+		LeaderElection:          enableLeaderElection,
+		LeaderElectionID:        "9d76195a.pyrra.dev",
+		LeaderElectionNamespace: leaderElectionNamespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
