@@ -411,16 +411,17 @@ func cmdAPI(
 		}
 
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-		r.Get("/objectives", func(w http.ResponseWriter, _ *http.Request) {
+
+		renderIndex := func(w http.ResponseWriter) {
 			err := tmpl.Execute(w, struct {
-				ExternalDatasourceURL       string
+				ExternalURL                 string
 				ExternalGrafanaDatasourceID string
 				ExternalGrafanaOrgID        string
 				PathPrefix                  string
 				APIBasepath                 string
 				Version                     string
 			}{
-				ExternalDatasourceURL:       externalDatasourceURL.String(),
+				ExternalURL:                 externalDatasourceURL.String(),
 				ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
 				ExternalGrafanaOrgID:        externalGrafanaOrgID,
 				PathPrefix:                  uiRoutePrefix,
@@ -430,28 +431,15 @@ func cmdAPI(
 			if err != nil {
 				level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
 			}
+		}
+
+		r.Get("/objectives", func(w http.ResponseWriter, _ *http.Request) {
+			renderIndex(w)
 		})
 		r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Trim trailing slash to not care about matching e.g. /pyrra and /pyrra/
 			if r.URL.Path == "/" || strings.TrimSuffix(r.URL.Path, "/") == routePrefix {
-				err := tmpl.Execute(w, struct {
-					ExternalURL                 string
-					ExternalGrafanaDatasourceID string
-					ExternalGrafanaOrgID        string
-					PathPrefix                  string
-					APIBasepath                 string
-					Version                     string
-				}{
-					ExternalURL:                 externalDatasourceURL.String(),
-					ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
-					ExternalGrafanaOrgID:        externalGrafanaOrgID,
-					PathPrefix:                  uiRoutePrefix,
-					APIBasepath:                 uiRoutePrefix,
-					Version:                     version,
-				})
-				if err != nil {
-					level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
-				}
+				renderIndex(w)
 				return
 			}
 
