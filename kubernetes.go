@@ -39,6 +39,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -132,13 +133,14 @@ func cmdKubernetes(
 	mimirWriteAlertingRules bool,
 	enablePrometheus3Migration bool,
 	pyrraExternalURL *url.URL,
+	namespace string,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(newGoKitLogr(logger))
 
 	webhookServer := webhook.NewServer(webhook.Options{Port: 9443})
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	opts := ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
 			BindAddress: metricsAddr,
@@ -146,7 +148,17 @@ func cmdKubernetes(
 		WebhookServer:    webhookServer,
 		LeaderElection:   false,
 		LeaderElectionID: "9d76195a.pyrra.dev",
-	})
+	}
+
+	if namespace != "" {
+		opts.Cache = cache.Options{
+			DefaultNamespaces: map[string]cache.Config{
+				namespace: {},
+			},
+		}
+	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), opts)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
@@ -202,8 +214,9 @@ func cmdKubernetes(
 	{
 		router := http.NewServeMux()
 		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&KubernetesObjectiveServer{
-			client:   mgr.GetClient(),
-			pyrraURL: pyrraURL,
+			client:    mgr.GetClient(),
+			pyrraURL:  pyrraURL,
+			namespace: namespace,
 		}))
 
 		server := http.Server{
@@ -240,8 +253,9 @@ type KubernetesClient interface {
 }
 
 type KubernetesObjectiveServer struct {
-	client   KubernetesClient
-	pyrraURL string
+	client    KubernetesClient
+	pyrraURL  string
+	namespace string
 }
 
 func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
@@ -268,10 +282,20 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 	}
 
 	listOpts := client.ListOptions{}
-	for _, m := range matchers {
-		if m.Name == "namespace" && m.Type == labels.MatchEqual {
-			listOpts.Namespace = m.Value
-			break
+
+	if s.namespace != "" {
+		if namespaceMatcher != nil && namespaceMatcher.Type == labels.MatchEqual && namespaceMatcher.Value != s.namespace {
+			return connect.NewResponse(&objectivesv1alpha1.ListResponse{
+				Objectives: []*objectivesv1alpha1.Objective{},
+			}), nil
+		}
+		listOpts.Namespace = s.namespace
+	} else {
+		for _, m := range matchers {
+			if m.Name == "namespace" && m.Type == labels.MatchEqual {
+				listOpts.Namespace = m.Value
+				break
+			}
 		}
 	}
 
