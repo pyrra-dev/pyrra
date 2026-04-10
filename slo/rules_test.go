@@ -2078,6 +2078,34 @@ func TestObjective_GrafanaRules(t *testing.T) {
 			}},
 		},
 	}, {
+		name: "http-ratio-label-as-description",
+		slo:  objectiveHTTPRatioDescriptionAsLabel(),
+		rules: monitoringv1.RuleGroup{
+			Name:     "monitoring-http-errors-generic",
+			Interval: monitoringDuration("30s"),
+			Rules: []monitoringv1.Rule{{
+				Record: "pyrra_objective",
+				Expr:   intstr.FromString(`0.99`),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "Test"},
+			}, {
+				Record: "pyrra_window",
+				Expr:   intstr.FromString(strconv.FormatInt(int64((28 * 24 * time.Hour).Seconds()), 10)),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "Test"},
+			}, {
+				Record: "pyrra_availability",
+				Expr:   intstr.FromString(`1 - sum(http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"} or vector(0)) / sum(http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"})`),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "Test"},
+			}, {
+				Record: "pyrra_requests:rate5m",
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{job="thanos-receive-default"}[5m]))`),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "Test"},
+			}, {
+				Record: "pyrra_errors:rate5m",
+				Expr:   intstr.FromString(`sum(rate(http_requests_total{code=~"5..",job="thanos-receive-default"}[5m])) or vector(0)`),
+				Labels: map[string]string{"slo": "monitoring-http-errors", "description": "Test"},
+			}},
+		},
+	}, {
 		name: "http-ratio-grouping",
 		slo:  objectiveHTTPRatioGrouping(),
 		err:  ErrGroupingUnsupported,
@@ -2303,7 +2331,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 		err:  ErrGroupingUnsupported,
 	}}
 
-	require.Len(t, testcases, 17)
+	require.Len(t, testcases, 18)
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

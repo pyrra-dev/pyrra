@@ -121,6 +121,14 @@ type RuleOutput struct {
 	// LongRulesLabels are merged into the labels of the PrometheusRule
 	// containing the long (subquery + burnrate + alert) rules.
 	LongRulesLabels map[string]string `json:"longRulesLabels,omitempty"`
+
+	// +optional
+	// EnableDescriptionAsLabel configures whether the description should be added as
+	// a label to the generated PrometheusRule resources. This allows the
+	// description to be used in visualization tools like Grafana and in alert
+	// notifications, but can cause performance issues if the description is
+	// very long. Use with caution.
+	EnableDescriptionAsLabel bool `json:"enableDescriptionAsLabel,omitempty"`
 }
 
 // ServiceLevelIndicator defines the underlying indicator that is a Prometheus metric.
@@ -620,8 +628,9 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 	var ruleOutput slo.RuleOutput
 	if in.Spec.RuleOutput != nil {
 		ruleOutput = slo.RuleOutput{
-			ShortRulesLabels: in.Spec.RuleOutput.ShortRulesLabels,
-			LongRulesLabels:  in.Spec.RuleOutput.LongRulesLabels,
+			ShortRulesLabels:         in.Spec.RuleOutput.ShortRulesLabels,
+			LongRulesLabels:          in.Spec.RuleOutput.LongRulesLabels,
+			EnableDescriptionAsLabel: in.Spec.RuleOutput.EnableDescriptionAsLabel,
 		}
 	}
 

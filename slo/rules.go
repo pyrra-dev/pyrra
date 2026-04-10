@@ -1489,6 +1489,10 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 
 	ruleLabels := o.commonRuleLabels(sloName)
 
+	if o.RuleOutput.EnableDescriptionAsLabel {
+		ruleLabels["description"] = o.Description
+	}
+
 	rules = append(rules, monitoringv1.Rule{
 		Record: "pyrra_objective",
 		Expr:   intstr.FromString(strconv.FormatFloat(o.Target, 'f', -1, 64)),

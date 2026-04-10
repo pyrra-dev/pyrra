@@ -189,6 +189,7 @@ func (m Metric) Metric() string {
 }
 
 type RuleOutput struct {
-	ShortRulesLabels map[string]string
-	LongRulesLabels  map[string]string
+	ShortRulesLabels         map[string]string
+	LongRulesLabels          map[string]string
+	EnableDescriptionAsLabel bool
 }

@@ -12,6 +12,13 @@ import (
 )
 
 var (
+	objectiveHTTPRatioDescriptionAsLabel = func() Objective {
+		o := objectiveHTTPRatio()
+		o.RuleOutput.EnableDescriptionAsLabel = true
+		o.Description = "Test"
+		return o
+	}
+
 	objectiveHTTPRatio = func() Objective {
 		return Objective{
 			Labels: labels.FromStrings(model.MetricNameLabel, "monitoring-http-errors"),
