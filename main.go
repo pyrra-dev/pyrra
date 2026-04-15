@@ -75,14 +75,14 @@ var CLI struct {
 		TLSPrivateKeyFile           string            `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 		TLSClientCAFile             string            `default:"" help:"File containing the CA certificate for the client"`
 		MimirOrgID                  string            `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
-		EnablePrometheus3Migration  bool              `default:"false" help:"Enable Prometheus 3 migration mode that makes queries compatible with both Prometheus 2 and 3."`
+		EnablePrometheus3Migration  bool              `default:"true" help:"Enable Prometheus 3 migration mode that makes queries compatible with both Prometheus 2 and 3. Enabled by default; pass --enable-prometheus3-migration=false to opt out."`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
 		ConfigFiles                string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
 		PrometheusURL              *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
 		PrometheusFolder           string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
 		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		EnablePrometheus3Migration bool     `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
+		EnablePrometheus3Migration bool     `default:"true" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3. Enabled by default; pass --enable-prometheus3-migration=false to opt out."`
 		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
@@ -99,7 +99,7 @@ var CLI struct {
 		MimirBasicAuthPassword     string   `default:"" help:"The HTTP basic authentication password"`
 		MimirOrgID                 string   `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
 		MimirDeploymentMode        string   `default:"standalone" help:"Mimir deployment mode. Possible values: standalone (default), distributed"`
-		EnablePrometheus3Migration bool     `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
+		EnablePrometheus3Migration bool     `default:"true" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3. Enabled by default; pass --enable-prometheus3-migration=false to opt out."`
 		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
 		EnableLeaderElection       bool     `default:"false" help:"Enable leader election for controller manager to enable running multiple replicas."`
 		LeaderElectionNamespace    string   `default:"" help:"Namespace used to perform leader election. Defaults to the namespace the controller is running in."`
@@ -109,7 +109,7 @@ var CLI struct {
 		PrometheusFolder           string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
 		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 		OperatorRule               bool     `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
-		EnablePrometheus3Migration bool     `default:"false" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3."`
+		EnablePrometheus3Migration bool     `default:"true" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3. Enabled by default; pass --enable-prometheus3-migration=false to opt out."`
 		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
 	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
 }
