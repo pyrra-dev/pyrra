@@ -163,7 +163,7 @@ func main() {
 		clientConfig.TLSConfig = promconfig.TLSConfig{CAFile: CLI.API.TLSClientCAFile}
 	}
 
-	if strings.EqualFold(CLI.API.MimirOrgID, "") {
+	if !strings.EqualFold(CLI.API.MimirOrgID, "") {
 		clientConfig.HTTPHeaders = &promconfig.Headers{
 			Headers: map[string]promconfig.Header{
 				mimir.TenantHeaderName: {
