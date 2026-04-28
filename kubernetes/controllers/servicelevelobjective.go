@@ -112,8 +112,12 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 		return r.reconcileSplitPrometheusRules(ctx, logger, req, kubeObjective)
 	}
 
-	// Clean up stale increase rule if user toggled performance_over_accuracy from true to false.
-	r.cleanupStaleIncreaseRule(ctx, logger, req)
+	// Clean up stale split rules if user toggled performance_over_accuracy from true to false.
+	r.cleanupStalePrometheusRules(ctx, logger, req,
+		req.Name+"-short",
+		req.Name+"-long",
+		req.Name+"-increase", // legacy name from before the -short/-long split
+	)
 
 	newRule, err := makePrometheusRule(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration, r.PyrraExternalURL)
 	if err != nil {
@@ -132,7 +136,7 @@ func (r *ServiceLevelObjectiveReconciler) reconcilePrometheusRule(ctx context.Co
 	return ctrl.Result{}, nil
 }
 
-func (r *ServiceLevelObjectiveReconciler) reconcileSplitPrometheusRules(ctx context.Context, logger kitlog.Logger, _ ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
+func (r *ServiceLevelObjectiveReconciler) reconcileSplitPrometheusRules(ctx context.Context, logger kitlog.Logger, req ctrl.Request, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
 	shortRule, longRule, err := makeSplitPrometheusRules(kubeObjective, r.GenericRules, r.EnablePrometheus3Migration, r.PyrraExternalURL)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -145,6 +149,14 @@ func (r *ServiceLevelObjectiveReconciler) reconcileSplitPrometheusRules(ctx cont
 	if err := r.upsertPrometheusRule(ctx, logger, longRule); err != nil {
 		return ctrl.Result{}, err
 	}
+
+	// Clean up stale rules from previous configurations:
+	// - {name}: from when performance_over_accuracy was disabled
+	// - {name}-increase: legacy name from before the -short/-long split
+	r.cleanupStalePrometheusRules(ctx, logger, req,
+		req.Name,
+		req.Name+"-increase",
+	)
 
 	kubeObjective.Status.Type = "PrometheusRule"
 	if err := r.Status().Update(ctx, &kubeObjective); err != nil {
@@ -171,16 +183,18 @@ func (r *ServiceLevelObjectiveReconciler) upsertPrometheusRule(ctx context.Conte
 	return r.Update(ctx, newRule)
 }
 
-func (r *ServiceLevelObjectiveReconciler) cleanupStaleIncreaseRule(ctx context.Context, logger kitlog.Logger, req ctrl.Request) {
-	increaseRuleName := req.Name + "-increase"
-	var staleRule monitoringv1.PrometheusRule
-	if err := r.Get(ctx, client.ObjectKey{
-		Namespace: req.Namespace,
-		Name:      increaseRuleName,
-	}, &staleRule); err == nil {
-		level.Info(logger).Log("msg", "cleaning up stale increase rule", "name", increaseRuleName)
+func (r *ServiceLevelObjectiveReconciler) cleanupStalePrometheusRules(ctx context.Context, logger kitlog.Logger, req ctrl.Request, names ...string) {
+	for _, name := range names {
+		var staleRule monitoringv1.PrometheusRule
+		if err := r.Get(ctx, client.ObjectKey{
+			Namespace: req.Namespace,
+			Name:      name,
+		}, &staleRule); err != nil {
+			continue
+		}
+		level.Info(logger).Log("msg", "cleaning up stale prometheus rule", "name", name)
 		if err := r.Delete(ctx, &staleRule); err != nil {
-			level.Error(logger).Log("msg", "failed to delete stale increase rule", "name", increaseRuleName, "err", err)
+			level.Error(logger).Log("msg", "failed to delete stale prometheus rule", "name", name, "err", err)
 		}
 	}
 }
@@ -533,9 +547,10 @@ func makeSplitPrometheusRules(kubeObjective pyrrav1alpha1.ServiceLevelObjective,
 	}
 
 	shortRule := newPrometheusRule(kubeObjective, shortLabels, shortSpec)
-	shortRule.Name = kubeObjective.GetName() + "-increase"
+	shortRule.Name = kubeObjective.GetName() + "-short"
 
 	longRule := newPrometheusRule(kubeObjective, longLabels, longSpec)
+	longRule.Name = kubeObjective.GetName() + "-long"
 
 	return shortRule, longRule, nil
 }

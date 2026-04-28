@@ -380,28 +380,19 @@ func writeRuleFileSplit(logger log.Logger, kubeObjective v1alpha1.ServiceLevelOb
 		return fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
 
-	// Write short rules (5m increase) to {name}-increase.yaml
-	shortSpec := monitoringv1.PrometheusRuleSpec{
-		Groups: []monitoringv1.RuleGroup{shortGroup},
-	}
-
 	_, f := filepath.Split(file)
 	ext := filepath.Ext(f)
-	shortFile := strings.TrimSuffix(f, ext) + "-increase" + ext
+	base := strings.TrimSuffix(f, ext)
 
-	if err := writeRuleSpec(logger, kubeObjective, shortSpec, shortFile, prometheusFolder, operatorRule); err != nil {
-		return fmt.Errorf("failed to write short rules: %w", err)
-	}
-
-	// Write long rules (subquery + burnrates + generic) to {name}.yaml
-	longSpec := monitoringv1.PrometheusRuleSpec{
-		Groups: []monitoringv1.RuleGroup{longGroup, burnrates},
+	// Write short rules (5m increase + burnrates + alerts + generic) to {name}-short.yaml
+	shortSpec := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{shortGroup, burnrates},
 	}
 
 	if genericRules {
 		rules, err := objective.GenericRules(opts)
 		if err == nil {
-			longSpec.Groups = append(longSpec.Groups, rules)
+			shortSpec.Groups = append(shortSpec.Groups, rules)
 		} else {
 			if err != slo.ErrGroupingUnsupported {
 				return fmt.Errorf("failed to get generic rules: %w", err)
@@ -413,7 +404,18 @@ func writeRuleFileSplit(logger log.Logger, kubeObjective v1alpha1.ServiceLevelOb
 		}
 	}
 
-	return writeRuleSpec(logger, kubeObjective, longSpec, file, prometheusFolder, operatorRule)
+	shortFile := base + "-short" + ext
+	if err := writeRuleSpec(logger, kubeObjective, shortSpec, shortFile, prometheusFolder, operatorRule); err != nil {
+		return fmt.Errorf("failed to write short rules: %w", err)
+	}
+
+	// Write long rules (subquery for the full window) to {name}-long.yaml
+	longSpec := monitoringv1.PrometheusRuleSpec{
+		Groups: []monitoringv1.RuleGroup{longGroup},
+	}
+
+	longFile := base + "-long" + ext
+	return writeRuleSpec(logger, kubeObjective, longSpec, longFile, prometheusFolder, operatorRule)
 }
 
 func writeRuleSpec(_ log.Logger, kubeObjective v1alpha1.ServiceLevelObjective, rule monitoringv1.PrometheusRuleSpec, file, prometheusFolder string, operatorRule bool) error {

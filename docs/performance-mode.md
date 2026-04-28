@@ -12,9 +12,9 @@ Enable performance mode if you're seeing slow rule evaluation or high memory usa
 
 When `performanceOverAccuracy: true` is set, Pyrra generates two PrometheusRule resources instead of one.
 
-The first rule, named `{slo-name}-increase`, records short 5-minute increases at a 30-second interval. These are cheap for Prometheus to evaluate since they only scan 5 minutes of data at a time.
+The first rule, named `{slo-name}-short`, records short 5-minute increases at a 30-second interval together with the burnrate recording rules and alerts. The 5-minute increases are cheap for Prometheus to evaluate since they only scan 5 minutes of data at a time, and the alerts evaluate frequently against them.
 
-The second rule, named `{slo-name}`, uses a subquery to sum those 5-minute values across the full window, for example `sum_over_time(metric:increase5m[4w:5m])`. Its evaluation interval is computed from the window length, typically 2 to 3 minutes, and is not user-configurable. This rule is well-suited for ThanosRuler, which handles the full-window aggregation without touching raw samples.
+The second rule, named `{slo-name}-long`, uses a subquery to sum those 5-minute values across the full window, for example `sum_over_time(metric:increase5m[4w:5m])`. Its evaluation interval is computed from the window length, typically 2 to 3 minutes, and is not user-configurable. This rule is well-suited for ThanosRuler, which handles the full-window aggregation without touching raw samples.
 
 In Thanos setups this reduces the data transferred across the wire by around 20x, since queries consume pre-aggregated 5-minute values rather than raw samples. This figure comes from real-world measurements described in the blog post linked above.
 
