@@ -215,7 +215,7 @@ func Test_makeSplitPrometheusRules(t *testing.T) {
 			Kind:       monitoringv1.PrometheusRuleKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "http-increase",
+			Name: "http-short",
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: pyrrav1alpha1.GroupVersion.Version,
@@ -343,7 +343,7 @@ func Test_makeSplitPrometheusRules(t *testing.T) {
 			Kind:       monitoringv1.PrometheusRuleKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "http",
+			Name: "http-long",
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: pyrrav1alpha1.GroupVersion.Version,
