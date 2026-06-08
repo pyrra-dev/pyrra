@@ -6,6 +6,7 @@ import (
 	"maps"
 	"math"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/go-kit/log"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/labels"
 	toon "github.com/toon-format/toon-go"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -92,6 +94,7 @@ type getObjectiveResult struct {
 	Window      string      `toon:"window"`
 	Type        string      `toon:"type"`
 	Latency     string      `toon:"latency,omitempty"`
+	Queries     *querySet   `toon:"queries,omitempty"`
 	Status      []statusRow `toon:"status"`
 	Alerts      []alertRow  `toon:"alerts"`
 	ErrorBudget *graphData  `toon:"error_budget,omitempty"`
@@ -99,6 +102,13 @@ type getObjectiveResult struct {
 	Errors      *graphData  `toon:"errors,omitempty"`
 	Duration    *graphData  `toon:"duration,omitempty"`
 	Config      string      `toon:"config,omitempty"`
+}
+
+// querySet holds the raw PromQL behind an objective's status tiles, so an agent
+// can re-run them at any resolution, narrow by instance, or pivot to exemplars.
+type querySet struct {
+	Total  string `toon:"total"`
+	Errors string `toon:"errors"`
 }
 
 type statusRow struct {
@@ -127,6 +137,7 @@ type alertRow struct {
 // so values is already the series at the requested resolution — no client-side
 // decimation, and no min/max (that would need extra min/max_over_time queries).
 type graphData struct {
+	Query   string        `toon:"query,omitempty"`
 	Start   int64         `toon:"start,omitempty"`
 	Step    int64         `toon:"step,omitempty"`
 	Current float64       `toon:"current,omitempty"`
@@ -240,6 +251,7 @@ func (m *mcpServer) getObjective(ctx context.Context, _ *mcpsdk.CallToolRequest,
 		Window:      humanizeDuration(o.GetWindow().AsDuration()),
 		Type:        indicatorType(o),
 		Latency:     latencyThreshold(o),
+		Queries:     m.statusQueries(o, in.Grouping),
 	}
 	for _, st := range status.Msg.Status {
 		res.Status = append(res.Status, statusRow{
@@ -358,6 +370,32 @@ func buildAlertRows(alerts []*objectivesv1alpha1.Alert, window time.Duration, ta
 	return rows
 }
 
+// statusQueries reconstructs the instantaneous total/errors PromQL that
+// GetStatus runs for this objective (with grouping merged in the same way), so
+// the exact queries behind the status tiles travel with the result.
+func (m *mcpServer) statusQueries(o *objectivesv1alpha1.Objective, grouping map[string]string) *querySet {
+	obj := objectivesv1alpha1.ToInternal(o)
+
+	for _, k := range slices.Sorted(maps.Keys(grouping)) {
+		mt := &labels.Matcher{Type: labels.MatchEqual, Name: k, Value: grouping[k]}
+		switch {
+		case obj.Indicator.Ratio != nil:
+			obj.Indicator.Ratio.Errors.LabelMatchers = append(obj.Indicator.Ratio.Errors.LabelMatchers, mt)
+			obj.Indicator.Ratio.Total.LabelMatchers = append(obj.Indicator.Ratio.Total.LabelMatchers, mt)
+		case obj.Indicator.Latency != nil:
+			obj.Indicator.Latency.Success.LabelMatchers = append(obj.Indicator.Latency.Success.LabelMatchers, mt)
+			obj.Indicator.Latency.Total.LabelMatchers = append(obj.Indicator.Latency.Total.LabelMatchers, mt)
+		case obj.Indicator.BoolGauge != nil:
+			obj.Indicator.BoolGauge.LabelMatchers = append(obj.Indicator.BoolGauge.LabelMatchers, mt)
+		}
+	}
+
+	return &querySet{
+		Total:  obj.QueryTotal(obj.Window, m.objectives.opts),
+		Errors: obj.QueryErrors(obj.Window, m.objectives.opts),
+	}
+}
+
 func (m *mcpServer) listOne(ctx context.Context, name string) (*objectivesv1alpha1.Objective, error) {
 	resp, err := m.objectives.List(ctx, connect.NewRequest(&objectivesv1alpha1.ListRequest{Expr: selectorName(name)}))
 	if err != nil {
@@ -389,6 +427,9 @@ func (m *mcpServer) fetchGraph(r graphReq, single bool, fetch func(graphReq) ([]
 		return nil, err
 	}
 	g := &graphData{}
+	if len(tss) > 0 {
+		g.Query = tss[0].GetQuery()
+	}
 	if single {
 		if len(tss) > 0 {
 			applySingleSeries(g, tss[0])
