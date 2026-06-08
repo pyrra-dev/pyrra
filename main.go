@@ -402,12 +402,16 @@ func cmdAPI(
 		}
 		prometheusPath, prometheusHandler := prometheusv1connect.NewPrometheusServiceHandler(prometheusService)
 
+		mcpHandler := newMCPHandler(objectiveService, log.WithPrefix(logger, "service", "mcp"))
+
 		if routePrefix != "/" {
 			r.Mount(objectivePath, http.StripPrefix(routePrefix, objectiveHandler))
 			r.Mount(prometheusPath, http.StripPrefix(routePrefix, prometheusHandler))
+			r.Mount("/mcp", http.StripPrefix(routePrefix, mcpHandler))
 		} else {
 			r.Mount(objectivePath, objectiveHandler)
 			r.Mount(prometheusPath, prometheusHandler)
+			r.Mount("/mcp", mcpHandler)
 		}
 
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
@@ -633,6 +637,25 @@ func contextSetPromCache(ctx context.Context, t time.Duration) context.Context {
 
 func contextGetPromCache(ctx context.Context) time.Duration {
 	t, ok := ctx.Value(promCacheKey).(time.Duration)
+	if ok {
+		return t
+	}
+	return 0
+}
+
+type graphStepKeyType string
+
+const graphStepKey graphStepKeyType = "graphStep"
+
+// contextSetGraphStep lets an in-process caller (the MCP) override the Graph*
+// query resolution so Prometheus returns roughly the requested number of points
+// instead of the default ~1000. Unset (0) keeps the default behavior.
+func contextSetGraphStep(ctx context.Context, step time.Duration) context.Context {
+	return context.WithValue(ctx, graphStepKey, step)
+}
+
+func contextGetGraphStep(ctx context.Context) time.Duration {
+	t, ok := ctx.Value(graphStepKey).(time.Duration)
 	if ok {
 		return t
 	}
@@ -1038,6 +1061,9 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 		end = req.Msg.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
+	if s := contextGetGraphStep(ctx); s > 0 {
+		step = s
+	}
 
 	query := objective.QueryErrorBudget(s.opts)
 	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, 15*time.Second), query, prometheusapiv1.Range{
@@ -1417,6 +1443,9 @@ func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[ob
 		end = req.Msg.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
+	if s := contextGetGraphStep(ctx); s > 0 {
+		step = s
+	}
 
 	timeRange := rangeInterval(start, end)
 	cacheDuration := rangeCache(start, end)
@@ -1516,6 +1545,9 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 		end = req.Msg.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
+	if s := contextGetGraphStep(ctx); s > 0 {
+		step = s
+	}
 
 	timeRange := rangeInterval(start, end)
 	cacheDuration := rangeCache(start, end)
@@ -1617,6 +1649,9 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 		end = req.Msg.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
+	if s := contextGetGraphStep(ctx); s > 0 {
+		step = s
+	}
 
 	timeRange := rangeInterval(start, end)
 	cacheDuration := rangeCache(start, end)
