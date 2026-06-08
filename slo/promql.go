@@ -2,14 +2,14 @@ package slo
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"time"
 
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // QueryTotal returns a PromQL query to get the total amount of requests served during the window.
@@ -859,7 +859,7 @@ func groupingLabels(errorMatchers, totalMatchers []*labels.Matcher) []string {
 	// and we have to remove it for the latency SLOs.
 	delete(groupingLabels, labels.BucketLabel)
 
-	return maps.Keys(groupingLabels)
+	return slices.Collect(maps.Keys(groupingLabels))
 }
 
 func cloneMatchers(matchers []*labels.Matcher) []*labels.Matcher {
