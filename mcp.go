@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math"
 	"net/http"
 	"sort"
@@ -139,13 +140,9 @@ type graphSeries struct {
 	Values  []float64 `toon:"values,omitempty"`
 }
 
-// --- handlers -------------------------------------------------------------
-
 func (m *mcpServer) listObjectives(ctx context.Context, _ *mcpsdk.CallToolRequest, in listObjectivesInput) (*mcpsdk.CallToolResult, any, error) {
 	matchers := map[string]string{}
-	for k, v := range in.Labels {
-		matchers[k] = v
-	}
+	maps.Copy(matchers, in.Labels)
 	if in.Name != "" {
 		matchers[model.MetricNameLabel] = in.Name
 	}
@@ -280,10 +277,7 @@ func (m *mcpServer) getObjective(ctx context.Context, _ *mcpsdk.CallToolRequest,
 	}
 	ctxGraph := ctx
 	if mp := normalizeMaxPoints(in.MaxPoints); mp > 0 {
-		step := now.Sub(start) / time.Duration(mp)
-		if step < time.Second {
-			step = time.Second
-		}
+		step := max(now.Sub(start)/time.Duration(mp), time.Second)
 		ctxGraph = contextSetGraphStep(ctx, step)
 	}
 	g := graphReq{
@@ -363,8 +357,6 @@ func buildAlertRows(alerts []*objectivesv1alpha1.Alert, window time.Duration, ta
 	}
 	return rows
 }
-
-// --- helpers --------------------------------------------------------------
 
 func (m *mcpServer) listOne(ctx context.Context, name string) (*objectivesv1alpha1.Objective, error) {
 	resp, err := m.objectives.List(ctx, connect.NewRequest(&objectivesv1alpha1.ListRequest{Expr: selectorName(name)}))
@@ -520,12 +512,8 @@ func stripName(m map[string]string) map[string]string {
 
 func mergeLabels(a, b map[string]string) map[string]string {
 	out := make(map[string]string, len(a)+len(b))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		out[k] = v
-	}
+	maps.Copy(out, a)
+	maps.Copy(out, b)
 	return out
 }
 
