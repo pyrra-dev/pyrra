@@ -1096,9 +1096,17 @@ func (o Objective) increaseRuleLatency(sloName string, opts GenerationOptions) (
 		}
 
 		subqueryName := increaseName(o.Indicator.Latency.Total.Name, model.Duration(5*time.Minute))
+		// The total (_count) and success (_bucket) short rules both record into
+		// the same :increase5m metric, distinguished only by the "le" label: the
+		// total series has no "le" while the success series carries the threshold
+		// bucket (e.g. le="60.0"). Match le="" so the total subquery selects only
+		// the count series; without it the sum also picks up the success bucket
+		// and doubles the denominator.
+		totalSubqueryMatchers := o.buildSubqueryMatchers(applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts), subqueryName)
+		totalSubqueryMatchers = append(totalSubqueryMatchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
 		objectiveReplacer{
 			metric:   subqueryName,
-			matchers: o.buildSubqueryMatchers(applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts), subqueryName),
+			matchers: totalSubqueryMatchers,
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(subExpr)
