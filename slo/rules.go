@@ -3,7 +3,9 @@ package slo
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,8 +15,6 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
