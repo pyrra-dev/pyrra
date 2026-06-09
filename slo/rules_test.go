@@ -1650,7 +1650,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1", "severity": "critical"},
 			}, {
 				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by (code, handler, job) (sum_over_time(http_request_duration_seconds:increase5m{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default"}[4w:5m]))`),
+				Expr:   intstr.FromString(`sum by (code, handler, job) (sum_over_time(http_request_duration_seconds:increase5m{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le=""}[4w:5m]))`),
 				Labels: map[string]string{"slo": "monitoring-http-latency"},
 			}, {
 				Record: "http_request_duration_seconds:increase4w",
