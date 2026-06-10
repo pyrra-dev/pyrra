@@ -14,7 +14,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/oklog/run v1.2.0
 	github.com/polarsignals/connect-go-prometheus v0.0.0-20221209115647-3601eea3d0d0
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.90.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.91.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/common v0.67.5
 	github.com/prometheus/prometheus v0.310.0
