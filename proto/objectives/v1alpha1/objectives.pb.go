@@ -7,12 +7,13 @@
 package objectivesv1alpha1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -437,6 +438,7 @@ type Ratio struct {
 	Total    *Query   `protobuf:"bytes,1,opt,name=total,proto3" json:"total,omitempty"`
 	Errors   *Query   `protobuf:"bytes,2,opt,name=errors,proto3" json:"errors,omitempty"`
 	Grouping []string `protobuf:"bytes,3,rep,name=grouping,proto3" json:"grouping,omitempty"`
+	Success  *Query   `protobuf:"bytes,4,opt,name=success,proto3" json:"success,omitempty"`
 }
 
 func (x *Ratio) Reset() {
@@ -481,6 +483,13 @@ func (x *Ratio) GetTotal() *Query {
 func (x *Ratio) GetErrors() *Query {
 	if x != nil {
 		return x.Errors
+	}
+	return nil
+}
+
+func (x *Ratio) GetSuccess() *Query {
+	if x != nil {
+		return x.Success
 	}
 	return nil
 }

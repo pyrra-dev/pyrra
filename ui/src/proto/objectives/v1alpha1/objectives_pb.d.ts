@@ -152,6 +152,11 @@ export declare type Ratio = Message<"objectives.v1alpha1.Ratio"> & {
    * @generated from field: repeated string grouping = 3;
    */
   grouping: string[];
+
+  /**
+   * @generated from field: objectives.v1alpha1.Query success = 4;
+   */
+  success?: Query;
 };
 
 /**

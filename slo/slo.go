@@ -85,8 +85,12 @@ const (
 )
 
 func (o Objective) IndicatorType() IndicatorType {
-	if o.Indicator.Ratio != nil && o.Indicator.Ratio.Total.Name != "" {
-		return Ratio
+	if o.Indicator.Ratio != nil {
+		if o.Indicator.Ratio.Total.Name != "" ||
+			o.Indicator.Ratio.Errors.Name != "" ||
+			o.Indicator.Ratio.Success.Name != "" {
+			return Ratio
+		}
 	}
 	if o.Indicator.Latency != nil && o.Indicator.Latency.Total.Name != "" {
 		return Latency
@@ -141,7 +145,64 @@ type Indicator struct {
 type RatioIndicator struct {
 	Errors   Metric
 	Total    Metric
+	Success  Metric
 	Grouping []string
+}
+
+// RatioCombo identifies which two of the total, errors, and success metrics are
+// configured for a ratio indicator. Exactly two of the three are always set
+// (enforced during validation), and the missing metric is derived following the
+// total = errors + success relationship.
+type RatioCombo int
+
+const (
+	// RatioErrorsTotal configures errors and total. The error rate is
+	// errors / total. This is the original ratio behaviour.
+	RatioErrorsTotal RatioCombo = iota
+	// RatioSuccessTotal configures success and total. The error rate is
+	// (total - success) / total, mirroring the latency indicator.
+	RatioSuccessTotal
+	// RatioErrorsSuccess configures errors and success. The total is derived as
+	// errors + success and the error rate is errors / (errors + success).
+	RatioErrorsSuccess
+)
+
+// Combo returns which two of total, errors, and success are configured.
+func (r RatioIndicator) Combo() RatioCombo {
+	hasTotal := r.Total.Name != ""
+	hasErrors := r.Errors.Name != ""
+	switch {
+	case hasTotal && hasErrors:
+		return RatioErrorsTotal
+	case hasTotal && !hasErrors:
+		return RatioSuccessTotal
+	default:
+		return RatioErrorsSuccess
+	}
+}
+
+// PrimaryMetric returns the metric used to name recording rules and to derive
+// rule labels and grouping. It prefers total, then errors, then success, so that
+// the generated rule names stay stable with the original behaviour whenever a
+// total metric is configured.
+func (r RatioIndicator) PrimaryMetric() Metric {
+	if r.Total.Name != "" {
+		return r.Total
+	}
+	if r.Errors.Name != "" {
+		return r.Errors
+	}
+	return r.Success
+}
+
+// SecondaryMetric returns the second configured metric, complementing
+// PrimaryMetric. Together they are the two metrics that increase recording rules
+// are generated for.
+func (r RatioIndicator) SecondaryMetric() Metric {
+	if r.Combo() == RatioErrorsTotal {
+		return r.Errors
+	}
+	return r.Success
 }
 
 type LatencyIndicator struct {
