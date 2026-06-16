@@ -83,6 +83,55 @@ spec:
 apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
+  name: http-success
+  namespace: monitoring
+spec:
+  target: 99
+  window: 1w
+  indicator:
+    ratio:
+      success:
+        metric: http_requests_total{job="metrics-service",code=~"2.."}
+      total:
+        metric: http_requests_total{job="metrics-service"}
+`,
+		objective: slo.Objective{
+			Labels: labels.FromStrings(
+				model.MetricNameLabel, "http-success",
+				"namespace", "monitoring",
+			),
+			Target: 0.99,
+			Window: model.Duration(7 * 24 * time.Hour),
+			Alerting: slo.Alerting{
+				Burnrates: true,
+				Absent:    true,
+			},
+			Indicator: slo.Indicator{
+				Ratio: &slo.RatioIndicator{
+					Total: slo.Metric{
+						Name: "http_requests_total",
+						LabelMatchers: []*labels.Matcher{
+							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_requests_total"},
+						},
+					},
+					Success: slo.Metric{
+						Name: "http_requests_total",
+						LabelMatchers: []*labels.Matcher{
+							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service"},
+							{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_requests_total"},
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		config: `
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
  name: grpc-errors
  namespace: monitoring
  labels:
@@ -437,23 +486,60 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 		require.Nil(t, warn)
 
 		t.Run("empty", func(t *testing.T) {
+			const exactlyTwo = "ratio indicator must set exactly two of total, errors, and success metrics"
+
 			ratio := ratio()
 			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = ""
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = ""
 			warn, err := ratio.ValidateCreate(ctx, ratio)
-			require.EqualError(t, err, "ratio total metric must be set")
+			require.EqualError(t, err, exactlyTwo)
 			require.Nil(t, warn)
 
 			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = ""
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = "foo"
 			warn, err = ratio.ValidateCreate(ctx, ratio)
-			require.EqualError(t, err, "ratio errors metric must be set")
+			require.EqualError(t, err, exactlyTwo)
 			require.Nil(t, warn)
 
 			ratio.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = "foo"
 			ratio.Spec.ServiceLevelIndicator.Ratio.Total.Metric = ""
 			warn, err = ratio.ValidateCreate(ctx, ratio)
-			require.EqualError(t, err, "ratio total metric must be set")
+			require.EqualError(t, err, exactlyTwo)
+			require.Nil(t, warn)
+		})
+
+		t.Run("success", func(t *testing.T) {
+			const exactlyTwo = "ratio indicator must set exactly two of total, errors, and success metrics"
+
+			// success + total is a valid combination.
+			obj := ratio()
+			obj.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = ""
+			obj.Spec.ServiceLevelIndicator.Ratio.Success.Metric = `success{foo="bar"}`
+			warn, err := obj.ValidateCreate(ctx, obj)
+			require.NoError(t, err)
+			require.Nil(t, warn)
+
+			// success + errors is a valid combination.
+			obj = ratio()
+			obj.Spec.ServiceLevelIndicator.Ratio.Total.Metric = ""
+			obj.Spec.ServiceLevelIndicator.Ratio.Success.Metric = `success{foo="bar"}`
+			warn, err = obj.ValidateCreate(ctx, obj)
+			require.NoError(t, err)
+			require.Nil(t, warn)
+
+			// All three set is rejected.
+			obj = ratio()
+			obj.Spec.ServiceLevelIndicator.Ratio.Success.Metric = `success{foo="bar"}`
+			warn, err = obj.ValidateCreate(ctx, obj)
+			require.EqualError(t, err, exactlyTwo)
+			require.Nil(t, warn)
+
+			// An invalid success metric is reported.
+			obj = ratio()
+			obj.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = ""
+			obj.Spec.ServiceLevelIndicator.Ratio.Success.Metric = "foo{"
+			warn, err = obj.ValidateCreate(ctx, obj)
+			require.EqualError(t, err, "failed to parse ratio success metric: 1:5: parse error: unexpected end of input inside braces")
 			require.Nil(t, warn)
 		})
 

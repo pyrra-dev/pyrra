@@ -158,6 +158,7 @@ func (in *RatioIndicator) DeepCopyInto(out *RatioIndicator) {
 	*out = *in
 	out.Errors = in.Errors
 	out.Total = in.Total
+	out.Success = in.Success
 	if in.Grouping != nil {
 		in, out := &in.Grouping, &out.Grouping
 		*out = make([]string, len(*in))

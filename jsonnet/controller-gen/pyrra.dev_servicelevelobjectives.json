@@ -213,7 +213,7 @@
                         "description": "Ratio is the indicator that measures against errors / total events.",
                         "properties": {
                           "errors": {
-                            "description": "Errors is the metric that returns how many errors there are.",
+                            "description": "Exactly two of errors, total, and success must be set.\nThe missing metric will be derived as total = errors + success.\nErrors is the metric that returns how many errors there are.",
                             "properties": {
                               "metric": {
                                 "type": "string"
@@ -231,6 +231,18 @@
                             },
                             "type": "array"
                           },
+                          "success": {
+                            "description": "Success is the metric that returns how many successful requests there are.",
+                            "properties": {
+                              "metric": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "metric"
+                            ],
+                            "type": "object"
+                          },
                           "total": {
                             "description": "Total is the metric that returns how many requests there are in total.",
                             "properties": {
@@ -244,10 +256,6 @@
                             "type": "object"
                           }
                         },
-                        "required": [
-                          "errors",
-                          "total"
-                        ],
                         "type": "object"
                       }
                     },

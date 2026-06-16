@@ -26,9 +26,27 @@ func (o Objective) QueryTotal(window model.Duration, opts GenerationOptions) str
 	)
 	switch o.IndicatorType() {
 	case Ratio:
-		metric = increaseName(o.Indicator.Ratio.Total.Name, window)
-		matchers = cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
-		grouping = slices.Clone(o.Indicator.Ratio.Grouping)
+		r := o.Indicator.Ratio
+		expr, err := parser.ParseExpr(r.ratioDenominator(
+			`sum by (grouping) (metric{matchers="total"})`,
+			`sum by (grouping) (errorMetric{matchers="errors"})`,
+		))
+		if err != nil {
+			return ""
+		}
+
+		metricM, errorM := r.ratioReplacerMetrics()
+		totalName := increaseName(metricM.Name, window)
+		errorName := increaseName(errorM.Name, window)
+		objectiveReplacer{
+			metric:        totalName,
+			matchers:      o.increaseMatchersSLO(metricM, totalName),
+			errorMetric:   errorName,
+			errorMatchers: o.increaseMatchersSLO(errorM, errorName),
+			grouping:      slices.Clone(r.Grouping),
+		}.replace(expr)
+
+		return expr.String()
 	case Latency:
 		metric = increaseName(o.Indicator.Latency.Total.Name, window)
 		grouping = slices.Clone(o.Indicator.Latency.Grouping)
@@ -76,30 +94,24 @@ func (o Objective) QueryTotal(window model.Duration, opts GenerationOptions) str
 func (o Objective) QueryErrors(window model.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
+		r := o.Indicator.Ratio
+		expr, err := parser.ParseExpr(r.ratioNumerator(
+			`sum by (grouping) (metric{matchers="total"})`,
+			`sum by (grouping) (errorMetric{matchers="errors"})`,
+		))
 		if err != nil {
 			return ""
 		}
 
-		metric := increaseName(o.Indicator.Ratio.Errors.Name, window)
-		matchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
-
-		for _, m := range matchers {
-			if m.Name == model.MetricNameLabel {
-				m.Value = metric
-				break
-			}
-		}
-		matchers = append(matchers, &labels.Matcher{
-			Type:  labels.MatchEqual,
-			Name:  "slo",
-			Value: o.Name(),
-		})
-
+		metricM, errorM := r.ratioReplacerMetrics()
+		totalName := increaseName(metricM.Name, window)
+		errorName := increaseName(errorM.Name, window)
 		objectiveReplacer{
-			metric:   metric,
-			matchers: matchers,
-			grouping: o.Indicator.Ratio.Grouping,
+			metric:        totalName,
+			matchers:      o.increaseMatchersSLO(metricM, totalName),
+			errorMetric:   errorName,
+			errorMatchers: o.increaseMatchersSLO(errorM, errorName),
+			grouping:      slices.Clone(r.Grouping),
 		}.replace(expr)
 
 		return expr.String()
@@ -239,57 +251,34 @@ func (o Objective) QueryErrorBudget(opts GenerationOptions) string {
 	indicatorType := o.IndicatorType()
 	switch indicatorType {
 	case Ratio:
-		expr, err := parser.ParseExpr(`
+		r := o.Indicator.Ratio
+		expr, err := parser.ParseExpr(fmt.Sprintf(`
 (
   (1 - 0.696969)
   -
   (
-    sum(errorMetric{matchers="errors"} or vector(0))
-    /
-    sum(metric{matchers="total"})
+    %s
   )
 )
 /
 (1 - 0.696969)
-`)
+`, r.ratioErrorRate(
+			`sum(metric{matchers="total"})`,
+			`sum(errorMetric{matchers="errors"} or vector(0))`,
+		)))
 		if err != nil {
 			return ""
 		}
 
-		metric := increaseName(o.Indicator.Ratio.Total.Name, o.Window)
-		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
-		for _, m := range matchers {
-			if m.Name == model.MetricNameLabel {
-				m.Value = metric
-				break
-			}
-		}
-		matchers = append(matchers, &labels.Matcher{
-			Type:  labels.MatchEqual,
-			Name:  "slo",
-			Value: o.Name(),
-		})
-
-		errorMetric := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
-		errorMatchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
-		for _, m := range errorMatchers {
-			if m.Name == model.MetricNameLabel {
-				m.Value = errorMetric
-				break
-			}
-		}
-		errorMatchers = append(errorMatchers, &labels.Matcher{
-			Type:  labels.MatchEqual,
-			Name:  "slo",
-			Value: o.Name(),
-		})
-
+		metricM, errorM := r.ratioReplacerMetrics()
+		totalName := increaseName(metricM.Name, o.Window)
+		errorName := increaseName(errorM.Name, o.Window)
 		objectiveReplacer{
-			metric:        metric,
-			matchers:      matchers,
-			errorMetric:   errorMetric,
-			errorMatchers: errorMatchers,
-			grouping:      o.Indicator.Ratio.Grouping,
+			metric:        totalName,
+			matchers:      o.increaseMatchersSLO(metricM, totalName),
+			errorMetric:   errorName,
+			errorMatchers: o.increaseMatchersSLO(errorM, errorName),
+			grouping:      slices.Clone(r.Grouping),
 			target:        o.Target,
 		}.replace(expr)
 
@@ -447,7 +436,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 			groupingMap[g] = struct{}{}
 		}
 		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
-		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
+		for _, m := range o.Indicator.Ratio.PrimaryMetric().LabelMatchers {
 			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				if _, ok := groupingMap[m.Name]; !ok {
 					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
@@ -635,23 +624,26 @@ func (r objectiveReplacer) replace(node parser.Node) {
 func (o Objective) RequestRange(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (group) (rate(metric{}[1s])) > 0`)
+		r := o.Indicator.Ratio
+		expr, err := parser.ParseExpr(r.ratioDenominator(
+			`sum by (group) (rate(metric{matchers="total"}[1s]))`,
+			`sum by (group) (rate(errorMetric{matchers="errors"}[1s]))`,
+		) + ` > 0`)
 		if err != nil {
 			return err.Error()
 		}
 
-		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
-		for i, m := range matchers {
-			if m.Name == model.MetricNameLabel {
-				matchers[i].Value = o.Indicator.Ratio.Total.Name
-			}
-		}
+		metricM, errorM := r.ratioReplacerMetrics()
+		matchers := rawMatchers(metricM)
+		errorMatchers := rawMatchers(errorM)
 
 		objectiveReplacer{
-			metric:   o.Indicator.Ratio.Total.Name,
-			matchers: matchers,
+			metric:        metricM.Name,
+			matchers:      matchers,
+			errorMetric:   errorM.Name,
+			errorMatchers: errorMatchers,
 			grouping: groupingLabels(
-				o.Indicator.Ratio.Errors.LabelMatchers,
+				errorMatchers,
 				matchers,
 			),
 			window: timerange,
@@ -711,29 +703,32 @@ func (o Objective) RequestRange(timerange time.Duration, opts GenerationOptions)
 func (o Objective) ErrorsRange(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
+		r := o.Indicator.Ratio
+		numerator := r.ratioNumerator(
+			`sum by (group) (rate(metric{matchers="total"}[1s]))`,
+			`sum by (group) (rate(errorMetric{matchers="errors"}[1s]))`,
+		)
+		// success+total derives the errors as (total - success); wrap it so the
+		// division below binds to the whole difference and not just success.
+		if r.Combo() == RatioSuccessTotal {
+			numerator = "(" + numerator + ")"
+		}
+		expr, err := parser.ParseExpr(numerator + ` / scalar(` + r.ratioDenominator(
+			`sum(rate(metric{matchers="total"}[1s]))`,
+			`sum(rate(errorMetric{matchers="errors"}[1s]))`,
+		) + `) > 0`)
 		if err != nil {
 			return err.Error()
 		}
 
-		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
-		for i, m := range matchers {
-			if m.Name == model.MetricNameLabel {
-				matchers[i].Value = o.Indicator.Ratio.Total.Name
-			}
-		}
-
-		errorMatchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
-		for i, m := range errorMatchers {
-			if m.Name == model.MetricNameLabel {
-				errorMatchers[i].Value = o.Indicator.Ratio.Errors.Name
-			}
-		}
+		metricM, errorM := r.ratioReplacerMetrics()
+		matchers := rawMatchers(metricM)
+		errorMatchers := rawMatchers(errorM)
 
 		objectiveReplacer{
-			metric:        o.Indicator.Ratio.Total.Name,
+			metric:        metricM.Name,
 			matchers:      matchers,
-			errorMetric:   o.Indicator.Ratio.Errors.Name,
+			errorMetric:   errorM.Name,
 			errorMatchers: errorMatchers,
 			grouping: groupingLabels(
 				errorMatchers,
@@ -869,4 +864,97 @@ func cloneMatchers(matchers []*labels.Matcher) []*labels.Matcher {
 		r[i] = &m
 	}
 	return r
+}
+
+// increaseMatchersSLO builds the label matchers for a recorded increase series:
+// the metric name matcher is replaced with the increase recording rule name and
+// an slo matcher is appended.
+func (o Objective) increaseMatchersSLO(m Metric, increaseRuleName string) []*labels.Matcher {
+	matchers := make([]*labels.Matcher, 0, len(m.LabelMatchers)+1)
+	for _, lm := range m.LabelMatchers {
+		value := lm.Value
+		if lm.Name == model.MetricNameLabel {
+			value = increaseRuleName
+		}
+		matchers = append(matchers, &labels.Matcher{
+			Type:  lm.Type,
+			Name:  lm.Name,
+			Value: value,
+		})
+	}
+	return append(matchers, &labels.Matcher{
+		Type:  labels.MatchEqual,
+		Name:  "slo",
+		Value: o.Name(),
+	})
+}
+
+// rawMatchers returns a copy of the metric's label matchers with the metric name
+// matcher set to the metric's name.
+func rawMatchers(m Metric) []*labels.Matcher {
+	matchers := cloneMatchers(m.LabelMatchers)
+	for i := range matchers {
+		if matchers[i].Name == model.MetricNameLabel {
+			matchers[i].Value = m.Name
+		}
+	}
+	return matchers
+}
+
+// ratioReplacerMetrics returns the metrics to assign to objectiveReplacer.metric
+// (the "total" placeholder) and objectiveReplacer.errorMetric (the "errors"
+// placeholder) for the configured ratio combo. The error-rate templates built by
+// ratioErrorRate use the same role assignment.
+func (r RatioIndicator) ratioReplacerMetrics() (metric, errorMetric Metric) {
+	switch r.Combo() {
+	case RatioSuccessTotal:
+		// error rate = (total - success) / total
+		return r.Total, r.Success
+	case RatioErrorsSuccess:
+		// error rate = errors / (errors + success)
+		return r.Success, r.Errors
+	default: // RatioErrorsTotal: error rate = errors / total
+		return r.Total, r.Errors
+	}
+}
+
+// ratioNumerator composes the PromQL expression for the number of bad events
+// (the numerator of the error rate) for the configured ratio combo. The
+// arguments are the aggregated expressions for the "total" placeholder
+// (objectiveReplacer.metric) and the "errors" placeholder
+// (objectiveReplacer.errorMetric); see ratioReplacerMetrics.
+func (r RatioIndicator) ratioNumerator(total, errors string) string {
+	if r.Combo() == RatioSuccessTotal {
+		// bad = total - success
+		return fmt.Sprintf("%s - %s", total, errors)
+	}
+	// errors+total and errors+success use the errors metric directly.
+	return errors
+}
+
+// ratioDenominator composes the PromQL expression for the total number of events
+// (the denominator of the error rate) for the configured ratio combo. See
+// ratioNumerator for the argument semantics.
+func (r RatioIndicator) ratioDenominator(total, errors string) string {
+	if r.Combo() == RatioErrorsSuccess {
+		// total = errors + success
+		return fmt.Sprintf("%s + %s", errors, total)
+	}
+	return total
+}
+
+// ratioErrorRate composes a PromQL fraction computing the error rate (bad/total)
+// for the configured ratio combo. The arguments are the already-aggregated
+// expressions for the "total" placeholder (objectiveReplacer.metric) and the
+// "errors" placeholder (objectiveReplacer.errorMetric); see ratioReplacerMetrics
+// for how the raw metrics map onto these placeholders.
+func (r RatioIndicator) ratioErrorRate(total, errors string) string {
+	switch r.Combo() {
+	case RatioSuccessTotal:
+		return fmt.Sprintf("(%s - %s) / %s", total, errors, total)
+	case RatioErrorsSuccess:
+		return fmt.Sprintf("%s / (%s + %s)", errors, errors, total)
+	default: // RatioErrorsTotal
+		return fmt.Sprintf("%s / %s", errors, total)
+	}
 }
