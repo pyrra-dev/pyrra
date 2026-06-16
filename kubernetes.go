@@ -20,14 +20,17 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"syscall"
 	"time"
 
 	"github.com/bufbuild/connect-go"
 	"github.com/go-kit/log"
+	"github.com/go-logr/logr" //nolint:depguard // Required for logr.LogSink adapter bridging go-kit/log with controller-runtime.
 	"github.com/oklog/run"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	"golang.org/x/net/http2"
@@ -38,7 +41,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -49,6 +51,68 @@ import (
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
 	// +kubebuilder:scaffold:imports
 )
+
+type goKitLogSink struct {
+	logger log.Logger
+	values []interface{}
+}
+
+// Ensure compile-time interface satisfaction.
+var _ logr.LogSink = &goKitLogSink{}
+
+func (l *goKitLogSink) Enabled(_ int) bool { return true }
+
+func (l *goKitLogSink) Info(_ int, msg string, keysAndValues ...interface{}) {
+	_ = l.logger.Log(append(l.values, append([]interface{}{"msg", msg}, sanitizeLogValues(keysAndValues)...)...)...)
+}
+
+func (l *goKitLogSink) Error(err error, msg string, keysAndValues ...interface{}) {
+	_ = l.logger.Log(append(l.values, append([]interface{}{"err", err, "msg", msg}, sanitizeLogValues(keysAndValues)...)...)...)
+}
+
+// sanitizeLogValues converts values in logr key-value pairs that go-kit/log's
+// logfmt encoder cannot handle (e.g. maps, slices, structs) to their string
+// representation, preventing "unsupported value type" output.
+func sanitizeLogValues(keysAndValues []interface{}) []interface{} {
+	if len(keysAndValues) == 0 {
+		return keysAndValues
+	}
+	result := make([]interface{}, len(keysAndValues))
+	for i, v := range keysAndValues {
+		if i%2 == 1 { // odd indices are values
+			switch v.(type) {
+			case string, bool, int, int8, int16, int32, int64,
+				uint, uint8, uint16, uint32, uint64, float32, float64, error:
+				result[i] = v
+			default:
+				result[i] = fmt.Sprintf("%v", v)
+			}
+		} else {
+			result[i] = v
+		}
+	}
+	return result
+}
+
+func (l *goKitLogSink) WithValues(keysAndValues ...interface{}) logr.LogSink {
+	return &goKitLogSink{
+		logger: l.logger,
+		values: append(append([]interface{}{}, l.values...), keysAndValues...),
+	}
+}
+
+func (l *goKitLogSink) WithName(name string) logr.LogSink {
+	return &goKitLogSink{
+		logger: l.logger,
+		values: append(append([]interface{}{}, l.values...), "logger", name),
+	}
+}
+
+func (l *goKitLogSink) Init(_ logr.RuntimeInfo) {}
+
+func newGoKitLogr(logger log.Logger) logr.Logger {
+	return logr.New(&goKitLogSink{logger: logger})
+}
 
 var scheme = runtime.NewScheme()
 
@@ -66,9 +130,13 @@ func cmdKubernetes(
 	certFile, privateKeyFile string,
 	mimirClient *mimir.Client,
 	mimirWriteAlertingRules bool,
+	enablePrometheus3Migration bool,
+	pyrraExternalURL *url.URL,
+	enableLeaderElection bool,
+	leaderElectionNamespace string,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	ctrl.SetLogger(newGoKitLogr(logger))
 
 	webhookServer := webhook.NewServer(webhook.Options{Port: 9443})
 
@@ -77,22 +145,30 @@ func cmdKubernetes(
 		Metrics: metricsserver.Options{
 			BindAddress: metricsAddr,
 		},
-		WebhookServer:    webhookServer,
-		LeaderElection:   false,
-		LeaderElectionID: "9d76195a.pyrra.dev",
+		WebhookServer:           webhookServer,
+		LeaderElection:          enableLeaderElection,
+		LeaderElectionID:        "9d76195a.pyrra.dev",
+		LeaderElectionNamespace: leaderElectionNamespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
+	pyrraURL := ""
+	if pyrraExternalURL != nil {
+		pyrraURL = pyrraExternalURL.String()
+	}
+
 	reconciler := &controllers.ServiceLevelObjectiveReconciler{
-		Client:                  mgr.GetClient(),
-		Logger:                  log.With(logger, "controllers", "ServiceLevelObjective"),
-		GenericRules:            genericRules,
-		ConfigMapMode:           configMapMode,
-		MimirClient:             mimirClient,
-		MimirWriteAlertingRules: mimirWriteAlertingRules,
+		Client:                     mgr.GetClient(),
+		Logger:                     log.With(logger, "controllers", "ServiceLevelObjective"),
+		GenericRules:               genericRules,
+		ConfigMapMode:              configMapMode,
+		MimirClient:                mimirClient,
+		MimirWriteAlertingRules:    mimirWriteAlertingRules,
+		EnablePrometheus3Migration: enablePrometheus3Migration,
+		PyrraExternalURL:           pyrraURL,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceLevelObjective")
@@ -129,7 +205,8 @@ func cmdKubernetes(
 	{
 		router := http.NewServeMux()
 		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&KubernetesObjectiveServer{
-			client: mgr.GetClient(),
+			client:   mgr.GetClient(),
+			pyrraURL: pyrraURL,
 		}))
 
 		server := http.Server{
@@ -166,7 +243,8 @@ type KubernetesClient interface {
 }
 
 type KubernetesObjectiveServer struct {
-	client KubernetesClient
+	client   KubernetesClient
+	pyrraURL string
 }
 
 func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
@@ -183,7 +261,7 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				nameMatcher = m
 			}
 			if m.Name == "namespace" {
@@ -206,19 +284,19 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 	}
 
 	objectives := make([]*objectivesv1alpha1.Objective, 0, len(list.Items))
-	for _, s := range list.Items {
+	for _, slo := range list.Items {
 		if nameMatcher != nil {
-			if !nameMatcher.Matches(s.GetName()) {
+			if !nameMatcher.Matches(slo.GetName()) {
 				continue
 			}
 		}
 		if namespaceMatcher != nil {
-			if !namespaceMatcher.Matches(s.GetNamespace()) {
+			if !namespaceMatcher.Matches(slo.GetNamespace()) {
 				continue
 			}
 		}
 
-		internal, err := s.Internal()
+		internal, err := slo.Internal()
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}

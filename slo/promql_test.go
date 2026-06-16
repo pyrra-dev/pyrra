@@ -12,9 +12,16 @@ import (
 )
 
 var (
+	objectiveHTTPRatioDescriptionAsLabel = func() Objective {
+		o := objectiveHTTPRatio()
+		o.RuleOutput.EnableDescriptionAsLabel = true
+		o.Description = "Test"
+		return o
+	}
+
 	objectiveHTTPRatio = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-http-errors"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "monitoring-http-errors"),
 			Target: 0.99,
 			Window: model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -42,6 +49,15 @@ var (
 			},
 		}
 	}
+	objectiveHTTPRatioGroupingLessAccurate = func() Objective {
+		o := objectiveHTTPRatio()
+		o.PerformanceOverAccuracy = true
+		o.RuleOutput = RuleOutput{
+			ShortRulesLabels: map[string]string{"prometheus": "k8s"},
+			LongRulesLabels:  map[string]string{"prometheus": "thanos-k8s"},
+		}
+		return o
+	}
 	objectiveHTTPRatioGrouping = func() Objective {
 		o := objectiveHTTPRatio()
 		o.Indicator.Ratio.Grouping = []string{"job", "handler"}
@@ -60,7 +76,7 @@ var (
 	}
 	objectiveGRPCRatio = func() Objective {
 		return Objective{
-			Labels:      labels.FromStrings(labels.MetricName, "monitoring-grpc-errors"),
+			Labels:      labels.FromStrings(model.MetricNameLabel, "monitoring-grpc-errors"),
 			Description: "",
 			Target:      0.999,
 			Window:      model.Duration(28 * 24 * time.Hour),
@@ -98,9 +114,14 @@ var (
 		o.Indicator.Ratio.Grouping = []string{"job", "handler"}
 		return o
 	}
+	objectiveGRPCRatioGroupingLessAccuracy = func() Objective {
+		o := objectiveGRPCRatioGrouping()
+		o.PerformanceOverAccuracy = true
+		return o
+	}
 	objectiveHTTPLatency = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-http-latency"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "monitoring-http-latency"),
 			Target: 0.995,
 			Window: model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -168,9 +189,14 @@ var (
 		o.Indicator.Latency.Total.LabelMatchers = append(o.Indicator.Latency.Total.LabelMatchers, matcher)
 		return o
 	}
+	objectiveHTTPLatencyGroupingRegexLessAccuracy = func() Objective {
+		o := objectiveHTTPLatencyGroupingRegex()
+		o.PerformanceOverAccuracy = true
+		return o
+	}
 	objectiveGRPCLatency = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-grpc-latency"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "monitoring-grpc-latency"),
 			Target: 0.995,
 			Window: model.Duration(7 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -209,7 +235,7 @@ var (
 	}
 	objectiveOperator = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "monitoring-prometheus-operator-errors"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "monitoring-prometheus-operator-errors"),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -241,7 +267,7 @@ var (
 	}
 	objectiveAPIServerRatio = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "apiserver-write-response-errors"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "apiserver-write-response-errors"),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -285,7 +311,7 @@ var (
 	}
 	objectiveAPIServerLatency = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "apiserver-read-resource-latency"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "apiserver-read-resource-latency"),
 			Target: 0.99,
 			Window: model.Duration(14 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -333,7 +359,7 @@ var (
 	}
 	objectiveUpTargets = func() Objective {
 		return Objective{
-			Labels: labels.FromStrings(labels.MetricName, "up-targets"),
+			Labels: labels.FromStrings(model.MetricNameLabel, "up-targets"),
 			Target: 0.99,
 			Window: model.Duration(28 * 24 * time.Hour),
 			Alerting: Alerting{
@@ -355,7 +381,12 @@ var (
 		}
 		o := objectiveUpTargets()
 		o.Indicator.BoolGauge.Grouping = []string{"job", "instance"}
-		o.Indicator.BoolGauge.Metric.LabelMatchers = append(o.Indicator.BoolGauge.LabelMatchers, matcher)
+		o.Indicator.BoolGauge.LabelMatchers = append(o.Indicator.BoolGauge.LabelMatchers, matcher)
+		return o
+	}
+	objectiveUpTargetsLessAccuracy = func() Objective {
+		o := objectiveUpTargets()
+		o.PerformanceOverAccuracy = true
 		return o
 	}
 )
@@ -436,7 +467,7 @@ func TestObjective_QueryTotal(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.QueryTotal(tc.objective.Window))
+			require.Equal(t, tc.expected, tc.objective.QueryTotal(tc.objective.Window, GenerationOptions{}))
 		})
 	}
 }
@@ -517,7 +548,7 @@ func TestObjective_QueryErrors(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.QueryErrors(tc.objective.Window))
+			require.Equal(t, tc.expected, tc.objective.QueryErrors(tc.objective.Window, GenerationOptions{}))
 		})
 	}
 }
@@ -598,7 +629,7 @@ func TestObjective_QueryErrorBudget(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.QueryErrorBudget())
+			require.Equal(t, tc.expected, tc.objective.QueryErrorBudget(GenerationOptions{}))
 		})
 	}
 }
@@ -809,7 +840,7 @@ func TestObjective_RequestRange(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.RequestRange(tc.timerange))
+			require.Equal(t, tc.expected, tc.objective.RequestRange(tc.timerange, GenerationOptions{}))
 		})
 	}
 }
@@ -909,7 +940,7 @@ func TestObjective_ErrorsRange(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.expected, tc.objective.ErrorsRange(tc.timerange))
+			require.Equal(t, tc.expected, tc.objective.ErrorsRange(tc.timerange, GenerationOptions{}))
 		})
 	}
 }
@@ -1034,9 +1065,9 @@ func TestObjective_Immutable(t *testing.T) {
 	for i, tc := range testcases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			objective := tc()
-			objective.QueryErrorBudget()
-			objective.QueryTotal(model.Duration(2 * time.Hour))
-			objective.QueryErrors(model.Duration(2 * time.Hour))
+			objective.QueryErrorBudget(GenerationOptions{})
+			objective.QueryTotal(model.Duration(2*time.Hour), GenerationOptions{})
+			objective.QueryErrors(model.Duration(2*time.Hour), GenerationOptions{})
 			objective.QueryBurnrate(2*time.Hour, nil)
 			require.Equal(t, tc(), objective)
 		})
@@ -1102,12 +1133,12 @@ func TestReplacer(t *testing.T) {
 func TestLatencyNativeBurnrateGrouping(t *testing.T) {
 	objective := objectiveHTTPNativeLatencyGrouping()
 
-	burnrateQuery := objective.Burnrate(5 * time.Minute)
+	burnrateQuery := objective.Burnrate(5*time.Minute, GenerationOptions{})
 	require.Equal(t, "1 - histogram_fraction(0, 1, sum by (handler, job) (rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[5m])))", burnrateQuery)
 
-	requestRangeQuery := objective.RequestRange(2 * time.Hour)
+	requestRangeQuery := objective.RequestRange(2*time.Hour, GenerationOptions{})
 	require.Equal(t, "sum by (job, handler) (histogram_count(rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[2h])))", requestRangeQuery)
 
-	errorsRangeQuery := objective.ErrorsRange(2 * time.Hour)
+	errorsRangeQuery := objective.ErrorsRange(2*time.Hour, GenerationOptions{})
 	require.Equal(t, "1 - histogram_fraction(0, 1, sum by (handler, job) (rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[2h])))", errorsRangeQuery)
 }

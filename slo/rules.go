@@ -3,6 +3,9 @@ package slo
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,8 +15,6 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -43,7 +44,7 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 		}
 
 		mbras[i] = MultiBurnRateAlert{
-			Severity:   string(w.Severity),
+			Severity:   o.alertSeverityLabel(i, w),
 			Short:      w.Short,
 			Long:       w.Long,
 			For:        w.For,
@@ -56,8 +57,9 @@ func (o Objective) Alerts() ([]MultiBurnRateAlert, error) {
 	return mbras, nil
 }
 
-func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
-	sloName := o.Labels.Get(labels.MetricName)
+func (o Objective) Burnrates(opts GenerationOptions) (monitoringv1.RuleGroup, error) {
+	sloName := o.Labels.Get(model.MetricNameLabel)
+	externalURL := opts.ExternalURL
 
 	ws := Windows(time.Duration(o.Window))
 	burnrates := burnratesFromWindows(ws)
@@ -74,7 +76,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -86,7 +88,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
 				Record: o.BurnrateName(br),
-				Expr:   intstr.FromString(o.Burnrate(br)),
+				Expr:   intstr.FromString(o.Burnrate(br, opts)),
 				Labels: ruleLabels,
 			})
 		}
@@ -101,7 +103,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		var alertMatchers []string
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				continue
 			}
 			if _, ok := groupingMap[m.Name]; !ok {
@@ -116,11 +118,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		sort.Strings(alertMatchers)
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
-		for _, w := range ws {
+		for i, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
-			alertAnnotations := o.commonRuleAnnotations()
+			alertAnnotations := o.commonRuleAnnotations(externalURL)
 			for _, m := range matchers {
-				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
 						alertLabels[m.Name] = m.Value
 					}
@@ -130,7 +132,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
-			alertLabels["severity"] = string(w.Severity)
+			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
@@ -162,7 +164,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -174,7 +176,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
 				Record: o.BurnrateName(br),
-				Expr:   intstr.FromString(o.Burnrate(br)),
+				Expr:   intstr.FromString(o.Burnrate(br, opts)),
 				Labels: ruleLabels,
 			})
 		}
@@ -189,7 +191,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		var alertMatchers []string
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				continue
 			}
 			if _, ok := groupingMap[m.Name]; !ok {
@@ -204,11 +206,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		sort.Strings(alertMatchers)
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
-		for _, w := range ws {
+		for i, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
-			alertAnnotations := o.commonRuleAnnotations()
+			alertAnnotations := o.commonRuleAnnotations(externalURL)
 			for _, m := range matchers {
-				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
 						alertLabels[m.Name] = m.Value
 					}
@@ -218,7 +220,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
-			alertLabels["severity"] = string(w.Severity)
+			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
@@ -250,7 +252,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -262,7 +264,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
 				Record: o.BurnrateName(br),
-				Expr:   intstr.FromString(o.Burnrate(br)),
+				Expr:   intstr.FromString(o.Burnrate(br, opts)),
 				Labels: ruleLabels,
 			})
 		}
@@ -277,7 +279,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		var alertMatchers []string
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				continue
 			}
 			if _, ok := groupingMap[m.Name]; !ok {
@@ -292,11 +294,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		sort.Strings(alertMatchers)
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
-		for _, w := range ws {
+		for i, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
-			alertAnnotations := o.commonRuleAnnotations()
+			alertAnnotations := o.commonRuleAnnotations(externalURL)
 			for _, m := range matchers {
-				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
 						alertLabels[m.Name] = m.Value
 					}
@@ -306,7 +308,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
-			alertLabels["severity"] = string(w.Severity)
+			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
@@ -338,7 +340,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		ruleLabels := o.commonRuleLabels(sloName)
 		for _, m := range matchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				ruleLabels[m.Name] = m.Value
 			}
 		}
@@ -350,7 +352,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		for _, br := range burnrates {
 			rules = append(rules, monitoringv1.Rule{
 				Record: o.BurnrateName(br),
-				Expr:   intstr.FromString(o.Burnrate(br)),
+				Expr:   intstr.FromString(o.Burnrate(br, opts)),
 				Labels: ruleLabels,
 			})
 		}
@@ -365,7 +367,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 
 		var alertMatchers []string
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				continue
 			}
 			if _, ok := groupingMap[m.Name]; !ok {
@@ -380,11 +382,11 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 		sort.Strings(alertMatchers)
 		alertMatchersString := strings.Join(alertMatchers, ",")
 
-		for _, w := range ws {
+		for i, w := range ws {
 			alertLabels := o.commonRuleLabels(sloName)
-			alertAnnotations := o.commonRuleAnnotations()
+			alertAnnotations := o.commonRuleAnnotations(externalURL)
 			for _, m := range matchers {
-				if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+				if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 					if _, ok := groupingMap[m.Name]; !ok { // only add labels that aren't grouped by
 						alertLabels[m.Name] = m.Value
 					}
@@ -394,7 +396,7 @@ func (o Objective) Burnrates() (monitoringv1.RuleGroup, error) {
 			// Propagate useful SLO information to alerts' labels
 			alertLabels["short"] = model.Duration(w.Short).String()
 			alertLabels["long"] = model.Duration(w.Long).String()
-			alertLabels["severity"] = string(w.Severity)
+			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
 
 			r := monitoringv1.Rule{
@@ -446,7 +448,7 @@ func (o Objective) BurnrateName(rate time.Duration) string {
 	return fmt.Sprintf("%s:burnrate%s", metric, model.Duration(rate))
 }
 
-func (o Objective) Burnrate(timerange time.Duration) string {
+func (o Objective) Burnrate(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (grouping) (rate(errorMetric{matchers="errors"}[1s])) / sum by (grouping) (rate(metric{matchers="total"}[1s]))`)
@@ -503,9 +505,9 @@ func (o Objective) Burnrate(timerange time.Duration) string {
 
 		objectiveReplacer{
 			metric:        o.Indicator.Latency.Total.Name,
-			matchers:      o.Indicator.Latency.Total.LabelMatchers,
+			matchers:      applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts),
 			errorMetric:   o.Indicator.Latency.Success.Name,
-			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			errorMatchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
 			grouping:      grouping,
 			window:        timerange,
 		}.replace(expr)
@@ -596,22 +598,65 @@ func (o Objective) commonRuleLabels(sloName string) map[string]string {
 		"slo": sloName,
 	}
 
-	for _, label := range o.Labels {
+	o.Labels.Range(func(label labels.Label) {
 		if strings.HasPrefix(label.Name, PropagationLabelsPrefix) {
 			ruleLabels[strings.TrimPrefix(label.Name, PropagationLabelsPrefix)] = label.Value
 		}
-	}
+	})
 
 	return ruleLabels
 }
 
-func (o Objective) commonRuleAnnotations() map[string]string {
+func (o Objective) commonRuleAnnotations(externalURL string) map[string]string {
 	var annotations map[string]string
-	if len(o.Annotations) > 0 {
-		annotations = make(map[string]string)
-		for key, value := range o.Annotations {
-			if strings.HasPrefix(key, PropagationLabelsPrefix) {
-				annotations[strings.TrimPrefix(key, PropagationLabelsPrefix)] = value
+
+	// Add existing annotations from the objective
+	for key, value := range o.Annotations {
+		if strings.HasPrefix(key, PropagationLabelsPrefix) {
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+			annotations[strings.TrimPrefix(key, PropagationLabelsPrefix)] = value
+		}
+	}
+
+	// Add External URL if provided
+	if externalURL != "" {
+		sloName := o.Labels.Get(model.MetricNameLabel)
+		if sloName != "" {
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+
+			externalURLParsed, err := url.Parse(externalURL)
+			if err != nil {
+				fmt.Printf("Error parsing external URL: %v\n", err)
+				// Continue without adding pyrra_url
+				return annotations
+			}
+
+			params := url.Values{}
+			params.Add("expr", `{__name__="`+sloName+`"}`)
+			params.Add("from", "now-1h")
+			params.Add("to", "now")
+
+			externalURLParsed.Path = "/objectives"
+			externalURLParsed.RawQuery = params.Encode()
+
+			annotations["pyrra_url"] = externalURLParsed.String()
+
+			if grouping := o.Grouping(); len(grouping) > 0 {
+				groups := make([]string, 0, len(grouping))
+				for _, l := range grouping {
+					// Use a placeholder for the template expression to prevent url.QueryEscape from encoding it.
+					// Prometheus needs {{$labels.<name>}} as-is to template the actual value at alert time.
+					groups = append(groups, l+`="__TPL_`+l+`__"`)
+				}
+				groupingParam := url.QueryEscape("{" + strings.Join(groups, ",") + "}")
+				for _, l := range grouping {
+					groupingParam = strings.ReplaceAll(groupingParam, "__TPL_"+l+"__", "{{$labels."+l+"}}")
+				}
+				annotations["pyrra_url"] += "&grouping=" + groupingParam
 			}
 		}
 	}
@@ -619,67 +664,191 @@ func (o Objective) commonRuleAnnotations() map[string]string {
 	return annotations
 }
 
-func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
-	sloName := o.Labels.Get(labels.MetricName)
+func (o Objective) countExpr() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+	return parser.ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))`)
+}
 
-	countExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-		return parser.ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))`)
+func (o Objective) sumExpr() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+	return parser.ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))`)
+}
+
+func (o Objective) increaseExpr() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+	return parser.ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s]))`)
+}
+
+func (o Objective) increaseSubqueryExpr() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
+	return parser.ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s:2s]))`)
+}
+
+func (o Objective) absentExpr() (parser.Expr, error) {
+	return parser.ParseExpr(`absent(metric{matchers="total"}) == 1`)
+}
+
+func (o Objective) increaseInterval() model.Duration {
+	day := 24 * time.Hour
+	window := time.Duration(o.Window)
+
+	// TODO: Make this a function with an equation
+	if window < 7*day {
+		return model.Duration(30 * time.Second)
+	} else if window < 14*day {
+		return model.Duration(60 * time.Second)
+	} else if window < 21*day {
+		return model.Duration(90 * time.Second)
+	} else if window < 28*day {
+		return model.Duration(120 * time.Second)
+	} else if window < 35*day {
+		return model.Duration(150 * time.Second)
+	} else if window < 42*day {
+		return model.Duration(180 * time.Second)
+	} else if window < 49*day {
+		return model.Duration(210 * time.Second)
+	}
+	return model.Duration(240 * time.Second) // 8w+
+}
+
+// IncreaseRules returns a single RuleGroup with all increase rules.
+func (o Objective) IncreaseRules(opts GenerationOptions) (monitoringv1.RuleGroup, error) {
+	sloName := o.Labels.Get(model.MetricNameLabel)
+
+	shortRules, longRules, err := o.splitIncreaseRulesForType(sloName, opts)
+	if err != nil {
+		return monitoringv1.RuleGroup{}, err
 	}
 
-	sumExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-		return parser.ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))`)
+	rules := append(shortRules, longRules...)
+
+	return monitoringv1.RuleGroup{
+		Name:     sloName + "-increase",
+		Interval: monitoringDuration(o.increaseInterval().String()),
+		Rules:    rules,
+	}, nil
+}
+
+// SplitIncreaseRules returns two separate rule groups when PerformanceOverAccuracy is enabled:
+//   - short: 5m increase recording rules and absent alerts (run on Prometheus)
+//   - long: subquery rules over the full window (run on Thanos)
+//
+// When PerformanceOverAccuracy is false, short is empty and long contains all rules.
+func (o Objective) SplitIncreaseRules(opts GenerationOptions) (short, long monitoringv1.RuleGroup, err error) {
+	sloName := o.Labels.Get(model.MetricNameLabel)
+
+	shortRules, longRules, err := o.splitIncreaseRulesForType(sloName, opts)
+	if err != nil {
+		return monitoringv1.RuleGroup{}, monitoringv1.RuleGroup{}, err
 	}
 
-	increaseExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-		return parser.ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s]))`)
+	interval := monitoringDuration(o.increaseInterval().String())
+
+	if len(shortRules) > 0 {
+		short = monitoringv1.RuleGroup{
+			Name:     sloName + "-increase",
+			Interval: monitoringDuration("30s"),
+			Rules:    shortRules,
+		}
 	}
 
-	absentExpr := func() (parser.Expr, error) {
-		return parser.ParseExpr(`absent(metric{matchers="total"}) == 1`)
+	long = monitoringv1.RuleGroup{
+		Name:     sloName + "-increase",
+		Interval: interval,
+		Rules:    longRules,
 	}
 
-	var rules []monitoringv1.Rule
+	return short, long, nil
+}
 
+func (o Objective) splitIncreaseRulesForType(sloName string, opts GenerationOptions) (shortRules, longRules []monitoringv1.Rule, err error) {
 	switch o.IndicatorType() {
+	case Unknown:
+		return nil, nil, nil
 	case Ratio:
-		ruleLabels := o.commonRuleLabels(sloName)
-		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
-				ruleLabels[m.Name] = m.Value
-			}
-		}
+		return o.increaseRulesRatio(sloName)
+	case Latency:
+		return o.increaseRuleLatency(sloName, opts)
+	case LatencyNative:
+		rules, err := o.increaseRuleLatencyNative(sloName)
+		return nil, rules, err
+	case BoolGauge:
+		return o.increaseRuleBoolGauge(sloName)
+	}
+	return nil, nil, nil
+}
 
-		groupingMap := map[string]struct{}{}
-		for _, s := range o.Indicator.Ratio.Grouping {
-			groupingMap[s] = struct{}{}
+func (o Objective) increaseRulesRatio(sloName string) (shortRules, longRules []monitoringv1.Rule, err error) {
+	ruleLabels := o.commonRuleLabels(sloName)
+	for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
+		if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
+			ruleLabels[m.Name] = m.Value
 		}
-		for _, s := range groupingLabels(
-			o.Indicator.Ratio.Errors.LabelMatchers,
-			o.Indicator.Ratio.Total.LabelMatchers,
-		) {
-			groupingMap[s] = struct{}{}
-		}
-		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
-				groupingMap[m.Name] = struct{}{}
-			}
-		}
-		// Delete labels that are grouped, as their value is part of the recording rule anyway
-		for g := range groupingMap {
-			delete(ruleLabels, g)
-		}
+	}
 
-		grouping := make([]string, 0, len(groupingMap))
-		for s := range groupingMap {
-			grouping = append(grouping, s)
+	groupingMap := map[string]struct{}{}
+	for _, s := range o.Indicator.Ratio.Grouping {
+		groupingMap[s] = struct{}{}
+	}
+	for _, s := range groupingLabels(
+		o.Indicator.Ratio.Errors.LabelMatchers,
+		o.Indicator.Ratio.Total.LabelMatchers,
+	) {
+		groupingMap[s] = struct{}{}
+	}
+	for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
+		if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+			groupingMap[m.Name] = struct{}{}
 		}
-		sort.Strings(grouping)
+	}
+	for g := range groupingMap {
+		delete(ruleLabels, g)
+	}
 
-		expr, err := increaseExpr()
+	grouping := make([]string, 0, len(groupingMap))
+	for s := range groupingMap {
+		grouping = append(grouping, s)
+	}
+	sort.Strings(grouping)
+
+	expr, err := o.increaseExpr()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if o.PerformanceOverAccuracy {
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Total.Name,
+			matchers: o.Indicator.Ratio.Total.LabelMatchers,
+			grouping: grouping,
+			window:   5 * time.Minute,
+		}.replace(expr)
+
+		subqueryName := increaseName(o.Indicator.Ratio.Total.Name, model.Duration(5*time.Minute))
+
+		// Short rule: increase(metric[5m])
+		shortRules = append(shortRules, monitoringv1.Rule{
+			Record: subqueryName,
+			Expr:   intstr.FromString(expr.String()),
+			Labels: ruleLabels,
+		})
+
+		// Long rule: sum_over_time(metric:increase5m[window:5m])
+		subExpr, err := o.increaseSubqueryExpr()
 		if err != nil {
-			return monitoringv1.RuleGroup{}, err
+			return nil, nil, err
 		}
 
+		subqueryLabelMatchers := o.buildSubqueryMatchers(o.Indicator.Ratio.Total.LabelMatchers, subqueryName)
+		objectiveReplacer{
+			metric:   subqueryName,
+			matchers: subqueryLabelMatchers,
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(subExpr)
+
+		longRules = append(longRules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.Ratio.Total.Name, o.Window),
+			Expr:   intstr.FromString(subExpr.String()),
+			Labels: ruleLabels,
+		})
+	} else {
 		objectiveReplacer{
 			metric:   o.Indicator.Ratio.Total.Name,
 			matchers: o.Indicator.Ratio.Total.LabelMatchers,
@@ -687,46 +856,87 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			window:   time.Duration(o.Window),
 		}.replace(expr)
 
-		rules = append(rules, monitoringv1.Rule{
+		longRules = append(longRules, monitoringv1.Rule{
 			Record: increaseName(o.Indicator.Ratio.Total.Name, o.Window),
 			Expr:   intstr.FromString(expr.String()),
 			Labels: ruleLabels,
 		})
+	}
 
-		alertLabels := make(map[string]string, len(ruleLabels)+1)
-		for k, v := range ruleLabels {
-			alertLabels[k] = v
+	alertLabels := make(map[string]string, len(ruleLabels)+1)
+	for k, v := range ruleLabels {
+		alertLabels[k] = v
+	}
+	alertLabels["severity"] = o.alertSeverityLabelAbsent()
+
+	// Absent alerts go on short rules (they reference the raw metric)
+	if o.Alerting.Absent {
+		expr, err = o.absentExpr()
+		if err != nil {
+			return nil, nil, err
 		}
-		// Add severity label for alerts
-		alertLabels["severity"] = string(critical)
 
-		// add the absent alert if configured
-		if o.Alerting.Absent {
-			expr, err = absentExpr()
-			if err != nil {
-				return monitoringv1.RuleGroup{}, err
-			}
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Total.Name,
+			matchers: o.Indicator.Ratio.Total.LabelMatchers,
+		}.replace(expr)
 
+		absentRule := monitoringv1.Rule{
+			Alert:       o.AlertNameAbsent(),
+			Expr:        intstr.FromString(expr.String()),
+			For:         monitoringDuration(o.AbsentDuration().String()),
+			Labels:      alertLabels,
+			Annotations: o.commonRuleAnnotations(""),
+		}
+		if o.PerformanceOverAccuracy {
+			shortRules = append(shortRules, absentRule)
+		} else {
+			longRules = append(longRules, absentRule)
+		}
+	}
+
+	if o.Indicator.Ratio.Total.Name != o.Indicator.Ratio.Errors.Name {
+		expr, err := o.increaseExpr()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if o.PerformanceOverAccuracy {
+			// Short rule: increase(errors[5m])
 			objectiveReplacer{
-				metric:   o.Indicator.Ratio.Total.Name,
-				matchers: o.Indicator.Ratio.Total.LabelMatchers,
+				metric:   o.Indicator.Ratio.Errors.Name,
+				matchers: o.Indicator.Ratio.Errors.LabelMatchers,
+				grouping: grouping,
+				window:   5 * time.Minute,
 			}.replace(expr)
 
-			rules = append(rules, monitoringv1.Rule{
-				Alert:       o.AlertNameAbsent(),
-				Expr:        intstr.FromString(expr.String()),
-				For:         monitoringDuration(o.AbsentDuration().String()),
-				Labels:      alertLabels,
-				Annotations: o.commonRuleAnnotations(),
+			subqueryName := increaseName(o.Indicator.Ratio.Errors.Name, model.Duration(5*time.Minute))
+			shortRules = append(shortRules, monitoringv1.Rule{
+				Record: subqueryName,
+				Expr:   intstr.FromString(expr.String()),
+				Labels: ruleLabels,
 			})
-		}
 
-		if o.Indicator.Ratio.Total.Name != o.Indicator.Ratio.Errors.Name {
-			expr, err := increaseExpr()
+			// Long rule: sum_over_time(errors:increase5m[window:5m])
+			subExpr, err := o.increaseSubqueryExpr()
 			if err != nil {
-				return monitoringv1.RuleGroup{}, err
+				return nil, nil, err
 			}
 
+			subqueryLabelMatchers := o.buildSubqueryMatchers(o.Indicator.Ratio.Errors.LabelMatchers, subqueryName)
+			objectiveReplacer{
+				metric:   subqueryName,
+				matchers: subqueryLabelMatchers,
+				grouping: grouping,
+				window:   time.Duration(o.Window),
+			}.replace(subExpr)
+
+			longRules = append(longRules, monitoringv1.Rule{
+				Record: increaseName(o.Indicator.Ratio.Errors.Name, o.Window),
+				Expr:   intstr.FromString(subExpr.String()),
+				Labels: ruleLabels,
+			})
+		} else {
 			objectiveReplacer{
 				metric:   o.Indicator.Ratio.Errors.Name,
 				matchers: o.Indicator.Ratio.Errors.LabelMatchers,
@@ -734,256 +944,423 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 				window:   time.Duration(o.Window),
 			}.replace(expr)
 
-			rules = append(rules, monitoringv1.Rule{
+			longRules = append(longRules, monitoringv1.Rule{
 				Record: increaseName(o.Indicator.Ratio.Errors.Name, o.Window),
 				Expr:   intstr.FromString(expr.String()),
 				Labels: ruleLabels,
 			})
-
-			// add the absent alert if configured
-			if o.Alerting.Absent {
-				expr, err = absentExpr()
-				if err != nil {
-					return monitoringv1.RuleGroup{}, err
-				}
-
-				objectiveReplacer{
-					metric:   o.Indicator.Ratio.Errors.Name,
-					matchers: o.Indicator.Ratio.Errors.LabelMatchers,
-				}.replace(expr)
-
-				rules = append(rules, monitoringv1.Rule{
-					Alert:       o.AlertNameAbsent(),
-					Expr:        intstr.FromString(expr.String()),
-					For:         monitoringDuration(o.AbsentDuration().String()),
-					Labels:      alertLabels,
-					Annotations: o.commonRuleAnnotations(),
-				})
-			}
-		}
-	case Latency:
-		ruleLabels := o.commonRuleLabels(sloName)
-		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
-				ruleLabels[m.Name] = m.Value
-			}
 		}
 
-		groupingMap := map[string]struct{}{}
-		for _, s := range o.Indicator.Latency.Grouping {
-			groupingMap[s] = struct{}{}
-		}
-		for _, s := range groupingLabels(
-			o.Indicator.Latency.Success.LabelMatchers,
-			o.Indicator.Latency.Total.LabelMatchers,
-		) {
-			groupingMap[s] = struct{}{}
-		}
-		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
-				groupingMap[m.Name] = struct{}{}
-			}
-		}
-		// Delete labels that are grouped, as their value is part of the recording rule anyway
-		for g := range groupingMap {
-			delete(ruleLabels, g)
-		}
-
-		grouping := make([]string, 0, len(groupingMap))
-		for s := range groupingMap {
-			grouping = append(grouping, s)
-		}
-		sort.Strings(grouping)
-
-		expr, err := increaseExpr()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
-		}
-
-		objectiveReplacer{
-			metric:   o.Indicator.Latency.Total.Name,
-			matchers: o.Indicator.Latency.Total.LabelMatchers,
-			grouping: grouping,
-			window:   time.Duration(o.Window),
-		}.replace(expr)
-
-		rules = append(rules, monitoringv1.Rule{
-			Record: increaseName(o.Indicator.Latency.Total.Name, o.Window),
-			Expr:   intstr.FromString(expr.String()),
-			Labels: ruleLabels,
-		})
-
-		expr, err = increaseExpr()
-		if err != nil {
-			return monitoringv1.RuleGroup{}, err
-		}
-
-		objectiveReplacer{
-			metric:   o.Indicator.Latency.Success.Name,
-			matchers: o.Indicator.Latency.Success.LabelMatchers,
-			grouping: grouping,
-			window:   time.Duration(o.Window),
-		}.replace(expr)
-
-		var le string
-		for _, m := range o.Indicator.Latency.Success.LabelMatchers {
-			if m.Name == "le" {
-				le = m.Value
-				break
-			}
-		}
-		ruleLabelsLe := map[string]string{"le": le}
-		for k, v := range ruleLabels {
-			ruleLabelsLe[k] = v
-		}
-
-		rules = append(rules, monitoringv1.Rule{
-			Record: increaseName(o.Indicator.Latency.Success.Name, o.Window),
-			Expr:   intstr.FromString(expr.String()),
-			Labels: ruleLabelsLe,
-		})
-
-		// add the absent alert if configured
 		if o.Alerting.Absent {
-			expr, err = absentExpr()
+			expr, err = o.absentExpr()
 			if err != nil {
-				return monitoringv1.RuleGroup{}, err
+				return nil, nil, err
 			}
 
 			objectiveReplacer{
-				metric:   o.Indicator.Latency.Total.Name,
-				matchers: o.Indicator.Latency.Total.LabelMatchers,
+				metric:   o.Indicator.Ratio.Errors.Name,
+				matchers: o.Indicator.Ratio.Errors.LabelMatchers,
 			}.replace(expr)
 
-			alertLabels := make(map[string]string, len(ruleLabels)+1)
-			for k, v := range ruleLabels {
-				alertLabels[k] = v
-			}
-			// Add severity label for alerts
-			alertLabels["severity"] = string(critical)
-
-			rules = append(rules, monitoringv1.Rule{
+			absentRule := monitoringv1.Rule{
 				Alert:       o.AlertNameAbsent(),
 				Expr:        intstr.FromString(expr.String()),
 				For:         monitoringDuration(o.AbsentDuration().String()),
 				Labels:      alertLabels,
-				Annotations: o.commonRuleAnnotations(),
-			})
-
-			expr, err = absentExpr()
-			if err != nil {
-				return monitoringv1.RuleGroup{}, err
+				Annotations: o.commonRuleAnnotations(""),
 			}
-
-			objectiveReplacer{
-				metric:   o.Indicator.Latency.Success.Name,
-				matchers: o.Indicator.Latency.Success.LabelMatchers,
-			}.replace(expr)
-
-			alertLabelsLe := make(map[string]string, len(ruleLabelsLe)+1)
-			for k, v := range ruleLabelsLe {
-				alertLabelsLe[k] = v
-			}
-			// Add severity label for alerts
-			alertLabelsLe["severity"] = string(critical)
-
-			rules = append(rules, monitoringv1.Rule{
-				Alert:       o.AlertNameAbsent(),
-				Expr:        intstr.FromString(expr.String()),
-				For:         monitoringDuration(o.AbsentDuration().String()),
-				Labels:      alertLabelsLe,
-				Annotations: o.commonRuleAnnotations(),
-			})
-		}
-	case LatencyNative:
-		ruleLabels := o.commonRuleLabels(sloName)
-		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
-				ruleLabels[m.Name] = m.Value
+			if o.PerformanceOverAccuracy {
+				shortRules = append(shortRules, absentRule)
+			} else {
+				longRules = append(longRules, absentRule)
 			}
 		}
+	}
 
-		expr, err := parser.ParseExpr(`histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
+	return shortRules, longRules, nil
+}
+
+// buildSubqueryMatchers creates label matchers for the subquery recording rule,
+// replacing the metric name with the subquery recording rule name.
+func (o Objective) buildSubqueryMatchers(original []*labels.Matcher, subqueryName string) []*labels.Matcher {
+	matchers := make([]*labels.Matcher, 0, len(original))
+	for _, m := range original {
+		value := m.Value
+		if m.Name == model.MetricNameLabel {
+			value = subqueryName
+		}
+		matchers = append(matchers, &labels.Matcher{
+			Type:  m.Type,
+			Name:  m.Name,
+			Value: value,
+		})
+	}
+	return matchers
+}
+
+func (o Objective) increaseRuleLatency(sloName string, opts GenerationOptions) (shortRules, longRules []monitoringv1.Rule, err error) {
+	ruleLabels := o.commonRuleLabels(sloName)
+	for _, m := range o.Indicator.Latency.Total.LabelMatchers {
+		if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
+			ruleLabels[m.Name] = m.Value
+		}
+	}
+
+	groupingMap := map[string]struct{}{}
+	for _, s := range o.Indicator.Latency.Grouping {
+		groupingMap[s] = struct{}{}
+	}
+	for _, s := range groupingLabels(
+		o.Indicator.Latency.Success.LabelMatchers,
+		o.Indicator.Latency.Total.LabelMatchers,
+	) {
+		groupingMap[s] = struct{}{}
+	}
+	for _, m := range o.Indicator.Latency.Total.LabelMatchers {
+		if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+			groupingMap[m.Name] = struct{}{}
+		}
+	}
+	for g := range groupingMap {
+		delete(ruleLabels, g)
+	}
+
+	grouping := make([]string, 0, len(groupingMap))
+	for s := range groupingMap {
+		grouping = append(grouping, s)
+	}
+	sort.Strings(grouping)
+
+	var le string
+	for _, m := range o.Indicator.Latency.Success.LabelMatchers {
+		if m.Name == "le" {
+			le = m.Value
+			break
+		}
+	}
+	ruleLabelsLe := map[string]string{"le": le}
+	for k, v := range ruleLabels {
+		ruleLabelsLe[k] = v
+	}
+
+	window := time.Duration(o.Window)
+	if o.PerformanceOverAccuracy {
+		window = 5 * time.Minute
+	}
+
+	// Total metric increase rule
+	expr, err := o.increaseExpr()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	objectiveReplacer{
+		metric:   o.Indicator.Latency.Total.Name,
+		matchers: applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts),
+		grouping: grouping,
+		window:   window,
+	}.replace(expr)
+
+	totalRule := monitoringv1.Rule{
+		Record: increaseName(o.Indicator.Latency.Total.Name, model.Duration(window)),
+		Expr:   intstr.FromString(expr.String()),
+		Labels: ruleLabels,
+	}
+
+	// Success metric increase rule
+	expr, err = o.increaseExpr()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	objectiveReplacer{
+		metric:   o.Indicator.Latency.Success.Name,
+		matchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
+		grouping: grouping,
+		window:   window,
+	}.replace(expr)
+
+	successRule := monitoringv1.Rule{
+		Record: increaseName(o.Indicator.Latency.Success.Name, model.Duration(window)),
+		Expr:   intstr.FromString(expr.String()),
+		Labels: ruleLabelsLe,
+	}
+
+	if o.PerformanceOverAccuracy {
+		shortRules = append(shortRules, totalRule, successRule)
+
+		// Long rule: sum_over_time for total
+		subExpr, err := o.increaseSubqueryExpr()
 		if err != nil {
-			return monitoringv1.RuleGroup{}, err
+			return nil, nil, err
 		}
 
+		subqueryName := increaseName(o.Indicator.Latency.Total.Name, model.Duration(5*time.Minute))
+		// The total (_count) and success (_bucket) short rules both record into
+		// the same :increase5m metric, distinguished only by the "le" label: the
+		// total series has no "le" while the success series carries the threshold
+		// bucket (e.g. le="60.0"). Match le="" so the total subquery selects only
+		// the count series; without it the sum also picks up the success bucket
+		// and doubles the denominator.
+		totalSubqueryMatchers := o.buildSubqueryMatchers(applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts), subqueryName)
+		totalSubqueryMatchers = append(totalSubqueryMatchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
 		objectiveReplacer{
-			metric:   o.Indicator.LatencyNative.Total.Name,
-			matchers: slices.Clone(o.Indicator.LatencyNative.Total.LabelMatchers),
-			grouping: slices.Clone(o.Indicator.LatencyNative.Grouping),
+			metric:   subqueryName,
+			matchers: totalSubqueryMatchers,
+			grouping: grouping,
 			window:   time.Duration(o.Window),
-		}.replace(expr)
+		}.replace(subExpr)
 
-		rules = append(rules, monitoringv1.Rule{
-			Record: increaseName(o.Indicator.LatencyNative.Total.Name, o.Window),
-			Expr:   intstr.FromString(expr.String()),
+		longRules = append(longRules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.Latency.Total.Name, o.Window),
+			Expr:   intstr.FromString(subExpr.String()),
 			Labels: ruleLabels,
 		})
 
-		expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, sum by (grouping) (increase(metric{matchers="total"}[1s]))) * histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
+		// Long rule: sum_over_time for success
+		subExpr, err = o.increaseSubqueryExpr()
 		if err != nil {
-			return monitoringv1.RuleGroup{}, err
+			return nil, nil, err
 		}
 
-		latencySeconds := time.Duration(o.Indicator.LatencyNative.Latency).Seconds()
+		subqueryName = increaseName(o.Indicator.Latency.Success.Name, model.Duration(5*time.Minute))
 		objectiveReplacer{
-			metric:   o.Indicator.LatencyNative.Total.Name,
-			matchers: slices.Clone(o.Indicator.LatencyNative.Total.LabelMatchers),
-			grouping: slices.Clone(o.Indicator.LatencyNative.Grouping),
+			metric:   subqueryName,
+			matchers: o.buildSubqueryMatchers(applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts), subqueryName),
+			grouping: grouping,
 			window:   time.Duration(o.Window),
-			target:   latencySeconds,
+		}.replace(subExpr)
+
+		longRules = append(longRules, monitoringv1.Rule{
+			Record: increaseName(o.Indicator.Latency.Success.Name, o.Window),
+			Expr:   intstr.FromString(subExpr.String()),
+			Labels: ruleLabelsLe,
+		})
+	} else {
+		longRules = append(longRules, totalRule, successRule)
+	}
+
+	// Absent alerts go on short rules when split, long rules otherwise
+	if o.Alerting.Absent {
+		alertLabels := make(map[string]string, len(ruleLabels)+1)
+		for k, v := range ruleLabels {
+			alertLabels[k] = v
+		}
+		alertLabels["severity"] = o.alertSeverityLabelAbsent()
+
+		expr, err = o.absentExpr()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Latency.Total.Name,
+			matchers: applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts),
 		}.replace(expr)
 
-		ruleLabels = maps.Clone(ruleLabels)
-		ruleLabels["le"] = fmt.Sprintf("%g", latencySeconds)
+		absentTotalRule := monitoringv1.Rule{
+			Alert:       o.AlertNameAbsent(),
+			Expr:        intstr.FromString(expr.String()),
+			For:         monitoringDuration(o.AbsentDuration().String()),
+			Labels:      alertLabels,
+			Annotations: o.commonRuleAnnotations(""),
+		}
 
-		rules = append(rules, monitoringv1.Rule{
-			Record: increaseName(o.Indicator.LatencyNative.Total.Name, o.Window),
-			Expr:   intstr.FromString(expr.String()),
+		expr, err = o.absentExpr()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		objectiveReplacer{
+			metric:   o.Indicator.Latency.Success.Name,
+			matchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
+		}.replace(expr)
+
+		alertLabelsLe := make(map[string]string, len(ruleLabelsLe)+1)
+		for k, v := range ruleLabelsLe {
+			alertLabelsLe[k] = v
+		}
+		alertLabelsLe["severity"] = o.alertSeverityLabelAbsent()
+
+		absentSuccessRule := monitoringv1.Rule{
+			Alert:       o.AlertNameAbsent(),
+			Expr:        intstr.FromString(expr.String()),
+			For:         monitoringDuration(o.AbsentDuration().String()),
+			Labels:      alertLabelsLe,
+			Annotations: o.commonRuleAnnotations(""),
+		}
+
+		if o.PerformanceOverAccuracy {
+			shortRules = append(shortRules, absentTotalRule, absentSuccessRule)
+		} else {
+			longRules = append(longRules, absentTotalRule, absentSuccessRule)
+		}
+	}
+
+	return shortRules, longRules, nil
+}
+
+func (o Objective) increaseRuleLatencyNative(sloName string) ([]monitoringv1.Rule, error) {
+	var rules []monitoringv1.Rule
+
+	ruleLabels := o.commonRuleLabels(sloName)
+	for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
+		if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
+			ruleLabels[m.Name] = m.Value
+		}
+	}
+
+	expr, err := parser.ParseExpr(`histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
+	if err != nil {
+		return rules, err
+	}
+
+	objectiveReplacer{
+		metric:   o.Indicator.LatencyNative.Total.Name,
+		matchers: slices.Clone(o.Indicator.LatencyNative.Total.LabelMatchers),
+		grouping: slices.Clone(o.Indicator.LatencyNative.Grouping),
+		window:   time.Duration(o.Window),
+	}.replace(expr)
+
+	rules = append(rules, monitoringv1.Rule{
+		Record: increaseName(o.Indicator.LatencyNative.Total.Name, o.Window),
+		Expr:   intstr.FromString(expr.String()),
+		Labels: ruleLabels,
+	})
+
+	expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, sum by (grouping) (increase(metric{matchers="total"}[1s]))) * histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
+	if err != nil {
+		return rules, err
+	}
+
+	latencySeconds := time.Duration(o.Indicator.LatencyNative.Latency).Seconds()
+	objectiveReplacer{
+		metric:   o.Indicator.LatencyNative.Total.Name,
+		matchers: slices.Clone(o.Indicator.LatencyNative.Total.LabelMatchers),
+		grouping: slices.Clone(o.Indicator.LatencyNative.Grouping),
+		window:   time.Duration(o.Window),
+		target:   latencySeconds,
+	}.replace(expr)
+
+	ruleLabels = maps.Clone(ruleLabels)
+	ruleLabels["le"] = fmt.Sprintf("%g", latencySeconds)
+
+	rules = append(rules, monitoringv1.Rule{
+		Record: increaseName(o.Indicator.LatencyNative.Total.Name, o.Window),
+		Expr:   intstr.FromString(expr.String()),
+		Labels: ruleLabels,
+	})
+
+	return rules, nil
+}
+
+func (o Objective) increaseRuleBoolGauge(sloName string) (shortRules, longRules []monitoringv1.Rule, err error) {
+	ruleLabels := o.commonRuleLabels(sloName)
+	for _, m := range o.Indicator.BoolGauge.LabelMatchers {
+		if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
+			ruleLabels[m.Name] = m.Value
+		}
+	}
+
+	groupingMap := map[string]struct{}{}
+	for _, s := range o.Indicator.BoolGauge.Grouping {
+		groupingMap[s] = struct{}{}
+	}
+	for _, s := range o.Indicator.BoolGauge.LabelMatchers {
+		groupingMap[s.Name] = struct{}{}
+	}
+	for _, m := range o.Indicator.BoolGauge.LabelMatchers {
+		if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
+			groupingMap[m.Name] = struct{}{}
+		}
+	}
+	// Delete labels that are grouped, as their value is part of the recording rule anyway
+	for g := range groupingMap {
+		delete(ruleLabels, g)
+	}
+
+	grouping := make([]string, 0, len(groupingMap))
+	for s := range groupingMap {
+		grouping = append(grouping, s)
+	}
+	sort.Strings(grouping)
+
+	count, err := o.countExpr()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sum, err := o.sumExpr()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if o.PerformanceOverAccuracy {
+		// Short rules: 5m window count_over_time + sum_over_time
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   5 * time.Minute,
+		}.replace(count)
+
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+			grouping: grouping,
+			window:   5 * time.Minute,
+		}.replace(sum)
+
+		countSubqueryName := countName(o.Indicator.BoolGauge.Name, model.Duration(5*time.Minute))
+		sumSubqueryName := sumName(o.Indicator.BoolGauge.Name, model.Duration(5*time.Minute))
+
+		shortRules = append(shortRules, monitoringv1.Rule{
+			Record: countSubqueryName,
+			Expr:   intstr.FromString(count.String()),
 			Labels: ruleLabels,
 		})
-	case BoolGauge:
-		ruleLabels := o.commonRuleLabels(sloName)
-		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
-				ruleLabels[m.Name] = m.Value
-			}
-		}
 
-		groupingMap := map[string]struct{}{}
-		for _, s := range o.Indicator.BoolGauge.Grouping {
-			groupingMap[s] = struct{}{}
-		}
-		for _, s := range o.Indicator.BoolGauge.LabelMatchers {
-			groupingMap[s.Name] = struct{}{}
-		}
-		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
-			if m.Type == labels.MatchRegexp || m.Type == labels.MatchNotRegexp {
-				groupingMap[m.Name] = struct{}{}
-			}
-		}
-		// Delete labels that are grouped, as their value is part of the recording rule anyway
-		for g := range groupingMap {
-			delete(ruleLabels, g)
-		}
+		shortRules = append(shortRules, monitoringv1.Rule{
+			Record: sumSubqueryName,
+			Expr:   intstr.FromString(sum.String()),
+			Labels: ruleLabels,
+		})
 
-		grouping := make([]string, 0, len(groupingMap))
-		for s := range groupingMap {
-			grouping = append(grouping, s)
-		}
-		sort.Strings(grouping)
-
-		count, err := countExpr()
+		// Long rules: sum_over_time subqueries over the 5m recording rules
+		countSubExpr, err := o.increaseSubqueryExpr()
 		if err != nil {
-			return monitoringv1.RuleGroup{}, err
+			return nil, nil, err
 		}
+		objectiveReplacer{
+			metric:   countSubqueryName,
+			matchers: o.buildSubqueryMatchers(o.Indicator.BoolGauge.LabelMatchers, countSubqueryName),
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(countSubExpr)
 
-		sum, err := sumExpr()
+		longRules = append(longRules, monitoringv1.Rule{
+			Record: countName(o.Indicator.BoolGauge.Name, o.Window),
+			Expr:   intstr.FromString(countSubExpr.String()),
+			Labels: ruleLabels,
+		})
+
+		sumSubExpr, err := o.increaseSubqueryExpr()
 		if err != nil {
-			return monitoringv1.RuleGroup{}, err
+			return nil, nil, err
 		}
+		objectiveReplacer{
+			metric:   sumSubqueryName,
+			matchers: o.buildSubqueryMatchers(o.Indicator.BoolGauge.LabelMatchers, sumSubqueryName),
+			grouping: grouping,
+			window:   time.Duration(o.Window),
+		}.replace(sumSubExpr)
 
+		longRules = append(longRules, monitoringv1.Rule{
+			Record: sumName(o.Indicator.BoolGauge.Name, o.Window),
+			Expr:   intstr.FromString(sumSubExpr.String()),
+			Labels: ruleLabels,
+		})
+	} else {
 		objectiveReplacer{
 			metric:   o.Indicator.BoolGauge.Name,
 			matchers: o.Indicator.BoolGauge.LabelMatchers,
@@ -998,75 +1375,52 @@ func (o Objective) IncreaseRules() (monitoringv1.RuleGroup, error) {
 			window:   time.Duration(o.Window),
 		}.replace(sum)
 
-		rules = append(rules, monitoringv1.Rule{
+		longRules = append(longRules, monitoringv1.Rule{
 			Record: countName(o.Indicator.BoolGauge.Name, o.Window),
 			Expr:   intstr.FromString(count.String()),
 			Labels: ruleLabels,
 		})
 
-		rules = append(rules, monitoringv1.Rule{
+		longRules = append(longRules, monitoringv1.Rule{
 			Record: sumName(o.Indicator.BoolGauge.Name, o.Window),
 			Expr:   intstr.FromString(sum.String()),
 			Labels: ruleLabels,
 		})
+	}
 
-		if o.Alerting.Absent {
-			expr, err := absentExpr()
-			if err != nil {
-				return monitoringv1.RuleGroup{}, err
-			}
+	if o.Alerting.Absent {
+		expr, err := o.absentExpr()
+		if err != nil {
+			return nil, nil, err
+		}
 
-			objectiveReplacer{
-				metric:   o.Indicator.BoolGauge.Name,
-				matchers: o.Indicator.BoolGauge.LabelMatchers,
-			}.replace(expr)
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: o.Indicator.BoolGauge.LabelMatchers,
+		}.replace(expr)
 
-			alertLabels := make(map[string]string, len(ruleLabels)+1)
-			for k, v := range ruleLabels {
-				alertLabels[k] = v
-			}
-			// Add severity label for alerts
-			alertLabels["severity"] = string(critical)
+		alertLabels := make(map[string]string, len(ruleLabels)+1)
+		for k, v := range ruleLabels {
+			alertLabels[k] = v
+		}
+		// Add severity label for alerts
+		alertLabels["severity"] = o.alertSeverityLabelAbsent()
 
-			rules = append(rules, monitoringv1.Rule{
-				Alert:       o.AlertNameAbsent(),
-				Expr:        intstr.FromString(expr.String()),
-				For:         monitoringDuration(o.AbsentDuration().String()),
-				Labels:      alertLabels,
-				Annotations: o.commonRuleAnnotations(),
-			})
+		absentRule := monitoringv1.Rule{
+			Alert:       o.AlertNameAbsent(),
+			Expr:        intstr.FromString(expr.String()),
+			For:         monitoringDuration(o.AbsentDuration().String()),
+			Labels:      alertLabels,
+			Annotations: o.commonRuleAnnotations(""),
+		}
+		if o.PerformanceOverAccuracy {
+			shortRules = append(shortRules, absentRule)
+		} else {
+			longRules = append(longRules, absentRule)
 		}
 	}
 
-	day := 24 * time.Hour
-
-	var interval model.Duration
-	window := time.Duration(o.Window)
-
-	// TODO: Make this a function with an equation
-	if window < 7*day {
-		interval = model.Duration(30 * time.Second)
-	} else if window < 14*day {
-		interval = model.Duration(60 * time.Second)
-	} else if window < 21*day {
-		interval = model.Duration(90 * time.Second)
-	} else if window < 28*day {
-		interval = model.Duration(120 * time.Second)
-	} else if window < 35*day {
-		interval = model.Duration(150 * time.Second)
-	} else if window < 42*day {
-		interval = model.Duration(180 * time.Second)
-	} else if window < 49*day {
-		interval = model.Duration(210 * time.Second)
-	} else { // 8w
-		interval = model.Duration(240 * time.Second)
-	}
-
-	return monitoringv1.RuleGroup{
-		Name:     sloName + "-increase",
-		Interval: monitoringDuration(interval.String()),
-		Rules:    rules,
-	}, nil
+	return shortRules, longRules, nil
 }
 
 type severity string
@@ -1137,11 +1491,15 @@ func burnratesFromWindows(ws []Window) []time.Duration {
 
 var ErrGroupingUnsupported = errors.New("objective with grouping not supported in generic rules")
 
-func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
-	sloName := o.Labels.Get(labels.MetricName)
+func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup, error) {
+	sloName := o.Labels.Get(model.MetricNameLabel)
 	var rules []monitoringv1.Rule
 
 	ruleLabels := o.commonRuleLabels(sloName)
+
+	if o.RuleOutput.EnableDescriptionAsLabel {
+		ruleLabels["description"] = o.Description
+	}
 
 	rules = append(rules, monitoringv1.Rule{
 		Record: "pyrra_objective",
@@ -1171,7 +1529,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		totalMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Total.LabelMatchers))
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
 			value := m.Value
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				value = totalIncreaseName
 			}
 			totalMatchers = append(totalMatchers, &labels.Matcher{
@@ -1192,7 +1550,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 		errorMatchers := make([]*labels.Matcher, 0, len(o.Indicator.Ratio.Errors.LabelMatchers))
 		for _, m := range o.Indicator.Ratio.Errors.LabelMatchers {
 			value := m.Value
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				value = errorsIncreaseName
 			}
 			errorMatchers = append(errorMatchers, &labels.Matcher{
@@ -1270,7 +1628,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			metric := increaseName(o.Indicator.Latency.Total.Name, o.Window)
 			matchers := o.Indicator.Latency.Total.LabelMatchers
 			for _, m := range matchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = metric
 					break
 				}
@@ -1281,11 +1639,13 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 				Name:  "slo",
 				Value: o.Name(),
 			})
+			// Apply Prometheus 3 migration to matchers
+			matchers = applyPrometheus3Migration(matchers, opts)
 
 			errorMetric := increaseName(o.Indicator.Latency.Success.Name, o.Window)
 			errorMatchers := o.Indicator.Latency.Success.LabelMatchers
 			for _, m := range errorMatchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = errorMetric
 					break
 				}
@@ -1295,6 +1655,8 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 				Name:  "slo",
 				Value: o.Name(),
 			})
+			// Apply Prometheus 3 migration to errorMatchers
+			errorMatchers = applyPrometheus3Migration(errorMatchers, opts)
 
 			objectiveReplacer{
 				metric:        metric,
@@ -1320,14 +1682,14 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			metric := o.Indicator.Latency.Total.Name
 			matchers := o.Indicator.Latency.Total.LabelMatchers
 			for _, m := range matchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = metric
 					break
 				}
 			}
 			objectiveReplacer{
 				metric:   metric,
-				matchers: matchers,
+				matchers: applyPrometheus3Migration(matchers, opts),
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
@@ -1346,7 +1708,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			metric := o.Indicator.Latency.Total.Name
 			matchers := o.Indicator.Latency.Total.LabelMatchers
 			for _, m := range matchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = metric
 					break
 				}
@@ -1355,7 +1717,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			errorMetric := o.Indicator.Latency.Success.Name
 			errorMatchers := o.Indicator.Latency.Success.LabelMatchers
 			for _, m := range errorMatchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = errorMetric
 					break
 				}
@@ -1363,9 +1725,9 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 
 			objectiveReplacer{
 				metric:        metric,
-				matchers:      matchers,
+				matchers:      applyPrometheus3Migration(matchers, opts),
 				errorMetric:   errorMetric,
-				errorMatchers: errorMatchers,
+				errorMatchers: applyPrometheus3Migration(errorMatchers, opts),
 			}.replace(errorsExpr)
 
 			rules = append(rules, monitoringv1.Rule{
@@ -1387,7 +1749,7 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			metric := increaseName(o.Indicator.LatencyNative.Total.Name, o.Window)
 			matchers := o.Indicator.LatencyNative.Total.LabelMatchers
 			for _, m := range matchers {
-				if m.Name == labels.MetricName {
+				if m.Name == model.MetricNameLabel {
 					m.Value = metric
 					break
 				}
@@ -1421,10 +1783,10 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
 
-		totalMetric := countName(o.Indicator.BoolGauge.Metric.Name, o.Window)
-		totalMatchers := cloneMatchers(o.Indicator.BoolGauge.Metric.LabelMatchers)
+		totalMetric := countName(o.Indicator.BoolGauge.Name, o.Window)
+		totalMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range totalMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = totalMetric
 				break
 			}
@@ -1435,10 +1797,10 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 			Value: o.Name(),
 		})
 
-		successMetric := sumName(o.Indicator.BoolGauge.Metric.Name, o.Window)
-		successMatchers := cloneMatchers(o.Indicator.BoolGauge.Metric.LabelMatchers)
+		successMetric := sumName(o.Indicator.BoolGauge.Name, o.Window)
+		successMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range successMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = successMetric
 				break
 			}
@@ -1521,4 +1883,32 @@ func (o Objective) GenericRules() (monitoringv1.RuleGroup, error) {
 func monitoringDuration(d string) *monitoringv1.Duration {
 	md := monitoringv1.Duration(d)
 	return &md
+}
+
+// alertSeverityLabel returns the severity label for the given window index.
+// If the severity is not set, it returns the severity from the default window.
+func (o Objective) alertSeverityLabel(windowIndex int, w Window) string {
+	var v string
+	switch windowIndex {
+	case 0:
+		v = o.Alerting.Severities.FastBurn
+	case 1:
+		v = o.Alerting.Severities.MediumBurn
+	case 2:
+		v = o.Alerting.Severities.SlowBurn
+	case 3:
+		v = o.Alerting.Severities.LongTermBurn
+	}
+	if v != "" {
+		return v
+	}
+
+	return string(w.Severity)
+}
+
+func (o Objective) alertSeverityLabelAbsent() string {
+	if o.Alerting.Severities.Absent != "" {
+		return o.Alerting.Severities.Absent
+	}
+	return string(critical)
 }

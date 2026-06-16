@@ -191,11 +191,224 @@ func Test_makePrometheusRule(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			prometheusRule, err := makePrometheusRule(tt.objective, false)
+			prometheusRule, err := makePrometheusRule(tt.objective, false, false, "")
 			require.NoError(t, err)
 			require.Equal(t, tt.rules, prometheusRule)
 		})
 	}
+}
+
+func Test_makeSplitPrometheusRules(t *testing.T) {
+	perfSLO := httpSLO.DeepCopy()
+	perfSLO.Spec.PerformanceOverAccuracy = true
+	perfSLO.Spec.RuleOutput = &pyrrav1alpha1.RuleOutput{
+		ShortRulesLabels: map[string]string{"prometheus": "k8s"},
+		LongRulesLabels:  map[string]string{"prometheus": "thanos-k8s"},
+	}
+
+	shortRule, longRule, err := makeSplitPrometheusRules(*perfSLO, false, false, "")
+	require.NoError(t, err)
+
+	expectedShortRule := &monitoringv1.PrometheusRule{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: monitoring.GroupName + "/" + monitoringv1.Version,
+			Kind:       monitoringv1.PrometheusRuleKind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "http-short",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: pyrrav1alpha1.GroupVersion.Version,
+					Kind:       "ServiceLevelObjective",
+					Name:       "http",
+					UID:        "123",
+					Controller: &trueBool,
+				},
+			},
+			Labels: map[string]string{
+				"pyrra.dev/team": "foo",
+				"team":           "bar",
+				"prometheus":     "k8s",
+			},
+		},
+		Spec: monitoringv1.PrometheusRuleSpec{
+			Groups: []monitoringv1.RuleGroup{
+				{
+					Name:                    "http-increase",
+					PartialResponseStrategy: "warn",
+					Interval:                monitoringDuration("30s"),
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "http_requests:increase5m",
+							Expr:   intstr.FromString(`sum by (status) (increase(http_requests_total{job="app"}[5m]))`),
+							Labels: map[string]string{
+								"job":  "app",
+								"slo":  "http",
+								"team": "foo",
+							},
+						},
+						{
+							Alert: "SLOMetricAbsent",
+							Expr:  intstr.FromString(`absent(http_requests_total{job="app"}) == 1`),
+							For:   monitoringDuration("6m"),
+							Annotations: map[string]string{
+								"description": "foo",
+							},
+							Labels: map[string]string{
+								"job":      "app",
+								"severity": "critical",
+								"slo":      "http",
+								"team":     "foo",
+							},
+						},
+					},
+				},
+				{
+					Name:                    "http",
+					PartialResponseStrategy: "warn",
+					Interval:                monitoringDuration("30s"),
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "http_requests:burnrate5m",
+							Expr:   intstr.FromString(`sum(rate(http_requests_total{job="app",status=~"5.."}[5m])) / sum(rate(http_requests_total{job="app"}[5m]))`),
+							Labels: map[string]string{"job": "app", "slo": "http", "team": "foo"},
+						},
+						{
+							Record: "http_requests:burnrate30m",
+							Expr:   intstr.FromString(`sum(rate(http_requests_total{job="app",status=~"5.."}[30m])) / sum(rate(http_requests_total{job="app"}[30m]))`),
+							Labels: map[string]string{"job": "app", "slo": "http", "team": "foo"},
+						},
+						{
+							Record: "http_requests:burnrate1h",
+							Expr:   intstr.FromString(`sum(rate(http_requests_total{job="app",status=~"5.."}[1h])) / sum(rate(http_requests_total{job="app"}[1h]))`),
+							Labels: map[string]string{"job": "app", "slo": "http", "team": "foo"},
+						},
+						{
+							Record: "http_requests:burnrate2h",
+							Expr:   intstr.FromString(`sum(rate(http_requests_total{job="app",status=~"5.."}[2h])) / sum(rate(http_requests_total{job="app"}[2h]))`),
+							Labels: map[string]string{"job": "app", "slo": "http", "team": "foo"},
+						},
+						{
+							Record: "http_requests:burnrate6h",
+							Expr:   intstr.FromString(`sum(rate(http_requests_total{job="app",status=~"5.."}[6h])) / sum(rate(http_requests_total{job="app"}[6h]))`),
+							Labels: map[string]string{"job": "app", "slo": "http", "team": "foo"},
+						},
+						{
+							Record: "http_requests:burnrate1d",
+							Expr:   intstr.FromString(`sum(rate(http_requests_total{job="app",status=~"5.."}[1d])) / sum(rate(http_requests_total{job="app"}[1d]))`),
+							Labels: map[string]string{"job": "app", "slo": "http", "team": "foo"},
+						},
+						{
+							Record: "http_requests:burnrate4d",
+							Expr:   intstr.FromString(`sum(rate(http_requests_total{job="app",status=~"5.."}[4d])) / sum(rate(http_requests_total{job="app"}[4d]))`),
+							Labels: map[string]string{"job": "app", "slo": "http", "team": "foo"},
+						},
+						{
+							Alert:       "ErrorBudgetBurn",
+							Expr:        intstr.FromString(`http_requests:burnrate5m{job="app",slo="http"} > (14 * (1-0.995)) and http_requests:burnrate1h{job="app",slo="http"} > (14 * (1-0.995))`),
+							For:         monitoringDuration("2m0s"),
+							Labels:      map[string]string{"severity": "critical", "job": "app", "long": "1h", "slo": "http", "short": "5m", "team": "foo", "exhaustion": "2d"},
+							Annotations: map[string]string{"description": "foo"},
+						},
+						{
+							Alert:       "ErrorBudgetBurn",
+							Expr:        intstr.FromString(`http_requests:burnrate30m{job="app",slo="http"} > (7 * (1-0.995)) and http_requests:burnrate6h{job="app",slo="http"} > (7 * (1-0.995))`),
+							For:         monitoringDuration("15m0s"),
+							Labels:      map[string]string{"severity": "critical", "job": "app", "long": "6h", "slo": "http", "short": "30m", "team": "foo", "exhaustion": "4d"},
+							Annotations: map[string]string{"description": "foo"},
+						},
+						{
+							Alert:       "ErrorBudgetBurn",
+							Expr:        intstr.FromString(`http_requests:burnrate2h{job="app",slo="http"} > (2 * (1-0.995)) and http_requests:burnrate1d{job="app",slo="http"} > (2 * (1-0.995))`),
+							For:         monitoringDuration("1h0m0s"),
+							Labels:      map[string]string{"severity": "warning", "job": "app", "long": "1d", "slo": "http", "short": "2h", "team": "foo", "exhaustion": "2w"},
+							Annotations: map[string]string{"description": "foo"},
+						},
+						{
+							Alert:       "ErrorBudgetBurn",
+							Expr:        intstr.FromString(`http_requests:burnrate6h{job="app",slo="http"} > (1 * (1-0.995)) and http_requests:burnrate4d{job="app",slo="http"} > (1 * (1-0.995))`),
+							For:         monitoringDuration("3h0m0s"),
+							Labels:      map[string]string{"severity": "warning", "job": "app", "long": "4d", "slo": "http", "short": "6h", "team": "foo", "exhaustion": "4w"},
+							Annotations: map[string]string{"description": "foo"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	expectedLongRule := &monitoringv1.PrometheusRule{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: monitoring.GroupName + "/" + monitoringv1.Version,
+			Kind:       monitoringv1.PrometheusRuleKind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "http-long",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: pyrrav1alpha1.GroupVersion.Version,
+					Kind:       "ServiceLevelObjective",
+					Name:       "http",
+					UID:        "123",
+					Controller: &trueBool,
+				},
+			},
+			Labels: map[string]string{
+				"pyrra.dev/team": "foo",
+				"team":           "bar",
+				"prometheus":     "thanos-k8s",
+			},
+		},
+		Spec: monitoringv1.PrometheusRuleSpec{
+			Groups: []monitoringv1.RuleGroup{
+				{
+					Name:                    "http-increase",
+					PartialResponseStrategy: "warn",
+					Interval:                monitoringDuration("2m30s"),
+					Rules: []monitoringv1.Rule{
+						{
+							Record: "http_requests:increase4w",
+							Expr:   intstr.FromString(`sum by (status) (sum_over_time(http_requests:increase5m{job="app"}[4w:5m]))`),
+							Labels: map[string]string{
+								"job":  "app",
+								"slo":  "http",
+								"team": "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	require.Equal(t, expectedShortRule, shortRule)
+	require.Equal(t, expectedLongRule, longRule)
+}
+
+func Test_makeSplitPrometheusRulesWithoutRuleOutput(t *testing.T) {
+	perfSLO := httpSLO.DeepCopy()
+	perfSLO.Spec.PerformanceOverAccuracy = true
+	// No RuleOutput set — both should inherit SLO labels
+
+	shortRule, longRule, err := makeSplitPrometheusRules(*perfSLO, false, false, "")
+	require.NoError(t, err)
+
+	// Both should have the SLO's labels
+	require.Equal(t, "foo", shortRule.Labels[slo.PropagationLabelsPrefix+"team"])
+	require.Equal(t, "bar", shortRule.Labels["team"])
+	require.Equal(t, "foo", longRule.Labels[slo.PropagationLabelsPrefix+"team"])
+	require.Equal(t, "bar", longRule.Labels["team"])
+}
+
+func Test_mergeLabels(t *testing.T) {
+	base := map[string]string{"a": "1", "b": "2"}
+	override := map[string]string{"b": "3", "c": "4"}
+	result := mergeLabels(base, override)
+	require.Equal(t, map[string]string{"a": "1", "b": "3", "c": "4"}, result)
+
+	// nil override should preserve base
+	result = mergeLabels(base, nil)
+	require.Equal(t, map[string]string{"a": "1", "b": "2"}, result)
 }
 
 func Test_makeConfigMap(t *testing.T) {
@@ -360,6 +573,10 @@ func Test_makeConfigMap(t *testing.T) {
 						slo.PropagationLabelsPrefix + "team": "foo",
 						"team":                               "bar",
 					},
+					Annotations: map[string]string{
+						slo.PropagationLabelsPrefix + "description": "foo",
+						"description": "bar",
+					},
 				},
 				Data: map[string]string{
 					"http.rules.yaml": rules,
@@ -370,7 +587,7 @@ func Test_makeConfigMap(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			configMap, err := makeConfigMap(tc.configMapName, tc.objective, false)
+			configMap, err := makeConfigMap(tc.configMapName, tc.objective, false, false, "")
 
 			if tc.err != nil {
 				require.Error(t, err)

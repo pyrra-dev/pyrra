@@ -45,7 +45,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "http-errors",
+				model.MetricNameLabel, "http-errors",
 				"namespace", "monitoring",
 				"pyrra.dev/team", "foo",
 			),
@@ -64,14 +64,14 @@ spec:
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 							{Type: labels.MatchRegexp, Name: "code", Value: "5.."},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_requests_total"},
 						},
 					},
 					Total: slo.Metric{
 						Name: "http_requests_total",
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_requests_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_requests_total"},
 						},
 					},
 				},
@@ -100,7 +100,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "grpc-errors",
+				model.MetricNameLabel, "grpc-errors",
 				"namespace", "monitoring",
 			),
 			Description: "",
@@ -119,7 +119,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 							{Type: labels.MatchRegexp, Name: "grpc_code", Value: "Aborted|Unavailable|Internal|Unknown|Unimplemented|DataLoss"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "grpc_server_handled_total"},
 						},
 					},
 					Total: slo.Metric{
@@ -128,7 +128,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "job", Value: "api"},
 							{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handled_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "grpc_server_handled_total"},
 						},
 					},
 				},
@@ -157,7 +157,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "http-latency",
+				model.MetricNameLabel, "http-latency",
 				"namespace", "monitoring",
 			),
 			Target: 0.995,
@@ -174,7 +174,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 							{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
 							{Type: labels.MatchEqual, Name: "le", Value: "1"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_bucket"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_request_duration_seconds_bucket"},
 						},
 					},
 					Total: slo.Metric{
@@ -182,7 +182,7 @@ spec:
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: "job", Value: "metrics-service-thanos-receive-default"},
 							{Type: labels.MatchRegexp, Name: "code", Value: "2.."},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "http_request_duration_seconds_count"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "http_request_duration_seconds_count"},
 						},
 					},
 				},
@@ -211,7 +211,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "grpc-latency",
+				model.MetricNameLabel, "grpc-latency",
 				"namespace", "monitoring",
 			),
 			Target: 0.995,
@@ -229,7 +229,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
 							{Type: labels.MatchEqual, Name: "le", Value: "0.6"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_bucket"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "grpc_server_handling_seconds_bucket"},
 						},
 					},
 					Total: slo.Metric{
@@ -238,7 +238,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "job", Value: "api"},
 							{Type: labels.MatchEqual, Name: "grpc_service", Value: "conprof.WritableProfileStore"},
 							{Type: labels.MatchEqual, Name: "grpc_method", Value: "Write"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "grpc_server_handling_seconds_count"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "grpc_server_handling_seconds_count"},
 						},
 					},
 				},
@@ -267,7 +267,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "http-errorslatency",
+				model.MetricNameLabel, "http-errorslatency",
 				"namespace", "monitoring",
 			),
 			Target: 0.99,
@@ -285,7 +285,7 @@ spec:
 							{Type: labels.MatchEqual, Name: "path", Value: "/"},
 							{Type: labels.MatchNotRegexp, Name: "status", Value: "5.."},
 							{Type: labels.MatchEqual, Name: "le", Value: "0.5"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "nginx_ingress_controller_request_duration_seconds_bucket"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "nginx_ingress_controller_request_duration_seconds_bucket"},
 						},
 					},
 					Total: slo.Metric{
@@ -293,7 +293,7 @@ spec:
 						LabelMatchers: []*labels.Matcher{
 							{Type: labels.MatchEqual, Name: "ingress", Value: "lastfm"},
 							{Type: labels.MatchEqual, Name: "path", Value: "/"},
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "nginx_ingress_controller_request_duration_seconds_count"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "nginx_ingress_controller_request_duration_seconds_count"},
 						},
 					},
 				},
@@ -322,7 +322,7 @@ spec:
 `,
 		objective: slo.Objective{
 			Labels: labels.FromStrings(
-				labels.MetricName, "prometheus-operator-errors",
+				model.MetricNameLabel, "prometheus-operator-errors",
 				"namespace", "monitoring",
 			),
 			Target: 0.99,
@@ -336,13 +336,13 @@ spec:
 					Errors: slo.Metric{
 						Name: "prometheus_operator_reconcile_errors_total",
 						LabelMatchers: []*labels.Matcher{
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_errors_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "prometheus_operator_reconcile_errors_total"},
 						},
 					},
 					Total: slo.Metric{
 						Name: "prometheus_operator_reconcile_operations_total",
 						LabelMatchers: []*labels.Matcher{
-							{Type: labels.MatchEqual, Name: labels.MetricName, Value: "prometheus_operator_reconcile_operations_total"},
+							{Type: labels.MatchEqual, Name: model.MetricNameLabel, Value: "prometheus_operator_reconcile_operations_total"},
 						},
 					},
 				},
@@ -353,7 +353,7 @@ spec:
 
 func TestServiceLevelObjective_Internal(t *testing.T) {
 	for _, example := range examples {
-		t.Run(example.objective.Labels.Get(labels.MetricName), func(t *testing.T) {
+		t.Run(example.objective.Labels.Get(model.MetricNameLabel), func(t *testing.T) {
 			objective := v1alpha1.ServiceLevelObjective{}
 			err := yaml.UnmarshalStrict([]byte(example.config), &objective)
 			require.NoError(t, err)
@@ -701,7 +701,7 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 
 		t.Run("empty", func(t *testing.T) {
 			bg := boolGauge()
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = ""
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = ""
 			warn, err := bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "boolGauge metric must be set")
 			require.Nil(t, warn)
@@ -709,25 +709,133 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 
 		t.Run("invalidMetric", func(t *testing.T) {
 			bg := boolGauge()
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "foo{"
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = "foo{"
 			warn, err := bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:5: parse error: unexpected end of input inside braces")
 			require.Nil(t, warn)
 
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "foo}"
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = "foo}"
 			warn, err = bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:4: parse error: unexpected character: '}'")
 			require.Nil(t, warn)
 
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = "$$$"
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = "$$$"
 			warn, err = bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:1: parse error: unexpected character: '$'")
 			require.Nil(t, warn)
 
-			bg.Spec.ServiceLevelIndicator.BoolGauge.Query.Metric = `foo{foo="bar'}`
+			bg.Spec.ServiceLevelIndicator.BoolGauge.Metric = `foo{foo="bar'}`
 			warn, err = bg.ValidateCreate(ctx, bg)
 			require.EqualError(t, err, "failed to parse boolGauge metric: 1:9: parse error: unterminated quoted string")
 			require.Nil(t, warn)
+		})
+	})
+
+	t.Run("alerting severities", func(t *testing.T) {
+		ctx := context.Background()
+
+		t.Run("valid custom severities", func(t *testing.T) {
+			slo := &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-slo",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						Ratio: &v1alpha1.RatioIndicator{
+							Errors: v1alpha1.Query{Metric: `errors{foo="bar"}`},
+							Total:  v1alpha1.Query{Metric: `total{foo="bar"}`},
+						},
+					},
+					Alerting: v1alpha1.Alerting{
+						Severities: &v1alpha1.AlertingSeverities{
+							Absent:       "warning",
+							FastBurn:     "page",
+							MediumBurn:   "high",
+							SlowBurn:     "medium",
+							LongTermBurn: "low",
+						},
+					},
+				},
+			}
+
+			warn, err := slo.ValidateCreate(ctx, slo)
+			require.NoError(t, err)
+			require.Nil(t, warn)
+
+			internal, err := slo.Internal()
+			require.NoError(t, err)
+			require.Equal(t, "warning", internal.Alerting.Severities.Absent)
+			require.Equal(t, "page", internal.Alerting.Severities.FastBurn)
+			require.Equal(t, "high", internal.Alerting.Severities.MediumBurn)
+			require.Equal(t, "medium", internal.Alerting.Severities.SlowBurn)
+			require.Equal(t, "low", internal.Alerting.Severities.LongTermBurn)
+		})
+
+		t.Run("nil severities results in empty", func(t *testing.T) {
+			slo := &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-slo",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						Ratio: &v1alpha1.RatioIndicator{
+							Errors: v1alpha1.Query{Metric: `errors{foo="bar"}`},
+							Total:  v1alpha1.Query{Metric: `total{foo="bar"}`},
+						},
+					},
+					Alerting: v1alpha1.Alerting{
+						Severities: nil,
+					},
+				},
+			}
+
+			internal, err := slo.Internal()
+			require.NoError(t, err)
+			require.Empty(t, internal.Alerting.Severities.Absent)
+			require.Empty(t, internal.Alerting.Severities.FastBurn)
+			require.Empty(t, internal.Alerting.Severities.MediumBurn)
+			require.Empty(t, internal.Alerting.Severities.SlowBurn)
+			require.Empty(t, internal.Alerting.Severities.LongTermBurn)
+		})
+
+		t.Run("partial severities", func(t *testing.T) {
+			slo := &v1alpha1.ServiceLevelObjective{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-slo",
+					Namespace: "default",
+				},
+				Spec: v1alpha1.ServiceLevelObjectiveSpec{
+					Target: "99",
+					Window: "2w",
+					ServiceLevelIndicator: v1alpha1.ServiceLevelIndicator{
+						Ratio: &v1alpha1.RatioIndicator{
+							Errors: v1alpha1.Query{Metric: `errors{foo="bar"}`},
+							Total:  v1alpha1.Query{Metric: `total{foo="bar"}`},
+						},
+					},
+					Alerting: v1alpha1.Alerting{
+						Severities: &v1alpha1.AlertingSeverities{
+							FastBurn: "page",
+							SlowBurn: "info",
+							// MediumBurn, LongTermBurn, and Absent not set
+						},
+					},
+				},
+			}
+
+			internal, err := slo.Internal()
+			require.NoError(t, err)
+			require.Empty(t, internal.Alerting.Severities.Absent)
+			require.Equal(t, "page", internal.Alerting.Severities.FastBurn)
+			require.Empty(t, internal.Alerting.Severities.MediumBurn)
+			require.Equal(t, "info", internal.Alerting.Severities.SlowBurn)
+			require.Empty(t, internal.Alerting.Severities.LongTermBurn)
 		})
 	})
 }

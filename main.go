@@ -21,7 +21,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/bufbuild/connect-go"
-	"github.com/dgraph-io/ristretto"
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/go-kit/log"
@@ -51,7 +51,13 @@ import (
 //go:embed ui/build
 var ui embed.FS
 
+var (
+	version = "dev"
+	commit  = "none"
+)
+
 var CLI struct {
+	Version kong.VersionFlag `help:"Print version information and quit."`
 	LoggerConfig
 	API struct {
 		PrometheusURL               *url.URL          `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
@@ -69,43 +75,65 @@ var CLI struct {
 		TLSPrivateKeyFile           string            `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
 		TLSClientCAFile             string            `default:"" help:"File containing the CA certificate for the client"`
 		MimirOrgID                  string            `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
+		EnablePrometheus3Migration  bool              `default:"true" help:"Enable Prometheus 3 migration mode that makes queries compatible with both Prometheus 2 and 3. Enabled by default; pass --enable-prometheus-3-migration=false to opt out."`
 	} `cmd:"" help:"Runs Pyrra's API and UI."`
 	Filesystem struct {
-		ConfigFiles      string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
-		PrometheusURL    *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
-		PrometheusFolder string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
-		GenericRules     bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		ConfigFiles                string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
+		PrometheusURL              *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
+		PrometheusFolder           string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
+		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		EnablePrometheus3Migration bool     `default:"true" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3. Enabled by default; pass --enable-prometheus-3-migration=false to opt out."`
+		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
 	} `cmd:"" help:"Runs Pyrra's filesystem operator and backend for the API."`
 	Kubernetes struct {
-		MetricsAddr             string   `default:":8080" help:"The address the metric endpoint binds to."`
-		ConfigMapMode           bool     `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
-		GenericRules            bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		DisableWebhooks         bool     `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
-		TLSCertFile             string   `default:"" help:"File containing the default x509 Certificate for HTTPS."`
-		TLSPrivateKeyFile       string   `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
-		MimirURL                *url.URL `default:"" help:"The URL to the Mimir API. If specified provisions rules via Mimir instead of Prometheus"`
-		MimirPrometheusPrefix   string   `default:"prometheus" help:"The prefix for the Prometheus API in Mimir"`
-		MimirBasicAuthUsername  string   `default:"" help:"The HTTP basic authentication username"`
-		MimirWriteAlertingRules bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
-		MimirBasicAuthPassword  string   `default:"" help:"The HTTP basic authentication password"`
-		MimirOrgID              string   `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
-		MimirDeploymentMode     string   `default:"standalone" help:"Mimir deployment mode. Possible values: standalone (default), distributed"`
+		MetricsAddr                string   `default:":8080" help:"The address the metric endpoint binds to."`
+		ConfigMapMode              bool     `default:"false" help:"If the generated recording rules should instead be saved to config maps in the default Prometheus format."`
+		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		DisableWebhooks            bool     `default:"true" env:"DISABLE_WEBHOOKS" help:"Disable webhooks so the controller doesn't try to read certificates"`
+		TLSCertFile                string   `default:"" help:"File containing the default x509 Certificate for HTTPS."`
+		TLSPrivateKeyFile          string   `default:"" help:"File containing the default x509 private key matching --tls-cert-file."`
+		MimirURL                   *url.URL `default:"" help:"The URL to the Mimir API. If specified provisions rules via Mimir instead of Prometheus"`
+		MimirPrometheusPrefix      string   `default:"prometheus" help:"The prefix for the Prometheus API in Mimir"`
+		MimirBasicAuthUsername     string   `default:"" help:"The HTTP basic authentication username"`
+		MimirWriteAlertingRules    bool     `default:"false" help:"If alerting rules should be provisioned to the Mimir Ruler."`
+		MimirBasicAuthPassword     string   `default:"" help:"The HTTP basic authentication password"`
+		MimirOrgID                 string   `default:"" help:"Mimir tenant ID to query if multi-tenancy is enabled."`
+		MimirDeploymentMode        string   `default:"standalone" help:"Mimir deployment mode. Possible values: standalone (default), distributed"`
+		EnablePrometheus3Migration bool     `default:"true" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3. Enabled by default; pass --enable-prometheus-3-migration=false to opt out."`
+		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
+		EnableLeaderElection       bool     `default:"false" help:"Enable leader election for controller manager to enable running multiple replicas."`
+		LeaderElectionNamespace    string   `default:"" help:"Namespace used to perform leader election. Defaults to the namespace the controller is running in."`
 	} `cmd:"" help:"Runs Pyrra's Kubernetes operator and backend for the API."`
 	Generate struct {
-		ConfigFiles      string `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
-		PrometheusFolder string `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
-		GenericRules     bool   `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
-		OperatorRule     bool   `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
+		ConfigFiles                string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use."`
+		PrometheusFolder           string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generated Prometheus rules and alerts."`
+		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
+		OperatorRule               bool     `default:"false" help:"Generate rule files as prometheus-operator PrometheusRule: https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.PrometheusRule."`
+		EnablePrometheus3Migration bool     `default:"true" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3. Enabled by default; pass --enable-prometheus-3-migration=false to opt out."`
+		ExternalURL                *url.URL `default:"" help:"The URL for Pyrra to be included in alert annotations. This will be used to generate direct links to the Pyrra UI in alerts."`
 	} `cmd:"" help:"Read SLO config files and rewrites them as Prometheus rules and alerts."`
 }
 
 func main() {
-	ctx := kong.Parse(&CLI)
+	ctx := kong.Parse(&CLI,
+		kong.Vars{"version": version + " (" + commit + ")"},
+	)
 
 	logger := configureLogger(CLI.LoggerConfig)
+	level.Info(logger).Log("msg", "starting Pyrra", "version", version, "commit", commit)
+
+	buildInfo := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "pyrra_build_info",
+			Help: "A metric with a constant '1' value labeled by version and commit from which Pyrra was built.",
+		},
+		[]string{"version", "commit"},
+	)
+	buildInfo.WithLabelValues(version, commit).Set(1)
 
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(
+		buildInfo,
 		collectors.NewBuildInfoCollector(),
 		collectors.NewGoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
@@ -135,7 +163,7 @@ func main() {
 		clientConfig.TLSConfig = promconfig.TLSConfig{CAFile: CLI.API.TLSClientCAFile}
 	}
 
-	if strings.EqualFold(CLI.API.MimirOrgID, "") {
+	if !strings.EqualFold(CLI.API.MimirOrgID, "") {
 		clientConfig.HTTPHeaders = &promconfig.Headers{
 			Headers: map[string]promconfig.Header{
 				mimir.TenantHeaderName: {
@@ -164,7 +192,7 @@ func main() {
 	level.Info(logger).Log("msg", "using Prometheus", "url", prometheusURL.String())
 
 	// Default external url to prometheus if not defined
-	externalURL := prometheusURL
+	externalDatasourceURL := prometheusURL
 	if CLI.API.PrometheusExternalURL != nil && CLI.API.GrafanaExternalURL != nil {
 		level.Error(logger).Log("msg", "prometheus external URL set alongside grafana external url")
 		os.Exit(1)
@@ -172,13 +200,13 @@ func main() {
 		level.Error(logger).Log("msg", "grafana external datasource id set without grafana external url")
 		os.Exit(1)
 	} else if CLI.API.PrometheusExternalURL != nil {
-		externalURL = CLI.API.PrometheusExternalURL
+		externalDatasourceURL = CLI.API.PrometheusExternalURL
 	} else if CLI.API.GrafanaExternalURL != nil {
 		if CLI.API.GrafanaExternalDatasourceID == "" {
 			level.Error(logger).Log("msg", "grafana external datasource id cannot be empty when using an external grafana url")
 			os.Exit(1)
 		}
-		externalURL = CLI.API.GrafanaExternalURL
+		externalDatasourceURL = CLI.API.GrafanaExternalURL
 	}
 
 	// Mimir Client
@@ -215,7 +243,7 @@ func main() {
 			logger,
 			reg,
 			client,
-			externalURL,
+			externalDatasourceURL,
 			CLI.API.APIURL,
 			CLI.API.GrafanaExternalOrgID,
 			CLI.API.GrafanaExternalDatasourceID,
@@ -223,6 +251,7 @@ func main() {
 			CLI.API.UIRoutePrefix,
 			CLI.API.TLSCertFile,
 			CLI.API.TLSPrivateKeyFile,
+			CLI.API.EnablePrometheus3Migration,
 		)
 	case "filesystem":
 		code = cmdFilesystem(
@@ -232,6 +261,8 @@ func main() {
 			CLI.Filesystem.ConfigFiles,
 			CLI.Filesystem.PrometheusFolder,
 			CLI.Filesystem.GenericRules,
+			CLI.Filesystem.EnablePrometheus3Migration,
+			CLI.Filesystem.ExternalURL,
 		)
 	case "kubernetes":
 		code = cmdKubernetes(
@@ -244,6 +275,10 @@ func main() {
 			CLI.Kubernetes.TLSPrivateKeyFile,
 			mimirClient,
 			CLI.Kubernetes.MimirWriteAlertingRules,
+			CLI.Kubernetes.EnablePrometheus3Migration,
+			CLI.Kubernetes.ExternalURL,
+			CLI.Kubernetes.EnableLeaderElection,
+			CLI.Kubernetes.LeaderElectionNamespace,
 		)
 	case "generate":
 		code = cmdGenerate(
@@ -252,6 +287,8 @@ func main() {
 			CLI.Generate.PrometheusFolder,
 			CLI.Generate.GenericRules,
 			CLI.Generate.OperatorRule,
+			CLI.Generate.EnablePrometheus3Migration,
+			CLI.Generate.ExternalURL,
 		)
 	}
 	os.Exit(code)
@@ -261,10 +298,11 @@ func cmdAPI(
 	logger log.Logger,
 	reg *prometheus.Registry,
 	promClient api.Client,
-	externalURL, apiURL *url.URL,
+	externalDatasourceURL, apiURL *url.URL,
 	externalGrafanaOrgID, externalGrafanaDatasourceID string,
 	routePrefix, uiRoutePrefix string,
 	tlsCertFile, tlsPrivateKeyFile string,
+	enablePrometheus3Migration bool,
 ) int {
 	build, err := fs.Sub(ui, "ui/build")
 	if err != nil {
@@ -281,15 +319,15 @@ func cmdAPI(
 	}
 
 	if externalGrafanaDatasourceID == "" {
-		level.Info(logger).Log("msg", "UI redirect to Prometheus", "url", externalURL.String())
+		level.Info(logger).Log("msg", "UI redirect to Prometheus", "url", externalDatasourceURL.String())
 	} else {
-		level.Info(logger).Log("msg", "UI redirect to Grafana", "url", externalURL.String(),
+		level.Info(logger).Log("msg", "UI redirect to Grafana", "url", externalDatasourceURL.String(),
 			"datasourceId", externalGrafanaDatasourceID, "orgId", externalGrafanaOrgID)
 	}
 	level.Info(logger).Log("msg", "using API at", "url", apiURL.String())
 	level.Info(logger).Log("msg", "using route prefix", "prefix", routePrefix)
 
-	cache, err := ristretto.NewCache(&ristretto.Config{
+	cache, err := ristretto.NewCache(&ristretto.Config[string, any]{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
 		BufferItems: 64,      // number of keys per Get buffer.
@@ -350,6 +388,7 @@ func cmdAPI(
 					connect.WithInterceptors(prometheusInterceptor),
 				),
 			),
+			opts: slo.GenerationOptions{EnablePrometheus3Migration: enablePrometheus3Migration},
 		}
 
 		objectivePath, objectiveHandler := objectivesv1alpha1connect.NewObjectiveServiceHandler(
@@ -363,52 +402,48 @@ func cmdAPI(
 		}
 		prometheusPath, prometheusHandler := prometheusv1connect.NewPrometheusServiceHandler(prometheusService)
 
+		mcpHandler := newMCPHandler(objectiveService, log.WithPrefix(logger, "service", "mcp"))
+
 		if routePrefix != "/" {
 			r.Mount(objectivePath, http.StripPrefix(routePrefix, objectiveHandler))
 			r.Mount(prometheusPath, http.StripPrefix(routePrefix, prometheusHandler))
+			r.Mount("/mcp", http.StripPrefix(routePrefix, mcpHandler))
 		} else {
 			r.Mount(objectivePath, objectiveHandler)
 			r.Mount(prometheusPath, prometheusHandler)
+			r.Mount("/mcp", mcpHandler)
 		}
 
 		r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
-		r.Get("/objectives", func(w http.ResponseWriter, _ *http.Request) {
+
+		renderIndex := func(w http.ResponseWriter) {
 			err := tmpl.Execute(w, struct {
 				ExternalURL                 string
 				ExternalGrafanaDatasourceID string
 				ExternalGrafanaOrgID        string
 				PathPrefix                  string
 				APIBasepath                 string
+				Version                     string
 			}{
-				ExternalURL:                 externalURL.String(),
+				ExternalURL:                 externalDatasourceURL.String(),
 				ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
 				ExternalGrafanaOrgID:        externalGrafanaOrgID,
 				PathPrefix:                  uiRoutePrefix,
 				APIBasepath:                 uiRoutePrefix,
+				Version:                     version,
 			})
 			if err != nil {
 				level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
 			}
+		}
+
+		r.Get("/objectives", func(w http.ResponseWriter, _ *http.Request) {
+			renderIndex(w)
 		})
 		r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Trim trailing slash to not care about matching e.g. /pyrra and /pyrra/
 			if r.URL.Path == "/" || strings.TrimSuffix(r.URL.Path, "/") == routePrefix {
-				err := tmpl.Execute(w, struct {
-					ExternalURL                 string
-					ExternalGrafanaDatasourceID string
-					ExternalGrafanaOrgID        string
-					PathPrefix                  string
-					APIBasepath                 string
-				}{
-					ExternalURL:                 externalURL.String(),
-					ExternalGrafanaDatasourceID: externalGrafanaDatasourceID,
-					ExternalGrafanaOrgID:        externalGrafanaOrgID,
-					PathPrefix:                  uiRoutePrefix,
-					APIBasepath:                 uiRoutePrefix,
-				})
-				if err != nil {
-					level.Warn(logger).Log("msg", "failed to populate HTML template", "err", err)
-				}
+				renderIndex(w)
 				return
 			}
 
@@ -465,10 +500,10 @@ func cmdAPI(
 }
 
 func newBackendClientCache(client objectivesv1alpha1connect.ObjectiveBackendServiceClient) objectivesv1alpha1connect.ObjectiveBackendServiceClient {
-	cache, err := ristretto.NewCache(&ristretto.Config{
+	cache, err := ristretto.NewCache(&ristretto.Config[string, any]{
 		NumCounters: 100,
 		MaxCost:     10 * 1000, // 10 seconds
-		BufferItems: 64,
+		BufferItems: 64,        // number of keys per Get buffer.
 	})
 	if err != nil {
 		panic(err)
@@ -478,7 +513,7 @@ func newBackendClientCache(client objectivesv1alpha1connect.ObjectiveBackendServ
 
 type backendClientCache struct {
 	client objectivesv1alpha1connect.ObjectiveBackendServiceClient
-	cache  *ristretto.Cache
+	cache  *ristretto.Cache[string, any]
 }
 
 // List calls the backend service and caches the result for 10 seconds if the request is successful.
@@ -589,7 +624,7 @@ func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusa
 
 type promCache struct {
 	api   prometheusAPI
-	cache *ristretto.Cache
+	cache *ristretto.Cache[string, any]
 }
 
 type promCacheKeyType string
@@ -602,6 +637,25 @@ func contextSetPromCache(ctx context.Context, t time.Duration) context.Context {
 
 func contextGetPromCache(ctx context.Context) time.Duration {
 	t, ok := ctx.Value(promCacheKey).(time.Duration)
+	if ok {
+		return t
+	}
+	return 0
+}
+
+type graphStepKeyType string
+
+const graphStepKey graphStepKeyType = "graphStep"
+
+// contextSetGraphStep lets an in-process caller (the MCP) override the Graph*
+// query resolution so Prometheus returns roughly the requested number of points
+// instead of the default ~1000. Unset (0) keeps the default behavior.
+func contextSetGraphStep(ctx context.Context, step time.Duration) context.Context {
+	return context.WithValue(ctx, graphStepKey, step)
+}
+
+func contextGetGraphStep(ctx context.Context) time.Duration {
+	t, ok := ctx.Value(graphStepKey).(time.Duration)
 	if ok {
 		return t
 	}
@@ -671,6 +725,7 @@ type objectiveServer struct {
 	logger  log.Logger
 	promAPI *promCache
 	client  objectivesv1alpha1connect.ObjectiveBackendServiceClient
+	opts    slo.GenerationOptions
 }
 
 func (s *objectiveServer) getObjective(ctx context.Context, expr string) (slo.Objective, error) {
@@ -807,11 +862,11 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 		}
 
 		o.Queries = &objectivesv1alpha1.Queries{
-			CountTotal:       oi.QueryTotal(oi.Window),
-			CountErrors:      oi.QueryErrors(oi.Window),
-			GraphErrorBudget: oi.QueryErrorBudget(),
-			GraphRequests:    oi.RequestRange(time.Second),
-			GraphErrors:      oi.ErrorsRange(time.Second),
+			CountTotal:       oi.QueryTotal(oi.Window, s.opts),
+			CountErrors:      oi.QueryErrors(oi.Window, s.opts),
+			GraphErrorBudget: oi.QueryErrorBudget(s.opts),
+			GraphRequests:    oi.RequestRange(time.Second, s.opts),
+			GraphErrors:      oi.ErrorsRange(time.Second, s.opts),
 		}
 	}
 
@@ -854,7 +909,7 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 		ts = req.Msg.Time.AsTime()
 	}
 
-	queryTotal := objective.QueryTotal(objective.Window)
+	queryTotal := objective.QueryTotal(objective.Window, s.opts)
 	value, _, err := s.promAPI.Query(contextSetPromCache(ctx, 15*time.Second), queryTotal, ts)
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to query total", "query", queryTotal, "err", err)
@@ -878,7 +933,7 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 		}
 	}
 
-	queryErrors := objective.QueryErrors(objective.Window)
+	queryErrors := objective.QueryErrors(objective.Window, s.opts)
 	value, _, err = s.promAPI.Query(contextSetPromCache(ctx, 15*time.Second), queryErrors, ts)
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to query errors", "query", queryErrors, "err", err)
@@ -1006,8 +1061,11 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 		end = req.Msg.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
+	if s := contextGetGraphStep(ctx); s > 0 {
+		step = s
+	}
 
-	query := objective.QueryErrorBudget()
+	query := objective.QueryErrorBudget(s.opts)
 	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, 15*time.Second), query, prometheusapiv1.Range{
 		Start: start,
 		End:   end,
@@ -1085,7 +1143,7 @@ func (s *objectiveServer) GetAlerts(ctx context.Context, req *connect.Request[ob
 
 		vec := expr.(*parser.VectorSelector)
 		for _, m := range groupingMatchers {
-			if m.Name == labels.MetricName || m.Name == "slo" { // adding some safeguards that shouldn't be allowed.
+			if m.Name == model.MetricNameLabel || m.Name == "slo" { // adding some safeguards that shouldn't be allowed.
 				continue
 			}
 			vec.LabelMatchers = append(vec.LabelMatchers, m)
@@ -1191,13 +1249,13 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 
 	if inactive {
 		for _, o := range objectives {
-			if len(o.Labels) == 0 {
+			if o.Labels.IsEmpty() {
 				continue
 			}
 			lset := map[string]string{}
-			for _, l := range o.Labels {
+			o.Labels.Range(func(l labels.Label) {
 				lset[l.Name] = l.Value
-			}
+			})
 			for _, w := range o.Windows() {
 				queryShort, _ := o.QueryBurnrate(w.Short, grouping)
 				queryLong, _ := o.QueryBurnrate(w.Long, grouping)
@@ -1228,26 +1286,31 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 	for _, sample := range metrics {
 	Objectives:
 		for _, o := range objectives {
-			if len(o.Labels) == 0 {
+			if o.Labels.IsEmpty() {
 				continue
 			}
 
 			lset := map[string]string{}
-			for _, l := range o.Labels {
+			matched := true
+			o.Labels.Range(func(l labels.Label) {
 				// check if each label of the objective is present in the alert.
 				// If it's present make sure the values match
 				name := l.Name
-				if name == labels.MetricName {
+				if name == model.MetricNameLabel {
 					// The __name__ is called slo in the ALERTS metrics.
 					name = "slo"
 				}
 				value, found := sample.Metric[model.LabelName(name)]
 				if found {
 					if string(value) != l.Value {
-						continue Objectives
+						matched = false
+					} else {
+						lset[l.Name] = l.Value
 					}
-					lset[l.Name] = l.Value
 				}
+			})
+			if !matched {
+				continue Objectives
 			}
 
 			short, err := model.ParseDuration(string(sample.Metric[model.LabelName("short")]))
@@ -1269,9 +1332,9 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 			}
 
 			// Add potentially missing labels from objective to alerts' labelset
-			for _, l := range o.Labels {
+			o.Labels.Range(func(l labels.Label) {
 				lset[l.Name] = l.Value
-			}
+			})
 
 			// Add potentially missing labels from metric to alerts' labelset.
 			// Excluding a couple ones that are part of the struct itself.
@@ -1285,7 +1348,7 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 					name == "severity" ||
 					name == "short" ||
 					name == "slo" ||
-					name == labels.MetricName {
+					name == model.MetricNameLabel {
 					continue
 				}
 				lset[name] = value
@@ -1305,12 +1368,12 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 					Short: &objectivesv1alpha1.Burnrate{
 						Window:  durationpb.New(time.Duration(short)),
 						Current: -1,
-						Query:   o.Burnrate(time.Duration(short)),
+						Query:   o.Burnrate(time.Duration(short), slo.GenerationOptions{}),
 					},
 					Long: &objectivesv1alpha1.Burnrate{
 						Window:  durationpb.New(time.Duration(long)),
 						Current: -1,
-						Query:   o.Burnrate(time.Duration(long)),
+						Query:   o.Burnrate(time.Duration(long), slo.GenerationOptions{}),
 					},
 				})
 			} else {
@@ -1380,11 +1443,14 @@ func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[ob
 		end = req.Msg.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
+	if s := contextGetGraphStep(ctx); s > 0 {
+		step = s
+	}
 
 	timeRange := rangeInterval(start, end)
 	cacheDuration := rangeCache(start, end)
 
-	query := objective.RequestRange(timeRange)
+	query := objective.RequestRange(timeRange, s.opts)
 
 	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusapiv1.Range{
 		Start: start,
@@ -1479,11 +1545,14 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 		end = req.Msg.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
+	if s := contextGetGraphStep(ctx); s > 0 {
+		step = s
+	}
 
 	timeRange := rangeInterval(start, end)
 	cacheDuration := rangeCache(start, end)
 
-	query := objective.ErrorsRange(timeRange)
+	query := objective.ErrorsRange(timeRange, s.opts)
 	value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusapiv1.Range{
 		Start: start,
 		End:   end,
@@ -1580,6 +1649,9 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 		end = req.Msg.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
+	if s := contextGetGraphStep(ctx); s > 0 {
+		step = s
+	}
 
 	timeRange := rangeInterval(start, end)
 	cacheDuration := rangeCache(start, end)

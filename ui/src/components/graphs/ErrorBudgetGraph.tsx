@@ -1,20 +1,22 @@
-import React, {useEffect, useRef, useState} from 'react'
-import {Spinner} from 'react-bootstrap'
+import React, {type JSX, useEffect, useRef, useState} from 'react'
+import {Spinner} from '@/components/ui/spinner'
 import UplotReact from 'uplot-react'
-import uPlot, {AlignedData} from 'uplot'
+import {type AlignedData} from 'uplot';
+import type uPlot from 'uplot'
 
-import {IconExternal} from '../Icons'
+import {ExternalLink} from 'lucide-react'
 import {greens, reds} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
+import GraphTooltip from './GraphTooltip'
+import {type Client} from '@connectrpc/connect'
+import {type PrometheusService, type SamplePair, type SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {usePrometheusQueryRange} from '../../prometheus'
-import {SamplePair, SampleStream} from '../../proto/prometheus/v1/prometheus_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {buildExternalHRef, externalName} from '../../external'
 
 interface ErrorBudgetGraphProps {
-  client: PromiseClient<typeof PrometheusService>
+  client: Client<typeof PrometheusService>
   query: string
   from: number
   to: number
@@ -32,12 +34,12 @@ const ErrorBudgetGraph = ({
   updateTimeRange,
   absolute = false,
 }: ErrorBudgetGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [width, setWidth] = useState<number>(1000)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined) {
+    if (targetRef.current !== undefined && targetRef.current !== null) {
       setWidth(targetRef.current.offsetWidth)
     }
   }
@@ -77,7 +79,9 @@ const ErrorBudgetGraph = ({
     }
   }
 
-  if (status !== 'loading' && samples.length === 0) {
+  const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(300)
+
+  if (status !== 'pending' && samples.length === 0) {
     return (
       <>
         <h4 className="graphs-headline">Error Budget</h4>
@@ -125,16 +129,9 @@ const ErrorBudgetGraph = ({
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           Error Budget
-          {status === 'loading' || status === 'idle' ? (
+          {status === 'pending' ? (
             <Spinner
-              animation="border"
-              style={{
-                marginLeft: '1rem',
-                marginBottom: '0.5rem',
-                width: '1rem',
-                height: '1rem',
-                borderWidth: '1px',
-              }}
+              className="ml-4 mb-2 h-4 w-4 border-1"
             />
           ) : (
             <></>
@@ -146,7 +143,7 @@ const ErrorBudgetGraph = ({
             target="_blank"
             rel="noreferrer"
             href={buildExternalHRef([query], from, to)}>
-            <IconExternal height={20} width={20} />
+            <ExternalLink size={20} />
             {externalName()}
           </a>
         ) : (
@@ -157,43 +154,51 @@ const ErrorBudgetGraph = ({
         <p>What percentage of the error budget is left over time?</p>
       </div>
 
-      <div ref={targetRef}>
+      <div ref={targetRef} className="relative">
         {samples.length > 0 ? (
-          <UplotReact
-            options={{
-              width: width,
-              height: 300,
-              padding: [canvasPadding, 0, 0, canvasPadding],
-              cursor: uPlotCursor,
-              series: [
-                {},
-                {
-                  fill: budgetGradient,
-                  gaps: seriesGaps(from / 1000, to / 1000),
-                  value: (u: uPlot, v: number) => (v == null ? '-' : v.toFixed(2) + '%'),
-                },
-              ],
-              scales: {
-                x: {min: from / 1000, max: to / 1000},
-                y: {
-                  range: {
-                    min: absolute ? {mode: 1, soft: 0} : {},
-                    max: absolute ? {hard: 100, mode: 1, soft: 0} : {hard: 100},
+          <>
+            <UplotReact
+              options={{
+                width,
+                height: 300,
+                padding: [canvasPadding, 0, 0, canvasPadding],
+                cursor: uPlotCursor,
+                legend: {show: false},
+                series: [
+                  {},
+                  {
+                    fill: budgetGradient,
+                    gaps: seriesGaps(from / 1000, to / 1000),
+                    value: (u: uPlot, v: number) => (v == null ? '-' : v.toFixed(2) + '%'),
+                  },
+                ],
+                scales: {
+                  x: {min: from / 1000, max: to / 1000},
+                  y: {
+                    range: {
+                      min: absolute ? {mode: 1, soft: 0} : {},
+                      max: absolute ? {hard: 100, mode: 1, soft: 0} : {hard: 100},
+                    },
                   },
                 },
-              },
-              axes: [
-                {},
-                {
-                  values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(2)}%`),
+                axes: [
+                  {
+                    values: (uplot: uPlot, v: number[]) => formatAxisDates(v),
+                  },
+                  {
+                    values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(2)}%`),
+                  },
+                ],
+                hooks: {
+                  setSelect: [selectTimeRange(updateTimeRange)],
+                  setCursor: [setCursorHook],
+                  init: [initHook],
                 },
-              ],
-              hooks: {
-                setSelect: [selectTimeRange(updateTimeRange)],
-              },
-            }}
-            data={samples}
-          />
+              }}
+              data={samples}
+            />
+            <GraphTooltip tooltipRef={tooltipRef} />
+          </>
         ) : (
           <UplotReact
             options={{

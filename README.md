@@ -229,6 +229,10 @@ pyrra api \
   --api-url=http://pyrra-filesystem:9444
 ```
 
+## API Documentation
+
+Auto-generated CRD API documentation is available at [doc.crds.dev/github.com/pyrra-dev/pyrra](https://doc.crds.dev/github.com/pyrra-dev/pyrra).
+
 ## Tech Stack
 
 **Client:** TypeScript with React, Bootstrap, and uPlot.

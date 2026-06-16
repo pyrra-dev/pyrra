@@ -1,22 +1,24 @@
-import React, {useLayoutEffect, useRef, useState} from 'react'
-import {Spinner} from 'react-bootstrap'
+import React, {type JSX, useLayoutEffect, useRef, useState} from 'react'
+import {Spinner} from '@/components/ui/spinner'
 import UplotReact from 'uplot-react'
-import uPlot from 'uplot'
+import type uPlot from 'uplot'
 import {ObjectiveType} from '../../App'
-import {IconExternal} from '../Icons'
+import {ExternalLink} from 'lucide-react'
 import {blues, greens, reds, yellows} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
+import {type Client} from '@connectrpc/connect'
 import {usePrometheusQueryRange} from '../../prometheus'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
-import {Labels, labelValues} from '../../labels'
-import {buildExternalHRef, externalName} from '../../external';
+import {type Labels, labelValues} from '../../labels'
+import {buildExternalHRef, externalName} from '../../external'
+import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
+import GraphTooltip from './GraphTooltip'
 
 interface RequestsGraphProps {
-  client: PromiseClient<typeof PrometheusService>
+  client: Client<typeof PrometheusService>
   query: string
   from: number
   to: number
@@ -36,7 +38,7 @@ const RequestsGraph = ({
   updateTimeRange,
   absolute = false,
 }: RequestsGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [width, setWidth] = useState<number>(500)
 
@@ -59,20 +61,15 @@ const RequestsGraph = ({
     step(from, to),
   )
 
-  if (status === 'loading' || status === 'idle') {
+  const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(150)
+
+  if (status === 'pending') {
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           {type === ObjectiveType.Ratio ? 'Requests' : 'Probes'}
           <Spinner
-            animation="border"
-            style={{
-              marginLeft: '1rem',
-              marginBottom: '0.5rem',
-              width: '1rem',
-              height: '1rem',
-              borderWidth: '1px',
-            }}
+            className="ml-4 mb-2 h-4 w-4 border-1"
           />
         </h4>
       </div>
@@ -114,7 +111,7 @@ const RequestsGraph = ({
           target="_blank"
           rel="noreferrer"
           href={buildExternalHRef([query], from, to)}>
-          <IconExternal height={20} width={20} />
+          <ExternalLink size={20} />
           {externalName()}
         </a>
       </div>
@@ -122,45 +119,56 @@ const RequestsGraph = ({
         <p>{description}</p>
       </div>
 
-      <div ref={targetRef}>
+      <div ref={targetRef} className="relative">
         {data.length > 0 ? (
-          <UplotReact
-            options={{
-              width: width,
-              height: 150,
-              padding: [15, 0, 0, 0],
-              cursor: uPlotCursor,
-              series: [
-                {},
-                ...labels.map((label: Labels): uPlot.Series => {
-                  const value = labelValues(label)[0]
-                  return {
-                    label: value,
-                    stroke: `#${labelColor(pickedColors, value)}`,
-                    gaps: seriesGaps(from / 1000, to / 1000),
-                    value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
-                  }
-                }),
-              ],
-              scales: {
-                x: {min: from / 1000, max: to / 1000},
-                y: {
-                  range: {
-                    min: absolute ? {hard: 0, mode: 1, soft: 0} : {hard: 0},
-                    max: {},
+          <>
+            <UplotReact
+              options={{
+                width,
+                height: 150,
+                padding: [15, 0, 0, 0],
+                cursor: uPlotCursor,
+                legend: {show: false},
+                series: [
+                  {},
+                  ...labels.map((label: Labels): uPlot.Series => {
+                    const value = labelValues(label)[0]
+                    return {
+                      label: value,
+                      stroke: `#${labelColor(pickedColors, value)}`,
+                      gaps: seriesGaps(from / 1000, to / 1000),
+                      value: (u, v) => (v == null ? '-' : `${v.toFixed(2)}req/s`),
+                    }
+                  }),
+                ],
+                scales: {
+                  x: {min: from / 1000, max: to / 1000},
+                  y: {
+                    range: {
+                      min: absolute ? {hard: 0, mode: 1, soft: 0} : {hard: 0},
+                      max: {},
+                    },
                   },
                 },
-              },
-              hooks: {
-                setSelect: [selectTimeRange(updateTimeRange)],
-              },
-            }}
-            data={data}
-          />
+                axes: [
+                  {
+                    values: (uplot: uPlot, v: number[]) => formatAxisDates(v),
+                  },
+                ],
+                hooks: {
+                  setSelect: [selectTimeRange(updateTimeRange)],
+                  setCursor: [setCursorHook],
+                  init: [initHook],
+                },
+              }}
+              data={data}
+            />
+            <GraphTooltip tooltipRef={tooltipRef} />
+          </>
         ) : (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 150,
               padding: [15, 0, 0, 0],
               series: [{}, {}],
@@ -177,7 +185,7 @@ const RequestsGraph = ({
   )
 }
 
-const labelColor = (picked: {[color: string]: number}, label: string): string => {
+const labelColor = (picked: Record<string, number>, label: string): string => {
   label = label !== undefined ? label.toLowerCase() : ''
   let color = ''
   if (label === '{}' || label === '' || label === 'value') {

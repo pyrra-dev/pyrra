@@ -1,19 +1,22 @@
-import {PromiseClient} from '@connectrpc/connect'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
-import uPlot, {AlignedData} from 'uplot'
-import React, {useLayoutEffect, useRef, useState} from 'react'
+import {type Client} from '@connectrpc/connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
+import {type AlignedData} from 'uplot'
+import type uPlot from 'uplot'
+import React, {type JSX, useLayoutEffect, useRef, useState} from 'react'
 import {usePrometheusQueryRange} from '../../prometheus'
 import {step} from './step'
 import UplotReact from 'uplot-react'
-import {AlignedDataResponse, convertAlignedData, mergeAlignedData} from './aligneddata'
-import {Spinner} from 'react-bootstrap'
+import {type AlignedDataResponse, convertAlignedData, mergeAlignedData} from './aligneddata'
+import {Spinner} from '@/components/ui/spinner'
 import {seriesGaps} from './gaps'
 import {blues, greys, reds} from './colors'
-import {Alert} from '../../proto/objectives/v1alpha1/objectives_pb'
+import {type Alert} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../../duration'
+import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
+import GraphTooltip from './GraphTooltip'
 
 interface BurnrateGraphProps {
-  client: PromiseClient<typeof PrometheusService>
+  client: Client<typeof PrometheusService>
   alert: Alert
   threshold: number
   from: number
@@ -33,7 +36,7 @@ const BurnrateGraph = ({
   firingData,
   uPlotCursor,
 }: BurnrateGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [width, setWidth] = useState<number>(500)
 
@@ -50,7 +53,7 @@ const BurnrateGraph = ({
 
   const {response: shortResponse, status: shortStatus} = usePrometheusQueryRange(
     client,
-    // @ts-expect-error
+    // @ts-expect-error query may be undefined but is guarded by enabled option
     alert.short.query,
     from / 1000,
     to / 1000,
@@ -60,7 +63,7 @@ const BurnrateGraph = ({
 
   const {response: longResponse, status: longStatus} = usePrometheusQueryRange(
     client,
-    // @ts-expect-error
+    // @ts-expect-error query may be undefined but is guarded by enabled option
     alert.long.query,
     from / 1000,
     to / 1000,
@@ -68,25 +71,18 @@ const BurnrateGraph = ({
     {enabled: alert.long?.query !== undefined},
   )
 
+  const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(150)
+
   // TODO: Improve to show graph if one is succeeded already
   if (
-    shortStatus === 'loading' ||
-    shortStatus === 'idle' ||
-    longStatus === 'loading' ||
-    longStatus === 'idle'
+    shortStatus === 'pending' ||
+    longStatus === 'pending'
   ) {
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           <Spinner
-            animation="border"
-            style={{
-              marginLeft: '1rem',
-              marginBottom: '0.5rem',
-              width: '1rem',
-              height: '1rem',
-              borderWidth: '1px',
-            }}
+            className="ml-4 mb-2 h-4 w-4 border-1"
           />
         </h4>
       </div>
@@ -177,15 +173,15 @@ const BurnrateGraph = ({
     )
   }
 
-  const shortFormatted = formatDuration(Number(alert.short?.window?.seconds) * 1000 ?? 0)
-  const longFormatted = formatDuration(Number(alert.long?.window?.seconds) * 1000 ?? 0)
+  const shortFormatted = formatDuration(Number(alert.short?.window?.seconds ?? 0) * 1000)
+  const longFormatted = formatDuration(Number(alert.long?.window?.seconds ?? 0) * 1000)
   const pendingColor = 'rgb(244,163,42)'
   const pendingBackgroundColor = 'rgba(244,163,42,0.1)'
   const firingColor = 'rgb(244,99,99)'
   const firingBackgroundColor = 'rgba(244,99,99,0.1)'
 
   return (
-    <div ref={targetRef} className="burnrate">
+    <div ref={targetRef} className="burnrate relative">
       <h5 className="graphs-headline">Burnrate</h5>
       <div className="graphs-description">
         <p>
@@ -202,6 +198,7 @@ const BurnrateGraph = ({
           height: 150,
           padding: [15, 0, 0, 0],
           cursor: uPlotCursor,
+          legend: {show: false},
           series: [
             {},
             {
@@ -229,12 +226,16 @@ const BurnrateGraph = ({
             x: {min: from / 1000, max: to / 1000},
           },
           axes: [
-            {},
+            {
+              values: (uplot: uPlot, v: number[]) => formatAxisDates(v),
+            },
             {
               values: (uplot: uPlot, v: number[]) => v.map((v: number) => `${v.toFixed(1)}`),
             },
           ],
           hooks: {
+            setCursor: [setCursorHook],
+            init: [initHook],
             drawAxes: [
               (u: uPlot) => {
                 if (pendingSeries === undefined && firingSeries === undefined) {
@@ -301,6 +302,7 @@ const BurnrateGraph = ({
         }}
         data={data}
       />
+      <GraphTooltip tooltipRef={tooltipRef} />
     </div>
   )
 }

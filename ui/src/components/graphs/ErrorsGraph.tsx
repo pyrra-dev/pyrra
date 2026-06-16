@@ -1,22 +1,24 @@
-import React, {useLayoutEffect, useRef, useState} from 'react'
-import {Spinner} from 'react-bootstrap'
+import React, {type JSX, useLayoutEffect, useRef, useState} from 'react'
+import {Spinner} from '@/components/ui/spinner'
 import UplotReact from 'uplot-react'
-import uPlot from 'uplot'
+import type uPlot from 'uplot'
 import {ObjectiveType} from '../../App'
-import {IconExternal} from '../Icons'
+import {ExternalLink} from 'lucide-react'
 import {reds} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
+import {type Client} from '@connectrpc/connect'
 import {usePrometheusQueryRange} from '../../prometheus'
-import {PrometheusService} from '../../proto/prometheus/v1/prometheus_connect'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
 import {step} from './step'
 import {convertAlignedData} from './aligneddata'
 import {selectTimeRange} from './selectTimeRange'
-import {Labels, labelValues} from '../../labels'
-import {buildExternalHRef, externalName} from '../../external';
+import {type Labels, labelValues} from '../../labels'
+import {buildExternalHRef, externalName} from '../../external'
+import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
+import GraphTooltip from './GraphTooltip'
 
 interface ErrorsGraphProps {
-  client: PromiseClient<typeof PrometheusService>
+  client: Client<typeof PrometheusService>
   type: ObjectiveType
   query: string
   from: number
@@ -36,7 +38,7 @@ const ErrorsGraph = ({
   updateTimeRange,
   absolute = false,
 }: ErrorsGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
 
   const [width, setWidth] = useState<number>(500)
 
@@ -59,20 +61,15 @@ const ErrorsGraph = ({
     step(from, to),
   )
 
-  if (status === 'loading' || status === 'idle') {
+  const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(150)
+
+  if (status === 'pending') {
     return (
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           Errors
           <Spinner
-            animation="border"
-            style={{
-              marginLeft: '1rem',
-              marginBottom: '0.5rem',
-              width: '1rem',
-              height: '1rem',
-              borderWidth: '1px',
-            }}
+            className="ml-4 mb-2 h-4 w-4 border-1"
           />
         </h4>
       </div>
@@ -83,7 +80,7 @@ const ErrorsGraph = ({
     return (
       <UplotReact
         options={{
-          width: width,
+          width,
           height: 150,
           padding: [15, 0, 0, 0],
           series: [{}, {}],
@@ -124,7 +121,7 @@ const ErrorsGraph = ({
           target="_blank"
           rel="noreferrer"
           href={buildExternalHRef([query], from, to)}>
-          <IconExternal height={20} width={20} />
+          <ExternalLink size={20} />
           {externalName()}
         </a>
       </div>
@@ -132,13 +129,14 @@ const ErrorsGraph = ({
         <p>{description}</p>
       </div>
 
-      <div ref={targetRef}>
+      <div ref={targetRef} className="relative">
         <UplotReact
           options={{
-            width: width,
+            width,
             height: 150,
             padding: [15, 0, 0, 0],
             cursor: uPlotCursor,
+            legend: {show: false},
             series: [
               {},
               ...labels.map((label: Labels, i: number): uPlot.Series => {
@@ -161,7 +159,9 @@ const ErrorsGraph = ({
               },
             },
             axes: [
-              {},
+              {
+                values: (uplot: uPlot, v: number[]) => formatAxisDates(v),
+              },
               {
                 values: (uplot: uPlot, v: number[]) =>
                   v.map((v: number) => `${(100 * v).toFixed(0)}%`),
@@ -169,10 +169,13 @@ const ErrorsGraph = ({
             ],
             hooks: {
               setSelect: [selectTimeRange(updateTimeRange)],
+              setCursor: [setCursorHook],
+              init: [initHook],
             },
           }}
           data={data}
         />
+        <GraphTooltip tooltipRef={tooltipRef} />
       </div>
     </>
   )

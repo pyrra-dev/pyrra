@@ -1,0 +1,195 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "dependencyDashboard": true,
+  "baseBranchPatterns": [
+    "main",
+    "release-0.9"
+  ],
+  "packageRules": [
+    {
+      "description": "Auto-merge minor and patch updates",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true
+    },
+    {
+      "description": "Go modules - daily schedule",
+      "matchManagers": [
+        "gomod"
+      ],
+      "schedule": [
+        "before 9am every weekday"
+      ]
+    },
+    {
+      "description": "GitHub Actions - daily schedule",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "schedule": [
+        "before 9am every weekday"
+      ]
+    },
+    {
+      "description": "npm - weekly schedule",
+      "matchManagers": [
+        "npm"
+      ],
+      "schedule": [
+        "before 9am on monday"
+      ]
+    },
+    {
+      "description": "Docker - weekly schedule",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "schedule": [
+        "before 9am on monday"
+      ]
+    },
+    {
+      "description": "Release branch - only allow patch updates",
+      "matchBaseBranches": [
+        "release-0.9"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Release branch PRs get release label",
+      "matchBaseBranches": [
+        "release-0.9"
+      ],
+      "addLabels": [
+        "release"
+      ]
+    },
+    {
+      "description": "Group Kubernetes Go modules",
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "kubernetes packages",
+      "matchPackageNames": [
+        "/^k8s.io//"
+      ]
+    },
+    {
+      "description": "Group sigs.k8s.io Go modules",
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "sigs.k8s.io packages",
+      "matchPackageNames": [
+        "/^sigs.k8s.io//"
+      ]
+    },
+    {
+      "description": "Group Prometheus Go modules",
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "prometheus packages",
+      "matchPackageNames": [
+        "/^github.com/prometheus//"
+      ]
+    },
+    {
+      "description": "Group React packages",
+      "matchManagers": [
+        "npm"
+      ],
+      "groupName": "react packages",
+      "matchPackageNames": [
+        "/^react/",
+        "/^@types/react/"
+      ]
+    },
+    {
+      "description": "Group testing packages (npm)",
+      "matchManagers": [
+        "npm"
+      ],
+      "groupName": "testing packages",
+      "matchPackageNames": [
+        "/^@testing-library//",
+        "/^jest/"
+      ]
+    },
+    {
+      "description": "Group ESLint packages",
+      "matchManagers": [
+        "npm"
+      ],
+      "groupName": "eslint packages",
+      "matchPackageNames": [
+        "/^eslint/",
+        "/^@typescript-eslint//"
+      ]
+    },
+    {
+      "description": "Group GitHub Actions",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github actions"
+    },
+    {
+      "description": "One week stability period for Buf packages",
+      "matchFileNames": [
+        "buf.gen.yaml"
+      ],
+      "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Node.js matrix versions - weekly schedule",
+      "matchDatasources": [
+        "node-version"
+      ],
+      "schedule": [
+        "before 9am on monday"
+      ]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update Buf plugins",
+      "managerFilePatterns": [
+        "/(^|/)buf\\.gen\\.yaml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)(?: (?:packageName)=(?<packageName>.+?))?(?: versioning=(?<versioning>.+?))?\\s*-?\\s*plugin: ('|\")?.*:(?<currentValue>.+?)('|\")?\\s"
+      ]
+    },
+    {
+      "customType": "regex",
+      "description": "Update Go tool versions in Makefile",
+      "managerFilePatterns": [
+        "/(^|/)Makefile$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)\\s+go install .+@(?<currentValue>v[^\\s]+)"
+      ]
+    },
+    {
+      "customType": "regex",
+      "description": "Update Node.js versions in GitHub Actions matrix",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s+versioning=(?<versioning>\\S+)\\s*\\n\\s*-\\s*(?<currentValue>\\d+)\\.x"
+      ]
+    }
+  ]
+}

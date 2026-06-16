@@ -1,26 +1,29 @@
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react'
-import {Spinner} from 'react-bootstrap'
+import React, {type JSX, useEffect, useLayoutEffect, useRef, useState} from 'react'
+import {Spinner} from '@/components/ui/spinner'
 import UplotReact from 'uplot-react'
-import uPlot, {AlignedData} from 'uplot'
+import {type AlignedData} from 'uplot';
+import type uPlot from 'uplot'
 import {EXTERNAL_URL} from '../../App'
-import {IconExternal} from '../Icons'
-import {Labels, labelsString, parseLabelValue} from '../../labels'
+import {ExternalLink} from 'lucide-react'
+import {type Labels, labelsString, parseLabelValue} from '../../labels'
 import {colorful, greys} from './colors'
 import {seriesGaps} from './gaps'
-import {PromiseClient} from '@connectrpc/connect'
-import {ObjectiveService} from '../../proto/objectives/v1alpha1/objectives_connect'
-import {Timestamp} from '@bufbuild/protobuf'
+import {type Client} from '@connectrpc/connect'
 import {
-  GraphDurationResponse,
-  Series,
-  Timeseries,
+  type GraphDurationResponse,
+  type ObjectiveService,
+  type Series,
+  type Timeseries,
 } from '../../proto/objectives/v1alpha1/objectives_pb'
+import {timestampFromDate} from '@bufbuild/protobuf/wkt'
 import {selectTimeRange} from './selectTimeRange'
 import {formatDuration} from '../../duration'
 import {buildExternalHRef, externalName} from '../../external'
+import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
+import GraphTooltip from './GraphTooltip'
 
 interface DurationGraphProps {
-  client: PromiseClient<typeof ObjectiveService>
+  client: Client<typeof ObjectiveService>
   labels: Labels
   grouping: Labels
   from: number
@@ -42,7 +45,9 @@ const DurationGraph = ({
   target,
   latency,
 }: DurationGraphProps): JSX.Element => {
-  const targetRef = useRef() as React.MutableRefObject<HTMLDivElement>
+  const targetRef = useRef<HTMLDivElement>(null)
+
+  const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(150)
 
   const [durations, setDurations] = useState<AlignedData>()
   const [durationQueries, setDurationQueries] = useState<string[]>([])
@@ -51,7 +56,7 @@ const DurationGraph = ({
   const [width, setWidth] = useState<number>(500)
 
   const setWidthFromContainer = () => {
-    if (targetRef !== undefined) {
+    if (targetRef.current !== undefined && targetRef.current !== null) {
       setWidth(targetRef.current.offsetWidth)
     }
   }
@@ -67,8 +72,8 @@ const DurationGraph = ({
       .graphDuration({
         expr: labelsString(labels),
         grouping: labelsString(grouping),
-        start: Timestamp.fromDate(new Date(from)),
-        end: Timestamp.fromDate(new Date(to)),
+        start: timestampFromDate(new Date(from)),
+        end: timestampFromDate(new Date(to)),
       })
       .then((resp: GraphDurationResponse) => {
         let durationTimestamps: number[] = []
@@ -79,7 +84,7 @@ const DurationGraph = ({
         // The first series is a straight line (same latency target value for all timestamps)
         // showing the objective.
         if (latency !== undefined) {
-          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000))
+          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000) as number[])
           durationLabels.push('{quantile="target"}')
         }
 
@@ -115,14 +120,7 @@ const DurationGraph = ({
           Duration
           {durationsLoading ? (
             <Spinner
-              animation="border"
-              style={{
-                marginLeft: '1rem',
-                marginBottom: '0.5rem',
-                width: '1rem',
-                height: '1rem',
-                borderWidth: '1px',
-              }}
+              className="ml-4 mb-2 h-4 w-4 border-1"
             />
           ) : (
             <></>
@@ -130,7 +128,7 @@ const DurationGraph = ({
         </h4>
         {durationQueries.length > 0 ? (
           <a className="external-prometheus" target="_blank" rel="noreferrer" href={buildExternalHRef(durationQueries, from, to)}>
-            <IconExternal height={20} width={20} />
+            <ExternalLink size={20} />
             {externalName()}
           </a>
         ) : (
@@ -150,53 +148,61 @@ const DurationGraph = ({
         </p>
       </div>
 
-      <div ref={targetRef}>
+      <div ref={targetRef} className="relative">
         {durations !== undefined ? (
-          <UplotReact
-            options={{
-              width: width,
-              height: 150,
-              padding: [15, 0, 0, 25],
-              cursor: uPlotCursor,
-              series: [
-                {},
-                ...durationLabels.map((label: string, i: number): uPlot.Series => {
-                  return {
-                    min: 0,
-                    stroke: i === 0 ? `#${greys[0]}` : `#${colorful[i]}`,
-                    dash: i === 0 ? [25, 10] : undefined,
-                    label: parseLabelValue(label),
-                    gaps: seriesGaps(from / 1000, to / 1000),
-                    value: (u, v) => (v == null ? '-' : formatDuration(v * 1000, 1)),
-                  }
-                }),
-              ],
-              scales: {
-                x: {min: from / 1000, max: to / 1000},
-                y: {
-                  range: {
-                    min: {hard: 0},
-                    max: {hard: 100},
+          <>
+            <UplotReact
+              options={{
+                width,
+                height: 150,
+                padding: [15, 0, 0, 25],
+                cursor: uPlotCursor,
+                legend: {show: false},
+                series: [
+                  {},
+                  ...durationLabels.map((label: string, i: number): uPlot.Series => {
+                    return {
+                      min: 0,
+                      stroke: i === 0 ? `#${greys[0]}` : `#${colorful[i]}`,
+                      dash: i === 0 ? [25, 10] : undefined,
+                      label: parseLabelValue(label),
+                      gaps: seriesGaps(from / 1000, to / 1000),
+                      value: (u, v) => (v == null ? '-' : formatDuration(v * 1000, 1)),
+                    }
+                  }),
+                ],
+                scales: {
+                  x: {min: from / 1000, max: to / 1000},
+                  y: {
+                    range: {
+                      min: {hard: 0},
+                      max: {hard: 100},
+                    },
                   },
                 },
-              },
-              axes: [
-                {},
-                {
-                  values: (uplot: uPlot, v: number[]) =>
-                    v.map((v: number) => formatDuration(v * 1000)),
+                axes: [
+                  {
+                    values: (uplot: uPlot, v: number[]) => formatAxisDates(v),
+                  },
+                  {
+                    values: (uplot: uPlot, v: number[]) =>
+                      v.map((v: number) => formatDuration(v * 1000)),
+                  },
+                ],
+                hooks: {
+                  setSelect: [selectTimeRange(updateTimeRange)],
+                  setCursor: [setCursorHook],
+                  init: [initHook],
                 },
-              ],
-              hooks: {
-                setSelect: [selectTimeRange(updateTimeRange)],
-              },
-            }}
-            data={durations}
-          />
+              }}
+              data={durations}
+            />
+            <GraphTooltip tooltipRef={tooltipRef} />
+          </>
         ) : (
           <UplotReact
             options={{
-              width: width,
+              width,
               height: 150,
               padding: [15, 0, 0, 0],
               series: [{}, {}],

@@ -24,17 +24,21 @@ type Objective struct {
 	Window      model.Duration
 	Config      string
 
+	PerformanceOverAccuracy bool
+	RuleOutput              RuleOutput
+
 	Alerting  Alerting
 	Indicator Indicator
 }
 
 func (o Objective) Name() string {
-	for _, l := range o.Labels {
-		if l.Name == labels.MetricName {
-			return l.Value
+	var name string
+	o.Labels.Range(func(l labels.Label) {
+		if l.Name == model.MetricNameLabel {
+			name = l.Value
 		}
-	}
-	return ""
+	})
+	return name
 }
 
 func (o Objective) Windows() []Window {
@@ -168,6 +172,15 @@ type Alerting struct {
 	Absent     bool
 	Name       string
 	AbsentName string
+	Severities AlertingSeverities
+}
+
+type AlertingSeverities struct {
+	Absent       string
+	FastBurn     string
+	MediumBurn   string
+	SlowBurn     string
+	LongTermBurn string
 }
 
 type Metric struct {
@@ -178,4 +191,10 @@ type Metric struct {
 func (m Metric) Metric() string {
 	v := parser.VectorSelector{Name: m.Name, LabelMatchers: m.LabelMatchers}
 	return v.String()
+}
+
+type RuleOutput struct {
+	ShortRulesLabels         map[string]string
+	LongRulesLabels          map[string]string
+	EnableDescriptionAsLabel bool
 }

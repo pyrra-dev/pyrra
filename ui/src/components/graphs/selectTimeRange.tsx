@@ -1,4 +1,4 @@
-import uPlot from 'uplot'
+import type uPlot from 'uplot'
 
 export const selectTimeRange =
   (updateTimeRange: (min: number, max: number, absolute: boolean) => void) => (u: uPlot) => {

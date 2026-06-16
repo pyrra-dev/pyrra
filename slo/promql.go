@@ -2,18 +2,18 @@ package slo
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"time"
 
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // QueryTotal returns a PromQL query to get the total amount of requests served during the window.
-func (o Objective) QueryTotal(window model.Duration) string {
+func (o Objective) QueryTotal(window model.Duration, opts GenerationOptions) string {
 	expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
 	if err != nil {
 		return ""
@@ -33,7 +33,7 @@ func (o Objective) QueryTotal(window model.Duration) string {
 		metric = increaseName(o.Indicator.Latency.Total.Name, window)
 		grouping = slices.Clone(o.Indicator.Latency.Grouping)
 		matchers = append(
-			cloneMatchers(o.Indicator.Latency.Total.LabelMatchers),
+			applyPrometheus3Migration(cloneMatchers(o.Indicator.Latency.Total.LabelMatchers), opts),
 			&labels.Matcher{Type: labels.MatchEqual, Name: labels.BucketLabel, Value: ""},
 		)
 	case LatencyNative:
@@ -58,7 +58,7 @@ func (o Objective) QueryTotal(window model.Duration) string {
 	})
 
 	for _, m := range matchers {
-		if m.Name == labels.MetricName {
+		if m.Name == model.MetricNameLabel {
 			m.Value = metric
 		}
 	}
@@ -73,7 +73,7 @@ func (o Objective) QueryTotal(window model.Duration) string {
 }
 
 // QueryErrors returns a PromQL query to get the amount of request errors during the window.
-func (o Objective) QueryErrors(window model.Duration) string {
+func (o Objective) QueryErrors(window model.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
@@ -85,7 +85,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		matchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
 
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -112,7 +112,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		metric := increaseName(o.Indicator.Latency.Total.Name, window)
 		matchers := cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -126,9 +126,9 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		})
 
 		errorMetric := increaseName(o.Indicator.Latency.Success.Name, window)
-		errorMatchers := cloneMatchers(o.Indicator.Latency.Success.LabelMatchers)
+		errorMatchers := applyPrometheus3Migration(cloneMatchers(o.Indicator.Latency.Success.LabelMatchers), opts)
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -157,7 +157,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		metric := increaseName(o.Indicator.LatencyNative.Total.Name, window)
 		matchers := cloneMatchers(o.Indicator.LatencyNative.Total.LabelMatchers)
 		for i, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				matchers[i].Value = metric
 				break
 			}
@@ -198,7 +198,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		errorMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -210,7 +210,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 		})
 
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -235,7 +235,7 @@ func (o Objective) QueryErrors(window model.Duration) string {
 	}
 }
 
-func (o Objective) QueryErrorBudget() string {
+func (o Objective) QueryErrorBudget(opts GenerationOptions) string {
 	indicatorType := o.IndicatorType()
 	switch indicatorType {
 	case Ratio:
@@ -259,7 +259,7 @@ func (o Objective) QueryErrorBudget() string {
 		metric := increaseName(o.Indicator.Ratio.Total.Name, o.Window)
 		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -273,7 +273,7 @@ func (o Objective) QueryErrorBudget() string {
 		errorMetric := increaseName(o.Indicator.Ratio.Errors.Name, o.Window)
 		errorMatchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -325,7 +325,7 @@ func (o Objective) QueryErrorBudget() string {
 			metric = increaseName(o.Indicator.Latency.Total.Name, o.Window)
 			matchers = cloneMatchers(o.Indicator.Latency.Total.LabelMatchers)
 			errorMetric = increaseName(o.Indicator.Latency.Success.Name, o.Window)
-			errorMatchers = cloneMatchers(o.Indicator.Latency.Success.LabelMatchers)
+			errorMatchers = applyPrometheus3Migration(cloneMatchers(o.Indicator.Latency.Success.LabelMatchers), opts)
 			grouping = o.Indicator.Latency.Grouping
 		case LatencyNative:
 			metric = increaseName(o.Indicator.LatencyNative.Total.Name, o.Window)
@@ -336,13 +336,13 @@ func (o Objective) QueryErrorBudget() string {
 		}
 
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
 		}
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -394,7 +394,7 @@ func (o Objective) QueryErrorBudget() string {
 		metric := countName(o.Indicator.BoolGauge.Name, o.Window)
 		matchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = metric
 				break
 			}
@@ -408,7 +408,7 @@ func (o Objective) QueryErrorBudget() string {
 		errorMetric := sumName(o.Indicator.BoolGauge.Name, o.Window)
 		errorMatchers := cloneMatchers(o.Indicator.BoolGauge.LabelMatchers)
 		for _, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				m.Value = errorMetric
 				break
 			}
@@ -448,7 +448,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		}
 		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.Ratio.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				if _, ok := groupingMap[m.Name]; !ok {
 					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
 						Type:  m.Type,
@@ -466,7 +466,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		}
 		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.Latency.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				if _, ok := groupingMap[m.Name]; !ok {
 					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
 						Type:  m.Type,
@@ -484,7 +484,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		}
 		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.LatencyNative.Total.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				if _, ok := groupingMap[m.Name]; !ok {
 					matchers[m.Name] = &labels.Matcher{
 						Type:  m.Type,
@@ -502,7 +502,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		}
 		// Only include MatchEqual labels that aren't in the grouping, matching the recording rule labels
 		for _, m := range o.Indicator.BoolGauge.LabelMatchers {
-			if m.Type == labels.MatchEqual && m.Name != labels.MetricName {
+			if m.Type == labels.MatchEqual && m.Name != model.MetricNameLabel {
 				if _, ok := groupingMap[m.Name]; !ok {
 					matchers[m.Name] = &labels.Matcher{ // Copy labels by value to avoid race
 						Type:  m.Type,
@@ -524,7 +524,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 	}
 
 	for i, m := range matchers {
-		if m.Name == labels.MetricName {
+		if m.Name == model.MetricNameLabel {
 			matchers[i].Value = metric
 		}
 	}
@@ -589,6 +589,10 @@ func (r objectiveReplacer) replace(node parser.Node) {
 			n.Range = r.window
 		}
 		r.replace(n.VectorSelector)
+	case *parser.SubqueryExpr:
+		n.Range = r.window
+		n.Step = 5 * time.Minute
+		r.replace(n.Expr)
 	case *parser.VectorSelector:
 		if n.Name == "errorMetric" {
 			n.Name = r.errorMetric
@@ -628,7 +632,7 @@ func (r objectiveReplacer) replace(node parser.Node) {
 	}
 }
 
-func (o Objective) RequestRange(timerange time.Duration) string {
+func (o Objective) RequestRange(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (group) (rate(metric{}[1s])) > 0`)
@@ -638,7 +642,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 
 		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		for i, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				matchers[i].Value = o.Indicator.Ratio.Total.Name
 			}
 		}
@@ -665,7 +669,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 			metric:        o.Indicator.Latency.Total.Name,
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Latency.Success.Name,
-			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			errorMatchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
 			window:        timerange,
 		}.replace(expr)
 
@@ -704,7 +708,7 @@ func (o Objective) RequestRange(timerange time.Duration) string {
 	}
 }
 
-func (o Objective) ErrorsRange(timerange time.Duration) string {
+func (o Objective) ErrorsRange(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
 		expr, err := parser.ParseExpr(`sum by (group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
@@ -714,14 +718,14 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 
 		matchers := cloneMatchers(o.Indicator.Ratio.Total.LabelMatchers)
 		for i, m := range matchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				matchers[i].Value = o.Indicator.Ratio.Total.Name
 			}
 		}
 
 		errorMatchers := cloneMatchers(o.Indicator.Ratio.Errors.LabelMatchers)
 		for i, m := range errorMatchers {
-			if m.Name == labels.MetricName {
+			if m.Name == model.MetricNameLabel {
 				errorMatchers[i].Value = o.Indicator.Ratio.Errors.Name
 			}
 		}
@@ -749,7 +753,7 @@ func (o Objective) ErrorsRange(timerange time.Duration) string {
 			metric:        o.Indicator.Latency.Total.Name,
 			matchers:      o.Indicator.Latency.Total.LabelMatchers,
 			errorMetric:   o.Indicator.Latency.Success.Name,
-			errorMatchers: o.Indicator.Latency.Success.LabelMatchers,
+			errorMatchers: applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts),
 			window:        timerange,
 		}.replace(expr)
 
@@ -855,7 +859,7 @@ func groupingLabels(errorMatchers, totalMatchers []*labels.Matcher) []string {
 	// and we have to remove it for the latency SLOs.
 	delete(groupingLabels, labels.BucketLabel)
 
-	return maps.Keys(groupingLabels)
+	return slices.Collect(maps.Keys(groupingLabels))
 }
 
 func cloneMatchers(matchers []*labels.Matcher) []*labels.Matcher {

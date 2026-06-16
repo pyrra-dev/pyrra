@@ -1,4 +1,8 @@
 *.scss
+*.spec.ts
+*.spec.tsx
+*.test.ts
+*.test.tsx
 
 build/
 node_modules/

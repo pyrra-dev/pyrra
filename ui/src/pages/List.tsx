@@ -1,58 +1,57 @@
 import React, {useEffect, useMemo, useReducer, useState} from 'react'
-import {
-  Alert,
-  Badge,
-  Button,
-  Col,
-  Container,
-  Dropdown,
-  OverlayTrigger,
-  Row,
-  Spinner,
-  Table,
-  Tooltip as OverlayTooltip,
-} from 'react-bootstrap'
 import {API_BASEPATH, latencyTarget} from '../App'
-import {useLocation, useNavigate} from 'react-router-dom'
+import {useNavigate} from 'react-router-dom'
+import {useQueryState, parseAsString} from 'nuqs'
 import Navbar from '../components/Navbar'
-import {Labels, labelsString, MetricName, parseLabels} from '../labels'
-import {createConnectTransport} from '@bufbuild/connect-web'
-import {createPromiseClient, Code} from '@connectrpc/connect'
-import {ObjectiveService} from '../proto/objectives/v1alpha1/objectives_connect'
+import {type Labels, labelsString, MetricName} from '../labels'
+import {parseAsLabels} from '../searchParams'
+import {createConnectTransport} from '@connectrpc/connect-web'
+import {createClient, Code} from '@connectrpc/connect'
+import {clone} from '@bufbuild/protobuf'
+import {ObjectiveService, ObjectiveSchema} from '../proto/objectives/v1alpha1/objectives_pb'
 import {
-  Alert as ObjectiveAlert,
+  type Alert as ObjectiveAlert,
   Alert_State,
-  GetAlertsResponse,
-  GetStatusResponse,
-  Objective,
-  ObjectiveStatus,
+  type GetAlertsResponse,
+  type GetStatusResponse,
+  type Objective,
+  type ObjectiveStatus,
 } from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration} from '../duration'
 import {
-  Cell,
+  type Cell,
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  Row as TableRow,
-  SortingFnOption,
-  SortingState,
+  type Row as TableRowType,
+  type SortingFnOption,
+  type SortingState,
   useReactTable,
-  VisibilityState,
+  type VisibilityState,
 } from '@tanstack/react-table'
-import {Duration} from '@bufbuild/protobuf'
+import {type Duration} from '@bufbuild/protobuf/wkt'
 import {useObjectivesList} from '../objectives'
+import {ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Columns2, Search, TriangleAlert} from 'lucide-react'
+import {Badge} from '@/components/ui/badge'
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
+import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert'
+import {Spinner} from '@/components/ui/spinner'
 import {
-  IconArrowDown,
-  IconArrowUp,
-  IconArrowUpDown,
-  IconMagnifyingGlass,
-  IconTableColumns,
-  IconWarning,
-} from '../components/Icons'
-import AwesomeDebouncePromise from 'awesome-debounce-promise'
-import useConstant from 'use-constant'
-import {useAsync} from 'react-async-hook'
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from '@/components/ui/dropdown-menu'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table'
+import {cn} from '@/lib/utils'
 
 enum TableObjectiveState {
   Unknown,
@@ -80,7 +79,7 @@ interface TableAvailability {
 }
 
 interface TableState {
-  objectives: {[key: string]: TableObjective}
+  objectives: Record<string, TableObjective>
 }
 
 enum TableActionType {
@@ -164,7 +163,7 @@ const tableReducer = (state: TableState, action: TableAction): TableState => {
             lset: action.lset,
             groupingLabels: action.statusLabels,
             state: TableObjectiveState.Success,
-            severity: severity,
+            severity,
             availability: {
               errors: action.status.availability?.errors ?? 0,
               total: action.status.availability?.total ?? 0,
@@ -256,8 +255,8 @@ interface row {
 
 const columnHelper = createColumnHelper<row>()
 const sortingNumberNull: SortingFnOption<row> = (
-  rowA: TableRow<row>,
-  rowB: TableRow<row>,
+  rowA: TableRowType<row>,
+  rowB: TableRowType<row>,
   columnId: string,
 ): number => {
   const av: number | null = rowA.getValue(columnId)
@@ -278,10 +277,10 @@ const columns = [
   columnHelper.accessor('lset', {
     id: 'lset',
     header: 'Name',
-    sortingFn: (a: TableRow<row>, b: TableRow<row>, columnId: string): number => {
+    sortingFn: (a: TableRowType<row>, b: TableRowType<row>, columnId: string): number => {
       const av: {lset: Labels; grouping: Labels} = a.getValue(columnId)
       const bv: {lset: Labels; grouping: Labels} = b.getValue(columnId)
-      
+
       // First compare by the metric name
       const aName = av.lset[MetricName] ?? ''
       const bName = bv.lset[MetricName] ?? ''
@@ -289,7 +288,7 @@ const columns = [
       if (nameComparison !== 0) {
         return nameComparison
       }
-      
+
       // If names are equal, compare by grouping labels only
       const aGrouping = labelsString(av.grouping)
       const bGrouping = labelsString(bv.grouping)
@@ -302,7 +301,7 @@ const columns = [
     cell: (props) => {
       const window = props.getValue()
       if (Number(window?.seconds) === 0) {
-        return <span className="text-danger">Error: Invalid SLO configuration</span>
+        return <span className="text-destructive">Error: Invalid SLO configuration</span>
       }
       return formatDuration(Number(window?.seconds) * 1000)
     },
@@ -375,7 +374,9 @@ const columns = [
 
       return (
         <>
-          <span className={v > target ? 'good' : 'bad'}>{(100 * v).toFixed(2)}%</span>
+          <span className={cn(v <= target && 'text-[#b10d0d]')}>
+            {(100 * v).toFixed(2)}%
+          </span>
           {!totalVisible && (
             <VolumeWarningTooltip id={props.cell.id} objective={objective} total={total} />
           )}
@@ -392,7 +393,11 @@ const columns = [
       if (v === undefined || v === null) {
         return 'No data'
       }
-      return <span className={v >= 0 ? 'good' : 'bad'}>{(100 * v).toFixed(2)}%</span>
+      return (
+        <span className={cn(v < 0 && 'text-[#b10d0d]')}>
+          {(100 * v).toFixed(2)}%
+        </span>
+      )
     },
     sortingFn: sortingNumberNull,
   }),
@@ -404,13 +409,13 @@ const columns = [
       if (v === '') {
         return
       }
-      return <span className="severity">{v}</span>
+      return <span className="text-destructive font-semibold">{v}</span>
     },
   }),
 ]
 
 const VolumeWarningTooltip = ({
-  id,
+  id: _id,
   objective,
   total,
 }: {
@@ -423,19 +428,14 @@ const VolumeWarningTooltip = ({
   if (!show) return <></>
 
   return (
-    <OverlayTrigger
-      key={`${id}-warning`}
-      overlay={
-        <OverlayTooltip id={`tooltip-${id}-warning`}>
-          Too few requests!
-          <br />
-          Adjust your objective or wait for events.
-        </OverlayTooltip>
-      }>
-      <span className="volume-warning">
-        <IconWarning width={20} height={20} fill="#b10d0d" />
-      </span>
-    </OverlayTrigger>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger render={<span className="ml-2 inline-flex align-middle" />}>
+          <TriangleAlert size={20} color="#b10d0d" />
+        </TooltipTrigger>
+        <TooltipContent>Too few requests!<br />Adjust your objective or wait for events.</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
@@ -446,37 +446,15 @@ const List = () => {
 
   document.title = 'Objectives - Pyrra'
   const navigate = useNavigate()
-  const {search} = useLocation()
 
   const client = useMemo(() => {
-    const baseUrl = API_BASEPATH === undefined ? 'http://localhost:9099' : API_BASEPATH
-    return createPromiseClient(ObjectiveService, createConnectTransport({baseUrl}))
+    const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
+    return createClient(ObjectiveService, createConnectTransport({baseUrl}))
   }, [])
 
-  const [filterSearch] = useMemo((): [string] => {
-    const query = new URLSearchParams(search)
-    const querySearch = query.get('search')
-    return [querySearch ?? '']
-  }, [search])
-
-  const [filterLabels, filterError] = useMemo((): [Labels, boolean] => {
-    const query = new URLSearchParams(search)
-    const queryFilter = query.get('filter')
-    try {
-      if (queryFilter !== null) {
-        if (queryFilter.indexOf('=') > 0) {
-          return [parseLabels(queryFilter), false]
-        } else {
-          filterLabels[MetricName] = queryFilter
-          return [filterLabels, false]
-        }
-      }
-    } catch (e) {
-      console.log(e)
-      return [{}, true]
-    }
-    return [{}, false]
-  }, [search])
+  const [filterSearch, setFilterSearch] = useQueryState('search', parseAsString.withDefault(''))
+  const [filterLabels, setFilterLabels] = useQueryState('filter', parseAsLabels.withDefault({}))
+  const [filterError] = useState<boolean>(false)
 
   // TODO: Pass in the search to the useObjectivesList hook
   const {
@@ -485,49 +463,10 @@ const List = () => {
     status: objectiveStatus,
   } = useObjectivesList(client, labelsString(filterLabels), '')
 
-  const navigateFilterURL = (search: string, labels: Labels) => {
-    // TODO: use something like URLState?
-
-    const hasSearch = search.length > 0
-    const hasLabels = Object.keys(labels).length > 0
-    console.log('hasSearch', hasSearch, 'hasLabels', hasLabels, labels)
-
-    if (!hasSearch && !hasLabels) {
-      navigate('?')
-      return
-    }
-    if (hasSearch && !hasLabels) {
-      navigate(`?search=${encodeURI(search)}`)
-      return
-    }
-    if (!hasSearch && hasLabels) {
-      navigate(`?filter=${encodeURI(labelsString(labels))}`)
-      return
-    }
-
-    navigate(`?search=${encodeURI(search)}&filter=${encodeURI(labelsString(labels))}`)
-  }
-
   const initialTableState: TableState = {objectives: {}}
   const [table, dispatchTable] = useReducer(tableReducer, initialTableState)
 
   const [sorting, setSorting] = React.useState<SortingState>([{id: 'budget', desc: false}])
-  const [searchInput, setSearchInput] = React.useState<string>(filterSearch)
-
-  // Only update the URL when the user stops typing for 1 second
-  const debouncedSearchFunction = useConstant(() =>
-    AwesomeDebouncePromise((search: string, labels: Labels) => {
-      navigateFilterURL(search, labels)
-    }, 1000),
-  )
-
-  // The async callback is run each time the text changes,
-  // but as the search function is debounced, it does not
-  // fire a new request on each keystroke
-  useAsync(async () => {
-    return debouncedSearchFunction(searchInput, filterLabels)
-  }, [debouncedSearchFunction, searchInput, filterLabels])
-
   // TODO: Persist the column visibility in the browser's state
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     lset: true,
@@ -542,22 +481,13 @@ const List = () => {
   })
 
   const updateFilter = (lset: Labels) => {
-    // Copy existing filterLabels (from router) and add/overwrite k-v-pairs
-    const updatedFilter: Labels = {...filterLabels}
-    for (const l in lset) {
-      updatedFilter[l] = lset[l]
-    }
-    navigateFilterURL(searchInput, updatedFilter)
+    const updated: Labels = {...filterLabels, ...lset}
+    void setFilterLabels(Object.keys(updated).length > 0 ? updated : null)
   }
 
   const removeFilterLabel = (k: string) => {
-    const updatedFilter: Labels = {}
-    for (const name in filterLabels) {
-      if (name !== k) {
-        updatedFilter[name] = filterLabels[name]
-      }
-    }
-    navigateFilterURL(searchInput, updatedFilter)
+    const {[k]: _, ...rest} = filterLabels
+    void setFilterLabels(Object.keys(rest).length > 0 ? rest : null)
   }
 
   useEffect(() => {
@@ -579,7 +509,7 @@ const List = () => {
             }
           })
         })
-        .catch((err) => console.log(err))
+        .catch((err) => { console.log(err); })
 
       objectiveResponse.objectives.forEach((o: Objective) => {
         dispatchTable({
@@ -603,9 +533,9 @@ const List = () => {
               dispatchTable({type: TableActionType.DeleteObjective, lset: labelsString(o.labels)})
 
               resp.status.forEach((s: ObjectiveStatus) => {
-                const so = o.clone()
+                const so = clone(ObjectiveSchema, o)
                 // Identify by the combined labels
-                const sLabels: Labels = s.labels !== undefined ? s.labels : {}
+                const sLabels: Labels = s.labels ?? {}
                 const soLabels: Labels = {...o.labels, ...sLabels}
 
                 dispatchTable({
@@ -646,7 +576,7 @@ const List = () => {
           }
           // if all labels match, filter for the search string
           // TODO: Use fuzzy search
-          return k.toLowerCase().includes(searchInput.toLowerCase())
+          return k.toLowerCase().includes(filterSearch.toLowerCase())
         })
         .map((k: string) => {
           const o = table.objectives[k]
@@ -659,12 +589,12 @@ const List = () => {
             total: o.availability?.total,
             availability: o.availability?.percentage,
             budget: o.budget,
-            alerts: o.severity !== null ? o.severity : '',
+            alerts: o.severity ?? '',
           }
           return r
         }) ?? null
     )
-  }, [table.objectives, searchInput, filterLabels])
+  }, [table.objectives, filterSearch, filterLabels])
 
   const reactTable = useReactTable({
     data: reactTableData,
@@ -692,20 +622,18 @@ const List = () => {
     )}`
   }
 
-  if (objectiveStatus === 'loading') {
+  if (objectiveStatus === 'pending') {
     return (
       <>
         <Navbar />
-        <Container className="content list">
-          <Row className="mt-3 justify-content-center">
-            <Col xs="auto" className="text-center">
-              <Spinner animation="border" role="status">
-                <span className="visually-hidden">Loading objectives...</span>
-              </Spinner>
+        <div className="container-responsive mt-[100px]">
+          <div className="mt-3 flex justify-center">
+            <div className="text-center">
+              <Spinner />
               <p className="mt-3">Loading objectives...</p>
-            </Col>
-          </Row>
-        </Container>
+            </div>
+          </div>
+        </div>
       </>
     )
   }
@@ -714,28 +642,28 @@ const List = () => {
     return (
       <>
         <Navbar />
-        <Container className="content list">
-          <Row className="mt-3">
-            <Col>
+        <div className="container-responsive mt-[100px]">
+          <div className="mt-3">
+            <div>
               {objectiveError.code === Code.Unavailable && (
-                <Alert variant="danger">
-                  <h5>Backend connection failed</h5>
-                  <p className="mb-0">
+                <Alert variant="destructive">
+                  <AlertTitle>Backend connection failed</AlertTitle>
+                  <AlertDescription>
                     Cannot reach the backend service. Ensure the <b>filesystem</b> or{' '}
                     <b>Kubernetes</b> backend is running.
-                  </p>
+                  </AlertDescription>
                 </Alert>
               )}
               {objectiveError.code !== Code.NotFound &&
                 objectiveError.code !== Code.Unavailable && (
-                  <Alert variant="danger">
-                    <h5>Error loading objectives</h5>
-                    <p className="mb-0">{objectiveError.message}</p>
+                  <Alert variant="destructive">
+                    <AlertTitle>Error loading objectives</AlertTitle>
+                    <AlertDescription>{objectiveError.message}</AlertDescription>
                   </Alert>
                 )}
-            </Col>
-          </Row>
-        </Container>
+            </div>
+          </div>
+        </div>
       </>
     )
   }
@@ -743,168 +671,157 @@ const List = () => {
   return (
     <>
       <Navbar />
-      <Container className="content list">
-        <Row>
-          <Col>
-            <h3>Service Level Objectives</h3>
-          </Col>
-        </Row>
-        <Row className="align-items-center">
-          <Col xs={12} md={6} lg={4} className="my-2">
-            <div className="position-relative">
-              <div className="position-absolute" style={{top: 5, left: 14}}>
-                <IconMagnifyingGlass width={16} height={16} />
+      <div className="container-responsive mt-[100px]">
+        <div>
+          <div>
+            <h3 className="mb-8">Service Level Objectives</h3>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-y-2">
+          <div className="my-2 w-full md:w-1/2 lg:w-1/3">
+            <div className="relative">
+              <div className="absolute top-1/2 left-3 -translate-y-1/2">
+                <Search size={16} />
               </div>
               <input
                 type="search"
-                className="form-control"
+                className="h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 text-sm"
                 placeholder="Search name"
                 aria-label="Search"
-                style={{paddingLeft: 40}}
-                value={searchInput}
+                value={filterSearch}
                 onChange={(e) => {
-                  setSearchInput(e.target.value)
+                  void setFilterSearch(e.target.value !== '' ? e.target.value : null)
                 }}
               />
             </div>
-          </Col>
-          <Col className="my-2 order-md-2 order-lg-1 flex-lg-fill" xs={12} lg={'auto'}>
+          </div>
+          <div className="my-2 order-2 lg:order-1 lg:flex-1">
             {Object.keys(filterLabels)
               .sort((a, b) => a.localeCompare(b))
               .map((k: string) => (
-                <Button
+                <Badge
                   key={k}
-                  variant="light"
-                  size="sm"
-                  className="filter-close"
-                  onClick={() => removeFilterLabel(k)}>
+                  variant="secondary"
+                  className="mr-2 mb-2 cursor-pointer font-normal md:mb-0"
+                  onClick={() => { removeFilterLabel(k); }}>
                   {`${k}=${filterLabels[k]}`}
-                  <span className="btn-close"></span>
-                </Button>
+                  <span className="ml-1">✕</span>
+                </Badge>
               ))}
-            <Alert show={filterError} variant="danger">
-              Your SLO filter is broken. Please reset the filter.
-            </Alert>
-          </Col>
-          <Col
-            xs={12}
-            md={6}
-            lg={'auto'}
-            className="my-2 order-md-1 order-lg-2"
-            style={{textAlign: 'right'}}>
-            <Dropdown>
-              <Dropdown.Toggle
-                variant="outline-light"
-                id="dropdown-basic"
-                role="checkbox"
-                style={{color: 'var(--bs-body-color)', justifyContent: 'center'}}>
-                <IconTableColumns width={16} height={16} />
-                <span style={{marginLeft: 8}}>Columns</span>
-              </Dropdown.Toggle>
-              <Dropdown.Menu align="end">
-                <ul style={{listStyle: 'none', padding: '0 10px'}}>
-                  {columns.map((c) => {
-                    const id = c.id ?? ''
-                    const header = c.header as string
-                    return (
-                      <li key={id} style={{padding: '4px 0'}}>
-                        <input
-                          type="checkbox"
-                          checked={columnVisibility[id]}
-                          id={id}
-                          onChange={() =>
-                            setColumnVisibility({
-                              ...columnVisibility,
-                              [id]: !columnVisibility[id],
-                            })
-                          }
-                        />
-                        <label htmlFor={id} style={{marginLeft: 8}}>
-                          {header}
-                        </label>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </Dropdown.Menu>
-            </Dropdown>
-          </Col>
-        </Row>
-        <Row>
-          <div className="table-responsive">
-            <Table hover={true}>
-              <thead>
-                {reactTable.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className={header.column.getIsSorted() !== false ? 'active' : ''}
-                        onClick={header.column.getToggleSortingHandler()}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() && header.column.getIsSorted() === false ? (
-                          <IconArrowUpDown />
-                        ) : (
-                          ''
-                        )}
-                        {header.column.getIsSorted() === 'asc' ? <IconArrowUp /> : ''}
-                        {header.column.getIsSorted() === 'desc' ? <IconArrowDown /> : ''}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {reactTable.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    onClick={() => {
-                      const window: Duration | undefined = row.getValue('window')
-                      if (Number(window?.seconds) === 0) {
-                        // Don't navigate for invalid SLOs
-                        return
-                      }
-                      const labels: {lset: Labels; grouping: Labels} = row.getValue('lset')
-                      navigate(objectivePage(labels.lset, labels.grouping))
-                    }}
-                    className={
-                      row.getValue('alerts') !== ''
-                        ? 'table-row-clickable firing'
-                        : 'table-row-clickable'
-                    }>
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id}>
-                        <>
-                          {cell.column.id === 'lset' ? (
-                            <NameCell
-                              cell={cell}
-                              onFilter={(lset) => {
-                                updateFilter(lset)
-                              }}
-                            />
-                          ) : (
-                            flexRender(cell.column.columnDef.cell, cell.getContext())
-                          )}
-                        </>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+            {filterError && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Your SLO filter is broken. Please reset the filter.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
-        </Row>
-        <Row>
-          <Col>
+          <div className="my-2 order-1 md:w-1/2 lg:order-2 lg:w-auto text-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="inline-flex shrink-0 items-center justify-center rounded-md border border-border bg-background px-2.5 py-1 text-sm font-medium hover:bg-muted">
+                <Columns2 size={16} />
+                <span className="ml-2">Columns</span>
+                <ChevronDown size={14} className="ml-1" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {columns.map((c) => {
+                  const id = c.id ?? ''
+                  const header = c.header as string
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={id}
+                      checked={columnVisibility[id]}
+                      onCheckedChange={() => {
+                        setColumnVisibility({
+                          ...columnVisibility,
+                          [id]: !columnVisibility[id],
+                        })
+                      }}>
+                      {header}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+        <div className="mt-2">
+          <Table>
+            <TableHeader>
+              {reactTable.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        'cursor-pointer select-none hover:text-foreground [&_svg]:h-4 [&_svg]:w-4 [&_svg]:-mt-1 [&_svg]:inline',
+                        header.column.getIsSorted() !== false && 'text-foreground [&_svg_path]:stroke-foreground',
+                      )}
+                      onClick={header.column.getToggleSortingHandler()}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getCanSort() && header.column.getIsSorted() === false ? (
+                        <ArrowUpDown />
+                      ) : (
+                        ''
+                      )}
+                      {header.column.getIsSorted() === 'asc' ? <ArrowUp /> : ''}
+                      {header.column.getIsSorted() === 'desc' ? <ArrowDown /> : ''}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {reactTable.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className={cn(
+                    'cursor-pointer',
+                    row.getValue('alerts') !== '' &&
+                      'bg-destructive/20 border-l-4 border-l-destructive',
+                  )}
+                  onClick={() => {
+                    const window: Duration | undefined = row.getValue('window')
+                    if (Number(window?.seconds) === 0) {
+                      // Don't navigate for invalid SLOs
+                      return
+                    }
+                    const labels: {lset: Labels; grouping: Labels} = row.getValue('lset')
+                    void navigate(objectivePage(labels.lset, labels.grouping))
+                  }}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      <>
+                        {cell.column.id === 'lset' ? (
+                          <NameCell
+                            cell={cell}
+                            onFilter={(lset) => {
+                              updateFilter(lset)
+                            }}
+                          />
+                        ) : (
+                          flexRender(cell.column.columnDef.cell, cell.getContext())
+                        )}
+                      </>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div>
+          <div>
             <small>
               All availabilities and error budgets are calculated across the entire time window of
               the objective.
             </small>
-          </Col>
-        </Row>
-      </Container>
+          </div>
+        </div>
+      </div>
     </>
   )
 }
@@ -923,10 +840,8 @@ const NameCell = ({cell, onFilter}: NameCellProps): React.JSX.Element => {
     .map((l: [string, string]) => (
       <Badge
         key={l[0]}
-        bg="light"
-        text="dark"
-        className="fw-normal"
-        style={{marginRight: 5}}
+        variant="secondary"
+        className="mr-1 cursor-pointer font-normal"
         onClick={(event) => {
           event.stopPropagation()
           const lset: Labels = {}
@@ -934,9 +849,7 @@ const NameCell = ({cell, onFilter}: NameCellProps): React.JSX.Element => {
           console.log('filter', lset)
           onFilter(lset)
         }}>
-        <a>
-          {l[0]}={l[1]}
-        </a>
+        {l[0]}={l[1]}
       </Badge>
     ))
 
