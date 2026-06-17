@@ -85,3 +85,22 @@ export const replaceInterval = (query: string, from: number, to: number): string
 
   return query.replaceAll(/\[(1s)\]/g, `[${rateIntervalStr}]`)
 }
+
+// vectorErrorsTotal pulls the errors/total sample values out of two instant-vector
+// query responses. total defaults to 1 so callers can divide without guarding.
+export const vectorErrorsTotal = (
+  totalResponse: QueryResponse | null,
+  errorResponse: QueryResponse | null,
+): {errors: number; total: number} => {
+  let errors = 0
+  let total = 1
+  if (totalResponse?.options.case === 'vector' && errorResponse?.options.case === 'vector') {
+    if (errorResponse.options.value.samples.length > 0) {
+      errors = errorResponse.options.value.samples[0].value
+    }
+    if (totalResponse.options.value.samples.length > 0) {
+      total = totalResponse.options.value.samples[0].value
+    }
+  }
+  return {errors, total}
+}

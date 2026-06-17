@@ -14,18 +14,15 @@ import {createClient} from '@connectrpc/connect'
 import {createConnectTransport} from '@connectrpc/connect-web'
 import type uPlot from 'uplot'
 import {LineChart, Play} from 'lucide-react'
-import {Badge} from '@/components/ui/badge'
 import {Spinner} from '@/components/ui/spinner'
 import {Button} from '@/components/ui/button'
 import {hasObjectiveType, ObjectiveType, latencyTarget} from '../../App'
 import {MetricName} from '../../labels'
 import {type Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
-import {usePrometheusQuery, replaceInterval} from '../../prometheus'
-import Tiles from '../tiles/Tiles'
-import ObjectiveTile from '../tiles/ObjectiveTile'
-import AvailabilityTile from '../tiles/AvailabilityTile'
-import ErrorBudgetTile from '../tiles/ErrorBudgetTile'
+import {usePrometheusQuery, replaceInterval, vectorErrorsTotal} from '../../prometheus'
+import ObjectiveTiles from '../tiles/ObjectiveTiles'
+import ObjectiveLabels from '../ObjectiveLabels'
 import ErrorBudgetGraph from '../graphs/ErrorBudgetGraph'
 import RequestsGraph from '../graphs/RequestsGraph'
 import ErrorsGraph from '../graphs/ErrorsGraph'
@@ -129,24 +126,7 @@ const DetailPreview = ({baseUrl, objective, status, stale, onRun}: DetailPreview
   const loading = totalStatus === 'pending' || errorStatus === 'pending'
   const success = totalStatus === 'success' && errorStatus === 'success'
 
-  let errors = 0
-  let total = 1
-  if (totalResponse?.options.case === 'vector' && errorResponse?.options.case === 'vector') {
-    if (errorResponse.options.value.samples.length > 0) {
-      errors = errorResponse.options.value.samples[0].value
-    }
-    if (totalResponse.options.value.samples.length > 0) {
-      total = totalResponse.options.value.samples[0].value
-    }
-  }
-
-  const labelBadges = Object.entries(objective.labels)
-    .filter((l) => l[0] !== MetricName)
-    .map((l) => (
-      <Badge key={l[0]} variant="secondary" className="mr-1 font-normal">
-        {l[0]}={l[1]}
-      </Badge>
-    ))
+  const {errors, total} = vectorErrorsTotal(totalResponse, errorResponse)
 
   const uPlotCursor: uPlot.Cursor = {y: false, lock: true, sync: {key: 'create-preview'}}
 
@@ -155,30 +135,20 @@ const DetailPreview = ({baseUrl, objective, status, stale, onRun}: DetailPreview
       <div className="px-6 pt-7 pb-14">
         <div className="mb-7">
           <h3 className="mb-3">{name}</h3>
-          {labelBadges}
+          <ObjectiveLabels labels={objective.labels} />
           {objective.description !== '' && (
             <p className="mt-3 max-w-prose text-sm leading-relaxed">{objective.description}</p>
           )}
         </div>
 
         <div className="mb-7">
-          <Tiles>
-            <ObjectiveTile objective={objective} />
-            <AvailabilityTile
-              objective={objective}
-              loading={loading}
-              success={success}
-              errors={errors}
-              total={total}
-            />
-            <ErrorBudgetTile
-              objective={objective}
-              loading={loading}
-              success={success}
-              errors={errors}
-              total={total}
-            />
-          </Tiles>
+          <ObjectiveTiles
+            objective={objective}
+            loading={loading}
+            success={success}
+            errors={errors}
+            total={total}
+          />
         </div>
 
         {objective.queries?.graphErrorBudget !== undefined && (
