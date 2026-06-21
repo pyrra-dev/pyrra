@@ -39,7 +39,9 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"sigs.k8s.io/yaml"
 
+	"github.com/pyrra-dev/pyrra/kubernetes/api/v1alpha1"
 	"github.com/pyrra-dev/pyrra/mimir"
 	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1/objectivesv1alpha1connect"
@@ -908,6 +910,39 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 
 	return connect.NewResponse(&objectivesv1alpha1.ListResponse{
 		Objectives: resp.Msg.Objectives,
+	}), nil
+}
+
+// Preview materializes a draft SLO from its YAML config without persisting it or
+// touching a backend. It runs the config through the exact same parsing a stored
+// objective goes through and fills in the queries like List does, so the UI can
+// render the detail page as if the SLO already existed.
+func (s *objectiveServer) Preview(ctx context.Context, req *connect.Request[objectivesv1alpha1.PreviewRequest]) (*connect.Response[objectivesv1alpha1.PreviewResponse], error) {
+	var config v1alpha1.ServiceLevelObjective
+	if err := yaml.UnmarshalStrict([]byte(req.Msg.Config), &config); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to unmarshal config: %w", err))
+	}
+
+	if _, err := config.ValidateCreate(ctx, &config); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to validate config: %w", err))
+	}
+
+	objective, err := config.Internal()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to build objective: %w", err))
+	}
+
+	o := objectivesv1alpha1.FromInternal(objective)
+	o.Queries = &objectivesv1alpha1.Queries{
+		CountTotal:       objective.QueryTotal(objective.Window, s.opts),
+		CountErrors:      objective.QueryErrors(objective.Window, s.opts),
+		GraphErrorBudget: objective.QueryErrorBudget(s.opts),
+		GraphRequests:    objective.RequestRange(time.Second, s.opts),
+		GraphErrors:      objective.ErrorsRange(time.Second, s.opts),
+	}
+
+	return connect.NewResponse(&objectivesv1alpha1.PreviewResponse{
+		Objective: o,
 	}), nil
 }
 

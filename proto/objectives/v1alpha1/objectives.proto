@@ -15,6 +15,7 @@ service ObjectiveService {
   rpc GraphRate(GraphRateRequest) returns (GraphRateResponse) {}
   rpc GraphErrors(GraphErrorsRequest) returns (GraphErrorsResponse) {}
   rpc GraphDuration(GraphDurationRequest) returns (GraphDurationResponse) {}
+  rpc Preview(PreviewRequest) returns (PreviewResponse) {}
 }
 
 service ObjectiveBackendService {
@@ -28,6 +29,16 @@ message ListRequest {
 
 message ListResponse {
   repeated Objective objectives = 1;
+}
+
+message PreviewRequest {
+  // config is the SLO YAML config as written in the editor. The backend parses
+  // it exactly like a stored config and returns the materialized Objective.
+  string config = 1;
+}
+
+message PreviewResponse {
+  Objective objective = 1;
 }
 
 message Objective {

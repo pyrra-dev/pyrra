@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"math"
 	"testing"
 	"time"
 
+	connect "connectrpc.com/connect"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/stretchr/testify/require"
@@ -423,4 +425,66 @@ func TestAlertsMatchingObjectives(t *testing.T) {
 			require.Equal(t, tc.alerts, alertsMatchingObjectives(tc.metrics, tc.objectives, nil, tc.inactive))
 		})
 	}
+}
+
+func TestObjectiveServerPreview(t *testing.T) {
+	config := `apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: prometheus-api-query
+spec:
+  target: '99.0'
+  window: 7d
+  indicator:
+    ratio:
+      errors:
+        metric: prometheus_http_requests_total{handler=~"/api.*",code=~"5.."}
+      total:
+        metric: prometheus_http_requests_total{handler=~"/api.*"}
+      grouping:
+        - handler
+`
+
+	server := &objectiveServer{}
+	resp, err := server.Preview(context.Background(), connect.NewRequest(&objectivesv1alpha1.PreviewRequest{
+		Config: config,
+	}))
+	require.NoError(t, err)
+
+	o := resp.Msg.Objective
+	require.NotNil(t, o)
+	require.Equal(t, "prometheus-api-query", o.Labels[model.MetricNameLabel])
+	require.Equal(t, 0.99, o.Target)
+	require.Equal(t, 7*24*time.Hour, o.Window.AsDuration())
+	require.NotNil(t, o.Indicator.GetRatio())
+
+	// The queries are filled in exactly like List does, so the UI can render the
+	// detail page against real Prometheus data without persisting the SLO.
+	require.NotEmpty(t, o.Queries.CountTotal)
+	require.NotEmpty(t, o.Queries.CountErrors)
+	require.NotEmpty(t, o.Queries.GraphErrorBudget)
+	require.NotEmpty(t, o.Queries.GraphRequests)
+	require.NotEmpty(t, o.Queries.GraphErrors)
+}
+
+func TestObjectiveServerPreviewInvalid(t *testing.T) {
+	server := &objectiveServer{}
+	_, err := server.Preview(context.Background(), connect.NewRequest(&objectivesv1alpha1.PreviewRequest{
+		Config: `apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: broken
+spec:
+  target: not-a-number
+  window: 7d
+  indicator:
+    ratio:
+      errors:
+        metric: foo_total{code=~"5.."}
+      total:
+        metric: foo_total
+`,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
