@@ -67,6 +67,12 @@ generate: controller-gen gojsontoyaml ## Generate WebhookConfiguration, ClusterR
 	find jsonnet/controller-gen -name '*.yaml' -print0 | xargs -0 -I{} sh -c '$(GOJSONTOYAML) -yamltojson < "$$1" | jq > "$(PWD)/jsonnet/controller-gen/$$(basename -s .yaml $$1).json"' -- {}
 	find jsonnet/controller-gen -type f ! -name '*.json' -delete
 
+# Generate Go and TypeScript code from the protobuf definitions.
+# Plugin versions are pinned in buf.gen.yaml; run this after editing any .proto.
+.PHONY: proto
+proto: buf
+	$(BUF) generate proto
+
 docker-build:
 	docker build . -t ${IMG}
 
@@ -82,6 +88,16 @@ ifeq (, $(shell which controller-gen))
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
+endif
+
+# find or download buf
+buf:
+ifeq (, $(shell which buf))
+	# renovate: datasource=github-releases depName=bufbuild/buf
+	go install github.com/bufbuild/buf/cmd/buf@v1.67.0
+BUF=$(GOBIN)/buf
+else
+BUF=$(shell which buf)
 endif
 
 ui: ui/node_modules ui/build

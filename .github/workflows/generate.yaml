@@ -19,3 +19,18 @@ jobs:
     - uses: zendesk/setup-jsonnet@v16
     - run: go install github.com/brancz/gojsontoyaml@latest
     - run: make --always-make examples && git diff --exit-code
+
+  proto:
+    runs-on: ubuntu-latest
+    name: Generate protobuf code
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-go@v6.4.0
+      with:
+        go-version-file: go.mod
+    - uses: bufbuild/buf-setup-action@v1
+      with:
+        github_token: ${{ github.token }}
+    # Regenerate the committed Go + TypeScript stubs and fail if anything drifts
+    # from the plugin versions pinned in buf.gen.yaml. Fix locally with `make proto`.
+    - run: make proto && git diff --exit-code

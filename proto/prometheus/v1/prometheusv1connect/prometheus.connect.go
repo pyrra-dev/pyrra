@@ -5,9 +5,9 @@
 package prometheusv1connect
 
 import (
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	connect_go "github.com/bufbuild/connect-go"
 	v1 "github.com/pyrra-dev/pyrra/proto/prometheus/v1"
 	http "net/http"
 	strings "strings"
@@ -18,17 +18,32 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect_go.IsAtLeastVersion0_1_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// PrometheusServiceName is the fully-qualified name of the PrometheusService service.
 	PrometheusServiceName = "prometheus.v1.PrometheusService"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// PrometheusServiceQueryProcedure is the fully-qualified name of the PrometheusService's Query RPC.
+	PrometheusServiceQueryProcedure = "/prometheus.v1.PrometheusService/Query"
+	// PrometheusServiceQueryRangeProcedure is the fully-qualified name of the PrometheusService's
+	// QueryRange RPC.
+	PrometheusServiceQueryRangeProcedure = "/prometheus.v1.PrometheusService/QueryRange"
+)
+
 // PrometheusServiceClient is a client for the prometheus.v1.PrometheusService service.
 type PrometheusServiceClient interface {
-	Query(context.Context, *connect_go.Request[v1.QueryRequest]) (*connect_go.Response[v1.QueryResponse], error)
-	QueryRange(context.Context, *connect_go.Request[v1.QueryRangeRequest]) (*connect_go.Response[v1.QueryRangeResponse], error)
+	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
+	QueryRange(context.Context, *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error)
 }
 
 // NewPrometheusServiceClient constructs a client for the prometheus.v1.PrometheusService service.
@@ -38,42 +53,45 @@ type PrometheusServiceClient interface {
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewPrometheusServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) PrometheusServiceClient {
+func NewPrometheusServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PrometheusServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	prometheusServiceMethods := v1.File_prometheus_v1_prometheus_proto.Services().ByName("PrometheusService").Methods()
 	return &prometheusServiceClient{
-		query: connect_go.NewClient[v1.QueryRequest, v1.QueryResponse](
+		query: connect.NewClient[v1.QueryRequest, v1.QueryResponse](
 			httpClient,
-			baseURL+"/prometheus.v1.PrometheusService/Query",
-			opts...,
+			baseURL+PrometheusServiceQueryProcedure,
+			connect.WithSchema(prometheusServiceMethods.ByName("Query")),
+			connect.WithClientOptions(opts...),
 		),
-		queryRange: connect_go.NewClient[v1.QueryRangeRequest, v1.QueryRangeResponse](
+		queryRange: connect.NewClient[v1.QueryRangeRequest, v1.QueryRangeResponse](
 			httpClient,
-			baseURL+"/prometheus.v1.PrometheusService/QueryRange",
-			opts...,
+			baseURL+PrometheusServiceQueryRangeProcedure,
+			connect.WithSchema(prometheusServiceMethods.ByName("QueryRange")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
 // prometheusServiceClient implements PrometheusServiceClient.
 type prometheusServiceClient struct {
-	query      *connect_go.Client[v1.QueryRequest, v1.QueryResponse]
-	queryRange *connect_go.Client[v1.QueryRangeRequest, v1.QueryRangeResponse]
+	query      *connect.Client[v1.QueryRequest, v1.QueryResponse]
+	queryRange *connect.Client[v1.QueryRangeRequest, v1.QueryRangeResponse]
 }
 
 // Query calls prometheus.v1.PrometheusService.Query.
-func (c *prometheusServiceClient) Query(ctx context.Context, req *connect_go.Request[v1.QueryRequest]) (*connect_go.Response[v1.QueryResponse], error) {
+func (c *prometheusServiceClient) Query(ctx context.Context, req *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
 	return c.query.CallUnary(ctx, req)
 }
 
 // QueryRange calls prometheus.v1.PrometheusService.QueryRange.
-func (c *prometheusServiceClient) QueryRange(ctx context.Context, req *connect_go.Request[v1.QueryRangeRequest]) (*connect_go.Response[v1.QueryRangeResponse], error) {
+func (c *prometheusServiceClient) QueryRange(ctx context.Context, req *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error) {
 	return c.queryRange.CallUnary(ctx, req)
 }
 
 // PrometheusServiceHandler is an implementation of the prometheus.v1.PrometheusService service.
 type PrometheusServiceHandler interface {
-	Query(context.Context, *connect_go.Request[v1.QueryRequest]) (*connect_go.Response[v1.QueryResponse], error)
-	QueryRange(context.Context, *connect_go.Request[v1.QueryRangeRequest]) (*connect_go.Response[v1.QueryRangeResponse], error)
+	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
+	QueryRange(context.Context, *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error)
 }
 
 // NewPrometheusServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -81,28 +99,39 @@ type PrometheusServiceHandler interface {
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewPrometheusServiceHandler(svc PrometheusServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle("/prometheus.v1.PrometheusService/Query", connect_go.NewUnaryHandler(
-		"/prometheus.v1.PrometheusService/Query",
+func NewPrometheusServiceHandler(svc PrometheusServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	prometheusServiceMethods := v1.File_prometheus_v1_prometheus_proto.Services().ByName("PrometheusService").Methods()
+	prometheusServiceQueryHandler := connect.NewUnaryHandler(
+		PrometheusServiceQueryProcedure,
 		svc.Query,
-		opts...,
-	))
-	mux.Handle("/prometheus.v1.PrometheusService/QueryRange", connect_go.NewUnaryHandler(
-		"/prometheus.v1.PrometheusService/QueryRange",
+		connect.WithSchema(prometheusServiceMethods.ByName("Query")),
+		connect.WithHandlerOptions(opts...),
+	)
+	prometheusServiceQueryRangeHandler := connect.NewUnaryHandler(
+		PrometheusServiceQueryRangeProcedure,
 		svc.QueryRange,
-		opts...,
-	))
-	return "/prometheus.v1.PrometheusService/", mux
+		connect.WithSchema(prometheusServiceMethods.ByName("QueryRange")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/prometheus.v1.PrometheusService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case PrometheusServiceQueryProcedure:
+			prometheusServiceQueryHandler.ServeHTTP(w, r)
+		case PrometheusServiceQueryRangeProcedure:
+			prometheusServiceQueryRangeHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedPrometheusServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedPrometheusServiceHandler struct{}
 
-func (UnimplementedPrometheusServiceHandler) Query(context.Context, *connect_go.Request[v1.QueryRequest]) (*connect_go.Response[v1.QueryResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.Query is not implemented"))
+func (UnimplementedPrometheusServiceHandler) Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.Query is not implemented"))
 }
 
-func (UnimplementedPrometheusServiceHandler) QueryRange(context.Context, *connect_go.Request[v1.QueryRangeRequest]) (*connect_go.Response[v1.QueryRangeResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.QueryRange is not implemented"))
+func (UnimplementedPrometheusServiceHandler) QueryRange(context.Context, *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.QueryRange is not implemented"))
 }

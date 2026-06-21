@@ -25,7 +25,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bufbuild/connect-go"
+	connect "connectrpc.com/connect"
 	"github.com/go-kit/log"
 	"github.com/go-logr/logr" //nolint:depguard // Required for logr.LogSink adapter bridging go-kit/log with controller-runtime.
 	"github.com/oklog/run"

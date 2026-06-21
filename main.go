@@ -19,8 +19,8 @@ import (
 	"syscall"
 	"time"
 
+	connect "connectrpc.com/connect"
 	"github.com/alecthomas/kong"
-	"github.com/bufbuild/connect-go"
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
