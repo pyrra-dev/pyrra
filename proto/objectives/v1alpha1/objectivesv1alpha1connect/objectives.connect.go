@@ -5,9 +5,9 @@
 package objectivesv1alpha1connect
 
 import (
+	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	connect_go "github.com/bufbuild/connect-go"
 	v1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	http "net/http"
 	strings "strings"
@@ -18,7 +18,7 @@ import (
 // generated with a version of connect newer than the one compiled into your binary. You can fix the
 // problem by either regenerating this code with an older version of connect or updating the connect
 // version compiled into your binary.
-const _ = connect_go.IsAtLeastVersion0_1_0
+const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// ObjectiveServiceName is the fully-qualified name of the ObjectiveService service.
@@ -27,15 +27,48 @@ const (
 	ObjectiveBackendServiceName = "objectives.v1alpha1.ObjectiveBackendService"
 )
 
+// These constants are the fully-qualified names of the RPCs defined in this package. They're
+// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+//
+// Note that these are different from the fully-qualified method names used by
+// google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
+// reflection-formatted method names, remove the leading slash and convert the remaining slash to a
+// period.
+const (
+	// ObjectiveServiceListProcedure is the fully-qualified name of the ObjectiveService's List RPC.
+	ObjectiveServiceListProcedure = "/objectives.v1alpha1.ObjectiveService/List"
+	// ObjectiveServiceGetStatusProcedure is the fully-qualified name of the ObjectiveService's
+	// GetStatus RPC.
+	ObjectiveServiceGetStatusProcedure = "/objectives.v1alpha1.ObjectiveService/GetStatus"
+	// ObjectiveServiceGetAlertsProcedure is the fully-qualified name of the ObjectiveService's
+	// GetAlerts RPC.
+	ObjectiveServiceGetAlertsProcedure = "/objectives.v1alpha1.ObjectiveService/GetAlerts"
+	// ObjectiveServiceGraphErrorBudgetProcedure is the fully-qualified name of the ObjectiveService's
+	// GraphErrorBudget RPC.
+	ObjectiveServiceGraphErrorBudgetProcedure = "/objectives.v1alpha1.ObjectiveService/GraphErrorBudget"
+	// ObjectiveServiceGraphRateProcedure is the fully-qualified name of the ObjectiveService's
+	// GraphRate RPC.
+	ObjectiveServiceGraphRateProcedure = "/objectives.v1alpha1.ObjectiveService/GraphRate"
+	// ObjectiveServiceGraphErrorsProcedure is the fully-qualified name of the ObjectiveService's
+	// GraphErrors RPC.
+	ObjectiveServiceGraphErrorsProcedure = "/objectives.v1alpha1.ObjectiveService/GraphErrors"
+	// ObjectiveServiceGraphDurationProcedure is the fully-qualified name of the ObjectiveService's
+	// GraphDuration RPC.
+	ObjectiveServiceGraphDurationProcedure = "/objectives.v1alpha1.ObjectiveService/GraphDuration"
+	// ObjectiveBackendServiceListProcedure is the fully-qualified name of the ObjectiveBackendService's
+	// List RPC.
+	ObjectiveBackendServiceListProcedure = "/objectives.v1alpha1.ObjectiveBackendService/List"
+)
+
 // ObjectiveServiceClient is a client for the objectives.v1alpha1.ObjectiveService service.
 type ObjectiveServiceClient interface {
-	List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error)
-	GetStatus(context.Context, *connect_go.Request[v1alpha1.GetStatusRequest]) (*connect_go.Response[v1alpha1.GetStatusResponse], error)
-	GetAlerts(context.Context, *connect_go.Request[v1alpha1.GetAlertsRequest]) (*connect_go.Response[v1alpha1.GetAlertsResponse], error)
-	GraphErrorBudget(context.Context, *connect_go.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect_go.Response[v1alpha1.GraphErrorBudgetResponse], error)
-	GraphRate(context.Context, *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error)
-	GraphErrors(context.Context, *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error)
-	GraphDuration(context.Context, *connect_go.Request[v1alpha1.GraphDurationRequest]) (*connect_go.Response[v1alpha1.GraphDurationResponse], error)
+	List(context.Context, *connect.Request[v1alpha1.ListRequest]) (*connect.Response[v1alpha1.ListResponse], error)
+	GetStatus(context.Context, *connect.Request[v1alpha1.GetStatusRequest]) (*connect.Response[v1alpha1.GetStatusResponse], error)
+	GetAlerts(context.Context, *connect.Request[v1alpha1.GetAlertsRequest]) (*connect.Response[v1alpha1.GetAlertsResponse], error)
+	GraphErrorBudget(context.Context, *connect.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect.Response[v1alpha1.GraphErrorBudgetResponse], error)
+	GraphRate(context.Context, *connect.Request[v1alpha1.GraphRateRequest]) (*connect.Response[v1alpha1.GraphRateResponse], error)
+	GraphErrors(context.Context, *connect.Request[v1alpha1.GraphErrorsRequest]) (*connect.Response[v1alpha1.GraphErrorsResponse], error)
+	GraphDuration(context.Context, *connect.Request[v1alpha1.GraphDurationRequest]) (*connect.Response[v1alpha1.GraphDurationResponse], error)
 }
 
 // NewObjectiveServiceClient constructs a client for the objectives.v1alpha1.ObjectiveService
@@ -45,102 +78,110 @@ type ObjectiveServiceClient interface {
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewObjectiveServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) ObjectiveServiceClient {
+func NewObjectiveServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ObjectiveServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	objectiveServiceMethods := v1alpha1.File_objectives_v1alpha1_objectives_proto.Services().ByName("ObjectiveService").Methods()
 	return &objectiveServiceClient{
-		list: connect_go.NewClient[v1alpha1.ListRequest, v1alpha1.ListResponse](
+		list: connect.NewClient[v1alpha1.ListRequest, v1alpha1.ListResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveService/List",
-			opts...,
+			baseURL+ObjectiveServiceListProcedure,
+			connect.WithSchema(objectiveServiceMethods.ByName("List")),
+			connect.WithClientOptions(opts...),
 		),
-		getStatus: connect_go.NewClient[v1alpha1.GetStatusRequest, v1alpha1.GetStatusResponse](
+		getStatus: connect.NewClient[v1alpha1.GetStatusRequest, v1alpha1.GetStatusResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveService/GetStatus",
-			opts...,
+			baseURL+ObjectiveServiceGetStatusProcedure,
+			connect.WithSchema(objectiveServiceMethods.ByName("GetStatus")),
+			connect.WithClientOptions(opts...),
 		),
-		getAlerts: connect_go.NewClient[v1alpha1.GetAlertsRequest, v1alpha1.GetAlertsResponse](
+		getAlerts: connect.NewClient[v1alpha1.GetAlertsRequest, v1alpha1.GetAlertsResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveService/GetAlerts",
-			opts...,
+			baseURL+ObjectiveServiceGetAlertsProcedure,
+			connect.WithSchema(objectiveServiceMethods.ByName("GetAlerts")),
+			connect.WithClientOptions(opts...),
 		),
-		graphErrorBudget: connect_go.NewClient[v1alpha1.GraphErrorBudgetRequest, v1alpha1.GraphErrorBudgetResponse](
+		graphErrorBudget: connect.NewClient[v1alpha1.GraphErrorBudgetRequest, v1alpha1.GraphErrorBudgetResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveService/GraphErrorBudget",
-			opts...,
+			baseURL+ObjectiveServiceGraphErrorBudgetProcedure,
+			connect.WithSchema(objectiveServiceMethods.ByName("GraphErrorBudget")),
+			connect.WithClientOptions(opts...),
 		),
-		graphRate: connect_go.NewClient[v1alpha1.GraphRateRequest, v1alpha1.GraphRateResponse](
+		graphRate: connect.NewClient[v1alpha1.GraphRateRequest, v1alpha1.GraphRateResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveService/GraphRate",
-			opts...,
+			baseURL+ObjectiveServiceGraphRateProcedure,
+			connect.WithSchema(objectiveServiceMethods.ByName("GraphRate")),
+			connect.WithClientOptions(opts...),
 		),
-		graphErrors: connect_go.NewClient[v1alpha1.GraphErrorsRequest, v1alpha1.GraphErrorsResponse](
+		graphErrors: connect.NewClient[v1alpha1.GraphErrorsRequest, v1alpha1.GraphErrorsResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveService/GraphErrors",
-			opts...,
+			baseURL+ObjectiveServiceGraphErrorsProcedure,
+			connect.WithSchema(objectiveServiceMethods.ByName("GraphErrors")),
+			connect.WithClientOptions(opts...),
 		),
-		graphDuration: connect_go.NewClient[v1alpha1.GraphDurationRequest, v1alpha1.GraphDurationResponse](
+		graphDuration: connect.NewClient[v1alpha1.GraphDurationRequest, v1alpha1.GraphDurationResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveService/GraphDuration",
-			opts...,
+			baseURL+ObjectiveServiceGraphDurationProcedure,
+			connect.WithSchema(objectiveServiceMethods.ByName("GraphDuration")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
 // objectiveServiceClient implements ObjectiveServiceClient.
 type objectiveServiceClient struct {
-	list             *connect_go.Client[v1alpha1.ListRequest, v1alpha1.ListResponse]
-	getStatus        *connect_go.Client[v1alpha1.GetStatusRequest, v1alpha1.GetStatusResponse]
-	getAlerts        *connect_go.Client[v1alpha1.GetAlertsRequest, v1alpha1.GetAlertsResponse]
-	graphErrorBudget *connect_go.Client[v1alpha1.GraphErrorBudgetRequest, v1alpha1.GraphErrorBudgetResponse]
-	graphRate        *connect_go.Client[v1alpha1.GraphRateRequest, v1alpha1.GraphRateResponse]
-	graphErrors      *connect_go.Client[v1alpha1.GraphErrorsRequest, v1alpha1.GraphErrorsResponse]
-	graphDuration    *connect_go.Client[v1alpha1.GraphDurationRequest, v1alpha1.GraphDurationResponse]
+	list             *connect.Client[v1alpha1.ListRequest, v1alpha1.ListResponse]
+	getStatus        *connect.Client[v1alpha1.GetStatusRequest, v1alpha1.GetStatusResponse]
+	getAlerts        *connect.Client[v1alpha1.GetAlertsRequest, v1alpha1.GetAlertsResponse]
+	graphErrorBudget *connect.Client[v1alpha1.GraphErrorBudgetRequest, v1alpha1.GraphErrorBudgetResponse]
+	graphRate        *connect.Client[v1alpha1.GraphRateRequest, v1alpha1.GraphRateResponse]
+	graphErrors      *connect.Client[v1alpha1.GraphErrorsRequest, v1alpha1.GraphErrorsResponse]
+	graphDuration    *connect.Client[v1alpha1.GraphDurationRequest, v1alpha1.GraphDurationResponse]
 }
 
 // List calls objectives.v1alpha1.ObjectiveService.List.
-func (c *objectiveServiceClient) List(ctx context.Context, req *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error) {
+func (c *objectiveServiceClient) List(ctx context.Context, req *connect.Request[v1alpha1.ListRequest]) (*connect.Response[v1alpha1.ListResponse], error) {
 	return c.list.CallUnary(ctx, req)
 }
 
 // GetStatus calls objectives.v1alpha1.ObjectiveService.GetStatus.
-func (c *objectiveServiceClient) GetStatus(ctx context.Context, req *connect_go.Request[v1alpha1.GetStatusRequest]) (*connect_go.Response[v1alpha1.GetStatusResponse], error) {
+func (c *objectiveServiceClient) GetStatus(ctx context.Context, req *connect.Request[v1alpha1.GetStatusRequest]) (*connect.Response[v1alpha1.GetStatusResponse], error) {
 	return c.getStatus.CallUnary(ctx, req)
 }
 
 // GetAlerts calls objectives.v1alpha1.ObjectiveService.GetAlerts.
-func (c *objectiveServiceClient) GetAlerts(ctx context.Context, req *connect_go.Request[v1alpha1.GetAlertsRequest]) (*connect_go.Response[v1alpha1.GetAlertsResponse], error) {
+func (c *objectiveServiceClient) GetAlerts(ctx context.Context, req *connect.Request[v1alpha1.GetAlertsRequest]) (*connect.Response[v1alpha1.GetAlertsResponse], error) {
 	return c.getAlerts.CallUnary(ctx, req)
 }
 
 // GraphErrorBudget calls objectives.v1alpha1.ObjectiveService.GraphErrorBudget.
-func (c *objectiveServiceClient) GraphErrorBudget(ctx context.Context, req *connect_go.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect_go.Response[v1alpha1.GraphErrorBudgetResponse], error) {
+func (c *objectiveServiceClient) GraphErrorBudget(ctx context.Context, req *connect.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect.Response[v1alpha1.GraphErrorBudgetResponse], error) {
 	return c.graphErrorBudget.CallUnary(ctx, req)
 }
 
 // GraphRate calls objectives.v1alpha1.ObjectiveService.GraphRate.
-func (c *objectiveServiceClient) GraphRate(ctx context.Context, req *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error) {
+func (c *objectiveServiceClient) GraphRate(ctx context.Context, req *connect.Request[v1alpha1.GraphRateRequest]) (*connect.Response[v1alpha1.GraphRateResponse], error) {
 	return c.graphRate.CallUnary(ctx, req)
 }
 
 // GraphErrors calls objectives.v1alpha1.ObjectiveService.GraphErrors.
-func (c *objectiveServiceClient) GraphErrors(ctx context.Context, req *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error) {
+func (c *objectiveServiceClient) GraphErrors(ctx context.Context, req *connect.Request[v1alpha1.GraphErrorsRequest]) (*connect.Response[v1alpha1.GraphErrorsResponse], error) {
 	return c.graphErrors.CallUnary(ctx, req)
 }
 
 // GraphDuration calls objectives.v1alpha1.ObjectiveService.GraphDuration.
-func (c *objectiveServiceClient) GraphDuration(ctx context.Context, req *connect_go.Request[v1alpha1.GraphDurationRequest]) (*connect_go.Response[v1alpha1.GraphDurationResponse], error) {
+func (c *objectiveServiceClient) GraphDuration(ctx context.Context, req *connect.Request[v1alpha1.GraphDurationRequest]) (*connect.Response[v1alpha1.GraphDurationResponse], error) {
 	return c.graphDuration.CallUnary(ctx, req)
 }
 
 // ObjectiveServiceHandler is an implementation of the objectives.v1alpha1.ObjectiveService service.
 type ObjectiveServiceHandler interface {
-	List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error)
-	GetStatus(context.Context, *connect_go.Request[v1alpha1.GetStatusRequest]) (*connect_go.Response[v1alpha1.GetStatusResponse], error)
-	GetAlerts(context.Context, *connect_go.Request[v1alpha1.GetAlertsRequest]) (*connect_go.Response[v1alpha1.GetAlertsResponse], error)
-	GraphErrorBudget(context.Context, *connect_go.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect_go.Response[v1alpha1.GraphErrorBudgetResponse], error)
-	GraphRate(context.Context, *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error)
-	GraphErrors(context.Context, *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error)
-	GraphDuration(context.Context, *connect_go.Request[v1alpha1.GraphDurationRequest]) (*connect_go.Response[v1alpha1.GraphDurationResponse], error)
+	List(context.Context, *connect.Request[v1alpha1.ListRequest]) (*connect.Response[v1alpha1.ListResponse], error)
+	GetStatus(context.Context, *connect.Request[v1alpha1.GetStatusRequest]) (*connect.Response[v1alpha1.GetStatusResponse], error)
+	GetAlerts(context.Context, *connect.Request[v1alpha1.GetAlertsRequest]) (*connect.Response[v1alpha1.GetAlertsResponse], error)
+	GraphErrorBudget(context.Context, *connect.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect.Response[v1alpha1.GraphErrorBudgetResponse], error)
+	GraphRate(context.Context, *connect.Request[v1alpha1.GraphRateRequest]) (*connect.Response[v1alpha1.GraphRateResponse], error)
+	GraphErrors(context.Context, *connect.Request[v1alpha1.GraphErrorsRequest]) (*connect.Response[v1alpha1.GraphErrorsResponse], error)
+	GraphDuration(context.Context, *connect.Request[v1alpha1.GraphDurationRequest]) (*connect.Response[v1alpha1.GraphDurationResponse], error)
 }
 
 // NewObjectiveServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -148,81 +189,107 @@ type ObjectiveServiceHandler interface {
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewObjectiveServiceHandler(svc ObjectiveServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle("/objectives.v1alpha1.ObjectiveService/List", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveService/List",
+func NewObjectiveServiceHandler(svc ObjectiveServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	objectiveServiceMethods := v1alpha1.File_objectives_v1alpha1_objectives_proto.Services().ByName("ObjectiveService").Methods()
+	objectiveServiceListHandler := connect.NewUnaryHandler(
+		ObjectiveServiceListProcedure,
 		svc.List,
-		opts...,
-	))
-	mux.Handle("/objectives.v1alpha1.ObjectiveService/GetStatus", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveService/GetStatus",
+		connect.WithSchema(objectiveServiceMethods.ByName("List")),
+		connect.WithHandlerOptions(opts...),
+	)
+	objectiveServiceGetStatusHandler := connect.NewUnaryHandler(
+		ObjectiveServiceGetStatusProcedure,
 		svc.GetStatus,
-		opts...,
-	))
-	mux.Handle("/objectives.v1alpha1.ObjectiveService/GetAlerts", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveService/GetAlerts",
+		connect.WithSchema(objectiveServiceMethods.ByName("GetStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	objectiveServiceGetAlertsHandler := connect.NewUnaryHandler(
+		ObjectiveServiceGetAlertsProcedure,
 		svc.GetAlerts,
-		opts...,
-	))
-	mux.Handle("/objectives.v1alpha1.ObjectiveService/GraphErrorBudget", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveService/GraphErrorBudget",
+		connect.WithSchema(objectiveServiceMethods.ByName("GetAlerts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	objectiveServiceGraphErrorBudgetHandler := connect.NewUnaryHandler(
+		ObjectiveServiceGraphErrorBudgetProcedure,
 		svc.GraphErrorBudget,
-		opts...,
-	))
-	mux.Handle("/objectives.v1alpha1.ObjectiveService/GraphRate", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveService/GraphRate",
+		connect.WithSchema(objectiveServiceMethods.ByName("GraphErrorBudget")),
+		connect.WithHandlerOptions(opts...),
+	)
+	objectiveServiceGraphRateHandler := connect.NewUnaryHandler(
+		ObjectiveServiceGraphRateProcedure,
 		svc.GraphRate,
-		opts...,
-	))
-	mux.Handle("/objectives.v1alpha1.ObjectiveService/GraphErrors", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveService/GraphErrors",
+		connect.WithSchema(objectiveServiceMethods.ByName("GraphRate")),
+		connect.WithHandlerOptions(opts...),
+	)
+	objectiveServiceGraphErrorsHandler := connect.NewUnaryHandler(
+		ObjectiveServiceGraphErrorsProcedure,
 		svc.GraphErrors,
-		opts...,
-	))
-	mux.Handle("/objectives.v1alpha1.ObjectiveService/GraphDuration", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveService/GraphDuration",
+		connect.WithSchema(objectiveServiceMethods.ByName("GraphErrors")),
+		connect.WithHandlerOptions(opts...),
+	)
+	objectiveServiceGraphDurationHandler := connect.NewUnaryHandler(
+		ObjectiveServiceGraphDurationProcedure,
 		svc.GraphDuration,
-		opts...,
-	))
-	return "/objectives.v1alpha1.ObjectiveService/", mux
+		connect.WithSchema(objectiveServiceMethods.ByName("GraphDuration")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/objectives.v1alpha1.ObjectiveService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case ObjectiveServiceListProcedure:
+			objectiveServiceListHandler.ServeHTTP(w, r)
+		case ObjectiveServiceGetStatusProcedure:
+			objectiveServiceGetStatusHandler.ServeHTTP(w, r)
+		case ObjectiveServiceGetAlertsProcedure:
+			objectiveServiceGetAlertsHandler.ServeHTTP(w, r)
+		case ObjectiveServiceGraphErrorBudgetProcedure:
+			objectiveServiceGraphErrorBudgetHandler.ServeHTTP(w, r)
+		case ObjectiveServiceGraphRateProcedure:
+			objectiveServiceGraphRateHandler.ServeHTTP(w, r)
+		case ObjectiveServiceGraphErrorsProcedure:
+			objectiveServiceGraphErrorsHandler.ServeHTTP(w, r)
+		case ObjectiveServiceGraphDurationProcedure:
+			objectiveServiceGraphDurationHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedObjectiveServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedObjectiveServiceHandler struct{}
 
-func (UnimplementedObjectiveServiceHandler) List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.List is not implemented"))
+func (UnimplementedObjectiveServiceHandler) List(context.Context, *connect.Request[v1alpha1.ListRequest]) (*connect.Response[v1alpha1.ListResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.List is not implemented"))
 }
 
-func (UnimplementedObjectiveServiceHandler) GetStatus(context.Context, *connect_go.Request[v1alpha1.GetStatusRequest]) (*connect_go.Response[v1alpha1.GetStatusResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GetStatus is not implemented"))
+func (UnimplementedObjectiveServiceHandler) GetStatus(context.Context, *connect.Request[v1alpha1.GetStatusRequest]) (*connect.Response[v1alpha1.GetStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GetStatus is not implemented"))
 }
 
-func (UnimplementedObjectiveServiceHandler) GetAlerts(context.Context, *connect_go.Request[v1alpha1.GetAlertsRequest]) (*connect_go.Response[v1alpha1.GetAlertsResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GetAlerts is not implemented"))
+func (UnimplementedObjectiveServiceHandler) GetAlerts(context.Context, *connect.Request[v1alpha1.GetAlertsRequest]) (*connect.Response[v1alpha1.GetAlertsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GetAlerts is not implemented"))
 }
 
-func (UnimplementedObjectiveServiceHandler) GraphErrorBudget(context.Context, *connect_go.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect_go.Response[v1alpha1.GraphErrorBudgetResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphErrorBudget is not implemented"))
+func (UnimplementedObjectiveServiceHandler) GraphErrorBudget(context.Context, *connect.Request[v1alpha1.GraphErrorBudgetRequest]) (*connect.Response[v1alpha1.GraphErrorBudgetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphErrorBudget is not implemented"))
 }
 
-func (UnimplementedObjectiveServiceHandler) GraphRate(context.Context, *connect_go.Request[v1alpha1.GraphRateRequest]) (*connect_go.Response[v1alpha1.GraphRateResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphRate is not implemented"))
+func (UnimplementedObjectiveServiceHandler) GraphRate(context.Context, *connect.Request[v1alpha1.GraphRateRequest]) (*connect.Response[v1alpha1.GraphRateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphRate is not implemented"))
 }
 
-func (UnimplementedObjectiveServiceHandler) GraphErrors(context.Context, *connect_go.Request[v1alpha1.GraphErrorsRequest]) (*connect_go.Response[v1alpha1.GraphErrorsResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphErrors is not implemented"))
+func (UnimplementedObjectiveServiceHandler) GraphErrors(context.Context, *connect.Request[v1alpha1.GraphErrorsRequest]) (*connect.Response[v1alpha1.GraphErrorsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphErrors is not implemented"))
 }
 
-func (UnimplementedObjectiveServiceHandler) GraphDuration(context.Context, *connect_go.Request[v1alpha1.GraphDurationRequest]) (*connect_go.Response[v1alpha1.GraphDurationResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphDuration is not implemented"))
+func (UnimplementedObjectiveServiceHandler) GraphDuration(context.Context, *connect.Request[v1alpha1.GraphDurationRequest]) (*connect.Response[v1alpha1.GraphDurationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.GraphDuration is not implemented"))
 }
 
 // ObjectiveBackendServiceClient is a client for the objectives.v1alpha1.ObjectiveBackendService
 // service.
 type ObjectiveBackendServiceClient interface {
-	List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error)
+	List(context.Context, *connect.Request[v1alpha1.ListRequest]) (*connect.Response[v1alpha1.ListResponse], error)
 }
 
 // NewObjectiveBackendServiceClient constructs a client for the
@@ -233,31 +300,33 @@ type ObjectiveBackendServiceClient interface {
 //
 // The URL supplied here should be the base URL for the Connect or gRPC server (for example,
 // http://api.acme.com or https://acme.com/grpc).
-func NewObjectiveBackendServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) ObjectiveBackendServiceClient {
+func NewObjectiveBackendServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ObjectiveBackendServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	objectiveBackendServiceMethods := v1alpha1.File_objectives_v1alpha1_objectives_proto.Services().ByName("ObjectiveBackendService").Methods()
 	return &objectiveBackendServiceClient{
-		list: connect_go.NewClient[v1alpha1.ListRequest, v1alpha1.ListResponse](
+		list: connect.NewClient[v1alpha1.ListRequest, v1alpha1.ListResponse](
 			httpClient,
-			baseURL+"/objectives.v1alpha1.ObjectiveBackendService/List",
-			opts...,
+			baseURL+ObjectiveBackendServiceListProcedure,
+			connect.WithSchema(objectiveBackendServiceMethods.ByName("List")),
+			connect.WithClientOptions(opts...),
 		),
 	}
 }
 
 // objectiveBackendServiceClient implements ObjectiveBackendServiceClient.
 type objectiveBackendServiceClient struct {
-	list *connect_go.Client[v1alpha1.ListRequest, v1alpha1.ListResponse]
+	list *connect.Client[v1alpha1.ListRequest, v1alpha1.ListResponse]
 }
 
 // List calls objectives.v1alpha1.ObjectiveBackendService.List.
-func (c *objectiveBackendServiceClient) List(ctx context.Context, req *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error) {
+func (c *objectiveBackendServiceClient) List(ctx context.Context, req *connect.Request[v1alpha1.ListRequest]) (*connect.Response[v1alpha1.ListResponse], error) {
 	return c.list.CallUnary(ctx, req)
 }
 
 // ObjectiveBackendServiceHandler is an implementation of the
 // objectives.v1alpha1.ObjectiveBackendService service.
 type ObjectiveBackendServiceHandler interface {
-	List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error)
+	List(context.Context, *connect.Request[v1alpha1.ListRequest]) (*connect.Response[v1alpha1.ListResponse], error)
 }
 
 // NewObjectiveBackendServiceHandler builds an HTTP handler from the service implementation. It
@@ -265,19 +334,27 @@ type ObjectiveBackendServiceHandler interface {
 //
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
-func NewObjectiveBackendServiceHandler(svc ObjectiveBackendServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
-	mux := http.NewServeMux()
-	mux.Handle("/objectives.v1alpha1.ObjectiveBackendService/List", connect_go.NewUnaryHandler(
-		"/objectives.v1alpha1.ObjectiveBackendService/List",
+func NewObjectiveBackendServiceHandler(svc ObjectiveBackendServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	objectiveBackendServiceMethods := v1alpha1.File_objectives_v1alpha1_objectives_proto.Services().ByName("ObjectiveBackendService").Methods()
+	objectiveBackendServiceListHandler := connect.NewUnaryHandler(
+		ObjectiveBackendServiceListProcedure,
 		svc.List,
-		opts...,
-	))
-	return "/objectives.v1alpha1.ObjectiveBackendService/", mux
+		connect.WithSchema(objectiveBackendServiceMethods.ByName("List")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/objectives.v1alpha1.ObjectiveBackendService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case ObjectiveBackendServiceListProcedure:
+			objectiveBackendServiceListHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
 }
 
 // UnimplementedObjectiveBackendServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedObjectiveBackendServiceHandler struct{}
 
-func (UnimplementedObjectiveBackendServiceHandler) List(context.Context, *connect_go.Request[v1alpha1.ListRequest]) (*connect_go.Response[v1alpha1.ListResponse], error) {
-	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveBackendService.List is not implemented"))
+func (UnimplementedObjectiveBackendServiceHandler) List(context.Context, *connect.Request[v1alpha1.ListRequest]) (*connect.Response[v1alpha1.ListResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveBackendService.List is not implemented"))
 }
