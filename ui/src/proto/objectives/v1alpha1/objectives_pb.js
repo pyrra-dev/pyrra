@@ -9,7 +9,7 @@ import { file_google_protobuf_duration, file_google_protobuf_timestamp } from "@
  * Describes the file objectives/v1alpha1/objectives.proto.
  */
 export const file_objectives_v1alpha1_objectives = /*@__PURE__*/
-  fileDesc("CiRvYmplY3RpdmVzL3YxYWxwaGExL29iamVjdGl2ZXMucHJvdG8SE29iamVjdGl2ZXMudjFhbHBoYTEiLQoLTGlzdFJlcXVlc3QSDAoEZXhwchgBIAEoCRIQCghncm91cGluZxgCIAEoCSJCCgxMaXN0UmVzcG9uc2USMgoKb2JqZWN0aXZlcxgBIAMoCzIeLm9iamVjdGl2ZXMudjFhbHBoYTEuT2JqZWN0aXZlIrgCCglPYmplY3RpdmUSOgoGbGFiZWxzGAEgAygLMioub2JqZWN0aXZlcy52MWFscGhhMS5PYmplY3RpdmUuTGFiZWxzRW50cnkSDgoGdGFyZ2V0GAIgASgBEikKBndpbmRvdxgDIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhITCgtkZXNjcmlwdGlvbhgEIAEoCRIxCglpbmRpY2F0b3IYBSABKAsyHi5vYmplY3RpdmVzLnYxYWxwaGExLkluZGljYXRvchIOCgZjb25maWcYBiABKAkSLQoHcXVlcmllcxgHIAEoCzIcLm9iamVjdGl2ZXMudjFhbHBoYTEuUXVlcmllcxotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIucBCglJbmRpY2F0b3ISKwoFcmF0aW8YASABKAsyGi5vYmplY3RpdmVzLnYxYWxwaGExLlJhdGlvSAASLwoHbGF0ZW5jeRgCIAEoCzIcLm9iamVjdGl2ZXMudjFhbHBoYTEuTGF0ZW5jeUgAEjMKCWJvb2xHYXVnZRgDIAEoCzIeLm9iamVjdGl2ZXMudjFhbHBoYTEuQm9vbEdhdWdlSAASPAoObGF0ZW5jeV9uYXRpdmUYBCABKAsyIi5vYmplY3RpdmVzLnYxYWxwaGExLkxhdGVuY3lOYXRpdmVIAEIJCgdvcHRpb25zInAKBVJhdGlvEikKBXRvdGFsGAEgASgLMhoub2JqZWN0aXZlcy52MWFscGhhMS5RdWVyeRIqCgZlcnJvcnMYAiABKAsyGi5vYmplY3RpdmVzLnYxYWxwaGExLlF1ZXJ5EhAKCGdyb3VwaW5nGAMgAygJInMKB0xhdGVuY3kSKQoFdG90YWwYASABKAsyGi5vYmplY3RpdmVzLnYxYWxwaGExLlF1ZXJ5EisKB3N1Y2Nlc3MYAiABKAsyGi5vYmplY3RpdmVzLnYxYWxwaGExLlF1ZXJ5EhAKCGdyb3VwaW5nGAMgAygJIl0KDUxhdGVuY3lOYXRpdmUSKQoFdG90YWwYASABKAsyGi5vYmplY3RpdmVzLnYxYWxwaGExLlF1ZXJ5Eg8KB2xhdGVuY3kYAiABKAkSEAoIZ3JvdXBpbmcYAyADKAkiTAoJQm9vbEdhdWdlEi0KCWJvb2xHYXVnZRgBIAEoCzIaLm9iamVjdGl2ZXMudjFhbHBoYTEuUXVlcnkSEAoIZ3JvdXBpbmcYAyADKAkiWgoFUXVlcnkSDgoGbWV0cmljGAEgASgJEgwKBG5hbWUYAiABKAkSMwoIbWF0Y2hlcnMYAyADKAsyIS5vYmplY3RpdmVzLnYxYWxwaGExLkxhYmVsTWF0Y2hlciJ4CgdRdWVyaWVzEhIKCmNvdW50VG90YWwYASABKAkSEwoLY291bnRFcnJvcnMYAiABKAkSGAoQZ3JhcGhFcnJvckJ1ZGdldBgDIAEoCRIVCg1ncmFwaFJlcXVlc3RzGAQgASgJEhMKC2dyYXBoRXJyb3JzGAUgASgJIosBCgxMYWJlbE1hdGNoZXISNAoEdHlwZRgBIAEoDjImLm9iamVjdGl2ZXMudjFhbHBoYTEuTGFiZWxNYXRjaGVyLlR5cGUSDAoEbmFtZRgCIAEoCRINCgV2YWx1ZRgDIAEoCSIoCgRUeXBlEgYKAkVREAASBwoDTkVREAESBgoCUkUQAhIHCgNOUkUQAyJcChBHZXRTdGF0dXNSZXF1ZXN0EgwKBGV4cHIYASABKAkSEAoIZ3JvdXBpbmcYAiABKAkSKAoEdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiSQoRR2V0U3RhdHVzUmVzcG9uc2USNAoGc3RhdHVzGAEgAygLMiQub2JqZWN0aXZlcy52MWFscGhhMS5PYmplY3RpdmVTdGF0dXMi6AEKD09iamVjdGl2ZVN0YXR1cxJACgZsYWJlbHMYASADKAsyMC5vYmplY3RpdmVzLnYxYWxwaGExLk9iamVjdGl2ZVN0YXR1cy5MYWJlbHNFbnRyeRI3CgxhdmFpbGFiaWxpdHkYAiABKAsyIS5vYmplY3RpdmVzLnYxYWxwaGExLkF2YWlsYWJpbGl0eRIrCgZidWRnZXQYAyABKAsyGy5vYmplY3RpdmVzLnYxYWxwaGExLkJ1ZGdldBotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkEKDEF2YWlsYWJpbGl0eRISCgpwZXJjZW50YWdlGAEgASgBEg0KBXRvdGFsGAIgASgBEg4KBmVycm9ycxgDIAEoASI3CgZCdWRnZXQSDQoFdG90YWwYASABKAESEQoJcmVtYWluaW5nGAIgASgBEgsKA21heBgDIAEoASJVChBHZXRBbGVydHNSZXF1ZXN0EgwKBGV4cHIYASABKAkSEAoIZ3JvdXBpbmcYAiABKAkSEAoIaW5hY3RpdmUYAyABKAgSDwoHY3VycmVudBgEIAEoCCI/ChFHZXRBbGVydHNSZXNwb25zZRIqCgZhbGVydHMYASADKAsyGi5vYmplY3RpdmVzLnYxYWxwaGExLkFsZXJ0IvQCCgVBbGVydBI2CgZsYWJlbHMYASADKAsyJi5vYmplY3RpdmVzLnYxYWxwaGExLkFsZXJ0LkxhYmVsc0VudHJ5EhAKCHNldmVyaXR5GAIgASgJEiYKA2ZvchgDIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIOCgZmYWN0b3IYBCABKAESLwoFc3RhdGUYBSABKA4yIC5vYmplY3RpdmVzLnYxYWxwaGExLkFsZXJ0LlN0YXRlEiwKBXNob3J0GAYgASgLMh0ub2JqZWN0aXZlcy52MWFscGhhMS5CdXJucmF0ZRIrCgRsb25nGAcgASgLMh0ub2JqZWN0aXZlcy52MWFscGhhMS5CdXJucmF0ZRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIi4KBVN0YXRlEgwKCGluYWN0aXZlEAASCwoHcGVuZGluZxABEgoKBmZpcmluZxACIlUKCEJ1cm5yYXRlEikKBndpbmRvdxgBIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIPCgdjdXJyZW50GAIgASgBEg0KBXF1ZXJ5GAMgASgJIo0BChdHcmFwaEVycm9yQnVkZ2V0UmVxdWVzdBIMCgRleHByGAEgASgJEhAKCGdyb3VwaW5nGAIgASgJEikKBXN0YXJ0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBInCgNlbmQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIk8KGEdyYXBoRXJyb3JCdWRnZXRSZXNwb25zZRIzCgp0aW1lc2VyaWVzGAEgASgLMh8ub2JqZWN0aXZlcy52MWFscGhhMS5UaW1lc2VyaWVzIoYBChBHcmFwaFJhdGVSZXF1ZXN0EgwKBGV4cHIYASABKAkSEAoIZ3JvdXBpbmcYAiABKAkSKQoFc3RhcnQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEicKA2VuZBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiSAoRR3JhcGhSYXRlUmVzcG9uc2USMwoKdGltZXNlcmllcxgBIAEoCzIfLm9iamVjdGl2ZXMudjFhbHBoYTEuVGltZXNlcmllcyKIAQoSR3JhcGhFcnJvcnNSZXF1ZXN0EgwKBGV4cHIYASABKAkSEAoIZ3JvdXBpbmcYAiABKAkSKQoFc3RhcnQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEicKA2VuZBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiSgoTR3JhcGhFcnJvcnNSZXNwb25zZRIzCgp0aW1lc2VyaWVzGAEgASgLMh8ub2JqZWN0aXZlcy52MWFscGhhMS5UaW1lc2VyaWVzIlgKClRpbWVzZXJpZXMSDgoGbGFiZWxzGAEgAygJEg0KBXF1ZXJ5GAIgASgJEisKBnNlcmllcxgDIAMoCzIbLm9iamVjdGl2ZXMudjFhbHBoYTEuU2VyaWVzIhgKBlNlcmllcxIOCgZ2YWx1ZXMYASADKAEiigEKFEdyYXBoRHVyYXRpb25SZXF1ZXN0EgwKBGV4cHIYASABKAkSEAoIZ3JvdXBpbmcYAiABKAkSKQoFc3RhcnQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEicKA2VuZBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiTAoVR3JhcGhEdXJhdGlvblJlc3BvbnNlEjMKCnRpbWVzZXJpZXMYASADKAsyHy5vYmplY3RpdmVzLnYxYWxwaGExLlRpbWVzZXJpZXMyvAUKEE9iamVjdGl2ZVNlcnZpY2USTQoETGlzdBIgLm9iamVjdGl2ZXMudjFhbHBoYTEuTGlzdFJlcXVlc3QaIS5vYmplY3RpdmVzLnYxYWxwaGExLkxpc3RSZXNwb25zZSIAElwKCUdldFN0YXR1cxIlLm9iamVjdGl2ZXMudjFhbHBoYTEuR2V0U3RhdHVzUmVxdWVzdBomLm9iamVjdGl2ZXMudjFhbHBoYTEuR2V0U3RhdHVzUmVzcG9uc2UiABJcCglHZXRBbGVydHMSJS5vYmplY3RpdmVzLnYxYWxwaGExLkdldEFsZXJ0c1JlcXVlc3QaJi5vYmplY3RpdmVzLnYxYWxwaGExLkdldEFsZXJ0c1Jlc3BvbnNlIgAScQoQR3JhcGhFcnJvckJ1ZGdldBIsLm9iamVjdGl2ZXMudjFhbHBoYTEuR3JhcGhFcnJvckJ1ZGdldFJlcXVlc3QaLS5vYmplY3RpdmVzLnYxYWxwaGExLkdyYXBoRXJyb3JCdWRnZXRSZXNwb25zZSIAElwKCUdyYXBoUmF0ZRIlLm9iamVjdGl2ZXMudjFhbHBoYTEuR3JhcGhSYXRlUmVxdWVzdBomLm9iamVjdGl2ZXMudjFhbHBoYTEuR3JhcGhSYXRlUmVzcG9uc2UiABJiCgtHcmFwaEVycm9ycxInLm9iamVjdGl2ZXMudjFhbHBoYTEuR3JhcGhFcnJvcnNSZXF1ZXN0Gigub2JqZWN0aXZlcy52MWFscGhhMS5HcmFwaEVycm9yc1Jlc3BvbnNlIgASaAoNR3JhcGhEdXJhdGlvbhIpLm9iamVjdGl2ZXMudjFhbHBoYTEuR3JhcGhEdXJhdGlvblJlcXVlc3QaKi5vYmplY3RpdmVzLnYxYWxwaGExLkdyYXBoRHVyYXRpb25SZXNwb25zZSIAMmgKF09iamVjdGl2ZUJhY2tlbmRTZXJ2aWNlEk0KBExpc3QSIC5vYmplY3RpdmVzLnYxYWxwaGExLkxpc3RSZXF1ZXN0GiEub2JqZWN0aXZlcy52MWFscGhhMS5MaXN0UmVzcG9uc2UiAEJJWkdnaXRodWIuY29tL3B5cnJhLWRldi9weXJyYS9wcm90by9vYmplY3RpdmVzL3YxYWxwaGExO29iamVjdGl2ZXN2MWFscGhhMWIGcHJvdG8z", [file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("CiRvYmplY3RpdmVzL3YxYWxwaGExL29iamVjdGl2ZXMucHJvdG8SE29iamVjdGl2ZXMudjFhbHBoYTEiLQoLTGlzdFJlcXVlc3QSDAoEZXhwchgBIAEoCRIQCghncm91cGluZxgCIAEoCSJCCgxMaXN0UmVzcG9uc2USMgoKb2JqZWN0aXZlcxgBIAMoCzIeLm9iamVjdGl2ZXMudjFhbHBoYTEuT2JqZWN0aXZlIiAKDlByZXZpZXdSZXF1ZXN0Eg4KBmNvbmZpZxgBIAEoCSJECg9QcmV2aWV3UmVzcG9uc2USMQoJb2JqZWN0aXZlGAEgASgLMh4ub2JqZWN0aXZlcy52MWFscGhhMS5PYmplY3RpdmUiuAIKCU9iamVjdGl2ZRI6CgZsYWJlbHMYASADKAsyKi5vYmplY3RpdmVzLnYxYWxwaGExLk9iamVjdGl2ZS5MYWJlbHNFbnRyeRIOCgZ0YXJnZXQYAiABKAESKQoGd2luZG93GAMgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEhMKC2Rlc2NyaXB0aW9uGAQgASgJEjEKCWluZGljYXRvchgFIAEoCzIeLm9iamVjdGl2ZXMudjFhbHBoYTEuSW5kaWNhdG9yEg4KBmNvbmZpZxgGIAEoCRItCgdxdWVyaWVzGAcgASgLMhwub2JqZWN0aXZlcy52MWFscGhhMS5RdWVyaWVzGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEi5wEKCUluZGljYXRvchIrCgVyYXRpbxgBIAEoCzIaLm9iamVjdGl2ZXMudjFhbHBoYTEuUmF0aW9IABIvCgdsYXRlbmN5GAIgASgLMhwub2JqZWN0aXZlcy52MWFscGhhMS5MYXRlbmN5SAASMwoJYm9vbEdhdWdlGAMgASgLMh4ub2JqZWN0aXZlcy52MWFscGhhMS5Cb29sR2F1Z2VIABI8Cg5sYXRlbmN5X25hdGl2ZRgEIAEoCzIiLm9iamVjdGl2ZXMudjFhbHBoYTEuTGF0ZW5jeU5hdGl2ZUgAQgkKB29wdGlvbnMicAoFUmF0aW8SKQoFdG90YWwYASABKAsyGi5vYmplY3RpdmVzLnYxYWxwaGExLlF1ZXJ5EioKBmVycm9ycxgCIAEoCzIaLm9iamVjdGl2ZXMudjFhbHBoYTEuUXVlcnkSEAoIZ3JvdXBpbmcYAyADKAkicwoHTGF0ZW5jeRIpCgV0b3RhbBgBIAEoCzIaLm9iamVjdGl2ZXMudjFhbHBoYTEuUXVlcnkSKwoHc3VjY2VzcxgCIAEoCzIaLm9iamVjdGl2ZXMudjFhbHBoYTEuUXVlcnkSEAoIZ3JvdXBpbmcYAyADKAkiXQoNTGF0ZW5jeU5hdGl2ZRIpCgV0b3RhbBgBIAEoCzIaLm9iamVjdGl2ZXMudjFhbHBoYTEuUXVlcnkSDwoHbGF0ZW5jeRgCIAEoCRIQCghncm91cGluZxgDIAMoCSJMCglCb29sR2F1Z2USLQoJYm9vbEdhdWdlGAEgASgLMhoub2JqZWN0aXZlcy52MWFscGhhMS5RdWVyeRIQCghncm91cGluZxgDIAMoCSJaCgVRdWVyeRIOCgZtZXRyaWMYASABKAkSDAoEbmFtZRgCIAEoCRIzCghtYXRjaGVycxgDIAMoCzIhLm9iamVjdGl2ZXMudjFhbHBoYTEuTGFiZWxNYXRjaGVyIngKB1F1ZXJpZXMSEgoKY291bnRUb3RhbBgBIAEoCRITCgtjb3VudEVycm9ycxgCIAEoCRIYChBncmFwaEVycm9yQnVkZ2V0GAMgASgJEhUKDWdyYXBoUmVxdWVzdHMYBCABKAkSEwoLZ3JhcGhFcnJvcnMYBSABKAkiiwEKDExhYmVsTWF0Y2hlchI0CgR0eXBlGAEgASgOMiYub2JqZWN0aXZlcy52MWFscGhhMS5MYWJlbE1hdGNoZXIuVHlwZRIMCgRuYW1lGAIgASgJEg0KBXZhbHVlGAMgASgJIigKBFR5cGUSBgoCRVEQABIHCgNORVEQARIGCgJSRRACEgcKA05SRRADIlwKEEdldFN0YXR1c1JlcXVlc3QSDAoEZXhwchgBIAEoCRIQCghncm91cGluZxgCIAEoCRIoCgR0aW1lGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJJChFHZXRTdGF0dXNSZXNwb25zZRI0CgZzdGF0dXMYASADKAsyJC5vYmplY3RpdmVzLnYxYWxwaGExLk9iamVjdGl2ZVN0YXR1cyLoAQoPT2JqZWN0aXZlU3RhdHVzEkAKBmxhYmVscxgBIAMoCzIwLm9iamVjdGl2ZXMudjFhbHBoYTEuT2JqZWN0aXZlU3RhdHVzLkxhYmVsc0VudHJ5EjcKDGF2YWlsYWJpbGl0eRgCIAEoCzIhLm9iamVjdGl2ZXMudjFhbHBoYTEuQXZhaWxhYmlsaXR5EisKBmJ1ZGdldBgDIAEoCzIbLm9iamVjdGl2ZXMudjFhbHBoYTEuQnVkZ2V0Gi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiQQoMQXZhaWxhYmlsaXR5EhIKCnBlcmNlbnRhZ2UYASABKAESDQoFdG90YWwYAiABKAESDgoGZXJyb3JzGAMgASgBIjcKBkJ1ZGdldBINCgV0b3RhbBgBIAEoARIRCglyZW1haW5pbmcYAiABKAESCwoDbWF4GAMgASgBIlUKEEdldEFsZXJ0c1JlcXVlc3QSDAoEZXhwchgBIAEoCRIQCghncm91cGluZxgCIAEoCRIQCghpbmFjdGl2ZRgDIAEoCBIPCgdjdXJyZW50GAQgASgIIj8KEUdldEFsZXJ0c1Jlc3BvbnNlEioKBmFsZXJ0cxgBIAMoCzIaLm9iamVjdGl2ZXMudjFhbHBoYTEuQWxlcnQi9AIKBUFsZXJ0EjYKBmxhYmVscxgBIAMoCzImLm9iamVjdGl2ZXMudjFhbHBoYTEuQWxlcnQuTGFiZWxzRW50cnkSEAoIc2V2ZXJpdHkYAiABKAkSJgoDZm9yGAMgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEg4KBmZhY3RvchgEIAEoARIvCgVzdGF0ZRgFIAEoDjIgLm9iamVjdGl2ZXMudjFhbHBoYTEuQWxlcnQuU3RhdGUSLAoFc2hvcnQYBiABKAsyHS5vYmplY3RpdmVzLnYxYWxwaGExLkJ1cm5yYXRlEisKBGxvbmcYByABKAsyHS5vYmplY3RpdmVzLnYxYWxwaGExLkJ1cm5yYXRlGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiLgoFU3RhdGUSDAoIaW5hY3RpdmUQABILCgdwZW5kaW5nEAESCgoGZmlyaW5nEAIiVQoIQnVybnJhdGUSKQoGd2luZG93GAEgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEg8KB2N1cnJlbnQYAiABKAESDQoFcXVlcnkYAyABKAkijQEKF0dyYXBoRXJyb3JCdWRnZXRSZXF1ZXN0EgwKBGV4cHIYASABKAkSEAoIZ3JvdXBpbmcYAiABKAkSKQoFc3RhcnQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEicKA2VuZBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiTwoYR3JhcGhFcnJvckJ1ZGdldFJlc3BvbnNlEjMKCnRpbWVzZXJpZXMYASABKAsyHy5vYmplY3RpdmVzLnYxYWxwaGExLlRpbWVzZXJpZXMihgEKEEdyYXBoUmF0ZVJlcXVlc3QSDAoEZXhwchgBIAEoCRIQCghncm91cGluZxgCIAEoCRIpCgVzdGFydBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJwoDZW5kGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJIChFHcmFwaFJhdGVSZXNwb25zZRIzCgp0aW1lc2VyaWVzGAEgASgLMh8ub2JqZWN0aXZlcy52MWFscGhhMS5UaW1lc2VyaWVzIogBChJHcmFwaEVycm9yc1JlcXVlc3QSDAoEZXhwchgBIAEoCRIQCghncm91cGluZxgCIAEoCRIpCgVzdGFydBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJwoDZW5kGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJKChNHcmFwaEVycm9yc1Jlc3BvbnNlEjMKCnRpbWVzZXJpZXMYASABKAsyHy5vYmplY3RpdmVzLnYxYWxwaGExLlRpbWVzZXJpZXMiWAoKVGltZXNlcmllcxIOCgZsYWJlbHMYASADKAkSDQoFcXVlcnkYAiABKAkSKwoGc2VyaWVzGAMgAygLMhsub2JqZWN0aXZlcy52MWFscGhhMS5TZXJpZXMiGAoGU2VyaWVzEg4KBnZhbHVlcxgBIAMoASKKAQoUR3JhcGhEdXJhdGlvblJlcXVlc3QSDAoEZXhwchgBIAEoCRIQCghncm91cGluZxgCIAEoCRIpCgVzdGFydBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJwoDZW5kGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJMChVHcmFwaER1cmF0aW9uUmVzcG9uc2USMwoKdGltZXNlcmllcxgBIAMoCzIfLm9iamVjdGl2ZXMudjFhbHBoYTEuVGltZXNlcmllczKUBgoQT2JqZWN0aXZlU2VydmljZRJNCgRMaXN0EiAub2JqZWN0aXZlcy52MWFscGhhMS5MaXN0UmVxdWVzdBohLm9iamVjdGl2ZXMudjFhbHBoYTEuTGlzdFJlc3BvbnNlIgASXAoJR2V0U3RhdHVzEiUub2JqZWN0aXZlcy52MWFscGhhMS5HZXRTdGF0dXNSZXF1ZXN0GiYub2JqZWN0aXZlcy52MWFscGhhMS5HZXRTdGF0dXNSZXNwb25zZSIAElwKCUdldEFsZXJ0cxIlLm9iamVjdGl2ZXMudjFhbHBoYTEuR2V0QWxlcnRzUmVxdWVzdBomLm9iamVjdGl2ZXMudjFhbHBoYTEuR2V0QWxlcnRzUmVzcG9uc2UiABJxChBHcmFwaEVycm9yQnVkZ2V0Eiwub2JqZWN0aXZlcy52MWFscGhhMS5HcmFwaEVycm9yQnVkZ2V0UmVxdWVzdBotLm9iamVjdGl2ZXMudjFhbHBoYTEuR3JhcGhFcnJvckJ1ZGdldFJlc3BvbnNlIgASXAoJR3JhcGhSYXRlEiUub2JqZWN0aXZlcy52MWFscGhhMS5HcmFwaFJhdGVSZXF1ZXN0GiYub2JqZWN0aXZlcy52MWFscGhhMS5HcmFwaFJhdGVSZXNwb25zZSIAEmIKC0dyYXBoRXJyb3JzEicub2JqZWN0aXZlcy52MWFscGhhMS5HcmFwaEVycm9yc1JlcXVlc3QaKC5vYmplY3RpdmVzLnYxYWxwaGExLkdyYXBoRXJyb3JzUmVzcG9uc2UiABJoCg1HcmFwaER1cmF0aW9uEikub2JqZWN0aXZlcy52MWFscGhhMS5HcmFwaER1cmF0aW9uUmVxdWVzdBoqLm9iamVjdGl2ZXMudjFhbHBoYTEuR3JhcGhEdXJhdGlvblJlc3BvbnNlIgASVgoHUHJldmlldxIjLm9iamVjdGl2ZXMudjFhbHBoYTEuUHJldmlld1JlcXVlc3QaJC5vYmplY3RpdmVzLnYxYWxwaGExLlByZXZpZXdSZXNwb25zZSIAMmgKF09iamVjdGl2ZUJhY2tlbmRTZXJ2aWNlEk0KBExpc3QSIC5vYmplY3RpdmVzLnYxYWxwaGExLkxpc3RSZXF1ZXN0GiEub2JqZWN0aXZlcy52MWFscGhhMS5MaXN0UmVzcG9uc2UiAEJJWkdnaXRodWIuY29tL3B5cnJhLWRldi9weXJyYS9wcm90by9vYmplY3RpdmVzL3YxYWxwaGExO29iamVjdGl2ZXN2MWFscGhhMWIGcHJvdG8z", [file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * Describes the message objectives.v1alpha1.ListRequest.
@@ -26,73 +26,87 @@ export const ListResponseSchema = /*@__PURE__*/
   messageDesc(file_objectives_v1alpha1_objectives, 1);
 
 /**
+ * Describes the message objectives.v1alpha1.PreviewRequest.
+ * Use `create(PreviewRequestSchema)` to create a new message.
+ */
+export const PreviewRequestSchema = /*@__PURE__*/
+  messageDesc(file_objectives_v1alpha1_objectives, 2);
+
+/**
+ * Describes the message objectives.v1alpha1.PreviewResponse.
+ * Use `create(PreviewResponseSchema)` to create a new message.
+ */
+export const PreviewResponseSchema = /*@__PURE__*/
+  messageDesc(file_objectives_v1alpha1_objectives, 3);
+
+/**
  * Describes the message objectives.v1alpha1.Objective.
  * Use `create(ObjectiveSchema)` to create a new message.
  */
 export const ObjectiveSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 2);
+  messageDesc(file_objectives_v1alpha1_objectives, 4);
 
 /**
  * Describes the message objectives.v1alpha1.Indicator.
  * Use `create(IndicatorSchema)` to create a new message.
  */
 export const IndicatorSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 3);
+  messageDesc(file_objectives_v1alpha1_objectives, 5);
 
 /**
  * Describes the message objectives.v1alpha1.Ratio.
  * Use `create(RatioSchema)` to create a new message.
  */
 export const RatioSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 4);
+  messageDesc(file_objectives_v1alpha1_objectives, 6);
 
 /**
  * Describes the message objectives.v1alpha1.Latency.
  * Use `create(LatencySchema)` to create a new message.
  */
 export const LatencySchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 5);
+  messageDesc(file_objectives_v1alpha1_objectives, 7);
 
 /**
  * Describes the message objectives.v1alpha1.LatencyNative.
  * Use `create(LatencyNativeSchema)` to create a new message.
  */
 export const LatencyNativeSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 6);
+  messageDesc(file_objectives_v1alpha1_objectives, 8);
 
 /**
  * Describes the message objectives.v1alpha1.BoolGauge.
  * Use `create(BoolGaugeSchema)` to create a new message.
  */
 export const BoolGaugeSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 7);
+  messageDesc(file_objectives_v1alpha1_objectives, 9);
 
 /**
  * Describes the message objectives.v1alpha1.Query.
  * Use `create(QuerySchema)` to create a new message.
  */
 export const QuerySchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 8);
+  messageDesc(file_objectives_v1alpha1_objectives, 10);
 
 /**
  * Describes the message objectives.v1alpha1.Queries.
  * Use `create(QueriesSchema)` to create a new message.
  */
 export const QueriesSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 9);
+  messageDesc(file_objectives_v1alpha1_objectives, 11);
 
 /**
  * Describes the message objectives.v1alpha1.LabelMatcher.
  * Use `create(LabelMatcherSchema)` to create a new message.
  */
 export const LabelMatcherSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 10);
+  messageDesc(file_objectives_v1alpha1_objectives, 12);
 
 /**
  * Describes the enum objectives.v1alpha1.LabelMatcher.Type.
  */
 export const LabelMatcher_TypeSchema = /*@__PURE__*/
-  enumDesc(file_objectives_v1alpha1_objectives, 10, 0);
+  enumDesc(file_objectives_v1alpha1_objectives, 12, 0);
 
 /**
  * @generated from enum objectives.v1alpha1.LabelMatcher.Type
@@ -105,62 +119,62 @@ export const LabelMatcher_Type = /*@__PURE__*/
  * Use `create(GetStatusRequestSchema)` to create a new message.
  */
 export const GetStatusRequestSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 11);
+  messageDesc(file_objectives_v1alpha1_objectives, 13);
 
 /**
  * Describes the message objectives.v1alpha1.GetStatusResponse.
  * Use `create(GetStatusResponseSchema)` to create a new message.
  */
 export const GetStatusResponseSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 12);
+  messageDesc(file_objectives_v1alpha1_objectives, 14);
 
 /**
  * Describes the message objectives.v1alpha1.ObjectiveStatus.
  * Use `create(ObjectiveStatusSchema)` to create a new message.
  */
 export const ObjectiveStatusSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 13);
+  messageDesc(file_objectives_v1alpha1_objectives, 15);
 
 /**
  * Describes the message objectives.v1alpha1.Availability.
  * Use `create(AvailabilitySchema)` to create a new message.
  */
 export const AvailabilitySchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 14);
+  messageDesc(file_objectives_v1alpha1_objectives, 16);
 
 /**
  * Describes the message objectives.v1alpha1.Budget.
  * Use `create(BudgetSchema)` to create a new message.
  */
 export const BudgetSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 15);
+  messageDesc(file_objectives_v1alpha1_objectives, 17);
 
 /**
  * Describes the message objectives.v1alpha1.GetAlertsRequest.
  * Use `create(GetAlertsRequestSchema)` to create a new message.
  */
 export const GetAlertsRequestSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 16);
+  messageDesc(file_objectives_v1alpha1_objectives, 18);
 
 /**
  * Describes the message objectives.v1alpha1.GetAlertsResponse.
  * Use `create(GetAlertsResponseSchema)` to create a new message.
  */
 export const GetAlertsResponseSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 17);
+  messageDesc(file_objectives_v1alpha1_objectives, 19);
 
 /**
  * Describes the message objectives.v1alpha1.Alert.
  * Use `create(AlertSchema)` to create a new message.
  */
 export const AlertSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 18);
+  messageDesc(file_objectives_v1alpha1_objectives, 20);
 
 /**
  * Describes the enum objectives.v1alpha1.Alert.State.
  */
 export const Alert_StateSchema = /*@__PURE__*/
-  enumDesc(file_objectives_v1alpha1_objectives, 18, 0);
+  enumDesc(file_objectives_v1alpha1_objectives, 20, 0);
 
 /**
  * @generated from enum objectives.v1alpha1.Alert.State
@@ -173,77 +187,77 @@ export const Alert_State = /*@__PURE__*/
  * Use `create(BurnrateSchema)` to create a new message.
  */
 export const BurnrateSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 19);
+  messageDesc(file_objectives_v1alpha1_objectives, 21);
 
 /**
  * Describes the message objectives.v1alpha1.GraphErrorBudgetRequest.
  * Use `create(GraphErrorBudgetRequestSchema)` to create a new message.
  */
 export const GraphErrorBudgetRequestSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 20);
+  messageDesc(file_objectives_v1alpha1_objectives, 22);
 
 /**
  * Describes the message objectives.v1alpha1.GraphErrorBudgetResponse.
  * Use `create(GraphErrorBudgetResponseSchema)` to create a new message.
  */
 export const GraphErrorBudgetResponseSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 21);
+  messageDesc(file_objectives_v1alpha1_objectives, 23);
 
 /**
  * Describes the message objectives.v1alpha1.GraphRateRequest.
  * Use `create(GraphRateRequestSchema)` to create a new message.
  */
 export const GraphRateRequestSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 22);
+  messageDesc(file_objectives_v1alpha1_objectives, 24);
 
 /**
  * Describes the message objectives.v1alpha1.GraphRateResponse.
  * Use `create(GraphRateResponseSchema)` to create a new message.
  */
 export const GraphRateResponseSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 23);
+  messageDesc(file_objectives_v1alpha1_objectives, 25);
 
 /**
  * Describes the message objectives.v1alpha1.GraphErrorsRequest.
  * Use `create(GraphErrorsRequestSchema)` to create a new message.
  */
 export const GraphErrorsRequestSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 24);
+  messageDesc(file_objectives_v1alpha1_objectives, 26);
 
 /**
  * Describes the message objectives.v1alpha1.GraphErrorsResponse.
  * Use `create(GraphErrorsResponseSchema)` to create a new message.
  */
 export const GraphErrorsResponseSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 25);
+  messageDesc(file_objectives_v1alpha1_objectives, 27);
 
 /**
  * Describes the message objectives.v1alpha1.Timeseries.
  * Use `create(TimeseriesSchema)` to create a new message.
  */
 export const TimeseriesSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 26);
+  messageDesc(file_objectives_v1alpha1_objectives, 28);
 
 /**
  * Describes the message objectives.v1alpha1.Series.
  * Use `create(SeriesSchema)` to create a new message.
  */
 export const SeriesSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 27);
+  messageDesc(file_objectives_v1alpha1_objectives, 29);
 
 /**
  * Describes the message objectives.v1alpha1.GraphDurationRequest.
  * Use `create(GraphDurationRequestSchema)` to create a new message.
  */
 export const GraphDurationRequestSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 28);
+  messageDesc(file_objectives_v1alpha1_objectives, 30);
 
 /**
  * Describes the message objectives.v1alpha1.GraphDurationResponse.
  * Use `create(GraphDurationResponseSchema)` to create a new message.
  */
 export const GraphDurationResponseSchema = /*@__PURE__*/
-  messageDesc(file_objectives_v1alpha1_objectives, 29);
+  messageDesc(file_objectives_v1alpha1_objectives, 31);
 
 /**
  * @generated from service objectives.v1alpha1.ObjectiveService
