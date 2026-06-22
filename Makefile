@@ -84,7 +84,7 @@ docker-push:
 controller-gen:
 ifeq (, $(shell which controller-gen))
 	# renovate: datasource=go depName=sigs.k8s.io/controller-tools
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.20.1
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.21.0
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
