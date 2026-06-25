@@ -66,9 +66,14 @@ const AlertsTable = ({
       .catch((err) => { console.log(err); })
   }, [client, objective, grouping])
 
+  const alertsSelector = [
+    ...Object.entries(objective.labels).map(([k, v]) => k === '__name__' ? `slo="${v}"` : `${k}="${v}"`),
+    ...Object.entries(grouping).map(([k, v]) => `${k}="${v}"`),
+  ].join(', ')
+
   const {response: alertsRangeResponse} = usePrometheusQueryRange(
     promClient,
-    `ALERTS{slo="${objective.labels.__name__}"}`,
+    `ALERTS{${alertsSelector}}`,
     from / 1000,
     to / 1000,
     step(from, to),
