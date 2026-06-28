@@ -897,10 +897,13 @@ func (s *objectiveServer) Preview(ctx context.Context, req *connect.Request[obje
 	}
 
 	o := objectivesv1alpha1.FromInternal(objective)
+	// The SLO doesn't exist yet, so none of its recording rules have been
+	// generated. Use the raw query variants that compute everything directly from
+	// the underlying metrics. RequestRange/ErrorsRange are already raw.
 	o.Queries = &objectivesv1alpha1.Queries{
-		CountTotal:       objective.QueryTotal(objective.Window, s.opts),
-		CountErrors:      objective.QueryErrors(objective.Window, s.opts),
-		GraphErrorBudget: objective.QueryErrorBudget(s.opts),
+		CountTotal:       objective.QueryTotalRaw(objective.Window, s.opts),
+		CountErrors:      objective.QueryErrorsRaw(objective.Window, s.opts),
+		GraphErrorBudget: objective.QueryErrorBudgetRaw(s.opts),
 		GraphRequests:    objective.RequestRange(time.Second, s.opts),
 		GraphErrors:      objective.ErrorsRange(time.Second, s.opts),
 	}
