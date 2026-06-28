@@ -1142,3 +1142,87 @@ func TestLatencyNativeBurnrateGrouping(t *testing.T) {
 	errorsRangeQuery := objective.ErrorsRange(2*time.Hour, GenerationOptions{})
 	require.Equal(t, "1 - histogram_fraction(0, 1, sum by (handler, job) (rate(http_request_duration_seconds{code=~\"2..\",job=\"metrics-service-thanos-receive-default\"}[2h])))", errorsRangeQuery)
 }
+
+// TestObjective_RawQueriesAvoidRecordingRules encodes the core preview invariant:
+// the *Raw query variants must compute everything from the underlying metrics and
+// never reference a generated recording rule, the "slo" label, or the le="" total
+// selector, because the SLO being previewed has not been created yet.
+func TestObjective_RawQueriesAvoidRecordingRules(t *testing.T) {
+	objectives := []struct {
+		name string
+		o    Objective
+	}{
+		{"http-ratio", objectiveHTTPRatio()},
+		{"http-ratio-grouping", objectiveHTTPRatioGrouping()},
+		{"grpc-ratio", objectiveGRPCRatio()},
+		{"http-latency", objectiveHTTPLatency()},
+		{"http-latency-grouping", objectiveHTTPLatencyGrouping()},
+		{"http-latency-native", objectiveHTTPNativeLatency()},
+		{"bool-gauge", objectiveUpTargets()},
+		{"bool-gauge-grouping", objectiveUpTargetsGroupingRegex()},
+	}
+	forbidden := []string{":increase", ":rate", ":count", ":sum", ":burnrate", `slo="`, `le=""`}
+	for _, tc := range objectives {
+		t.Run(tc.name, func(t *testing.T) {
+			queries := map[string]string{
+				"QueryTotalRaw":       tc.o.QueryTotalRaw(tc.o.Window, GenerationOptions{}),
+				"QueryErrorsRaw":      tc.o.QueryErrorsRaw(tc.o.Window, GenerationOptions{}),
+				"QueryErrorBudgetRaw": tc.o.QueryErrorBudgetRaw(GenerationOptions{}),
+			}
+			for name, q := range queries {
+				require.NotEmptyf(t, q, "%s produced an empty query", name)
+				for _, f := range forbidden {
+					require.NotContainsf(t, q, f, "%s must not reference %q: %s", name, f, q)
+				}
+			}
+		})
+	}
+}
+
+func TestObjective_QueryTotalRaw(t *testing.T) {
+	testcases := []struct {
+		name      string
+		objective Objective
+		expected  string
+	}{{
+		name:      "http-ratio",
+		objective: objectiveHTTPRatio(),
+		expected:  `sum(increase(http_requests_total{job="thanos-receive-default"}[4w]))`,
+	}, {
+		name:      "http-ratio-grouping",
+		objective: objectiveHTTPRatioGrouping(),
+		// The preview tiles show one overall number, so the total is ungrouped
+		// even when the SLO itself groups (matching http-ratio above).
+		expected: `sum(increase(http_requests_total{job="thanos-receive-default"}[4w]))`,
+	}, {
+		name:      "bool-gauge",
+		objective: objectiveUpTargets(),
+		expected:  `sum(count_over_time(up[4w]))`,
+	}}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, tc.objective.QueryTotalRaw(tc.objective.Window, GenerationOptions{}))
+		})
+	}
+}
+
+func TestObjective_QueryErrorsRaw(t *testing.T) {
+	testcases := []struct {
+		name      string
+		objective Objective
+		expected  string
+	}{{
+		name:      "http-ratio",
+		objective: objectiveHTTPRatio(),
+		expected:  `sum(increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[4w]))`,
+	}, {
+		name:      "bool-gauge",
+		objective: objectiveUpTargets(),
+		expected:  `sum(count_over_time(up[4w])) - sum(sum_over_time(up[4w]))`,
+	}}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, tc.objective.QueryErrorsRaw(tc.objective.Window, GenerationOptions{}))
+		})
+	}
+}
