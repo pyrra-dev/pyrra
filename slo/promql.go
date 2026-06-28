@@ -434,6 +434,248 @@ func (o Objective) QueryErrorBudget(opts GenerationOptions) string {
 	}
 }
 
+// rawMatchers clones the indicator's label matchers and points __name__ at the
+// raw metric. Unlike the recording-rule queries it does not add the "slo" label,
+// which only exists on generated recording rules.
+func rawMatchers(name string, lms []*labels.Matcher) []*labels.Matcher {
+	matchers := cloneMatchers(lms)
+	for _, m := range matchers {
+		if m.Name == model.MetricNameLabel {
+			m.Value = name
+			break
+		}
+	}
+	return matchers
+}
+
+// QueryTotalRaw is like QueryTotal but computes the total directly from the raw
+// metric with increase()/count_over_time() over the window instead of reading the
+// :increase recording rules. It is used to preview an SLO that does not exist yet,
+// so none of its recording rules have been generated. The result is the overall
+// total (ungrouped), as the preview tiles show a single availability number.
+func (o Objective) QueryTotalRaw(window model.Duration, opts GenerationOptions) string {
+	switch o.IndicatorType() {
+	case Ratio:
+		expr, err := parser.ParseExpr(`sum(increase(metric{}[1s]))`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Total.Name,
+			matchers: rawMatchers(o.Indicator.Ratio.Total.Name, o.Indicator.Ratio.Total.LabelMatchers),
+			window:   time.Duration(window),
+		}.replace(expr)
+		return expr.String()
+	case Latency:
+		expr, err := parser.ParseExpr(`sum(increase(metric{}[1s]))`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:   o.Indicator.Latency.Total.Name,
+			matchers: applyPrometheus3Migration(rawMatchers(o.Indicator.Latency.Total.Name, o.Indicator.Latency.Total.LabelMatchers), opts),
+			window:   time.Duration(window),
+		}.replace(expr)
+		return expr.String()
+	case LatencyNative:
+		expr, err := parser.ParseExpr(`histogram_count(sum(increase(metric{}[1s])))`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:   o.Indicator.LatencyNative.Total.Name,
+			matchers: rawMatchers(o.Indicator.LatencyNative.Total.Name, o.Indicator.LatencyNative.Total.LabelMatchers),
+			window:   time.Duration(window),
+		}.replace(expr)
+		return expr.String()
+	case BoolGauge:
+		expr, err := parser.ParseExpr(`sum(count_over_time(metric{}[1s]))`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: rawMatchers(o.Indicator.BoolGauge.Name, o.Indicator.BoolGauge.LabelMatchers),
+			window:   time.Duration(window),
+		}.replace(expr)
+		return expr.String()
+	default:
+		return ""
+	}
+}
+
+// QueryErrorsRaw is like QueryErrors but computes the errors directly from the raw
+// metrics over the window instead of reading the :increase recording rules. Like
+// QueryTotalRaw the result is the overall (ungrouped) error count.
+func (o Objective) QueryErrorsRaw(window model.Duration, opts GenerationOptions) string {
+	switch o.IndicatorType() {
+	case Ratio:
+		expr, err := parser.ParseExpr(`sum(increase(metric{}[1s]))`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:   o.Indicator.Ratio.Errors.Name,
+			matchers: rawMatchers(o.Indicator.Ratio.Errors.Name, o.Indicator.Ratio.Errors.LabelMatchers),
+			window:   time.Duration(window),
+		}.replace(expr)
+		return expr.String()
+	case Latency:
+		// errors = total requests - requests served within the latency threshold.
+		expr, err := parser.ParseExpr(`sum(increase(metric{matchers="total"}[1s])) - sum(increase(errorMetric{matchers="errors"}[1s]))`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:        o.Indicator.Latency.Total.Name,
+			matchers:      rawMatchers(o.Indicator.Latency.Total.Name, o.Indicator.Latency.Total.LabelMatchers),
+			errorMetric:   o.Indicator.Latency.Success.Name,
+			errorMatchers: applyPrometheus3Migration(rawMatchers(o.Indicator.Latency.Success.Name, o.Indicator.Latency.Success.LabelMatchers), opts),
+			window:        time.Duration(window),
+		}.replace(expr)
+		return expr.String()
+	case LatencyNative:
+		// errors = total observations - observations within the latency threshold.
+		expr, err := parser.ParseExpr(`histogram_count(sum(increase(metric{matchers="total"}[1s]))) - (histogram_fraction(0, 0.420, sum(increase(metric{matchers="total"}[1s]))) * histogram_count(sum(increase(metric{matchers="total"}[1s]))))`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:     o.Indicator.LatencyNative.Total.Name,
+			matchers:   rawMatchers(o.Indicator.LatencyNative.Total.Name, o.Indicator.LatencyNative.Total.LabelMatchers),
+			window:     time.Duration(window),
+			percentile: time.Duration(o.Indicator.LatencyNative.Latency).Seconds(),
+		}.replace(expr)
+		return expr.String()
+	case BoolGauge:
+		// errors = total samples - "true" samples.
+		expr, err := parser.ParseExpr(`sum(count_over_time(metric{matchers="total"}[1s])) - sum(sum_over_time(metric{matchers="total"}[1s]))`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:   o.Indicator.BoolGauge.Name,
+			matchers: rawMatchers(o.Indicator.BoolGauge.Name, o.Indicator.BoolGauge.LabelMatchers),
+			window:   time.Duration(window),
+		}.replace(expr)
+		return expr.String()
+	default:
+		return ""
+	}
+}
+
+// QueryErrorBudgetRaw is like QueryErrorBudget but builds the budget from the raw
+// metrics over the window instead of reading the :increase recording rules.
+func (o Objective) QueryErrorBudgetRaw(opts GenerationOptions) string {
+	switch o.IndicatorType() {
+	case Ratio:
+		expr, err := parser.ParseExpr(`
+(
+  (1 - 0.696969)
+  -
+  (
+    sum(increase(errorMetric{matchers="errors"}[1s]) or vector(0))
+    /
+    sum(increase(metric{matchers="total"}[1s]))
+  )
+)
+/
+(1 - 0.696969)
+`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:        o.Indicator.Ratio.Total.Name,
+			matchers:      rawMatchers(o.Indicator.Ratio.Total.Name, o.Indicator.Ratio.Total.LabelMatchers),
+			errorMetric:   o.Indicator.Ratio.Errors.Name,
+			errorMatchers: rawMatchers(o.Indicator.Ratio.Errors.Name, o.Indicator.Ratio.Errors.LabelMatchers),
+			target:        o.Target,
+			window:        time.Duration(o.Window),
+		}.replace(expr)
+		return expr.String()
+	case Latency:
+		expr, err := parser.ParseExpr(`
+(
+  (1 - 0.696969)
+  -
+  (
+    1 -
+    sum(increase(errorMetric{matchers="errors"}[1s]) or vector(0))
+    /
+    sum(increase(metric{matchers="total"}[1s]))
+  )
+)
+/
+(1 - 0.696969)
+`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:        o.Indicator.Latency.Total.Name,
+			matchers:      rawMatchers(o.Indicator.Latency.Total.Name, o.Indicator.Latency.Total.LabelMatchers),
+			errorMetric:   o.Indicator.Latency.Success.Name,
+			errorMatchers: applyPrometheus3Migration(rawMatchers(o.Indicator.Latency.Success.Name, o.Indicator.Latency.Success.LabelMatchers), opts),
+			target:        o.Target,
+			window:        time.Duration(o.Window),
+		}.replace(expr)
+		return expr.String()
+	case LatencyNative:
+		expr, err := parser.ParseExpr(`
+(
+  (1 - 0.696969)
+  -
+  (
+    1 - histogram_fraction(0, 0.420, sum(increase(metric{matchers="total"}[1s])))
+  )
+)
+/
+(1 - 0.696969)
+`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:     o.Indicator.LatencyNative.Total.Name,
+			matchers:   rawMatchers(o.Indicator.LatencyNative.Total.Name, o.Indicator.LatencyNative.Total.LabelMatchers),
+			target:     o.Target,
+			percentile: time.Duration(o.Indicator.LatencyNative.Latency).Seconds(),
+			window:     time.Duration(o.Window),
+		}.replace(expr)
+		return expr.String()
+	case BoolGauge:
+		expr, err := parser.ParseExpr(`
+(
+  (1 - 0.696969)
+  -
+  (
+    (sum(count_over_time(metric{matchers="total"}[1s])) -
+    sum(sum_over_time(errorMetric{matchers="errors"}[1s])))
+    /
+    sum(count_over_time(metric{matchers="total"}[1s]))
+  )
+)
+/
+(1 - 0.696969)
+`)
+		if err != nil {
+			return ""
+		}
+		objectiveReplacer{
+			metric:        o.Indicator.BoolGauge.Name,
+			matchers:      rawMatchers(o.Indicator.BoolGauge.Name, o.Indicator.BoolGauge.LabelMatchers),
+			errorMetric:   o.Indicator.BoolGauge.Name,
+			errorMatchers: rawMatchers(o.Indicator.BoolGauge.Name, o.Indicator.BoolGauge.LabelMatchers),
+			target:        o.Target,
+			window:        time.Duration(o.Window),
+		}.replace(expr)
+		return expr.String()
+	default:
+		return ""
+	}
+}
+
 func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*labels.Matcher) (string, error) {
 	metric := ""
 	matchers := map[string]*labels.Matcher{}
