@@ -18,10 +18,12 @@ export class PreviewUnavailableError extends Error {
   }
 }
 
-export async function previewObjective(baseUrl: string, config: string): Promise<Objective> {
+// grouping optionally scopes the preview to a single grouping label set (e.g.
+// {handler="/api"}); empty previews the objective grouped by its grouping labels.
+export async function previewObjective(baseUrl: string, config: string, grouping = ''): Promise<Objective> {
   const client = createClient(ObjectiveService, createConnectTransport({baseUrl}))
   try {
-    const response = await client.preview({config})
+    const response = await client.preview({config, grouping})
     if (response.objective === undefined) {
       throw new Error('preview response did not contain an objective')
     }

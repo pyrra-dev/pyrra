@@ -21,6 +21,8 @@ import {Field, MetricInput, GroupingInput, LabelsEditor, WindowControl, inputBas
 import {DEFAULT_CONFIG, buildYaml, yamlFilename, type CreateConfig, type SLIType} from '../components/create/config'
 import {previewObjective, PreviewUnavailableError, type PreviewStatus} from '../components/create/preview'
 import DetailPreview from '../components/create/DetailPreview'
+import GroupingsTable from '../components/create/GroupingsTable'
+import {type Labels, labelsString} from '../labels'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 
 const sliTabs: Array<{value: SLIType; label: string}> = [
@@ -30,13 +32,38 @@ const sliTabs: Array<{value: SLIType; label: string}> = [
   {value: 'bool', label: 'Bool'},
 ]
 
+// The grouping label names declared by the materialized objective, regardless of
+// indicator type. A non-empty result means the preview comes back grouped and the
+// editor offers a chooser instead of a single Detail view.
+const objectiveGrouping = (o: Objective): string[] => {
+  const ind = o.indicator?.options
+  switch (ind?.case) {
+    case 'ratio':
+    case 'latency':
+    case 'latencyNative':
+    case 'boolGauge':
+      return ind.value.grouping
+    default:
+      return []
+  }
+}
+
 const Create = (): JSX.Element => {
   document.title = 'Create SLO - Pyrra'
   const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
 
   const [cfg, setCfg] = useState<CreateConfig>(DEFAULT_CONFIG)
   const [rightView, setRightView] = useState<'detail' | 'yaml'>('yaml')
-  const [preview, setPreview] = useState<{objective: Objective; snap: string} | null>(null)
+  // detailObjective backs the Detail view (the overall objective when ungrouped, or
+  // the scoped objective once a grouping is picked). groupingObjective is the grouped
+  // objective whose total/errors queries drive the chooser table. selectedGrouping is
+  // the picked label set. previewSnap is the cfg snapshot the last preview ran on, so
+  // the editor can flag staleness without coupling to which objective is showing.
+  const [detailObjective, setDetailObjective] = useState<Objective | null>(null)
+  const [groupingObjective, setGroupingObjective] = useState<Objective | null>(null)
+  const [selectedGrouping, setSelectedGrouping] = useState<Labels | null>(null)
+  const [previewSnap, setPreviewSnap] = useState<string | null>(null)
+  const [previewYaml, setPreviewYaml] = useState('')
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle')
   const [copied, setCopied] = useState(false)
 
@@ -48,19 +75,56 @@ const Create = (): JSX.Element => {
 
   const yaml = useMemo(() => buildYaml(cfg), [cfg])
   const snapshot = useMemo(() => JSON.stringify(cfg), [cfg])
-  const stale = preview !== null && preview.snap !== snapshot
+  const stale = previewSnap !== null && previewSnap !== snapshot
+
+  // Show the grouping chooser once a grouped preview succeeded and nothing is picked.
+  const showGroupings = previewStatus === 'success' && groupingObjective !== null && selectedGrouping === null
 
   const runPreview = (): void => {
     setPreviewStatus('loading')
     setRightView('detail')
-    previewObjective(baseUrl, yaml)
+    setSelectedGrouping(null)
+    setDetailObjective(null)
+    setGroupingObjective(null)
+    const snap = snapshot
+    const previewedYaml = yaml
+    previewObjective(baseUrl, previewedYaml)
       .then((objective) => {
-        setPreview({objective, snap: snapshot})
+        setPreviewSnap(snap)
+        setPreviewYaml(previewedYaml)
+        // A grouped objective drives the chooser; an ungrouped one renders directly.
+        if (objectiveGrouping(objective).length > 0) {
+          setGroupingObjective(objective)
+        } else {
+          setDetailObjective(objective)
+        }
         setPreviewStatus('success')
       })
       .catch((err) => {
         setPreviewStatus(err instanceof PreviewUnavailableError ? 'unavailable' : 'error')
       })
+  }
+
+  // Drill into one grouping: re-materialize the objective scoped to that label set so
+  // its tiles and graphs render a single series.
+  const selectGrouping = (labels: Labels): void => {
+    setSelectedGrouping(labels)
+    setDetailObjective(null)
+    setPreviewStatus('loading')
+    previewObjective(baseUrl, previewYaml, labelsString(labels))
+      .then((objective) => {
+        setDetailObjective(objective)
+        setPreviewStatus('success')
+      })
+      .catch((err) => {
+        setPreviewStatus(err instanceof PreviewUnavailableError ? 'unavailable' : 'error')
+      })
+  }
+
+  const backToGroupings = (): void => {
+    setSelectedGrouping(null)
+    setDetailObjective(null)
+    setPreviewStatus('success')
   }
 
   const copyYaml = (): void => {
@@ -261,7 +325,7 @@ const Create = (): JSX.Element => {
               <Button
                 variant="outline"
                 onClick={runPreview}
-                className={cn((stale || preview === null) && 'ring-2 ring-primary/30')}>
+                className={cn((stale || previewSnap === null) && 'ring-2 ring-primary/30')}>
                 <Play /> Preview
               </Button>
               <Button onClick={createSlo}>
@@ -278,8 +342,10 @@ const Create = (): JSX.Element => {
               <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                 Preview
               </span>
-              {preview !== null && (
-                <span className="truncate font-mono text-[13px] text-foreground">{preview.objective.labels.__name__ ?? cfg.name}</span>
+              {(detailObjective ?? groupingObjective) !== null && (
+                <span className="truncate font-mono text-[13px] text-foreground">
+                  {(detailObjective ?? groupingObjective)?.labels.__name__ ?? cfg.name}
+                </span>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -323,13 +389,22 @@ const Create = (): JSX.Element => {
                 <code>{yaml}</code>
               </pre>
             </div>
+          ) : showGroupings && groupingObjective !== null ? (
+            <GroupingsTable
+              baseUrl={baseUrl}
+              objective={groupingObjective}
+              selected={selectedGrouping}
+              onSelect={selectGrouping}
+            />
           ) : (
             <DetailPreview
               baseUrl={baseUrl}
-              objective={preview?.objective ?? null}
+              objective={detailObjective}
               status={previewStatus}
               stale={stale}
               onRun={runPreview}
+              grouping={selectedGrouping ?? undefined}
+              onBack={groupingObjective !== null ? backToGroupings : undefined}
             />
           )}
         </div>
