@@ -13,11 +13,11 @@ import React, {useMemo, useState, type JSX} from 'react'
 import {createClient} from '@connectrpc/connect'
 import {createConnectTransport} from '@connectrpc/connect-web'
 import type uPlot from 'uplot'
-import {LineChart, Play} from 'lucide-react'
+import {ArrowLeft, LineChart, Play} from 'lucide-react'
 import {Spinner} from '@/components/ui/spinner'
 import {Button} from '@/components/ui/button'
 import {hasObjectiveType, ObjectiveType, latencyTarget} from '../../App'
-import {MetricName} from '../../labels'
+import {type Labels, MetricName} from '../../labels'
 import {type Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
 import {usePrometheusQuery, replaceInterval, vectorErrorsTotal} from '../../prometheus'
@@ -34,6 +34,12 @@ interface DetailPreviewProps {
   status: PreviewStatus
   stale: boolean
   onRun: () => void
+  // The grouping label set this preview is scoped to, shown as pills next to the
+  // objective's labels. Undefined for an ungrouped (overall) preview.
+  grouping?: Labels
+  // When set, renders a "back to groupings" affordance (the objective groups, so
+  // this Detail view is one chosen label set of a chooser).
+  onBack?: () => void
 }
 
 const noop = (): void => {}
@@ -59,7 +65,7 @@ const Message = ({title, children}: {title: string; children: React.ReactNode}):
   </div>
 )
 
-const DetailPreview = ({baseUrl, objective, status, stale, onRun}: DetailPreviewProps): JSX.Element => {
+const DetailPreview = ({baseUrl, objective, status, stale, onRun, grouping, onBack}: DetailPreviewProps): JSX.Element => {
   const promClient = useMemo(
     () => createClient(PrometheusService, createConnectTransport({baseUrl})),
     [baseUrl],
@@ -133,9 +139,16 @@ const DetailPreview = ({baseUrl, objective, status, stale, onRun}: DetailPreview
   return (
     <div className={stale ? 'opacity-55 transition-opacity' : 'transition-opacity'}>
       <div className="px-6 pt-7 pb-14">
+        {onBack !== undefined && (
+          <button
+            className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            onClick={onBack}>
+            <ArrowLeft size={15} /> Groupings
+          </button>
+        )}
         <div className="mb-7">
           <h3 className="mb-3">{name}</h3>
-          <ObjectiveLabels labels={objective.labels} />
+          <ObjectiveLabels labels={objective.labels} grouping={grouping} />
           {objective.description !== '' && (
             <p className="mt-3 max-w-prose text-sm leading-relaxed">{objective.description}</p>
           )}

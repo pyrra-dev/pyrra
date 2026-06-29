@@ -224,7 +224,11 @@ type PreviewRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// config is the SLO YAML config as written in the editor. The backend parses
 	// it exactly like a stored config and returns the materialized Objective.
-	Config        string `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	Config string `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	// grouping optionally scopes the preview to a single grouping label set, e.g.
+	// {handler="/api"}. Empty previews the objective grouped by its grouping
+	// labels (one series per label set), which the editor turns into a chooser.
+	Grouping      string `protobuf:"bytes,2,opt,name=grouping,proto3" json:"grouping,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -262,6 +266,13 @@ func (*PreviewRequest) Descriptor() ([]byte, []int) {
 func (x *PreviewRequest) GetConfig() string {
 	if x != nil {
 		return x.Config
+	}
+	return ""
+}
+
+func (x *PreviewRequest) GetGrouping() string {
+	if x != nil {
+		return x.Grouping
 	}
 	return ""
 }
@@ -2057,9 +2068,10 @@ const file_objectives_v1alpha1_objectives_proto_rawDesc = "" +
 	"\fListResponse\x12>\n" +
 	"\n" +
 	"objectives\x18\x01 \x03(\v2\x1e.objectives.v1alpha1.ObjectiveR\n" +
-	"objectives\"(\n" +
+	"objectives\"D\n" +
 	"\x0ePreviewRequest\x12\x16\n" +
-	"\x06config\x18\x01 \x01(\tR\x06config\"O\n" +
+	"\x06config\x18\x01 \x01(\tR\x06config\x12\x1a\n" +
+	"\bgrouping\x18\x02 \x01(\tR\bgrouping\"O\n" +
 	"\x0fPreviewResponse\x12<\n" +
 	"\tobjective\x18\x01 \x01(\v2\x1e.objectives.v1alpha1.ObjectiveR\tobjective\"\x85\x03\n" +
 	"\tObjective\x12B\n" +
