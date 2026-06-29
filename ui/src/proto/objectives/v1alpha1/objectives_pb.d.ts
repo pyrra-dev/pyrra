@@ -59,6 +59,15 @@ export declare type PreviewRequest = Message<"objectives.v1alpha1.PreviewRequest
    * @generated from field: string config = 1;
    */
   config: string;
+
+  /**
+   * grouping optionally scopes the preview to a single grouping label set, e.g.
+   * {handler="/api"}. Empty previews the objective grouped by its grouping
+   * labels (one series per label set), which the editor turns into a chooser.
+   *
+   * @generated from field: string grouping = 2;
+   */
+  grouping: string;
 };
 
 /**

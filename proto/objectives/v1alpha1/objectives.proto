@@ -35,6 +35,10 @@ message PreviewRequest {
   // config is the SLO YAML config as written in the editor. The backend parses
   // it exactly like a stored config and returns the materialized Objective.
   string config = 1;
+  // grouping optionally scopes the preview to a single grouping label set, e.g.
+  // {handler="/api"}. Empty previews the objective grouped by its grouping
+  // labels (one series per label set), which the editor turns into a chooser.
+  string grouping = 2;
 }
 
 message PreviewResponse {

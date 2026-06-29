@@ -896,6 +896,30 @@ func (s *objectiveServer) Preview(ctx context.Context, req *connect.Request[obje
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to build objective: %w", err))
 	}
 
+	// When a specific grouping is requested, fold its label matchers into the
+	// indicator so the raw queries scope down to that single label set (one
+	// series), which the detail tiles and the error-budget graph require. Without
+	// a grouping the raw queries stay grouped by the objective's grouping labels,
+	// giving the editor one series per label set to turn into a chooser.
+	if req.Msg.Grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(req.Msg.Grouping)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to parse grouping: %w", err))
+		}
+		switch objective.IndicatorType() {
+		case slo.Ratio:
+			objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, groupingMatchers...)
+			objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, groupingMatchers...)
+		case slo.Latency:
+			objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, groupingMatchers...)
+			objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, groupingMatchers...)
+		case slo.LatencyNative:
+			objective.Indicator.LatencyNative.Total.LabelMatchers = append(objective.Indicator.LatencyNative.Total.LabelMatchers, groupingMatchers...)
+		case slo.BoolGauge:
+			objective.Indicator.BoolGauge.LabelMatchers = append(objective.Indicator.BoolGauge.LabelMatchers, groupingMatchers...)
+		}
+	}
+
 	o := objectivesv1alpha1.FromInternal(objective)
 	// The SLO doesn't exist yet, so none of its recording rules have been
 	// generated. Use the raw query variants that compute everything directly from

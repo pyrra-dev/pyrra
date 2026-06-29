@@ -1191,9 +1191,9 @@ func TestObjective_QueryTotalRaw(t *testing.T) {
 	}, {
 		name:      "http-ratio-grouping",
 		objective: objectiveHTTPRatioGrouping(),
-		// The preview tiles show one overall number, so the total is ungrouped
-		// even when the SLO itself groups (matching http-ratio above).
-		expected: `sum(increase(http_requests_total{job="thanos-receive-default"}[4w]))`,
+		// Grouped by the objective's grouping labels so the editor can offer each
+		// label set as a chooser; selecting one re-scopes the preview.
+		expected: `sum by (job, handler) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`,
 	}, {
 		name:      "bool-gauge",
 		objective: objectiveUpTargets(),
@@ -1215,6 +1215,10 @@ func TestObjective_QueryErrorsRaw(t *testing.T) {
 		name:      "http-ratio",
 		objective: objectiveHTTPRatio(),
 		expected:  `sum(increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[4w]))`,
+	}, {
+		name:      "http-ratio-grouping",
+		objective: objectiveHTTPRatioGrouping(),
+		expected:  `sum by (job, handler) (increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[4w]))`,
 	}, {
 		name:      "bool-gauge",
 		objective: objectiveUpTargets(),
