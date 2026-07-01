@@ -310,13 +310,19 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 			warnings = append(warnings, "ratio errors metric should be different from ratio total metric")
 		}
 
-		_, err := parser.ParseExpr(ratio.Total.Metric)
+		totalExpr, err := parser.ParseExpr(ratio.Total.Metric)
 		if err != nil {
 			return warnings, fmt.Errorf("failed to parse ratio total metric: %w", err)
 		}
-		_, err = parser.ParseExpr(ratio.Errors.Metric)
+		if _, ok := totalExpr.(*parser.VectorSelector); !ok {
+			return warnings, fmt.Errorf("ratio total metric must be a vector selector, but got %T", totalExpr)
+		}
+		errorsExpr, err := parser.ParseExpr(ratio.Errors.Metric)
 		if err != nil {
 			return warnings, fmt.Errorf("failed to parse ratio error metric: %w", err)
+		}
+		if _, ok := errorsExpr.(*parser.VectorSelector); !ok {
+			return warnings, fmt.Errorf("ratio errors metric must be a vector selector, but got %T", errorsExpr)
 		}
 	}
 
