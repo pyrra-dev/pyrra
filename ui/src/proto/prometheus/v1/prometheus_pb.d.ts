@@ -287,6 +287,119 @@ export declare type String = Message<"prometheus.v1.String"> & {
 export declare const StringSchema: GenMessage<String>;
 
 /**
+ * @generated from message prometheus.v1.LabelNamesRequest
+ */
+export declare type LabelNamesRequest = Message<"prometheus.v1.LabelNamesRequest"> & {
+  /**
+   * matchers optionally scopes label names to series matching these
+   * selectors, e.g. {__name__="http_requests_total"}.
+   *
+   * @generated from field: repeated string matchers = 1;
+   */
+  matchers: string[];
+
+  /**
+   * start and end bound the discovery window as unix seconds. 0 means
+   * unbounded, matching Prometheus' own UI behavior for these endpoints.
+   *
+   * @generated from field: int64 start = 2;
+   */
+  start: bigint;
+
+  /**
+   * @generated from field: int64 end = 3;
+   */
+  end: bigint;
+};
+
+/**
+ * Describes the message prometheus.v1.LabelNamesRequest.
+ * Use `create(LabelNamesRequestSchema)` to create a new message.
+ */
+export declare const LabelNamesRequestSchema: GenMessage<LabelNamesRequest>;
+
+/**
+ * @generated from message prometheus.v1.LabelNamesResponse
+ */
+export declare type LabelNamesResponse = Message<"prometheus.v1.LabelNamesResponse"> & {
+  /**
+   * @generated from field: repeated string names = 1;
+   */
+  names: string[];
+
+  /**
+   * @generated from field: repeated string warnings = 2;
+   */
+  warnings: string[];
+};
+
+/**
+ * Describes the message prometheus.v1.LabelNamesResponse.
+ * Use `create(LabelNamesResponseSchema)` to create a new message.
+ */
+export declare const LabelNamesResponseSchema: GenMessage<LabelNamesResponse>;
+
+/**
+ * @generated from message prometheus.v1.LabelValuesRequest
+ */
+export declare type LabelValuesRequest = Message<"prometheus.v1.LabelValuesRequest"> & {
+  /**
+   * label is the label name to list values for. "__name__" lists metric names.
+   *
+   * @generated from field: string label = 1;
+   */
+  label: string;
+
+  /**
+   * matchers optionally scopes label values to series matching these
+   * selectors, e.g. {__name__="http_requests_total"}.
+   *
+   * @generated from field: repeated string matchers = 2;
+   */
+  matchers: string[];
+
+  /**
+   * start and end bound the discovery window as unix seconds. 0 means
+   * unbounded, matching Prometheus' own UI behavior for these endpoints.
+   *
+   * @generated from field: int64 start = 3;
+   */
+  start: bigint;
+
+  /**
+   * @generated from field: int64 end = 4;
+   */
+  end: bigint;
+};
+
+/**
+ * Describes the message prometheus.v1.LabelValuesRequest.
+ * Use `create(LabelValuesRequestSchema)` to create a new message.
+ */
+export declare const LabelValuesRequestSchema: GenMessage<LabelValuesRequest>;
+
+/**
+ * @generated from message prometheus.v1.LabelValuesResponse
+ */
+export declare type LabelValuesResponse = Message<"prometheus.v1.LabelValuesResponse"> & {
+  /**
+   * @generated from field: repeated string values = 1;
+   */
+  values: string[];
+
+  /**
+   * @generated from field: repeated string warnings = 2;
+   */
+  warnings: string[];
+};
+
+/**
+ * Describes the message prometheus.v1.LabelValuesResponse.
+ * Use `create(LabelValuesResponseSchema)` to create a new message.
+ */
+export declare const LabelValuesResponseSchema: GenMessage<LabelValuesResponse>;
+
+/**
  * @generated from service prometheus.v1.PrometheusService
  */
 export declare const PrometheusService: GenService<{
@@ -305,6 +418,22 @@ export declare const PrometheusService: GenService<{
     methodKind: "unary";
     input: typeof QueryRangeRequestSchema;
     output: typeof QueryRangeResponseSchema;
+  },
+  /**
+   * @generated from rpc prometheus.v1.PrometheusService.LabelNames
+   */
+  labelNames: {
+    methodKind: "unary";
+    input: typeof LabelNamesRequestSchema;
+    output: typeof LabelNamesResponseSchema;
+  },
+  /**
+   * @generated from rpc prometheus.v1.PrometheusService.LabelValues
+   */
+  labelValues: {
+    methodKind: "unary";
+    input: typeof LabelValuesRequestSchema;
+    output: typeof LabelValuesResponseSchema;
   },
 }>;
 

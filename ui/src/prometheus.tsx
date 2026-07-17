@@ -1,4 +1,10 @@
-import {type PrometheusService, type QueryRangeResponse, type QueryResponse} from './proto/prometheus/v1/prometheus_pb'
+import {
+  type LabelNamesResponse,
+  type LabelValuesResponse,
+  type PrometheusService,
+  type QueryRangeResponse,
+  type QueryResponse,
+} from './proto/prometheus/v1/prometheus_pb'
 import {type ConnectError, type Client} from '@connectrpc/connect'
 import {type QueryStatus} from '@tanstack/react-query'
 import {type QueryOptions, useConnectQuery} from './query'
@@ -59,6 +65,55 @@ export const usePrometheusQueryRange = (
   })
 
   return {response: data ?? null, error: error as ConnectError, status}
+}
+
+export interface PrometheusLabelNamesResponse {
+  names: string[]
+  status: QueryStatus
+}
+
+// usePrometheusLabelNames lists label names, optionally scoped to series
+// matching `matchers` (e.g. `{__name__="http_requests_total"}`). Sends no
+// start/end — unbounded, matching how Prometheus' own UI queries this.
+export const usePrometheusLabelNames = (
+  client: Client<typeof PrometheusService>,
+  matchers: string[] = [],
+  options?: QueryOptions,
+): PrometheusLabelNamesResponse => {
+  const {data, status} = useConnectQuery<LabelNamesResponse>({
+    key: ['labelNames', ...matchers],
+    func: async () => {
+      return await client.labelNames({matchers})
+    },
+    options,
+  })
+
+  return {names: data?.names ?? [], status}
+}
+
+export interface PrometheusLabelValuesResponse {
+  values: string[]
+  status: QueryStatus
+}
+
+// usePrometheusLabelValues lists the values of `label` (use "__name__" for
+// metric names), optionally scoped to series matching `matchers`. Sends no
+// start/end — unbounded, matching how Prometheus' own UI queries this.
+export const usePrometheusLabelValues = (
+  client: Client<typeof PrometheusService>,
+  label: string,
+  matchers: string[] = [],
+  options?: QueryOptions,
+): PrometheusLabelValuesResponse => {
+  const {data, status} = useConnectQuery<LabelValuesResponse>({
+    key: ['labelValues', label, ...matchers],
+    func: async () => {
+      return await client.labelValues({label, matchers})
+    },
+    options,
+  })
+
+  return {values: data?.values ?? [], status}
 }
 
 export const replaceInterval = (query: string, from: number, to: number): string => {

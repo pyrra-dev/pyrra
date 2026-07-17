@@ -38,12 +38,20 @@ const (
 	// PrometheusServiceQueryRangeProcedure is the fully-qualified name of the PrometheusService's
 	// QueryRange RPC.
 	PrometheusServiceQueryRangeProcedure = "/prometheus.v1.PrometheusService/QueryRange"
+	// PrometheusServiceLabelNamesProcedure is the fully-qualified name of the PrometheusService's
+	// LabelNames RPC.
+	PrometheusServiceLabelNamesProcedure = "/prometheus.v1.PrometheusService/LabelNames"
+	// PrometheusServiceLabelValuesProcedure is the fully-qualified name of the PrometheusService's
+	// LabelValues RPC.
+	PrometheusServiceLabelValuesProcedure = "/prometheus.v1.PrometheusService/LabelValues"
 )
 
 // PrometheusServiceClient is a client for the prometheus.v1.PrometheusService service.
 type PrometheusServiceClient interface {
 	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
 	QueryRange(context.Context, *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error)
+	LabelNames(context.Context, *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error)
+	LabelValues(context.Context, *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error)
 }
 
 // NewPrometheusServiceClient constructs a client for the prometheus.v1.PrometheusService service.
@@ -69,13 +77,27 @@ func NewPrometheusServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(prometheusServiceMethods.ByName("QueryRange")),
 			connect.WithClientOptions(opts...),
 		),
+		labelNames: connect.NewClient[v1.LabelNamesRequest, v1.LabelNamesResponse](
+			httpClient,
+			baseURL+PrometheusServiceLabelNamesProcedure,
+			connect.WithSchema(prometheusServiceMethods.ByName("LabelNames")),
+			connect.WithClientOptions(opts...),
+		),
+		labelValues: connect.NewClient[v1.LabelValuesRequest, v1.LabelValuesResponse](
+			httpClient,
+			baseURL+PrometheusServiceLabelValuesProcedure,
+			connect.WithSchema(prometheusServiceMethods.ByName("LabelValues")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // prometheusServiceClient implements PrometheusServiceClient.
 type prometheusServiceClient struct {
-	query      *connect.Client[v1.QueryRequest, v1.QueryResponse]
-	queryRange *connect.Client[v1.QueryRangeRequest, v1.QueryRangeResponse]
+	query       *connect.Client[v1.QueryRequest, v1.QueryResponse]
+	queryRange  *connect.Client[v1.QueryRangeRequest, v1.QueryRangeResponse]
+	labelNames  *connect.Client[v1.LabelNamesRequest, v1.LabelNamesResponse]
+	labelValues *connect.Client[v1.LabelValuesRequest, v1.LabelValuesResponse]
 }
 
 // Query calls prometheus.v1.PrometheusService.Query.
@@ -88,10 +110,22 @@ func (c *prometheusServiceClient) QueryRange(ctx context.Context, req *connect.R
 	return c.queryRange.CallUnary(ctx, req)
 }
 
+// LabelNames calls prometheus.v1.PrometheusService.LabelNames.
+func (c *prometheusServiceClient) LabelNames(ctx context.Context, req *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error) {
+	return c.labelNames.CallUnary(ctx, req)
+}
+
+// LabelValues calls prometheus.v1.PrometheusService.LabelValues.
+func (c *prometheusServiceClient) LabelValues(ctx context.Context, req *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error) {
+	return c.labelValues.CallUnary(ctx, req)
+}
+
 // PrometheusServiceHandler is an implementation of the prometheus.v1.PrometheusService service.
 type PrometheusServiceHandler interface {
 	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
 	QueryRange(context.Context, *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error)
+	LabelNames(context.Context, *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error)
+	LabelValues(context.Context, *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error)
 }
 
 // NewPrometheusServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -113,12 +147,28 @@ func NewPrometheusServiceHandler(svc PrometheusServiceHandler, opts ...connect.H
 		connect.WithSchema(prometheusServiceMethods.ByName("QueryRange")),
 		connect.WithHandlerOptions(opts...),
 	)
+	prometheusServiceLabelNamesHandler := connect.NewUnaryHandler(
+		PrometheusServiceLabelNamesProcedure,
+		svc.LabelNames,
+		connect.WithSchema(prometheusServiceMethods.ByName("LabelNames")),
+		connect.WithHandlerOptions(opts...),
+	)
+	prometheusServiceLabelValuesHandler := connect.NewUnaryHandler(
+		PrometheusServiceLabelValuesProcedure,
+		svc.LabelValues,
+		connect.WithSchema(prometheusServiceMethods.ByName("LabelValues")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/prometheus.v1.PrometheusService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PrometheusServiceQueryProcedure:
 			prometheusServiceQueryHandler.ServeHTTP(w, r)
 		case PrometheusServiceQueryRangeProcedure:
 			prometheusServiceQueryRangeHandler.ServeHTTP(w, r)
+		case PrometheusServiceLabelNamesProcedure:
+			prometheusServiceLabelNamesHandler.ServeHTTP(w, r)
+		case PrometheusServiceLabelValuesProcedure:
+			prometheusServiceLabelValuesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -134,4 +184,12 @@ func (UnimplementedPrometheusServiceHandler) Query(context.Context, *connect.Req
 
 func (UnimplementedPrometheusServiceHandler) QueryRange(context.Context, *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.QueryRange is not implemented"))
+}
+
+func (UnimplementedPrometheusServiceHandler) LabelNames(context.Context, *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.LabelNames is not implemented"))
+}
+
+func (UnimplementedPrometheusServiceHandler) LabelValues(context.Context, *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.LabelValues is not implemented"))
 }

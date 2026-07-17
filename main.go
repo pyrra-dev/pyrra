@@ -603,6 +603,10 @@ type prometheusAPI interface {
 	Query(ctx context.Context, query string, ts time.Time, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error)
 	// QueryRange performs a query for the given range.
 	QueryRange(ctx context.Context, query string, r prometheusapiv1.Range, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error)
+	// LabelNames returns the unique label names present in the block in sorted order.
+	LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) ([]string, prometheusapiv1.Warnings, error)
+	// LabelValues performs a query for the values of the given label.
+	LabelValues(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelValues, prometheusapiv1.Warnings, error)
 }
 
 type promLogger struct {
@@ -627,6 +631,23 @@ func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusa
 		"end", r.End,
 	)
 	return l.api.QueryRange(ctx, query, r, opts...)
+}
+
+func (l *promLogger) LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) ([]string, prometheusapiv1.Warnings, error) {
+	level.Debug(l.logger).Log(
+		"msg", "listing label names",
+		"matches", strings.Join(matches, ","),
+	)
+	return l.api.LabelNames(ctx, matches, startTime, endTime, opts...)
+}
+
+func (l *promLogger) LabelValues(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelValues, prometheusapiv1.Warnings, error) {
+	level.Debug(l.logger).Log(
+		"msg", "listing label values",
+		"label", label,
+		"matches", strings.Join(matches, ","),
+	)
+	return l.api.LabelValues(ctx, label, matches, startTime, endTime, opts...)
 }
 
 type promCache struct {
@@ -726,6 +747,17 @@ func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusap
 	}
 
 	return value, warnings, nil
+}
+
+// LabelNames and LabelValues are passed straight through to the underlying
+// API without caching: metadata payloads are small and infrequent enough
+// (driven by editor keystrokes) that the ristretto cache isn't worth it here.
+func (p *promCache) LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time) ([]string, prometheusapiv1.Warnings, error) {
+	return p.api.LabelNames(ctx, matches, startTime, endTime)
+}
+
+func (p *promCache) LabelValues(ctx context.Context, label string, matches []string, startTime, endTime time.Time) (model.LabelValues, prometheusapiv1.Warnings, error) {
+	return p.api.LabelValues(ctx, label, matches, startTime, endTime)
 }
 
 type objectiveServer struct {
