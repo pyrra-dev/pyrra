@@ -11,6 +11,8 @@
 
 import {useMemo, useState, type JSX} from 'react'
 import {Link} from 'react-router-dom'
+import {createClient} from '@connectrpc/connect'
+import {createConnectTransport} from '@connectrpc/connect-web'
 import {Check, Copy, Download, Play, RefreshCw} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {ToggleGroup, ToggleGroupItem} from '@/components/ui/toggle-group'
@@ -24,6 +26,7 @@ import DetailPreview from '../components/create/DetailPreview'
 import GroupingsTable from '../components/create/GroupingsTable'
 import {type Labels, labelsString} from '../labels'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
+import {PrometheusService} from '../proto/prometheus/v1/prometheus_pb'
 
 const sliTabs: Array<{value: SLIType; label: string}> = [
   {value: 'ratio', label: 'Ratio'},
@@ -51,6 +54,9 @@ const objectiveGrouping = (o: Objective): string[] => {
 const Create = (): JSX.Element => {
   document.title = 'Create SLO - Pyrra'
   const baseUrl = API_BASEPATH ?? 'http://localhost:9099'
+  // Feeds the metric/label/value autocomplete in MetricInput and GroupingInput —
+  // live suggestions straight from Prometheus rather than a static catalog.
+  const promClient = useMemo(() => createClient(PrometheusService, createConnectTransport({baseUrl})), [baseUrl])
 
   const [cfg, setCfg] = useState<CreateConfig>(DEFAULT_CONFIG)
   const [rightView, setRightView] = useState<'detail' | 'yaml'>('yaml')
@@ -236,6 +242,8 @@ const Create = (): JSX.Element => {
                       value={cfg.ratio.errors}
                       onChange={(v) => { setInd('ratio', {errors: v}); }}
                       placeholder={'metric{code=~"5.."}'}
+                    
+                      client={promClient}
                     />
                   </Field>
                   <Field label="Total metric" hint="Vector selector counting all events.">
@@ -244,10 +252,14 @@ const Create = (): JSX.Element => {
                       value={cfg.ratio.total}
                       onChange={(v) => { setInd('ratio', {total: v}); }}
                       placeholder="metric{}"
+                    
+                      client={promClient}
                     />
                   </Field>
                   <Field label="Group by" hint="Split the SLO by these label names.">
-                    <GroupingInput value={cfg.ratio.grouping} onChange={(g) => { setInd('ratio', {grouping: g}); }} />
+                    <GroupingInput value={cfg.ratio.grouping} onChange={(g) => { setInd('ratio', {grouping: g}); }} 
+                      client={promClient}
+                    />
                   </Field>
                 </>
               )}
@@ -260,6 +272,8 @@ const Create = (): JSX.Element => {
                       value={cfg.latency.success}
                       onChange={(v) => { setInd('latency', {success: v}); }}
                       placeholder={'metric_bucket{le="0.05"}'}
+                    
+                      client={promClient}
                     />
                   </Field>
                   <Field label="Total metric" hint="The _count series for the same requests.">
@@ -268,10 +282,14 @@ const Create = (): JSX.Element => {
                       value={cfg.latency.total}
                       onChange={(v) => { setInd('latency', {total: v}); }}
                       placeholder="metric_count{}"
+                    
+                      client={promClient}
                     />
                   </Field>
                   <Field label="Group by">
-                    <GroupingInput value={cfg.latency.grouping} onChange={(g) => { setInd('latency', {grouping: g}); }} />
+                    <GroupingInput value={cfg.latency.grouping} onChange={(g) => { setInd('latency', {grouping: g}); }} 
+                      client={promClient}
+                    />
                   </Field>
                 </>
               )}
@@ -293,12 +311,16 @@ const Create = (): JSX.Element => {
                       value={cfg.latencyNative.total}
                       onChange={(v) => { setInd('latencyNative', {total: v}); }}
                       placeholder="metric{}"
+                    
+                      client={promClient}
                     />
                   </Field>
                   <Field label="Group by">
                     <GroupingInput
                       value={cfg.latencyNative.grouping}
                       onChange={(g) => { setInd('latencyNative', {grouping: g}); }}
+                    
+                      client={promClient}
                     />
                   </Field>
                 </>
@@ -312,10 +334,14 @@ const Create = (): JSX.Element => {
                       value={cfg.bool.metric}
                       onChange={(v) => { setInd('bool', {metric: v}); }}
                       placeholder={'up{job="…"}'}
+                    
+                      client={promClient}
                     />
                   </Field>
                   <Field label="Group by">
-                    <GroupingInput value={cfg.bool.grouping} onChange={(g) => { setInd('bool', {grouping: g}); }} />
+                    <GroupingInput value={cfg.bool.grouping} onChange={(g) => { setInd('bool', {grouping: g}); }} 
+                      client={promClient}
+                    />
                   </Field>
                 </>
               )}
