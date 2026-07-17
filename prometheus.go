@@ -85,6 +85,63 @@ func (ps *prometheusServer) QueryRange(ctx context.Context, req *connect.Request
 	}), nil
 }
 
+// unixOrZero converts a unix-seconds timestamp to time.Time, treating 0 as
+// unbounded (the zero time.Time), matching Prometheus' own UI which queries
+// label names/values without a time range.
+func unixOrZero(t int64) time.Time {
+	if t == 0 {
+		return time.Time{}
+	}
+	return time.Unix(t, 0)
+}
+
+func (ps *prometheusServer) LabelNames(ctx context.Context, req *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error) {
+	names, warnings, err := ps.promAPI.LabelNames(
+		ctx,
+		req.Msg.GetMatchers(),
+		unixOrZero(req.Msg.GetStart()),
+		unixOrZero(req.Msg.GetEnd()),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// The API returns model.LabelNames, which is a []model.LabelName, while the
+	// response carries plain strings.
+	labelNames := make([]string, 0, len(names))
+	for _, name := range names {
+		labelNames = append(labelNames, string(name))
+	}
+
+	return connect.NewResponse(&v1.LabelNamesResponse{
+		Names:    labelNames,
+		Warnings: warnings,
+	}), nil
+}
+
+func (ps *prometheusServer) LabelValues(ctx context.Context, req *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error) {
+	values, warnings, err := ps.promAPI.LabelValues(
+		ctx,
+		req.Msg.GetLabel(),
+		req.Msg.GetMatchers(),
+		unixOrZero(req.Msg.GetStart()),
+		unixOrZero(req.Msg.GetEnd()),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]string, 0, len(values))
+	for _, v := range values {
+		out = append(out, string(v))
+	}
+
+	return connect.NewResponse(&v1.LabelValuesResponse{
+		Values:   out,
+		Warnings: warnings,
+	}), nil
+}
+
 func convertVector(in model.Vector) *v1.Vector {
 	samples := make([]*v1.Sample, 0, len(in))
 	for _, si := range in {
