@@ -104,11 +104,17 @@ export const MetricInput = ({id, value, onChange, placeholder, client}: MetricIn
   }, [sug.mode, sug.token, metricNames, labelNames, labelValues])
   const open = focused && items.length > 0
 
+  const refreshFrom = (text: string, caret: number): void => {
+    setSug(suggest(text, caret))
+    setActive(0)
+  }
+
+  // For click/focus: no value change happened, so the value prop is current —
+  // just re-derive from the ref's live caret position.
   const refresh = (): void => {
     const el = inputRef.current
     if (el === null) return
-    setSug(suggest(value, el.selectionStart ?? value.length))
-    setActive(0)
+    refreshFrom(value, el.selectionStart ?? value.length)
   }
 
   const apply = (item: string): void => {
@@ -157,8 +163,12 @@ export const MetricInput = ({id, value, onChange, placeholder, client}: MetricIn
           spellCheck={false}
           autoComplete="off"
           onChange={(e) => {
-            onChange(e.target.value)
-            requestAnimationFrame(refresh)
+            const next = e.target.value
+            onChange(next)
+            // Use the event's own value/caret — not the (stale-by-one-render)
+            // value prop or a deferred rAF — so {, =, and " reliably flip
+            // context on the very keystroke that typed them.
+            refreshFrom(next, e.target.selectionStart ?? next.length)
           }}
           onKeyDown={onKeyDown}
           onKeyUp={(e) => {
