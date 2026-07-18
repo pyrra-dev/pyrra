@@ -179,7 +179,17 @@ export const MetricInput = ({id, value, onChange, placeholder, client}: MetricIn
             setFocused(true)
             refresh()
           }}
-          onBlur={() => setTimeout(() => { setFocused(false); }, 120)}
+          onBlur={() => {
+            // Deferred so a click on a Typeahead item (onMouseDown) can apply()
+            // before the list unmounts. Guarded: if the input has already been
+            // refocused by the time this fires (e.g. a fast blur/refocus from
+            // clicking around), don't clobber that — otherwise the dropdown
+            // stays closed forever, since the input never re-fires onFocus
+            // while it's already focused.
+            setTimeout(() => {
+              if (inputRef.current !== document.activeElement) setFocused(false)
+            }, 120)
+          }}
         />
         {open && (
           <Typeahead
@@ -203,6 +213,7 @@ interface GroupingInputProps {
 }
 
 export const GroupingInput = ({value, onChange, client}: GroupingInputProps): React.JSX.Element => {
+  const inputRef = useRef<HTMLInputElement>(null)
   const [text, setText] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
@@ -258,6 +269,7 @@ export const GroupingInput = ({value, onChange, client}: GroupingInputProps): Re
       ))}
       <div className="relative min-w-[120px] flex-1">
         <input
+          ref={inputRef}
           className="h-6 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           value={text}
           placeholder={value.length > 0 ? '' : 'group by label…'}
@@ -270,7 +282,13 @@ export const GroupingInput = ({value, onChange, client}: GroupingInputProps): Re
           }}
           onKeyDown={onKeyDown}
           onFocus={() => { setOpen(true); }}
-          onBlur={() => setTimeout(() => { setOpen(false); }, 120)}
+          onBlur={() => {
+            // Guarded like MetricInput's: don't clobber a fast blur/refocus,
+            // or the dropdown can get stuck closed with no event left to reopen it.
+            setTimeout(() => {
+              if (inputRef.current !== document.activeElement) setOpen(false)
+            }, 120)
+          }}
         />
         {open && suggestions.length > 0 && (
           <Typeahead mode="label" items={suggestions} active={active} onPick={add} onHover={setActive} />
