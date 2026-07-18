@@ -105,6 +105,11 @@ export const MetricInput = ({id, value, onChange, placeholder, client}: MetricIn
   const open = focused && items.length > 0
 
   const refreshFrom = (text: string, caret: number): void => {
+    // Typing or clicking can only happen while the input genuinely has DOM
+    // focus, so re-assert it here — undoing a prior Escape or apply() dismissal
+    // (which close the dropdown without a real blur, so onFocus never re-fires
+    // to reopen it otherwise).
+    setFocused(true)
     setSug(suggest(text, caret))
     setActive(0)
   }
