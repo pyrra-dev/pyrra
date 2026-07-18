@@ -123,6 +123,8 @@ const GroupingsTable = ({baseUrl, objective, selected, onSelect}: GroupingsTable
           <TableHeader>
             <TableRow>
               <TableHead>Grouping</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-right">Errors</TableHead>
               <TableHead className="text-right">Availability</TableHead>
             </TableRow>
           </TableHeader>
@@ -142,6 +144,12 @@ const GroupingsTable = ({baseUrl, objective, selected, onSelect}: GroupingsTable
                         {k}={v}
                       </Badge>
                     ))}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {row.total > 0 ? Math.floor(row.total).toLocaleString() : '—'}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {row.total > 0 ? Math.floor(row.errors).toLocaleString() : '—'}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {row.total > 0 ? (
