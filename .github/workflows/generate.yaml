@@ -20,6 +20,20 @@ jobs:
     - run: go install github.com/brancz/gojsontoyaml@latest
     - run: make --always-make examples && git diff --exit-code
 
+  manifests:
+    runs-on: ubuntu-latest
+    name: Generate controller-gen manifests
+    steps:
+    - uses: actions/checkout@v6
+    - uses: actions/setup-go@v6.4.0
+      with:
+        go-version-file: go.mod
+    - run: go install github.com/brancz/gojsontoyaml@latest
+    # Regenerate everything controller-gen owns (canonical CRD under config/crd/bases, the
+    # derived JSON, RBAC role and deepcopy code) and fail if anything drifts from the
+    # committed state. Fix locally with `make generate`.
+    - run: make generate && git diff --exit-code
+
   proto:
     runs-on: ubuntu-latest
     name: Generate protobuf code
