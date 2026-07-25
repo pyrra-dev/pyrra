@@ -14,6 +14,7 @@ import {type PrometheusService, type SamplePair, type SampleStream} from '../../
 import {usePrometheusQueryRange} from '../../prometheus'
 import {selectTimeRange} from './selectTimeRange'
 import {buildExternalHRef, externalName} from '../../external'
+import {rescaleErrorBudget} from './errorBudget'
 
 interface ErrorBudgetGraphProps {
   client: Client<typeof PrometheusService>
@@ -23,6 +24,9 @@ interface ErrorBudgetGraphProps {
   uPlotCursor: uPlot.Cursor
   updateTimeRange: (min: number, max: number, absolute: boolean) => void
   absolute: boolean
+  // When the objective's target has moved since the query was built, re-derives
+  // the series for the new target instead of re-querying. See errorBudget.ts.
+  rescale?: {from: number; to: number}
 }
 
 const ErrorBudgetGraph = ({
@@ -33,6 +37,7 @@ const ErrorBudgetGraph = ({
   uPlotCursor,
   updateTimeRange,
   absolute = false,
+  rescale,
 }: ErrorBudgetGraphProps): JSX.Element => {
   const targetRef = useRef<HTMLDivElement>(null)
 
@@ -72,7 +77,9 @@ const ErrorBudgetGraph = ({
       response.options.value.samples.forEach((s: SampleStream) => {
         s.values.forEach((sp: SamplePair) => {
           times.push(Number(sp.time))
-          values.push(sp.value * 100)
+          const value =
+            rescale !== undefined ? rescaleErrorBudget(sp.value, rescale.from, rescale.to) : sp.value
+          values.push(value * 100)
         })
       })
       samples = [times, values]
