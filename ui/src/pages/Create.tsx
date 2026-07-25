@@ -9,7 +9,7 @@
 // preview (see ../components/create/preview.ts); until that endpoint is wired it
 // shows an "unavailable" state and the YAML view carries the workflow.
 
-import {useMemo, useState, type JSX} from 'react'
+import {useMemo, useRef, useState, type JSX} from 'react'
 import {Link} from 'react-router-dom'
 import {createClient} from '@connectrpc/connect'
 import {createConnectTransport} from '@connectrpc/connect-web'
@@ -80,8 +80,23 @@ const Create = (): JSX.Element => {
   ): void => { setCfg((c) => ({...c, [ind]: {...c[ind], ...patch}})); }
 
   const yaml = useMemo(() => buildYaml(cfg), [cfg])
-  const snapshot = useMemo(() => JSON.stringify(cfg), [cfg])
+
+  // The target is left out of the staleness snapshot: the preview recomputes
+  // availability and the error budget from it locally, so a target change alone
+  // doesn't leave anything on screen out of date.
+  const snapshot = useMemo(() => JSON.stringify({...cfg, target: ''}), [cfg])
   const stale = previewSnap !== null && previewSnap !== snapshot
+
+  // Keep the last target that parsed, so clearing the field to retype it leaves
+  // the preview on the last real value instead of blanking out mid-keystroke.
+  const lastTarget = useRef<number | undefined>(undefined)
+  const target = useMemo(() => {
+    const parsed = parseFloat(cfg.target)
+    if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 100) {
+      lastTarget.current = parsed / 100
+    }
+    return lastTarget.current
+  }, [cfg.target])
 
   // Show the grouping chooser once a grouped preview succeeded and nothing is picked.
   const showGroupings = previewStatus === 'success' && groupingObjective !== null && selectedGrouping === null
@@ -432,6 +447,7 @@ const Create = (): JSX.Element => {
               stale={stale}
               onRun={runPreview}
               config={previewYaml}
+              target={target}
               grouping={selectedGrouping ?? undefined}
               onBack={groupingObjective !== null ? backToGroupings : undefined}
             />
