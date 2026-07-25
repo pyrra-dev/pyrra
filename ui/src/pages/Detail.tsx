@@ -19,7 +19,7 @@ import DurationGraph from '../components/graphs/DurationGraph'
 import type uPlot from 'uplot'
 import {PrometheusService} from '../proto/prometheus/v1/prometheus_pb'
 import {replaceInterval, usePrometheusQuery, vectorErrorsTotal} from '../prometheus'
-import {useObjectivesList} from '../objectives'
+import {useGraphDuration, useObjectivesList} from '../objectives'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
 import {computeTimeRangePresets} from '../timeRangePresets'
@@ -97,6 +97,21 @@ const Detail = () => {
     objective?.queries?.countErrors ?? '',
     to / 1000,
     {enabled: objectiveStatus === 'success' && objective?.queries?.countTotal !== undefined},
+  )
+
+  // Only latency objectives have a duration graph. The check has to happen up
+  // here rather than next to the graph, because hooks can't be conditional.
+  const latencyObjective =
+    objective !== null &&
+    [ObjectiveType.Latency, ObjectiveType.LatencyNative].includes(hasObjectiveType(objective))
+
+  const {timeseries: durationTimeseries, status: durationStatus} = useGraphDuration(
+    client,
+    expr,
+    groupingParam,
+    from,
+    to,
+    {enabled: latencyObjective},
   )
 
   const updateTimeRange = useCallback(
@@ -349,9 +364,8 @@ const Detail = () => {
             {objectiveTypeLatency && (
               <div className="w-full px-3 3xl:w-1/3">
                 <DurationGraph
-                  client={client}
-                  labels={labels}
-                  grouping={groupingLabels}
+                  timeseries={durationTimeseries}
+                  loading={durationStatus === 'pending'}
                   from={from}
                   to={to}
                   uPlotCursor={uPlotCursor}
