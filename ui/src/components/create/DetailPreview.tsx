@@ -38,6 +38,11 @@ interface DetailPreviewProps {
   // The YAML that produced `objective`. The duration graph is computed from the
   // same draft, since there is no stored SLO to look up.
   config: string
+  // The target currently in the editor, as a fraction. Availability and error
+  // budget are pure functions of it and of the error/total counts, which don't
+  // depend on the target at all — so moving it recomputes the tiles and the
+  // error budget graph immediately, without materializing the draft again.
+  target?: number
   // The grouping label set this preview is scoped to, shown as pills next to the
   // objective's labels. Undefined for an ungrouped (overall) preview.
   grouping?: Labels
@@ -78,6 +83,7 @@ const DetailPreview = ({
   stale,
   onRun,
   config,
+  target,
   grouping,
   onBack,
 }: DetailPreviewProps): JSX.Element => {
@@ -122,7 +128,7 @@ const DetailPreview = ({
       return null
     }
     return {
-      objective,
+      objective: target !== undefined ? {...objective, target} : objective,
       objectiveType: hasObjectiveType(objective),
       promClient,
       grouping: grouping ?? {},
@@ -132,7 +138,7 @@ const DetailPreview = ({
       uPlotCursor,
       updateTimeRange: updateTimeRangeSelect,
     }
-  }, [objective, promClient, grouping, from, to, absolute, updateTimeRangeSelect])
+  }, [objective, target, promClient, grouping, from, to, absolute, updateTimeRangeSelect])
 
   if (status === 'loading') {
     return (
@@ -195,7 +201,7 @@ const DetailPreview = ({
             setAbsolute={setAbsolute}
             onSelectRange={selectRange}
           />
-          <ObjectiveDetail.ErrorBudget />
+          <ObjectiveDetail.ErrorBudget queryTarget={objective?.target} />
           <ObjectiveDetail.GraphRow>
             {latency && <ObjectiveDetail.PreviewDuration client={client} config={config} />}
           </ObjectiveDetail.GraphRow>
