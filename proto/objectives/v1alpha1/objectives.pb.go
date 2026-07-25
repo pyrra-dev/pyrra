@@ -2057,6 +2057,127 @@ func (x *GraphDurationResponse) GetTimeseries() []*Timeseries {
 	return nil
 }
 
+// PreviewGraphDuration renders the duration graph for a draft SLO that hasn't
+// been stored yet. GraphDuration looks its objective up by expr, which only
+// works once the SLO exists; this materializes the objective from the YAML
+// config exactly like Preview does. The duration queries are raw
+// histogram_quantile over the underlying histogram either way, so they need no
+// recording rules to have been generated.
+type PreviewGraphDurationRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// config is the SLO YAML config as written in the editor.
+	Config string `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	// grouping optionally scopes the graph to a single grouping label set, e.g.
+	// {handler="/api"}, matching the grouping the preview itself was scoped to.
+	Grouping      string                 `protobuf:"bytes,2,opt,name=grouping,proto3" json:"grouping,omitempty"`
+	Start         *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=start,proto3" json:"start,omitempty"`
+	End           *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=end,proto3" json:"end,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PreviewGraphDurationRequest) Reset() {
+	*x = PreviewGraphDurationRequest{}
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PreviewGraphDurationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PreviewGraphDurationRequest) ProtoMessage() {}
+
+func (x *PreviewGraphDurationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PreviewGraphDurationRequest.ProtoReflect.Descriptor instead.
+func (*PreviewGraphDurationRequest) Descriptor() ([]byte, []int) {
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *PreviewGraphDurationRequest) GetConfig() string {
+	if x != nil {
+		return x.Config
+	}
+	return ""
+}
+
+func (x *PreviewGraphDurationRequest) GetGrouping() string {
+	if x != nil {
+		return x.Grouping
+	}
+	return ""
+}
+
+func (x *PreviewGraphDurationRequest) GetStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
+func (x *PreviewGraphDurationRequest) GetEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.End
+	}
+	return nil
+}
+
+type PreviewGraphDurationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Timeseries    []*Timeseries          `protobuf:"bytes,1,rep,name=timeseries,proto3" json:"timeseries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PreviewGraphDurationResponse) Reset() {
+	*x = PreviewGraphDurationResponse{}
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PreviewGraphDurationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PreviewGraphDurationResponse) ProtoMessage() {}
+
+func (x *PreviewGraphDurationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PreviewGraphDurationResponse.ProtoReflect.Descriptor instead.
+func (*PreviewGraphDurationResponse) Descriptor() ([]byte, []int) {
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *PreviewGraphDurationResponse) GetTimeseries() []*Timeseries {
+	if x != nil {
+		return x.Timeseries
+	}
+	return nil
+}
+
 var File_objectives_v1alpha1_objectives_proto protoreflect.FileDescriptor
 
 const file_objectives_v1alpha1_objectives_proto_rawDesc = "" +
@@ -2219,7 +2340,16 @@ const file_objectives_v1alpha1_objectives_proto_rawDesc = "" +
 	"\x15GraphDurationResponse\x12?\n" +
 	"\n" +
 	"timeseries\x18\x01 \x03(\v2\x1f.objectives.v1alpha1.TimeseriesR\n" +
-	"timeseries2\x94\x06\n" +
+	"timeseries\"\xb1\x01\n" +
+	"\x1bPreviewGraphDurationRequest\x12\x16\n" +
+	"\x06config\x18\x01 \x01(\tR\x06config\x12\x1a\n" +
+	"\bgrouping\x18\x02 \x01(\tR\bgrouping\x120\n" +
+	"\x05start\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12,\n" +
+	"\x03end\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x03end\"_\n" +
+	"\x1cPreviewGraphDurationResponse\x12?\n" +
+	"\n" +
+	"timeseries\x18\x01 \x03(\v2\x1f.objectives.v1alpha1.TimeseriesR\n" +
+	"timeseries2\x93\a\n" +
 	"\x10ObjectiveService\x12M\n" +
 	"\x04List\x12 .objectives.v1alpha1.ListRequest\x1a!.objectives.v1alpha1.ListResponse\"\x00\x12\\\n" +
 	"\tGetStatus\x12%.objectives.v1alpha1.GetStatusRequest\x1a&.objectives.v1alpha1.GetStatusResponse\"\x00\x12\\\n" +
@@ -2228,7 +2358,8 @@ const file_objectives_v1alpha1_objectives_proto_rawDesc = "" +
 	"\tGraphRate\x12%.objectives.v1alpha1.GraphRateRequest\x1a&.objectives.v1alpha1.GraphRateResponse\"\x00\x12b\n" +
 	"\vGraphErrors\x12'.objectives.v1alpha1.GraphErrorsRequest\x1a(.objectives.v1alpha1.GraphErrorsResponse\"\x00\x12h\n" +
 	"\rGraphDuration\x12).objectives.v1alpha1.GraphDurationRequest\x1a*.objectives.v1alpha1.GraphDurationResponse\"\x00\x12V\n" +
-	"\aPreview\x12#.objectives.v1alpha1.PreviewRequest\x1a$.objectives.v1alpha1.PreviewResponse\"\x002h\n" +
+	"\aPreview\x12#.objectives.v1alpha1.PreviewRequest\x1a$.objectives.v1alpha1.PreviewResponse\"\x00\x12}\n" +
+	"\x14PreviewGraphDuration\x120.objectives.v1alpha1.PreviewGraphDurationRequest\x1a1.objectives.v1alpha1.PreviewGraphDurationResponse\"\x002h\n" +
 	"\x17ObjectiveBackendService\x12M\n" +
 	"\x04List\x12 .objectives.v1alpha1.ListRequest\x1a!.objectives.v1alpha1.ListResponse\"\x00BIZGgithub.com/pyrra-dev/pyrra/proto/objectives/v1alpha1;objectivesv1alpha1b\x06proto3"
 
@@ -2245,53 +2376,55 @@ func file_objectives_v1alpha1_objectives_proto_rawDescGZIP() []byte {
 }
 
 var file_objectives_v1alpha1_objectives_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_objectives_v1alpha1_objectives_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_objectives_v1alpha1_objectives_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_objectives_v1alpha1_objectives_proto_goTypes = []any{
-	(LabelMatcher_Type)(0),           // 0: objectives.v1alpha1.LabelMatcher.Type
-	(Alert_State)(0),                 // 1: objectives.v1alpha1.Alert.State
-	(*ListRequest)(nil),              // 2: objectives.v1alpha1.ListRequest
-	(*ListResponse)(nil),             // 3: objectives.v1alpha1.ListResponse
-	(*PreviewRequest)(nil),           // 4: objectives.v1alpha1.PreviewRequest
-	(*PreviewResponse)(nil),          // 5: objectives.v1alpha1.PreviewResponse
-	(*Objective)(nil),                // 6: objectives.v1alpha1.Objective
-	(*Indicator)(nil),                // 7: objectives.v1alpha1.Indicator
-	(*Ratio)(nil),                    // 8: objectives.v1alpha1.Ratio
-	(*Latency)(nil),                  // 9: objectives.v1alpha1.Latency
-	(*LatencyNative)(nil),            // 10: objectives.v1alpha1.LatencyNative
-	(*BoolGauge)(nil),                // 11: objectives.v1alpha1.BoolGauge
-	(*Query)(nil),                    // 12: objectives.v1alpha1.Query
-	(*Queries)(nil),                  // 13: objectives.v1alpha1.Queries
-	(*LabelMatcher)(nil),             // 14: objectives.v1alpha1.LabelMatcher
-	(*GetStatusRequest)(nil),         // 15: objectives.v1alpha1.GetStatusRequest
-	(*GetStatusResponse)(nil),        // 16: objectives.v1alpha1.GetStatusResponse
-	(*ObjectiveStatus)(nil),          // 17: objectives.v1alpha1.ObjectiveStatus
-	(*Availability)(nil),             // 18: objectives.v1alpha1.Availability
-	(*Budget)(nil),                   // 19: objectives.v1alpha1.Budget
-	(*GetAlertsRequest)(nil),         // 20: objectives.v1alpha1.GetAlertsRequest
-	(*GetAlertsResponse)(nil),        // 21: objectives.v1alpha1.GetAlertsResponse
-	(*Alert)(nil),                    // 22: objectives.v1alpha1.Alert
-	(*Burnrate)(nil),                 // 23: objectives.v1alpha1.Burnrate
-	(*GraphErrorBudgetRequest)(nil),  // 24: objectives.v1alpha1.GraphErrorBudgetRequest
-	(*GraphErrorBudgetResponse)(nil), // 25: objectives.v1alpha1.GraphErrorBudgetResponse
-	(*GraphRateRequest)(nil),         // 26: objectives.v1alpha1.GraphRateRequest
-	(*GraphRateResponse)(nil),        // 27: objectives.v1alpha1.GraphRateResponse
-	(*GraphErrorsRequest)(nil),       // 28: objectives.v1alpha1.GraphErrorsRequest
-	(*GraphErrorsResponse)(nil),      // 29: objectives.v1alpha1.GraphErrorsResponse
-	(*Timeseries)(nil),               // 30: objectives.v1alpha1.Timeseries
-	(*Series)(nil),                   // 31: objectives.v1alpha1.Series
-	(*GraphDurationRequest)(nil),     // 32: objectives.v1alpha1.GraphDurationRequest
-	(*GraphDurationResponse)(nil),    // 33: objectives.v1alpha1.GraphDurationResponse
-	nil,                              // 34: objectives.v1alpha1.Objective.LabelsEntry
-	nil,                              // 35: objectives.v1alpha1.ObjectiveStatus.LabelsEntry
-	nil,                              // 36: objectives.v1alpha1.Alert.LabelsEntry
-	(*durationpb.Duration)(nil),      // 37: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),    // 38: google.protobuf.Timestamp
+	(LabelMatcher_Type)(0),               // 0: objectives.v1alpha1.LabelMatcher.Type
+	(Alert_State)(0),                     // 1: objectives.v1alpha1.Alert.State
+	(*ListRequest)(nil),                  // 2: objectives.v1alpha1.ListRequest
+	(*ListResponse)(nil),                 // 3: objectives.v1alpha1.ListResponse
+	(*PreviewRequest)(nil),               // 4: objectives.v1alpha1.PreviewRequest
+	(*PreviewResponse)(nil),              // 5: objectives.v1alpha1.PreviewResponse
+	(*Objective)(nil),                    // 6: objectives.v1alpha1.Objective
+	(*Indicator)(nil),                    // 7: objectives.v1alpha1.Indicator
+	(*Ratio)(nil),                        // 8: objectives.v1alpha1.Ratio
+	(*Latency)(nil),                      // 9: objectives.v1alpha1.Latency
+	(*LatencyNative)(nil),                // 10: objectives.v1alpha1.LatencyNative
+	(*BoolGauge)(nil),                    // 11: objectives.v1alpha1.BoolGauge
+	(*Query)(nil),                        // 12: objectives.v1alpha1.Query
+	(*Queries)(nil),                      // 13: objectives.v1alpha1.Queries
+	(*LabelMatcher)(nil),                 // 14: objectives.v1alpha1.LabelMatcher
+	(*GetStatusRequest)(nil),             // 15: objectives.v1alpha1.GetStatusRequest
+	(*GetStatusResponse)(nil),            // 16: objectives.v1alpha1.GetStatusResponse
+	(*ObjectiveStatus)(nil),              // 17: objectives.v1alpha1.ObjectiveStatus
+	(*Availability)(nil),                 // 18: objectives.v1alpha1.Availability
+	(*Budget)(nil),                       // 19: objectives.v1alpha1.Budget
+	(*GetAlertsRequest)(nil),             // 20: objectives.v1alpha1.GetAlertsRequest
+	(*GetAlertsResponse)(nil),            // 21: objectives.v1alpha1.GetAlertsResponse
+	(*Alert)(nil),                        // 22: objectives.v1alpha1.Alert
+	(*Burnrate)(nil),                     // 23: objectives.v1alpha1.Burnrate
+	(*GraphErrorBudgetRequest)(nil),      // 24: objectives.v1alpha1.GraphErrorBudgetRequest
+	(*GraphErrorBudgetResponse)(nil),     // 25: objectives.v1alpha1.GraphErrorBudgetResponse
+	(*GraphRateRequest)(nil),             // 26: objectives.v1alpha1.GraphRateRequest
+	(*GraphRateResponse)(nil),            // 27: objectives.v1alpha1.GraphRateResponse
+	(*GraphErrorsRequest)(nil),           // 28: objectives.v1alpha1.GraphErrorsRequest
+	(*GraphErrorsResponse)(nil),          // 29: objectives.v1alpha1.GraphErrorsResponse
+	(*Timeseries)(nil),                   // 30: objectives.v1alpha1.Timeseries
+	(*Series)(nil),                       // 31: objectives.v1alpha1.Series
+	(*GraphDurationRequest)(nil),         // 32: objectives.v1alpha1.GraphDurationRequest
+	(*GraphDurationResponse)(nil),        // 33: objectives.v1alpha1.GraphDurationResponse
+	(*PreviewGraphDurationRequest)(nil),  // 34: objectives.v1alpha1.PreviewGraphDurationRequest
+	(*PreviewGraphDurationResponse)(nil), // 35: objectives.v1alpha1.PreviewGraphDurationResponse
+	nil,                                  // 36: objectives.v1alpha1.Objective.LabelsEntry
+	nil,                                  // 37: objectives.v1alpha1.ObjectiveStatus.LabelsEntry
+	nil,                                  // 38: objectives.v1alpha1.Alert.LabelsEntry
+	(*durationpb.Duration)(nil),          // 39: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),        // 40: google.protobuf.Timestamp
 }
 var file_objectives_v1alpha1_objectives_proto_depIdxs = []int32{
 	6,  // 0: objectives.v1alpha1.ListResponse.objectives:type_name -> objectives.v1alpha1.Objective
 	6,  // 1: objectives.v1alpha1.PreviewResponse.objective:type_name -> objectives.v1alpha1.Objective
-	34, // 2: objectives.v1alpha1.Objective.labels:type_name -> objectives.v1alpha1.Objective.LabelsEntry
-	37, // 3: objectives.v1alpha1.Objective.window:type_name -> google.protobuf.Duration
+	36, // 2: objectives.v1alpha1.Objective.labels:type_name -> objectives.v1alpha1.Objective.LabelsEntry
+	39, // 3: objectives.v1alpha1.Objective.window:type_name -> google.protobuf.Duration
 	7,  // 4: objectives.v1alpha1.Objective.indicator:type_name -> objectives.v1alpha1.Indicator
 	13, // 5: objectives.v1alpha1.Objective.queries:type_name -> objectives.v1alpha1.Queries
 	8,  // 6: objectives.v1alpha1.Indicator.ratio:type_name -> objectives.v1alpha1.Ratio
@@ -2306,54 +2439,59 @@ var file_objectives_v1alpha1_objectives_proto_depIdxs = []int32{
 	12, // 15: objectives.v1alpha1.BoolGauge.boolGauge:type_name -> objectives.v1alpha1.Query
 	14, // 16: objectives.v1alpha1.Query.matchers:type_name -> objectives.v1alpha1.LabelMatcher
 	0,  // 17: objectives.v1alpha1.LabelMatcher.type:type_name -> objectives.v1alpha1.LabelMatcher.Type
-	38, // 18: objectives.v1alpha1.GetStatusRequest.time:type_name -> google.protobuf.Timestamp
+	40, // 18: objectives.v1alpha1.GetStatusRequest.time:type_name -> google.protobuf.Timestamp
 	17, // 19: objectives.v1alpha1.GetStatusResponse.status:type_name -> objectives.v1alpha1.ObjectiveStatus
-	35, // 20: objectives.v1alpha1.ObjectiveStatus.labels:type_name -> objectives.v1alpha1.ObjectiveStatus.LabelsEntry
+	37, // 20: objectives.v1alpha1.ObjectiveStatus.labels:type_name -> objectives.v1alpha1.ObjectiveStatus.LabelsEntry
 	18, // 21: objectives.v1alpha1.ObjectiveStatus.availability:type_name -> objectives.v1alpha1.Availability
 	19, // 22: objectives.v1alpha1.ObjectiveStatus.budget:type_name -> objectives.v1alpha1.Budget
 	22, // 23: objectives.v1alpha1.GetAlertsResponse.alerts:type_name -> objectives.v1alpha1.Alert
-	36, // 24: objectives.v1alpha1.Alert.labels:type_name -> objectives.v1alpha1.Alert.LabelsEntry
-	37, // 25: objectives.v1alpha1.Alert.for:type_name -> google.protobuf.Duration
+	38, // 24: objectives.v1alpha1.Alert.labels:type_name -> objectives.v1alpha1.Alert.LabelsEntry
+	39, // 25: objectives.v1alpha1.Alert.for:type_name -> google.protobuf.Duration
 	1,  // 26: objectives.v1alpha1.Alert.state:type_name -> objectives.v1alpha1.Alert.State
 	23, // 27: objectives.v1alpha1.Alert.short:type_name -> objectives.v1alpha1.Burnrate
 	23, // 28: objectives.v1alpha1.Alert.long:type_name -> objectives.v1alpha1.Burnrate
-	37, // 29: objectives.v1alpha1.Burnrate.window:type_name -> google.protobuf.Duration
-	38, // 30: objectives.v1alpha1.GraphErrorBudgetRequest.start:type_name -> google.protobuf.Timestamp
-	38, // 31: objectives.v1alpha1.GraphErrorBudgetRequest.end:type_name -> google.protobuf.Timestamp
+	39, // 29: objectives.v1alpha1.Burnrate.window:type_name -> google.protobuf.Duration
+	40, // 30: objectives.v1alpha1.GraphErrorBudgetRequest.start:type_name -> google.protobuf.Timestamp
+	40, // 31: objectives.v1alpha1.GraphErrorBudgetRequest.end:type_name -> google.protobuf.Timestamp
 	30, // 32: objectives.v1alpha1.GraphErrorBudgetResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	38, // 33: objectives.v1alpha1.GraphRateRequest.start:type_name -> google.protobuf.Timestamp
-	38, // 34: objectives.v1alpha1.GraphRateRequest.end:type_name -> google.protobuf.Timestamp
+	40, // 33: objectives.v1alpha1.GraphRateRequest.start:type_name -> google.protobuf.Timestamp
+	40, // 34: objectives.v1alpha1.GraphRateRequest.end:type_name -> google.protobuf.Timestamp
 	30, // 35: objectives.v1alpha1.GraphRateResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	38, // 36: objectives.v1alpha1.GraphErrorsRequest.start:type_name -> google.protobuf.Timestamp
-	38, // 37: objectives.v1alpha1.GraphErrorsRequest.end:type_name -> google.protobuf.Timestamp
+	40, // 36: objectives.v1alpha1.GraphErrorsRequest.start:type_name -> google.protobuf.Timestamp
+	40, // 37: objectives.v1alpha1.GraphErrorsRequest.end:type_name -> google.protobuf.Timestamp
 	30, // 38: objectives.v1alpha1.GraphErrorsResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
 	31, // 39: objectives.v1alpha1.Timeseries.series:type_name -> objectives.v1alpha1.Series
-	38, // 40: objectives.v1alpha1.GraphDurationRequest.start:type_name -> google.protobuf.Timestamp
-	38, // 41: objectives.v1alpha1.GraphDurationRequest.end:type_name -> google.protobuf.Timestamp
+	40, // 40: objectives.v1alpha1.GraphDurationRequest.start:type_name -> google.protobuf.Timestamp
+	40, // 41: objectives.v1alpha1.GraphDurationRequest.end:type_name -> google.protobuf.Timestamp
 	30, // 42: objectives.v1alpha1.GraphDurationResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	2,  // 43: objectives.v1alpha1.ObjectiveService.List:input_type -> objectives.v1alpha1.ListRequest
-	15, // 44: objectives.v1alpha1.ObjectiveService.GetStatus:input_type -> objectives.v1alpha1.GetStatusRequest
-	20, // 45: objectives.v1alpha1.ObjectiveService.GetAlerts:input_type -> objectives.v1alpha1.GetAlertsRequest
-	24, // 46: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:input_type -> objectives.v1alpha1.GraphErrorBudgetRequest
-	26, // 47: objectives.v1alpha1.ObjectiveService.GraphRate:input_type -> objectives.v1alpha1.GraphRateRequest
-	28, // 48: objectives.v1alpha1.ObjectiveService.GraphErrors:input_type -> objectives.v1alpha1.GraphErrorsRequest
-	32, // 49: objectives.v1alpha1.ObjectiveService.GraphDuration:input_type -> objectives.v1alpha1.GraphDurationRequest
-	4,  // 50: objectives.v1alpha1.ObjectiveService.Preview:input_type -> objectives.v1alpha1.PreviewRequest
-	2,  // 51: objectives.v1alpha1.ObjectiveBackendService.List:input_type -> objectives.v1alpha1.ListRequest
-	3,  // 52: objectives.v1alpha1.ObjectiveService.List:output_type -> objectives.v1alpha1.ListResponse
-	16, // 53: objectives.v1alpha1.ObjectiveService.GetStatus:output_type -> objectives.v1alpha1.GetStatusResponse
-	21, // 54: objectives.v1alpha1.ObjectiveService.GetAlerts:output_type -> objectives.v1alpha1.GetAlertsResponse
-	25, // 55: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:output_type -> objectives.v1alpha1.GraphErrorBudgetResponse
-	27, // 56: objectives.v1alpha1.ObjectiveService.GraphRate:output_type -> objectives.v1alpha1.GraphRateResponse
-	29, // 57: objectives.v1alpha1.ObjectiveService.GraphErrors:output_type -> objectives.v1alpha1.GraphErrorsResponse
-	33, // 58: objectives.v1alpha1.ObjectiveService.GraphDuration:output_type -> objectives.v1alpha1.GraphDurationResponse
-	5,  // 59: objectives.v1alpha1.ObjectiveService.Preview:output_type -> objectives.v1alpha1.PreviewResponse
-	3,  // 60: objectives.v1alpha1.ObjectiveBackendService.List:output_type -> objectives.v1alpha1.ListResponse
-	52, // [52:61] is the sub-list for method output_type
-	43, // [43:52] is the sub-list for method input_type
-	43, // [43:43] is the sub-list for extension type_name
-	43, // [43:43] is the sub-list for extension extendee
-	0,  // [0:43] is the sub-list for field type_name
+	40, // 43: objectives.v1alpha1.PreviewGraphDurationRequest.start:type_name -> google.protobuf.Timestamp
+	40, // 44: objectives.v1alpha1.PreviewGraphDurationRequest.end:type_name -> google.protobuf.Timestamp
+	30, // 45: objectives.v1alpha1.PreviewGraphDurationResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
+	2,  // 46: objectives.v1alpha1.ObjectiveService.List:input_type -> objectives.v1alpha1.ListRequest
+	15, // 47: objectives.v1alpha1.ObjectiveService.GetStatus:input_type -> objectives.v1alpha1.GetStatusRequest
+	20, // 48: objectives.v1alpha1.ObjectiveService.GetAlerts:input_type -> objectives.v1alpha1.GetAlertsRequest
+	24, // 49: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:input_type -> objectives.v1alpha1.GraphErrorBudgetRequest
+	26, // 50: objectives.v1alpha1.ObjectiveService.GraphRate:input_type -> objectives.v1alpha1.GraphRateRequest
+	28, // 51: objectives.v1alpha1.ObjectiveService.GraphErrors:input_type -> objectives.v1alpha1.GraphErrorsRequest
+	32, // 52: objectives.v1alpha1.ObjectiveService.GraphDuration:input_type -> objectives.v1alpha1.GraphDurationRequest
+	4,  // 53: objectives.v1alpha1.ObjectiveService.Preview:input_type -> objectives.v1alpha1.PreviewRequest
+	34, // 54: objectives.v1alpha1.ObjectiveService.PreviewGraphDuration:input_type -> objectives.v1alpha1.PreviewGraphDurationRequest
+	2,  // 55: objectives.v1alpha1.ObjectiveBackendService.List:input_type -> objectives.v1alpha1.ListRequest
+	3,  // 56: objectives.v1alpha1.ObjectiveService.List:output_type -> objectives.v1alpha1.ListResponse
+	16, // 57: objectives.v1alpha1.ObjectiveService.GetStatus:output_type -> objectives.v1alpha1.GetStatusResponse
+	21, // 58: objectives.v1alpha1.ObjectiveService.GetAlerts:output_type -> objectives.v1alpha1.GetAlertsResponse
+	25, // 59: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:output_type -> objectives.v1alpha1.GraphErrorBudgetResponse
+	27, // 60: objectives.v1alpha1.ObjectiveService.GraphRate:output_type -> objectives.v1alpha1.GraphRateResponse
+	29, // 61: objectives.v1alpha1.ObjectiveService.GraphErrors:output_type -> objectives.v1alpha1.GraphErrorsResponse
+	33, // 62: objectives.v1alpha1.ObjectiveService.GraphDuration:output_type -> objectives.v1alpha1.GraphDurationResponse
+	5,  // 63: objectives.v1alpha1.ObjectiveService.Preview:output_type -> objectives.v1alpha1.PreviewResponse
+	35, // 64: objectives.v1alpha1.ObjectiveService.PreviewGraphDuration:output_type -> objectives.v1alpha1.PreviewGraphDurationResponse
+	3,  // 65: objectives.v1alpha1.ObjectiveBackendService.List:output_type -> objectives.v1alpha1.ListResponse
+	56, // [56:66] is the sub-list for method output_type
+	46, // [46:56] is the sub-list for method input_type
+	46, // [46:46] is the sub-list for extension type_name
+	46, // [46:46] is the sub-list for extension extendee
+	0,  // [0:46] is the sub-list for field type_name
 }
 
 func init() { file_objectives_v1alpha1_objectives_proto_init() }
@@ -2373,7 +2511,7 @@ func file_objectives_v1alpha1_objectives_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_objectives_v1alpha1_objectives_proto_rawDesc), len(file_objectives_v1alpha1_objectives_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   35,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
