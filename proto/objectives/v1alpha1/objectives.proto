@@ -16,6 +16,7 @@ service ObjectiveService {
   rpc GraphErrors(GraphErrorsRequest) returns (GraphErrorsResponse) {}
   rpc GraphDuration(GraphDurationRequest) returns (GraphDurationResponse) {}
   rpc Preview(PreviewRequest) returns (PreviewResponse) {}
+  rpc PreviewGraphDuration(PreviewGraphDurationRequest) returns (PreviewGraphDurationResponse) {}
 }
 
 service ObjectiveBackendService {
@@ -228,5 +229,25 @@ message GraphDurationRequest {
 }
 
 message GraphDurationResponse {
+  repeated Timeseries timeseries = 1;
+}
+
+// PreviewGraphDuration renders the duration graph for a draft SLO that hasn't
+// been stored yet. GraphDuration looks its objective up by expr, which only
+// works once the SLO exists; this materializes the objective from the YAML
+// config exactly like Preview does. The duration queries are raw
+// histogram_quantile over the underlying histogram either way, so they need no
+// recording rules to have been generated.
+message PreviewGraphDurationRequest {
+  // config is the SLO YAML config as written in the editor.
+  string config = 1;
+  // grouping optionally scopes the graph to a single grouping label set, e.g.
+  // {handler="/api"}, matching the grouping the preview itself was scoped to.
+  string grouping = 2;
+  google.protobuf.Timestamp start = 3;
+  google.protobuf.Timestamp end = 4;
+}
+
+message PreviewGraphDurationResponse {
   repeated Timeseries timeseries = 1;
 }

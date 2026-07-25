@@ -893,6 +893,65 @@ export declare type GraphDurationResponse = Message<"objectives.v1alpha1.GraphDu
 export declare const GraphDurationResponseSchema: GenMessage<GraphDurationResponse>;
 
 /**
+ * PreviewGraphDuration renders the duration graph for a draft SLO that hasn't
+ * been stored yet. GraphDuration looks its objective up by expr, which only
+ * works once the SLO exists; this materializes the objective from the YAML
+ * config exactly like Preview does. The duration queries are raw
+ * histogram_quantile over the underlying histogram either way, so they need no
+ * recording rules to have been generated.
+ *
+ * @generated from message objectives.v1alpha1.PreviewGraphDurationRequest
+ */
+export declare type PreviewGraphDurationRequest = Message<"objectives.v1alpha1.PreviewGraphDurationRequest"> & {
+  /**
+   * config is the SLO YAML config as written in the editor.
+   *
+   * @generated from field: string config = 1;
+   */
+  config: string;
+
+  /**
+   * grouping optionally scopes the graph to a single grouping label set, e.g.
+   * {handler="/api"}, matching the grouping the preview itself was scoped to.
+   *
+   * @generated from field: string grouping = 2;
+   */
+  grouping: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp start = 3;
+   */
+  start?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp end = 4;
+   */
+  end?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message objectives.v1alpha1.PreviewGraphDurationRequest.
+ * Use `create(PreviewGraphDurationRequestSchema)` to create a new message.
+ */
+export declare const PreviewGraphDurationRequestSchema: GenMessage<PreviewGraphDurationRequest>;
+
+/**
+ * @generated from message objectives.v1alpha1.PreviewGraphDurationResponse
+ */
+export declare type PreviewGraphDurationResponse = Message<"objectives.v1alpha1.PreviewGraphDurationResponse"> & {
+  /**
+   * @generated from field: repeated objectives.v1alpha1.Timeseries timeseries = 1;
+   */
+  timeseries: Timeseries[];
+};
+
+/**
+ * Describes the message objectives.v1alpha1.PreviewGraphDurationResponse.
+ * Use `create(PreviewGraphDurationResponseSchema)` to create a new message.
+ */
+export declare const PreviewGraphDurationResponseSchema: GenMessage<PreviewGraphDurationResponse>;
+
+/**
  * @generated from service objectives.v1alpha1.ObjectiveService
  */
 export declare const ObjectiveService: GenService<{
@@ -959,6 +1018,14 @@ export declare const ObjectiveService: GenService<{
     methodKind: "unary";
     input: typeof PreviewRequestSchema;
     output: typeof PreviewResponseSchema;
+  },
+  /**
+   * @generated from rpc objectives.v1alpha1.ObjectiveService.PreviewGraphDuration
+   */
+  previewGraphDuration: {
+    methodKind: "unary";
+    input: typeof PreviewGraphDurationRequestSchema;
+    output: typeof PreviewGraphDurationResponseSchema;
   },
 }>;
 

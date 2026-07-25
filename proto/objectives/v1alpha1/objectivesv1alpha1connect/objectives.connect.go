@@ -58,6 +58,9 @@ const (
 	// ObjectiveServicePreviewProcedure is the fully-qualified name of the ObjectiveService's Preview
 	// RPC.
 	ObjectiveServicePreviewProcedure = "/objectives.v1alpha1.ObjectiveService/Preview"
+	// ObjectiveServicePreviewGraphDurationProcedure is the fully-qualified name of the
+	// ObjectiveService's PreviewGraphDuration RPC.
+	ObjectiveServicePreviewGraphDurationProcedure = "/objectives.v1alpha1.ObjectiveService/PreviewGraphDuration"
 	// ObjectiveBackendServiceListProcedure is the fully-qualified name of the ObjectiveBackendService's
 	// List RPC.
 	ObjectiveBackendServiceListProcedure = "/objectives.v1alpha1.ObjectiveBackendService/List"
@@ -73,6 +76,7 @@ type ObjectiveServiceClient interface {
 	GraphErrors(context.Context, *connect.Request[v1alpha1.GraphErrorsRequest]) (*connect.Response[v1alpha1.GraphErrorsResponse], error)
 	GraphDuration(context.Context, *connect.Request[v1alpha1.GraphDurationRequest]) (*connect.Response[v1alpha1.GraphDurationResponse], error)
 	Preview(context.Context, *connect.Request[v1alpha1.PreviewRequest]) (*connect.Response[v1alpha1.PreviewResponse], error)
+	PreviewGraphDuration(context.Context, *connect.Request[v1alpha1.PreviewGraphDurationRequest]) (*connect.Response[v1alpha1.PreviewGraphDurationResponse], error)
 }
 
 // NewObjectiveServiceClient constructs a client for the objectives.v1alpha1.ObjectiveService
@@ -134,19 +138,26 @@ func NewObjectiveServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(objectiveServiceMethods.ByName("Preview")),
 			connect.WithClientOptions(opts...),
 		),
+		previewGraphDuration: connect.NewClient[v1alpha1.PreviewGraphDurationRequest, v1alpha1.PreviewGraphDurationResponse](
+			httpClient,
+			baseURL+ObjectiveServicePreviewGraphDurationProcedure,
+			connect.WithSchema(objectiveServiceMethods.ByName("PreviewGraphDuration")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // objectiveServiceClient implements ObjectiveServiceClient.
 type objectiveServiceClient struct {
-	list             *connect.Client[v1alpha1.ListRequest, v1alpha1.ListResponse]
-	getStatus        *connect.Client[v1alpha1.GetStatusRequest, v1alpha1.GetStatusResponse]
-	getAlerts        *connect.Client[v1alpha1.GetAlertsRequest, v1alpha1.GetAlertsResponse]
-	graphErrorBudget *connect.Client[v1alpha1.GraphErrorBudgetRequest, v1alpha1.GraphErrorBudgetResponse]
-	graphRate        *connect.Client[v1alpha1.GraphRateRequest, v1alpha1.GraphRateResponse]
-	graphErrors      *connect.Client[v1alpha1.GraphErrorsRequest, v1alpha1.GraphErrorsResponse]
-	graphDuration    *connect.Client[v1alpha1.GraphDurationRequest, v1alpha1.GraphDurationResponse]
-	preview          *connect.Client[v1alpha1.PreviewRequest, v1alpha1.PreviewResponse]
+	list                 *connect.Client[v1alpha1.ListRequest, v1alpha1.ListResponse]
+	getStatus            *connect.Client[v1alpha1.GetStatusRequest, v1alpha1.GetStatusResponse]
+	getAlerts            *connect.Client[v1alpha1.GetAlertsRequest, v1alpha1.GetAlertsResponse]
+	graphErrorBudget     *connect.Client[v1alpha1.GraphErrorBudgetRequest, v1alpha1.GraphErrorBudgetResponse]
+	graphRate            *connect.Client[v1alpha1.GraphRateRequest, v1alpha1.GraphRateResponse]
+	graphErrors          *connect.Client[v1alpha1.GraphErrorsRequest, v1alpha1.GraphErrorsResponse]
+	graphDuration        *connect.Client[v1alpha1.GraphDurationRequest, v1alpha1.GraphDurationResponse]
+	preview              *connect.Client[v1alpha1.PreviewRequest, v1alpha1.PreviewResponse]
+	previewGraphDuration *connect.Client[v1alpha1.PreviewGraphDurationRequest, v1alpha1.PreviewGraphDurationResponse]
 }
 
 // List calls objectives.v1alpha1.ObjectiveService.List.
@@ -189,6 +200,11 @@ func (c *objectiveServiceClient) Preview(ctx context.Context, req *connect.Reque
 	return c.preview.CallUnary(ctx, req)
 }
 
+// PreviewGraphDuration calls objectives.v1alpha1.ObjectiveService.PreviewGraphDuration.
+func (c *objectiveServiceClient) PreviewGraphDuration(ctx context.Context, req *connect.Request[v1alpha1.PreviewGraphDurationRequest]) (*connect.Response[v1alpha1.PreviewGraphDurationResponse], error) {
+	return c.previewGraphDuration.CallUnary(ctx, req)
+}
+
 // ObjectiveServiceHandler is an implementation of the objectives.v1alpha1.ObjectiveService service.
 type ObjectiveServiceHandler interface {
 	List(context.Context, *connect.Request[v1alpha1.ListRequest]) (*connect.Response[v1alpha1.ListResponse], error)
@@ -199,6 +215,7 @@ type ObjectiveServiceHandler interface {
 	GraphErrors(context.Context, *connect.Request[v1alpha1.GraphErrorsRequest]) (*connect.Response[v1alpha1.GraphErrorsResponse], error)
 	GraphDuration(context.Context, *connect.Request[v1alpha1.GraphDurationRequest]) (*connect.Response[v1alpha1.GraphDurationResponse], error)
 	Preview(context.Context, *connect.Request[v1alpha1.PreviewRequest]) (*connect.Response[v1alpha1.PreviewResponse], error)
+	PreviewGraphDuration(context.Context, *connect.Request[v1alpha1.PreviewGraphDurationRequest]) (*connect.Response[v1alpha1.PreviewGraphDurationResponse], error)
 }
 
 // NewObjectiveServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -256,6 +273,12 @@ func NewObjectiveServiceHandler(svc ObjectiveServiceHandler, opts ...connect.Han
 		connect.WithSchema(objectiveServiceMethods.ByName("Preview")),
 		connect.WithHandlerOptions(opts...),
 	)
+	objectiveServicePreviewGraphDurationHandler := connect.NewUnaryHandler(
+		ObjectiveServicePreviewGraphDurationProcedure,
+		svc.PreviewGraphDuration,
+		connect.WithSchema(objectiveServiceMethods.ByName("PreviewGraphDuration")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/objectives.v1alpha1.ObjectiveService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ObjectiveServiceListProcedure:
@@ -274,6 +297,8 @@ func NewObjectiveServiceHandler(svc ObjectiveServiceHandler, opts ...connect.Han
 			objectiveServiceGraphDurationHandler.ServeHTTP(w, r)
 		case ObjectiveServicePreviewProcedure:
 			objectiveServicePreviewHandler.ServeHTTP(w, r)
+		case ObjectiveServicePreviewGraphDurationProcedure:
+			objectiveServicePreviewGraphDurationHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -313,6 +338,10 @@ func (UnimplementedObjectiveServiceHandler) GraphDuration(context.Context, *conn
 
 func (UnimplementedObjectiveServiceHandler) Preview(context.Context, *connect.Request[v1alpha1.PreviewRequest]) (*connect.Response[v1alpha1.PreviewResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.Preview is not implemented"))
+}
+
+func (UnimplementedObjectiveServiceHandler) PreviewGraphDuration(context.Context, *connect.Request[v1alpha1.PreviewGraphDurationRequest]) (*connect.Response[v1alpha1.PreviewGraphDurationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("objectives.v1alpha1.ObjectiveService.PreviewGraphDuration is not implemented"))
 }
 
 // ObjectiveBackendServiceClient is a client for the objectives.v1alpha1.ObjectiveBackendService
