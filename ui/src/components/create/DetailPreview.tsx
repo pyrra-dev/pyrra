@@ -2,15 +2,17 @@
 //
 // This is the same detail view a stored SLO gets — it composes the parts from
 // components/detail/ObjectiveDetail rather than reimplementing them, so the two
-// can't drift. What it leaves out is what a draft SLO genuinely can't have: a
-// time range to control (the preview pins one hour), and the alerts table,
-// which needs alerting rules that only exist once the SLO is deployed.
+// can't drift. The one thing it leaves out is the alerts table, which needs
+// alerting rules that only exist once the SLO is deployed.
+//
+// The time range lives in local state rather than the URL: the draft isn't
+// addressable, so there's nothing to put a range on.
 //
 // Everything around the view — the idle, loading and error states, the grouping
 // chooser's back button, the dimming while the editor is ahead of the preview —
 // lives here.
 
-import React, {useMemo, useState, type JSX} from 'react'
+import React, {useCallback, useMemo, useState, type JSX} from 'react'
 import {createClient} from '@connectrpc/connect'
 import {createConnectTransport} from '@connectrpc/connect-web'
 import type uPlot from 'uplot'
@@ -22,6 +24,9 @@ import {type Labels} from '../../labels'
 import {type Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
 import ObjectiveDetail, {type ObjectiveDetailValue} from '../detail/ObjectiveDetail'
+import TimeRangeControls from '../detail/TimeRangeControls'
+import {useAutoReload} from '../detail/useAutoReload'
+import {intervalFromDuration, previewTimeRangePresets} from '../../timeRangePresets'
 import {objectiveClient, type PreviewStatus} from './preview'
 
 interface DetailPreviewProps {
@@ -40,8 +45,6 @@ interface DetailPreviewProps {
   // this Detail view is one chosen label set of a chooser).
   onBack?: () => void
 }
-
-const noop = (): void => {}
 
 // A different sync key from the detail page's, so hovering the preview can't
 // drag the crosshair on a detail page rendered elsewhere.
@@ -84,11 +87,35 @@ const DetailPreview = ({
   )
   const client = useMemo(() => objectiveClient(baseUrl), [baseUrl])
 
-  // A fixed range captured once — a preview doesn't need live auto-refresh.
-  const [{from, to}] = useState(() => {
+  const [{from, to}, setRange] = useState(() => {
     const now = Date.now()
     return {from: now - 60 * 60 * 1000, to: now}
   })
+  const [autoReload, setAutoReload] = useState(false)
+  const [absolute, setAbsolute] = useState(true)
+
+  const updateTimeRange = useCallback((from: number, to: number) => {
+    setRange({from, to})
+  }, [])
+
+  // Dragging a selection on a graph picks an explicit window, so stop sliding it.
+  const updateTimeRangeSelect = useCallback(
+    (min: number, max: number) => {
+      setAutoReload(false)
+      updateTimeRange(min, max)
+    },
+    [updateTimeRange],
+  )
+
+  const selectRange = useCallback((duration: number) => {
+    const to = Date.now()
+    setRange({from: to - duration, to})
+  }, [])
+
+  const duration = to - from
+  const interval = intervalFromDuration(duration)
+
+  useAutoReload(autoReload, duration, interval, updateTimeRange)
 
   const detail = useMemo<ObjectiveDetailValue | null>(() => {
     if (objective === null) {
@@ -101,11 +128,11 @@ const DetailPreview = ({
       grouping: grouping ?? {},
       from,
       to,
-      absolute: true,
+      absolute,
       uPlotCursor,
-      updateTimeRange: noop,
+      updateTimeRange: updateTimeRangeSelect,
     }
-  }, [objective, promClient, grouping, from, to])
+  }, [objective, promClient, grouping, from, to, absolute, updateTimeRangeSelect])
 
   if (status === 'loading') {
     return (
@@ -141,6 +168,9 @@ const DetailPreview = ({
     detail.objectiveType === ObjectiveType.Latency ||
     detail.objectiveType === ObjectiveType.LatencyNative
 
+  const timeRanges = previewTimeRangePresets(Number(detail.objective.window?.seconds ?? 0) * 1000)
+
+
   return (
     <div className={stale ? 'opacity-55 transition-opacity' : 'transition-opacity'}>
       <div className="px-6 pt-7 pb-14">
@@ -154,6 +184,17 @@ const DetailPreview = ({
         <ObjectiveDetail.Provider value={detail}>
           <ObjectiveDetail.Header />
           <ObjectiveDetail.Tiles />
+          <TimeRangeControls
+            timeRanges={timeRanges}
+            from={from}
+            to={to}
+            interval={interval}
+            autoReload={autoReload}
+            setAutoReload={setAutoReload}
+            absolute={absolute}
+            setAbsolute={setAbsolute}
+            onSelectRange={selectRange}
+          />
           <ObjectiveDetail.ErrorBudget />
           <ObjectiveDetail.GraphRow>
             {latency && <ObjectiveDetail.PreviewDuration client={client} config={config} />}
