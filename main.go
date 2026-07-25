@@ -914,47 +914,66 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 	}), nil
 }
 
-// Preview materializes a draft SLO from its YAML config without persisting it or
-// touching a backend. It runs the config through the exact same parsing a stored
-// objective goes through and fills in the queries like List does, so the UI can
-// render the detail page as if the SLO already existed.
-func (s *objectiveServer) Preview(ctx context.Context, req *connect.Request[objectivesv1alpha1.PreviewRequest]) (*connect.Response[objectivesv1alpha1.PreviewResponse], error) {
-	var config v1alpha1.ServiceLevelObjective
-	if err := yaml.UnmarshalStrict([]byte(req.Msg.Config), &config); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to unmarshal config: %w", err))
+// objectiveFromConfig materializes a draft SLO from its YAML config, without
+// persisting it or touching a backend. It runs the config through the exact same
+// parsing a stored objective goes through, so a preview behaves like the real
+// thing. An empty grouping leaves the objective grouped by its own grouping
+// labels; a non-empty one scopes it to that single label set.
+func objectiveFromConfig(ctx context.Context, config, grouping string) (slo.Objective, error) {
+	var cfg v1alpha1.ServiceLevelObjective
+	if err := yaml.UnmarshalStrict([]byte(config), &cfg); err != nil {
+		return slo.Objective{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to unmarshal config: %w", err))
 	}
 
-	if _, err := config.ValidateCreate(ctx, &config); err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to validate config: %w", err))
+	if _, err := cfg.ValidateCreate(ctx, &cfg); err != nil {
+		return slo.Objective{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to validate config: %w", err))
 	}
 
-	objective, err := config.Internal()
+	objective, err := cfg.Internal()
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to build objective: %w", err))
+		return slo.Objective{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to build objective: %w", err))
 	}
 
-	// When a specific grouping is requested, fold its label matchers into the
-	// indicator so the raw queries scope down to that single label set (one
-	// series), which the detail tiles and the error-budget graph require. Without
-	// a grouping the raw queries stay grouped by the objective's grouping labels,
-	// giving the editor one series per label set to turn into a chooser.
-	if req.Msg.Grouping != "" {
-		groupingMatchers, err := parser.ParseMetricSelector(req.Msg.Grouping)
+	if grouping != "" {
+		groupingMatchers, err := parser.ParseMetricSelector(grouping)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to parse grouping: %w", err))
+			return slo.Objective{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to parse grouping: %w", err))
 		}
-		switch objective.IndicatorType() {
-		case slo.Ratio:
-			objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, groupingMatchers...)
-			objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, groupingMatchers...)
-		case slo.Latency:
-			objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, groupingMatchers...)
-			objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, groupingMatchers...)
-		case slo.LatencyNative:
-			objective.Indicator.LatencyNative.Total.LabelMatchers = append(objective.Indicator.LatencyNative.Total.LabelMatchers, groupingMatchers...)
-		case slo.BoolGauge:
-			objective.Indicator.BoolGauge.LabelMatchers = append(objective.Indicator.BoolGauge.LabelMatchers, groupingMatchers...)
-		}
+		mergeGroupingMatchers(&objective, groupingMatchers)
+	}
+
+	return objective, nil
+}
+
+// mergeGroupingMatchers folds grouping label matchers into every indicator
+// variant, scoping the objective's queries down to that single label set (one
+// series), which the detail tiles and the graphs require.
+//
+// Note this only ever appends. List and GetStatus implement a richer
+// replace-then-append merge that rewrites matchers whose names already exist —
+// different semantics, deliberately not shared with this.
+func mergeGroupingMatchers(objective *slo.Objective, matchers []*labels.Matcher) {
+	switch objective.IndicatorType() {
+	case slo.Ratio:
+		objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, matchers...)
+		objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, matchers...)
+	case slo.Latency:
+		objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, matchers...)
+		objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, matchers...)
+	case slo.LatencyNative:
+		objective.Indicator.LatencyNative.Total.LabelMatchers = append(objective.Indicator.LatencyNative.Total.LabelMatchers, matchers...)
+	case slo.BoolGauge:
+		objective.Indicator.BoolGauge.LabelMatchers = append(objective.Indicator.BoolGauge.LabelMatchers, matchers...)
+	}
+}
+
+// Preview materializes a draft SLO from its YAML config and fills in the queries
+// like List does, so the UI can render the detail page as if the SLO already
+// existed.
+func (s *objectiveServer) Preview(ctx context.Context, req *connect.Request[objectivesv1alpha1.PreviewRequest]) (*connect.Response[objectivesv1alpha1.PreviewResponse], error) {
+	objective, err := objectiveFromConfig(ctx, req.Msg.Config, req.Msg.Grouping)
+	if err != nil {
+		return nil, err
 	}
 
 	o := objectivesv1alpha1.FromInternal(objective)
@@ -1723,30 +1742,64 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 		if err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}
-		if objective.Indicator.Ratio != nil {
-			for _, m := range groupingMatchers {
-				objective.Indicator.Ratio.Errors.LabelMatchers = append(objective.Indicator.Ratio.Errors.LabelMatchers, m)
-				objective.Indicator.Ratio.Total.LabelMatchers = append(objective.Indicator.Ratio.Total.LabelMatchers, m)
-			}
-		}
-		if objective.Indicator.Latency != nil {
-			for _, m := range groupingMatchers {
-				objective.Indicator.Latency.Success.LabelMatchers = append(objective.Indicator.Latency.Success.LabelMatchers, m)
-				objective.Indicator.Latency.Total.LabelMatchers = append(objective.Indicator.Latency.Total.LabelMatchers, m)
-			}
-		}
-		if objective.Indicator.BoolGauge != nil {
-			objective.Indicator.BoolGauge.LabelMatchers = append(objective.Indicator.BoolGauge.LabelMatchers, groupingMatchers...)
-		}
+		mergeGroupingMatchers(&objective, groupingMatchers)
 	}
 
-	end := time.Now()
-	start := end.Add(-1 * time.Hour)
+	start, end := graphRange(req.Msg.Start.AsTime(), req.Msg.End.AsTime())
 
-	if !req.Msg.Start.AsTime().IsZero() && !req.Msg.End.AsTime().IsZero() {
-		start = req.Msg.Start.AsTime()
-		end = req.Msg.End.AsTime()
+	timeseries, err := s.durationTimeseries(ctx, objective, start, end)
+	if err != nil {
+		return nil, err
 	}
+
+	return connect.NewResponse(&objectivesv1alpha1.GraphDurationResponse{
+		Timeseries: timeseries,
+	}), nil
+}
+
+// PreviewGraphDuration renders the duration graph for a draft SLO that hasn't
+// been stored yet. GraphDuration looks its objective up by expr, which requires
+// the SLO to exist; this materializes it from the YAML config instead. The
+// duration queries are raw histogram_quantile over the underlying histogram
+// either way, so no recording rules need to have been generated.
+func (s *objectiveServer) PreviewGraphDuration(ctx context.Context, req *connect.Request[objectivesv1alpha1.PreviewGraphDurationRequest]) (*connect.Response[objectivesv1alpha1.PreviewGraphDurationResponse], error) {
+	objective, err := objectiveFromConfig(ctx, req.Msg.Config, req.Msg.Grouping)
+	if err != nil {
+		return nil, err
+	}
+
+	start, end := graphRange(req.Msg.Start.AsTime(), req.Msg.End.AsTime())
+
+	timeseries, err := s.durationTimeseries(ctx, objective, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&objectivesv1alpha1.PreviewGraphDurationResponse{
+		Timeseries: timeseries,
+	}), nil
+}
+
+// graphRange resolves a request's start/end, defaulting to the last hour when
+// either end is unset.
+func graphRange(start, end time.Time) (time.Time, time.Time) {
+	if start.IsZero() || end.IsZero() {
+		end = time.Now()
+		start = end.Add(-1 * time.Hour)
+	}
+	return start, end
+}
+
+// durationTimeseries runs the per-percentile histogram_quantile range queries
+// for a latency objective, one Timeseries per percentile at or below the
+// objective's target.
+func (s *objectiveServer) durationTimeseries(ctx context.Context, objective slo.Objective, start, end time.Time) ([]*objectivesv1alpha1.Timeseries, error) {
+	if t := objective.IndicatorType(); t != slo.Latency && t != slo.LatencyNative {
+		// DurationRange returns an empty query for these, which Prometheus would
+		// reject with an opaque error.
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("objective is not latency based"))
+	}
+
 	step := end.Sub(start) / 1000
 	if s := contextGetGraphStep(ctx); s > 0 {
 		step = s
@@ -1755,11 +1808,12 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 	timeRange := rangeInterval(start, end)
 	cacheDuration := rangeCache(start, end)
 
-	timeseries := make([]*objectivesv1alpha1.Timeseries, 0, len(percentiles))
+	// Copy, so appending the target below can't mutate the package-level slice.
+	objectivePercentiles := make([]float64, len(percentiles), len(percentiles)+1)
+	copy(objectivePercentiles, percentiles)
 
-	objectivePercentiles := percentiles
 	contains := false
-	for _, p := range percentiles {
+	for _, p := range objectivePercentiles {
 		if p == objective.Target {
 			contains = true
 		}
@@ -1773,64 +1827,65 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 		return objectivePercentiles[i] > objectivePercentiles[j]
 	})
 
+	timeseries := make([]*objectivesv1alpha1.Timeseries, 0, len(objectivePercentiles))
+
 	for _, percentile := range objectivePercentiles {
-		if objective.Target >= percentile {
-			query := objective.DurationRange(timeRange, percentile)
-			value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusapiv1.Range{
-				Start: start,
-				End:   end,
-				Step:  step,
-			})
-			if err != nil {
-				level.Warn(s.logger).Log("msg", "failed to run range error request", "query", query, "err", err)
-				return nil, connect.NewError(connect.CodeInternal, err)
-			}
-
-			if value.Type() != model.ValMatrix {
-				err := fmt.Errorf("returned data is not a matrix")
-				level.Warn(s.logger).Log("query", query, "err", err)
-				return nil, connect.NewError(connect.CodeInternal, err)
-			}
-
-			matrix, ok := value.(model.Matrix)
-			if !ok {
-				err := fmt.Errorf("no matrix returned")
-				level.Warn(s.logger).Log("query", query, "err", err)
-				return nil, connect.NewError(connect.CodeInternal, err)
-			}
-
-			if len(matrix) == 0 {
-				level.Debug(s.logger).Log("msg", "no data returned", "query", query)
-				return nil, connect.NewError(connect.CodeNotFound, err)
-			}
-
-			valueLength := 0
-			for _, m := range matrix {
-				if len(m.Values) > valueLength {
-					valueLength = len(m.Values)
-				}
-			}
-
-			values := matrixToValues(matrix)
-
-			series := make([]*objectivesv1alpha1.Series, 0, len(values))
-			for _, float64s := range values {
-				series = append(series, &objectivesv1alpha1.Series{Values: float64s})
-			}
-
-			timeseries = append(timeseries,
-				&objectivesv1alpha1.Timeseries{
-					Labels: []string{fmt.Sprintf(`{quantile="p%.f"}`, 100*percentile)}, // TODO: Nicer format float
-					Query:  query,
-					Series: series,
-				},
-			)
+		if objective.Target < percentile {
+			continue
 		}
+
+		query := objective.DurationRange(timeRange, percentile)
+		value, _, err := s.promAPI.QueryRange(contextSetPromCache(ctx, cacheDuration), query, prometheusapiv1.Range{
+			Start: start,
+			End:   end,
+			Step:  step,
+		})
+		if err != nil {
+			level.Warn(s.logger).Log("msg", "failed to run range error request", "query", query, "err", err)
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+
+		if value.Type() != model.ValMatrix {
+			err := fmt.Errorf("returned data is not a matrix")
+			level.Warn(s.logger).Log("query", query, "err", err)
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+
+		matrix, ok := value.(model.Matrix)
+		if !ok {
+			err := fmt.Errorf("no matrix returned")
+			level.Warn(s.logger).Log("query", query, "err", err)
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+
+		// A single percentile without samples is normal — especially for a draft
+		// SLO — so skip it and keep the ones that do have data.
+		if len(matrix) == 0 {
+			level.Debug(s.logger).Log("msg", "no data returned", "query", query)
+			continue
+		}
+
+		values := matrixToValues(matrix)
+
+		series := make([]*objectivesv1alpha1.Series, 0, len(values))
+		for _, float64s := range values {
+			series = append(series, &objectivesv1alpha1.Series{Values: float64s})
+		}
+
+		timeseries = append(timeseries,
+			&objectivesv1alpha1.Timeseries{
+				Labels: []string{fmt.Sprintf(`{quantile="p%.f"}`, 100*percentile)}, // TODO: Nicer format float
+				Query:  query,
+				Series: series,
+			},
+		)
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.GraphDurationResponse{
-		Timeseries: timeseries,
-	}), nil
+	if len(timeseries) == 0 {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no data for any percentile of %s", objective.Name()))
+	}
+
+	return timeseries, nil
 }
 
 const (
