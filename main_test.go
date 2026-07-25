@@ -687,6 +687,35 @@ spec:
 	}
 }
 
+func TestGraphRange(t *testing.T) {
+	start := time.Date(2026, 7, 25, 12, 0, 0, 0, time.UTC)
+	end := start.Add(time.Hour)
+
+	t.Run("passes a valid range through", func(t *testing.T) {
+		gotStart, gotEnd := graphRange(start, end)
+		require.Equal(t, start, gotStart)
+		require.Equal(t, end, gotEnd)
+	})
+
+	// An absent protobuf timestamp arrives as the Unix epoch, not the zero time,
+	// so both need to fall back or the step ends up zero and Prometheus 400s.
+	for _, tc := range []struct {
+		name       string
+		start, end time.Time
+	}{
+		{name: "zero", start: time.Time{}, end: time.Time{}},
+		{name: "unix epoch", start: time.Unix(0, 0), end: time.Unix(0, 0)},
+		{name: "end before start", start: end, end: start},
+		{name: "empty range", start: start, end: start},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gotStart, gotEnd := graphRange(tc.start, tc.end)
+			require.Equal(t, time.Hour, gotEnd.Sub(gotStart))
+			require.WithinDuration(t, time.Now(), gotEnd, time.Minute)
+		})
+	}
+}
+
 func TestObjectiveServerPreviewGraphDurationErrors(t *testing.T) {
 	t.Run("invalid config", func(t *testing.T) {
 		server, _ := newDurationServer(t, durationMatrix())
