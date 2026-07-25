@@ -1781,9 +1781,12 @@ func (s *objectiveServer) PreviewGraphDuration(ctx context.Context, req *connect
 }
 
 // graphRange resolves a request's start/end, defaulting to the last hour when
-// either end is unset.
+// they're unset or nonsensical. Note an absent timestamp arrives as the Unix
+// epoch rather than the zero time, so IsZero alone doesn't catch it — and a
+// start that isn't before end would divide the range into a zero-width step,
+// which Prometheus rejects.
 func graphRange(start, end time.Time) (time.Time, time.Time) {
-	if start.IsZero() || end.IsZero() {
+	if start.IsZero() || end.IsZero() || start.Unix() <= 0 || !end.After(start) {
 		end = time.Now()
 		start = end.Add(-1 * time.Hour)
 	}
