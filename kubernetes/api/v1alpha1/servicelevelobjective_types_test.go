@@ -488,6 +488,32 @@ func TestServiceLevelObjective_Validate(t *testing.T) {
 			require.EqualError(t, err, "failed to parse ratio total metric: 1:9: parse error: unterminated quoted string")
 			require.Nil(t, warn)
 		})
+
+		t.Run("notVectorSelector", func(t *testing.T) {
+			totalAggregate := ratio()
+			totalAggregate.Spec.ServiceLevelIndicator.Ratio.Total.Metric = `sum(total{foo="bar"})`
+			warn, err := totalAggregate.ValidateCreate(ctx, totalAggregate)
+			require.EqualError(t, err, "ratio total metric must be a vector selector, but got *parser.AggregateExpr")
+			require.Nil(t, warn)
+
+			totalBinary := ratio()
+			totalBinary.Spec.ServiceLevelIndicator.Ratio.Total.Metric = `errors{foo="bar"} / total{foo="bar"}`
+			warn, err = totalBinary.ValidateCreate(ctx, totalBinary)
+			require.EqualError(t, err, "ratio total metric must be a vector selector, but got *parser.BinaryExpr")
+			require.Nil(t, warn)
+
+			errorsAggregate := ratio()
+			errorsAggregate.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = `sum(errors{foo="bar"})`
+			warn, err = errorsAggregate.ValidateCreate(ctx, errorsAggregate)
+			require.EqualError(t, err, "ratio errors metric must be a vector selector, but got *parser.AggregateExpr")
+			require.Nil(t, warn)
+
+			errorsCall := ratio()
+			errorsCall.Spec.ServiceLevelIndicator.Ratio.Errors.Metric = `rate(errors{foo="bar"}[5m])`
+			warn, err = errorsCall.ValidateCreate(ctx, errorsCall)
+			require.EqualError(t, err, "ratio errors metric must be a vector selector, but got *parser.Call")
+			require.Nil(t, warn)
+		})
 	})
 
 	t.Run("latency", func(t *testing.T) {
