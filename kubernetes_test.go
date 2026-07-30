@@ -128,6 +128,39 @@ func TestObjectiveServer_ListObjectives(t *testing.T) {
 	}
 }
 
+func TestObjectiveServer_ListObjectivesScoped(t *testing.T) {
+	// The server only watches the default namespace.
+	s := KubernetesObjectiveServer{
+		client:     &mockClient{},
+		namespaces: map[string]cache.Config{"default": {}},
+	}
+
+	testcases := []struct {
+		name     string
+		expr     string
+		response []*objectivesv1alpha1.Objective
+	}{{
+		name:     "watchedNamespace",
+		expr:     `{namespace="default"}`,
+		response: []*objectivesv1alpha1.Objective{i1, i3},
+	}, {
+		// Listing an unwatched namespace must not hit the cache, as that
+		// returns "unknown namespace for the cache". It has to be empty.
+		name:     "unwatchedNamespace",
+		expr:     `{namespace="monitoring"}`,
+		response: []*objectivesv1alpha1.Objective{},
+	}}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			response, err := s.List(context.Background(), connect.NewRequest(&objectivesv1alpha1.ListRequest{
+				Expr: tc.expr,
+			}))
+			require.NoError(t, err)
+			require.Equal(t, tc.response, response.Msg.Objectives)
+		})
+	}
+}
+
 func TestNamespacesConfig(t *testing.T) {
 	testcases := []struct {
 		name       string

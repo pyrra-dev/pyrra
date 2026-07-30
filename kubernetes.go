@@ -214,8 +214,9 @@ func cmdKubernetes(
 	{
 		router := http.NewServeMux()
 		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&KubernetesObjectiveServer{
-			client:   mgr.GetClient(),
-			pyrraURL: pyrraURL,
+			client:     mgr.GetClient(),
+			pyrraURL:   pyrraURL,
+			namespaces: cacheOptions.DefaultNamespaces,
 		}))
 
 		server := http.Server{
@@ -268,6 +269,18 @@ type KubernetesClient interface {
 type KubernetesObjectiveServer struct {
 	client   KubernetesClient
 	pyrraURL string
+	// namespaces are the namespaces the cache is restricted to.
+	// A nil map means all namespaces are watched.
+	namespaces map[string]cache.Config
+}
+
+// watches returns true if the given namespace is served by the cache.
+func (s *KubernetesObjectiveServer) watches(namespace string) bool {
+	if s.namespaces == nil {
+		return true
+	}
+	_, ok := s.namespaces[namespace]
+	return ok
 }
 
 func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
@@ -294,11 +307,15 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 	}
 
 	listOpts := client.ListOptions{}
-	for _, m := range matchers {
-		if m.Name == "namespace" && m.Type == labels.MatchEqual {
-			listOpts.Namespace = m.Value
-			break
+	if namespaceMatcher != nil && namespaceMatcher.Type == labels.MatchEqual {
+		if !s.watches(namespaceMatcher.Value) {
+			// The cache doesn't hold this namespace, so listing it would fail.
+			// No objective can match either, so return an empty list.
+			return connect.NewResponse(&objectivesv1alpha1.ListResponse{
+				Objectives: []*objectivesv1alpha1.Objective{},
+			}), nil
 		}
+		listOpts.Namespace = namespaceMatcher.Value
 	}
 
 	var list pyrrav1alpha1.ServiceLevelObjectiveList
