@@ -24,8 +24,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 
@@ -260,8 +258,9 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 		server := http.Server{
-			Addr:    ":9444",
-			Handler: h2c.NewHandler(router, &http2.Server{}),
+			Addr:      ":9444",
+			Handler:   router,
+			Protocols: httpProtocols(),
 		}
 
 		gr.Add(func() error {

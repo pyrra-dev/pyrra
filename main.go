@@ -37,8 +37,6 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/pyrra-dev/pyrra/mimir"
@@ -470,7 +468,8 @@ func cmdAPI(
 	{
 		httpServer := &http.Server{
 			Addr:      ":9099",
-			Handler:   h2c.NewHandler(r, &http2.Server{}),
+			Handler:   r,
+			Protocols: httpProtocols(),
 			TLSConfig: &tls.Config{},
 		}
 		gr.Add(
@@ -497,6 +496,16 @@ func cmdAPI(
 		return 2
 	}
 	return 0
+}
+
+// httpProtocols enables HTTP/1.1, HTTP/2 over TLS and unencrypted HTTP/2 (h2c),
+// which connect-go clients rely on when talking to these servers.
+func httpProtocols() *http.Protocols {
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetHTTP2(true)
+	protocols.SetUnencryptedHTTP2(true)
+	return protocols
 }
 
 func newBackendClientCache(client objectivesv1alpha1connect.ObjectiveBackendServiceClient) objectivesv1alpha1connect.ObjectiveBackendServiceClient {
