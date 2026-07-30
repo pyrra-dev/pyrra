@@ -95,7 +95,7 @@ endif
 buf:
 ifeq (, $(shell which buf))
 	# renovate: datasource=github-releases depName=bufbuild/buf
-	go install github.com/bufbuild/buf/cmd/buf@v1.71.0
+	go install github.com/bufbuild/buf/cmd/buf@v1.72.0
 BUF=$(GOBIN)/buf
 else
 BUF=$(shell which buf)
