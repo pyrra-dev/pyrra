@@ -33,7 +33,7 @@ import (
 )
 
 func init() {
-	SchemeBuilder.Register(&ServiceLevelObjective{}, &ServiceLevelObjectiveList{})
+	register(&ServiceLevelObjective{}, &ServiceLevelObjectiveList{})
 }
 
 var _ admission.Validator[*ServiceLevelObjective] = &ServiceLevelObjective{}
