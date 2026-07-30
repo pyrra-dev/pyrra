@@ -109,12 +109,17 @@ ui/node_modules:
 ui/build:
 	cd ui && npm run build
 
-examples: examples/kubernetes/manifests examples/kubernetes/manifests-webhook examples/openshift/manifests
+examples: examples/kubernetes/manifests examples/kubernetes/manifests-webhook examples/kubernetes-namespaced/manifests examples/openshift/manifests
 
 examples/kubernetes/manifests: examples/kubernetes/main.jsonnet jsonnet/controller-gen/pyrra.dev_servicelevelobjectives.json jsonnet/pyrra/kubernetes.libsonnet
 	jsonnetfmt -i examples/kubernetes/main.jsonnet
 	jsonnet -m examples/kubernetes/manifests examples/kubernetes/main.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
 	find examples/kubernetes/manifests -type f ! -name '*.yaml' -delete
+
+examples/kubernetes-namespaced/manifests: examples/kubernetes-namespaced/main.jsonnet jsonnet/controller-gen/pyrra.dev_servicelevelobjectives.json jsonnet/pyrra/kubernetes.libsonnet
+	jsonnetfmt -i examples/kubernetes-namespaced/main.jsonnet
+	jsonnet -m examples/kubernetes-namespaced/manifests examples/kubernetes-namespaced/main.jsonnet | xargs -I{} sh -c 'cat {} | gojsontoyaml > {}.yaml' -- {}
+	find examples/kubernetes-namespaced/manifests -type f ! -name '*.yaml' -delete
 
 examples/kubernetes/manifests-webhook: examples/kubernetes/main-webhook.jsonnet jsonnet/controller-gen/pyrra.dev_servicelevelobjectives.json jsonnet/pyrra/kubernetes.libsonnet
 	jsonnetfmt -i examples/kubernetes/main-webhook.jsonnet

@@ -37,6 +37,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -132,17 +133,25 @@ func cmdKubernetes(
 	pyrraExternalURL *url.URL,
 	enableLeaderElection bool,
 	leaderElectionNamespace string,
+	namespaces []string,
 ) int {
 	setupLog := ctrl.Log.WithName("setup")
 	ctrl.SetLogger(newGoKitLogr(logger))
 
 	webhookServer := webhook.NewServer(webhook.Options{Port: 9443})
 
+	cacheOptions := cache.Options{}
+	if defaultNamespaces := namespacesConfig(namespaces); len(defaultNamespaces) > 0 {
+		setupLog.Info("restricting watch to namespaces", "namespaces", namespaces)
+		cacheOptions.DefaultNamespaces = defaultNamespaces
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
 			BindAddress: metricsAddr,
 		},
+		Cache:                   cacheOptions,
 		WebhookServer:           webhookServer,
 		LeaderElection:          enableLeaderElection,
 		LeaderElectionID:        "9d76195a.pyrra.dev",
@@ -203,8 +212,9 @@ func cmdKubernetes(
 	{
 		router := http.NewServeMux()
 		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&KubernetesObjectiveServer{
-			client:   mgr.GetClient(),
-			pyrraURL: pyrraURL,
+			client:     mgr.GetClient(),
+			pyrraURL:   pyrraURL,
+			namespaces: cacheOptions.DefaultNamespaces,
 		}))
 
 		server := http.Server{
@@ -237,6 +247,20 @@ func cmdKubernetes(
 	return 0
 }
 
+func namespacesConfig(namespaces []string) map[string]cache.Config {
+	defaultNamespaces := make(map[string]cache.Config, len(namespaces))
+	for _, namespace := range namespaces {
+		if namespace == "" {
+			continue
+		}
+		defaultNamespaces[namespace] = cache.Config{}
+	}
+	if len(defaultNamespaces) == 0 {
+		return nil
+	}
+	return defaultNamespaces
+}
+
 type KubernetesClient interface {
 	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error
 }
@@ -244,6 +268,18 @@ type KubernetesClient interface {
 type KubernetesObjectiveServer struct {
 	client   KubernetesClient
 	pyrraURL string
+	// namespaces are the namespaces the cache is restricted to.
+	// A nil map means all namespaces are watched.
+	namespaces map[string]cache.Config
+}
+
+// watches returns true if the given namespace is served by the cache.
+func (s *KubernetesObjectiveServer) watches(namespace string) bool {
+	if s.namespaces == nil {
+		return true
+	}
+	_, ok := s.namespaces[namespace]
+	return ok
 }
 
 func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
@@ -270,11 +306,15 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 	}
 
 	listOpts := client.ListOptions{}
-	for _, m := range matchers {
-		if m.Name == "namespace" && m.Type == labels.MatchEqual {
-			listOpts.Namespace = m.Value
-			break
+	if namespaceMatcher != nil && namespaceMatcher.Type == labels.MatchEqual {
+		if !s.watches(namespaceMatcher.Value) {
+			// The cache doesn't hold this namespace, so listing it would fail.
+			// No objective can match either, so return an empty list.
+			return connect.NewResponse(&objectivesv1alpha1.ListResponse{
+				Objectives: []*objectivesv1alpha1.Objective{},
+			}), nil
 		}
+		listOpts.Namespace = namespaceMatcher.Value
 	}
 
 	var list pyrrav1alpha1.ServiceLevelObjectiveList

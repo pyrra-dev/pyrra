@@ -24,6 +24,7 @@
     version:: error 'must provide version',
     image: error 'must provide image',
     replicas:: 1,
+    namespaces:: [],
     port:: 9099,
     webhookPort:: 9443,
 
@@ -201,6 +202,32 @@
       }],
     },
 
+    // Namespace-scoped RBAC alternative to the ClusterRole/ClusterRoleBinding
+    // above, for use with the --namespaces flag. Grant one pair per watched
+    // namespace.
+    kubernetesRole(namespace):: {
+      apiVersion: 'rbac.authorization.k8s.io/v1',
+      kind: 'Role',
+      metadata: pyrra._kubernetesMetadata { namespace: namespace },
+      rules: pyrra.kubernetesClusterRole.rules,
+    },
+
+    kubernetesRoleBinding(namespace):: {
+      apiVersion: 'rbac.authorization.k8s.io/v1',
+      kind: 'RoleBinding',
+      metadata: pyrra._kubernetesMetadata { namespace: namespace },
+      roleRef: {
+        apiGroup: 'rbac.authorization.k8s.io',
+        kind: 'Role',
+        name: pyrra._kubernetesMetadata.name,
+      },
+      subjects: [{
+        kind: 'ServiceAccount',
+        name: pyrra.kubernetesServiceAccount.metadata.name,
+        namespace: pyrra._config.namespace,
+      }],
+    },
+
     kubernetesService: {
       apiVersion: 'v1',
       kind: 'Service',
@@ -221,7 +248,11 @@
         image: pyrra._config.image,
         args: [
           'kubernetes',
-        ],
+        ] + (
+          if std.length(pyrra._config.namespaces) > 0
+          then ['--namespaces=' + std.join(',', pyrra._config.namespaces)]
+          else []
+        ),
         // resources: pyrra._config.resources,
         ports: [
           { name: 'http', containerPort: pyrra._config.port },
