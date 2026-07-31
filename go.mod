@@ -11,7 +11,7 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/go-kit/log v0.2.1
 	github.com/go-logr/logr v1.4.4
-	github.com/modelcontextprotocol/go-sdk v1.6.1
+	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/oklog/run v1.2.0
 	github.com/polarsignals/connect-go-prometheus v0.0.0-20260621122702-792cc9893604
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.93.0
@@ -92,7 +92,7 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
-	golang.org/x/time v0.14.0 // indirect
+	golang.org/x/time v0.15.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
