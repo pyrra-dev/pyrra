@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	connectrpc.com/connect v1.20.0
 	github.com/alecthomas/kong v1.15.0
-	github.com/dgraph-io/ristretto/v2 v2.4.0
+	github.com/dgraph-io/ristretto/v2 v2.4.2
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-chi/cors v1.2.2
