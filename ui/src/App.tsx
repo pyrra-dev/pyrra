@@ -4,6 +4,8 @@ import {NuqsAdapter} from 'nuqs/adapters/react-router/v6'
 import List from './pages/List'
 import Detail from './pages/Detail'
 import Create from './pages/Create'
+// TEMPORARY — bench for PercentValue, remove once it has settled.
+import PercentMatrix from './pages/PercentMatrix'
 import Footer from './components/Footer'
 import {TooltipProvider} from '@/components/ui/tooltip'
 import {
@@ -48,6 +50,8 @@ const App = () => {
             <Routes>
               <Route path="/" element={<List />} />
               <Route path="/objectives/create" element={<Create />} />
+              {/* TEMPORARY — bench for PercentValue, remove once it has settled. */}
+              <Route path="/objectives/percent-matrix" element={<PercentMatrix />} />
               <Route path="/objectives" element={<Detail />} />
             </Routes>
             <Footer version={VERSION} />

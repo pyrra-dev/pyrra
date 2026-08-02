@@ -32,6 +32,8 @@ import {
 } from '@tanstack/react-table'
 import {type Duration} from '@bufbuild/protobuf/wkt'
 import {useObjectivesList} from '../objectives'
+import {formatTargetPercent} from '../percent'
+import PercentValue from '../components/tiles/PercentValue'
 import {ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Columns2, Plus, Search, TriangleAlert} from 'lucide-react'
 import {Badge} from '@/components/ui/badge'
 import {buttonVariants} from '@/components/ui/button'
@@ -315,7 +317,9 @@ const columns = [
   columnHelper.accessor('objective', {
     id: 'objective',
     header: 'Objective',
-    cell: (props) => `${(100 * props.getValue()).toFixed(2)}%`,
+    // The target is an exact value someone wrote down, so it's trimmed rather
+    // than rounded: 99%, not 99.00%.
+    cell: (props) => `${formatTargetPercent(props.getValue())}%`,
   }),
   columnHelper.accessor('latency', {
     id: 'latency',
@@ -374,14 +378,12 @@ const columns = [
       const totalVisible = props.table.getColumn('total')?.getIsVisible() ?? false
 
       return (
-        <>
-          <span className={cn(v <= target && 'text-[#b10d0d]')}>
-            {(100 * v).toFixed(2)}%
-          </span>
+        <div className={cn('flex items-baseline gap-1', v <= target && 'text-[#b10d0d]')}>
+          <PercentValue value={v} className="flex-1" />
           {!totalVisible && (
             <VolumeWarningTooltip id={props.cell.id} objective={objective} total={total} />
           )}
-        </>
+        </div>
       )
     },
     sortingFn: sortingNumberNull,
@@ -395,9 +397,9 @@ const columns = [
         return 'No data'
       }
       return (
-        <span className={cn(v < 0 && 'text-[#b10d0d]')}>
-          {(100 * v).toFixed(2)}%
-        </span>
+        <div className={cn(v < 0 && 'text-[#b10d0d]')}>
+          <PercentValue value={v} />
+        </div>
       )
     },
     sortingFn: sortingNumberNull,
