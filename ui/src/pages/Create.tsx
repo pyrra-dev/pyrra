@@ -180,10 +180,14 @@ const Create = (): JSX.Element => {
         </div>
       </Navbar>
 
-      <div className="grid grid-cols-1 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(420px,1fr)_1fr]">
+      {/* The editor only ever needs max-w-2xl, so the column stops there instead
+          of taking half the viewport and centring the form in it — everything
+          past that point goes to the preview. It still can't take more than half
+          on narrower screens, where there's nothing to give away. */}
+      <div className="grid grid-cols-1 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(420px,min(42rem,50%))_1fr]">
         {/* ---------------- EDITOR ---------------- */}
         <div className="border-b border-border bg-background lg:min-h-0 lg:overflow-auto lg:border-b-0 lg:border-r">
-          <div className="mx-auto max-w-2xl px-8 pt-7 pb-16">
+          <div className="max-w-2xl px-8 pt-7 pb-16">
             <h3 className="mb-6">Create SLO</h3>
 
             <section className="border-border py-5">
