@@ -39,9 +39,9 @@ const AvailabilityTile = ({
         objectiveType === ObjectiveType.Latency || objectiveType === ObjectiveType.LatencyNative
 
       return (
-        <div className={cn('@container rounded-lg p-9 font-sans', percentage > objective.target ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground')}>
+        <div className={cn('rounded-lg p-9 font-sans', percentage > objective.target ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground')}>
           {headline}
-          <h2 className="inline-block mr-2 font-sans text-[40px] font-normal mb-0">
+          <h2 className="block font-sans text-[40px] font-normal mb-0">
             <PercentValue value={percentage} />
           </h2>
           <table className="opacity-50 font-medium">
