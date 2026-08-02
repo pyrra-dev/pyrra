@@ -576,7 +576,6 @@ func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response,
 
 	// We don't want partial responses, especially not when calculating error budgets.
 	query.Set("partial_response", "false")
-	r.ContentLength += 23
 
 	if strings.HasSuffix(r.URL.Path, "/api/v1/query_range") {
 		start, err := strconv.ParseFloat(query.Get("start"), 64)
@@ -590,14 +589,20 @@ func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response,
 
 		if end-start >= 28*24*60*60 { // request 1h downsamples when range > 28d
 			query.Set("max_source_resolution", "1h")
-			r.ContentLength += 25
 		} else if end-start >= 7*24*60*60 { // request 5m downsamples when range > 1w
 			query.Set("max_source_resolution", "5m")
-			r.ContentLength += 25
 		}
 	}
 
 	encoded := query.Encode()
+	r.ContentLength = int64(len(encoded))
+	// GetBody lets net/http's transport transparently retry this request (e.g. a
+	// broken/idle keep-alive connection) by re-reading the body instead of reusing
+	// the already-drained reader below, which would otherwise send an empty body
+	// while Content-Length still claims the original size.
+	r.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(strings.NewReader(encoded)), nil
+	}
 	r.Body = io.NopCloser(strings.NewReader(encoded))
 	return c.client.Do(ctx, r)
 }
