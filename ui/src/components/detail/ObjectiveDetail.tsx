@@ -140,6 +140,11 @@ const ErrorBudget = ({queryTarget}: {queryTarget?: number}): JSX.Element => {
   const {objective, promClient, from, to, uPlotCursor, updateTimeRange, absolute} =
     useObjectiveDetail()
 
+  // A 100% target has no error budget, so there's no percentage of one to plot.
+  if (objective.target >= 1) {
+    return <></>
+  }
+
   return (
     <div className="mb-24 flex flex-wrap">
       <div className="w-full">
