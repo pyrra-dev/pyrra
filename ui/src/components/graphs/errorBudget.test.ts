@@ -53,7 +53,10 @@ describe('rescaleErrorBudget', () => {
     expect(rescaleErrorBudget(1, 0.99, 0.9999)).toBeCloseTo(1, 10)
   })
 
-  it('leaves the series alone for a 100% target', () => {
+  it('stays finite when either target leaves no budget', () => {
+    // 100% allows no failures, so there is no budget to be a percentage of. The
+    // graph is hidden in that case; the values still have to be finite because
+    // uPlot builds its fill gradient from them.
     expect(rescaleErrorBudget(0.5, 0.99, 1)).toBe(0.5)
     expect(rescaleErrorBudget(0.5, 1, 0.99)).toBe(0.5)
   })

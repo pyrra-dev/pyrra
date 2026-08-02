@@ -207,12 +207,22 @@ const Create = (): JSX.Element => {
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-[160px_1fr]">
                 <Field label="Target" htmlFor="slo-target" hint="As a percentage.">
                   <div className="relative">
+                    {/* A number input so the arrow keys nudge the target and the
+                        preview recomputes as they do. The spinner buttons are
+                        hidden because they'd sit on top of the % suffix; the
+                        keyboard behaviour is what's wanted here. */}
                     <input
                       id="slo-target"
-                      className={cn(inputBase, 'h-9 pr-7')}
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      className={cn(
+                        inputBase,
+                        'h-9 pr-7 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                      )}
                       value={cfg.target}
-                      inputMode="decimal"
-                      onChange={(e) => { set({target: e.target.value.replace(/[^0-9.]/g, '')}); }}
+                      onChange={(e) => { set({target: e.target.value}); }}
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                       %
