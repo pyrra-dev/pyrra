@@ -1,5 +1,6 @@
 import React from 'react'
 import {cn} from '@/lib/utils'
+import {formatPercent} from '../../percent'
 
 interface PercentValueProps {
   // The measured value as a fraction, e.g. 0.9876543.
@@ -19,11 +20,13 @@ interface PercentValueProps {
 //
 // The classes have to be written out rather than built, because Tailwind finds
 // them by scanning the source.
-// One decimal is the floor, not zero. An SLO's availability lives in the nines,
-// where rounding to whole percent collapses everything worth knowing: 99.9%
-// becomes 100%, which reads as a perfectly healthy objective rather than a
-// breached one. Below the one-decimal threshold the number overflows its
-// container, which is visibly wrong rather than quietly wrong.
+// Each tier drops its trailing zeros, so a value with nothing after the point
+// renders as 99 rather than 99.0 and needs no decimal place at all. That's the
+// only way whole percent ever shows: rounding 99.9 down to 99 — or up to 100 —
+// would be a different objective, so it doesn't happen.
+//
+// A side effect is that tiers collapse when the extra digits are zeros. 99 is
+// the same string at every precision, and which one CSS picks stops mattering.
 const BREAKPOINTS = {
   // "99.85384" and shorter — 1/3/5 decimals need 3.09em / 4.34em / 5.60em
   short: {
@@ -71,9 +74,9 @@ const PercentValue = ({value, className}: PercentValueProps): React.JSX.Element 
 
   return (
     <span className={cn('@container block', className)}>
-      <span className={breakpoints.one}>{percent.toFixed(1)}</span>
-      <span className={breakpoints.three}>{percent.toFixed(3)}</span>
-      <span className={breakpoints.five}>{five}</span>%
+      <span className={breakpoints.one}>{formatPercent(percent, 1)}</span>
+      <span className={breakpoints.three}>{formatPercent(percent, 3)}</span>
+      <span className={breakpoints.five}>{formatPercent(percent, 5)}</span>%
     </span>
   )
 }

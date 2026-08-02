@@ -62,7 +62,7 @@ const PercentMatrix = (): JSX.Element => {
             Each cell is a fixed-width container (dashed outline) holding the component. Widths are
             in <code>em</code>, matching the units the breakpoints use — so a column should show the
             same number of decimals in every block below, whatever the font size. The value is
-            rendered at 1, 3 and 5 decimals; CSS picks whichever fits.
+            rendered at 0, 1, 3 and 5 decimals; CSS picks whichever fits.
           </p>
 
           <section className="mb-12">
