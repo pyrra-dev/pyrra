@@ -49,6 +49,50 @@ export declare type ListResponse = Message<"objectives.v1alpha1.ListResponse"> &
 export declare const ListResponseSchema: GenMessage<ListResponse>;
 
 /**
+ * @generated from message objectives.v1alpha1.PreviewRequest
+ */
+export declare type PreviewRequest = Message<"objectives.v1alpha1.PreviewRequest"> & {
+  /**
+   * config is the SLO YAML config as written in the editor. The backend parses
+   * it exactly like a stored config and returns the materialized Objective.
+   *
+   * @generated from field: string config = 1;
+   */
+  config: string;
+
+  /**
+   * grouping optionally scopes the preview to a single grouping label set, e.g.
+   * {handler="/api"}. Empty previews the objective grouped by its grouping
+   * labels (one series per label set), which the editor turns into a chooser.
+   *
+   * @generated from field: string grouping = 2;
+   */
+  grouping: string;
+};
+
+/**
+ * Describes the message objectives.v1alpha1.PreviewRequest.
+ * Use `create(PreviewRequestSchema)` to create a new message.
+ */
+export declare const PreviewRequestSchema: GenMessage<PreviewRequest>;
+
+/**
+ * @generated from message objectives.v1alpha1.PreviewResponse
+ */
+export declare type PreviewResponse = Message<"objectives.v1alpha1.PreviewResponse"> & {
+  /**
+   * @generated from field: objectives.v1alpha1.Objective objective = 1;
+   */
+  objective?: Objective | undefined;
+};
+
+/**
+ * Describes the message objectives.v1alpha1.PreviewResponse.
+ * Use `create(PreviewResponseSchema)` to create a new message.
+ */
+export declare const PreviewResponseSchema: GenMessage<PreviewResponse>;
+
+/**
  * @generated from message objectives.v1alpha1.Objective
  */
 export declare type Objective = Message<"objectives.v1alpha1.Objective"> & {
@@ -907,6 +951,14 @@ export declare const ObjectiveService: GenService<{
     methodKind: "unary";
     input: typeof GraphDurationRequestSchema;
     output: typeof GraphDurationResponseSchema;
+  },
+  /**
+   * @generated from rpc objectives.v1alpha1.ObjectiveService.Preview
+   */
+  preview: {
+    methodKind: "unary";
+    input: typeof PreviewRequestSchema;
+    output: typeof PreviewResponseSchema;
   },
 }>;
 
