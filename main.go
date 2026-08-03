@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -437,7 +438,26 @@ func cmdAPI(
 			}
 		}
 
+		// The UI routes /objectives itself (the detail page reads its expr from the
+		// query string) as well as everything below it, like /objectives/create.
+		// Serve the index for all of them so those pages survive a reload and can
+		// be linked to, rather than falling through to the file server's 404.
+		//
+		// The index references its assets relatively, so from a nested page the
+		// browser asks for /objectives/assets/…. Anything that looks like a file
+		// has to reach the file server, or the page loads HTML where it expects
+		// JavaScript and never boots.
 		r.Get("/objectives", func(w http.ResponseWriter, _ *http.Request) {
+			renderIndex(w)
+		})
+		r.Get("/objectives/*", func(w http.ResponseWriter, req *http.Request) {
+			if path.Ext(req.URL.Path) != "" {
+				http.StripPrefix(
+					strings.TrimSuffix(routePrefix, "/")+"/objectives",
+					http.FileServer(http.FS(build)),
+				).ServeHTTP(w, req)
+				return
+			}
 			renderIndex(w)
 		})
 		r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

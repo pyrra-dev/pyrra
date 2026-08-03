@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useReducer, useState} from 'react'
 import {API_BASEPATH, latencyTarget} from '../App'
-import {useNavigate} from 'react-router-dom'
+import {useNavigate, Link} from 'react-router-dom'
 import {useQueryState, parseAsString} from 'nuqs'
 import Navbar from '../components/Navbar'
 import {type Labels, labelsString, MetricName} from '../labels'
@@ -32,8 +32,9 @@ import {
 } from '@tanstack/react-table'
 import {type Duration} from '@bufbuild/protobuf/wkt'
 import {useObjectivesList} from '../objectives'
-import {ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Columns2, Search, TriangleAlert} from 'lucide-react'
+import {ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Columns2, Plus, Search, TriangleAlert} from 'lucide-react'
 import {Badge} from '@/components/ui/badge'
+import {buttonVariants} from '@/components/ui/button'
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip'
 import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert'
 import {Spinner} from '@/components/ui/spinner'
@@ -716,7 +717,10 @@ const List = () => {
               </Alert>
             )}
           </div>
-          <div className="my-2 order-1 md:w-1/2 lg:order-2 lg:w-auto text-right">
+          <div className="my-2 order-1 flex items-center justify-end gap-2 md:w-1/2 lg:order-2 lg:w-auto">
+            <Link to="/objectives/create" className={cn(buttonVariants(), 'no-underline')}>
+              <Plus /> Create SLO
+            </Link>
             <DropdownMenu>
               <DropdownMenuTrigger
                 className="inline-flex shrink-0 items-center justify-center rounded-md border border-border bg-background px-2.5 py-1 text-sm font-medium hover:bg-muted">
