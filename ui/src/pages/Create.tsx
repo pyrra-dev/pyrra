@@ -24,6 +24,7 @@ import {DEFAULT_CONFIG, buildYaml, yamlFilename, type CreateConfig, type SLIType
 import {previewObjective, PreviewUnavailableError, type PreviewStatus} from '../components/create/preview'
 import DetailPreview from '../components/create/DetailPreview'
 import GroupingsTable from '../components/create/GroupingsTable'
+import {nextTarget} from '../components/create/target'
 import {type Labels, labelsString} from '../labels'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {PrometheusService} from '../proto/prometheus/v1/prometheus_pb'
@@ -214,13 +215,23 @@ const Create = (): JSX.Element => {
                     {/* A number input so the arrow keys nudge the target and the
                         preview recomputes as they do. The spinner buttons are
                         hidden because they'd sit on top of the % suffix; the
-                        keyboard behaviour is what's wanted here. */}
+                        keyboard behaviour is what's wanted here.
+
+                        step="any" so five decimal places can be typed; the arrow
+                        keys walk TARGET_LADDER instead, because no single step
+                        is useful at both 99 and 99.999. */}
                     <input
                       id="slo-target"
                       type="number"
                       min={0}
                       max={100}
-                      step={0.1}
+                      step="any"
+                      onKeyDown={(e) => {
+                        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+                        e.preventDefault()
+                        const rung = nextTarget(cfg.target, e.key === 'ArrowUp' ? 'up' : 'down')
+                        if (rung !== undefined) set({target: rung})
+                      }}
                       className={cn(
                         inputBase,
                         'h-9 pr-7 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
