@@ -696,6 +696,247 @@ func (x *String) GetValue() string {
 	return ""
 }
 
+type LabelNamesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// matchers optionally scopes label names to series matching these
+	// selectors, e.g. {__name__="http_requests_total"}.
+	Matchers []string `protobuf:"bytes,1,rep,name=matchers,proto3" json:"matchers,omitempty"`
+	// start and end bound the discovery window as unix seconds. 0 means
+	// unbounded, matching Prometheus' own UI behavior for these endpoints.
+	Start         int64 `protobuf:"varint,2,opt,name=start,proto3" json:"start,omitempty"`
+	End           int64 `protobuf:"varint,3,opt,name=end,proto3" json:"end,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LabelNamesRequest) Reset() {
+	*x = LabelNamesRequest{}
+	mi := &file_prometheus_v1_prometheus_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LabelNamesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LabelNamesRequest) ProtoMessage() {}
+
+func (x *LabelNamesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_prometheus_v1_prometheus_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LabelNamesRequest.ProtoReflect.Descriptor instead.
+func (*LabelNamesRequest) Descriptor() ([]byte, []int) {
+	return file_prometheus_v1_prometheus_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *LabelNamesRequest) GetMatchers() []string {
+	if x != nil {
+		return x.Matchers
+	}
+	return nil
+}
+
+func (x *LabelNamesRequest) GetStart() int64 {
+	if x != nil {
+		return x.Start
+	}
+	return 0
+}
+
+func (x *LabelNamesRequest) GetEnd() int64 {
+	if x != nil {
+		return x.End
+	}
+	return 0
+}
+
+type LabelNamesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Names         []string               `protobuf:"bytes,1,rep,name=names,proto3" json:"names,omitempty"`
+	Warnings      []string               `protobuf:"bytes,2,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LabelNamesResponse) Reset() {
+	*x = LabelNamesResponse{}
+	mi := &file_prometheus_v1_prometheus_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LabelNamesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LabelNamesResponse) ProtoMessage() {}
+
+func (x *LabelNamesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_prometheus_v1_prometheus_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LabelNamesResponse.ProtoReflect.Descriptor instead.
+func (*LabelNamesResponse) Descriptor() ([]byte, []int) {
+	return file_prometheus_v1_prometheus_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *LabelNamesResponse) GetNames() []string {
+	if x != nil {
+		return x.Names
+	}
+	return nil
+}
+
+func (x *LabelNamesResponse) GetWarnings() []string {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
+type LabelValuesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// label is the label name to list values for. "__name__" lists metric names.
+	Label string `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	// matchers optionally scopes label values to series matching these
+	// selectors, e.g. {__name__="http_requests_total"}.
+	Matchers []string `protobuf:"bytes,2,rep,name=matchers,proto3" json:"matchers,omitempty"`
+	// start and end bound the discovery window as unix seconds. 0 means
+	// unbounded, matching Prometheus' own UI behavior for these endpoints.
+	Start         int64 `protobuf:"varint,3,opt,name=start,proto3" json:"start,omitempty"`
+	End           int64 `protobuf:"varint,4,opt,name=end,proto3" json:"end,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LabelValuesRequest) Reset() {
+	*x = LabelValuesRequest{}
+	mi := &file_prometheus_v1_prometheus_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LabelValuesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LabelValuesRequest) ProtoMessage() {}
+
+func (x *LabelValuesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_prometheus_v1_prometheus_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LabelValuesRequest.ProtoReflect.Descriptor instead.
+func (*LabelValuesRequest) Descriptor() ([]byte, []int) {
+	return file_prometheus_v1_prometheus_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *LabelValuesRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *LabelValuesRequest) GetMatchers() []string {
+	if x != nil {
+		return x.Matchers
+	}
+	return nil
+}
+
+func (x *LabelValuesRequest) GetStart() int64 {
+	if x != nil {
+		return x.Start
+	}
+	return 0
+}
+
+func (x *LabelValuesRequest) GetEnd() int64 {
+	if x != nil {
+		return x.End
+	}
+	return 0
+}
+
+type LabelValuesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Values        []string               `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
+	Warnings      []string               `protobuf:"bytes,2,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LabelValuesResponse) Reset() {
+	*x = LabelValuesResponse{}
+	mi := &file_prometheus_v1_prometheus_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LabelValuesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LabelValuesResponse) ProtoMessage() {}
+
+func (x *LabelValuesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_prometheus_v1_prometheus_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LabelValuesResponse.ProtoReflect.Descriptor instead.
+func (*LabelValuesResponse) Descriptor() ([]byte, []int) {
+	return file_prometheus_v1_prometheus_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *LabelValuesResponse) GetValues() []string {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+func (x *LabelValuesResponse) GetWarnings() []string {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
 var File_prometheus_v1_prometheus_proto protoreflect.FileDescriptor
 
 const file_prometheus_v1_prometheus_proto_rawDesc = "" +
@@ -746,11 +987,29 @@ const file_prometheus_v1_prometheus_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\x01R\x05value\"2\n" +
 	"\x06String\x12\x12\n" +
 	"\x04time\x18\x01 \x01(\x03R\x04time\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value2\xae\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"W\n" +
+	"\x11LabelNamesRequest\x12\x1a\n" +
+	"\bmatchers\x18\x01 \x03(\tR\bmatchers\x12\x14\n" +
+	"\x05start\x18\x02 \x01(\x03R\x05start\x12\x10\n" +
+	"\x03end\x18\x03 \x01(\x03R\x03end\"F\n" +
+	"\x12LabelNamesResponse\x12\x14\n" +
+	"\x05names\x18\x01 \x03(\tR\x05names\x12\x1a\n" +
+	"\bwarnings\x18\x02 \x03(\tR\bwarnings\"n\n" +
+	"\x12LabelValuesRequest\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x12\x1a\n" +
+	"\bmatchers\x18\x02 \x03(\tR\bmatchers\x12\x14\n" +
+	"\x05start\x18\x03 \x01(\x03R\x05start\x12\x10\n" +
+	"\x03end\x18\x04 \x01(\x03R\x03end\"I\n" +
+	"\x13LabelValuesResponse\x12\x16\n" +
+	"\x06values\x18\x01 \x03(\tR\x06values\x12\x1a\n" +
+	"\bwarnings\x18\x02 \x03(\tR\bwarnings2\xdb\x02\n" +
 	"\x11PrometheusService\x12D\n" +
 	"\x05Query\x12\x1b.prometheus.v1.QueryRequest\x1a\x1c.prometheus.v1.QueryResponse\"\x00\x12S\n" +
 	"\n" +
-	"QueryRange\x12 .prometheus.v1.QueryRangeRequest\x1a!.prometheus.v1.QueryRangeResponse\"\x00B=Z;github.com/pyrra-dev/pyrra/proto/prometheus/v1;prometheusv1b\x06proto3"
+	"QueryRange\x12 .prometheus.v1.QueryRangeRequest\x1a!.prometheus.v1.QueryRangeResponse\"\x00\x12S\n" +
+	"\n" +
+	"LabelNames\x12 .prometheus.v1.LabelNamesRequest\x1a!.prometheus.v1.LabelNamesResponse\"\x00\x12V\n" +
+	"\vLabelValues\x12!.prometheus.v1.LabelValuesRequest\x1a\".prometheus.v1.LabelValuesResponse\"\x00B=Z;github.com/pyrra-dev/pyrra/proto/prometheus/v1;prometheusv1b\x06proto3"
 
 var (
 	file_prometheus_v1_prometheus_proto_rawDescOnce sync.Once
@@ -764,20 +1023,24 @@ func file_prometheus_v1_prometheus_proto_rawDescGZIP() []byte {
 	return file_prometheus_v1_prometheus_proto_rawDescData
 }
 
-var file_prometheus_v1_prometheus_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_prometheus_v1_prometheus_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_prometheus_v1_prometheus_proto_goTypes = []any{
-	(*QueryRequest)(nil),       // 0: prometheus.v1.QueryRequest
-	(*QueryResponse)(nil),      // 1: prometheus.v1.QueryResponse
-	(*QueryRangeRequest)(nil),  // 2: prometheus.v1.QueryRangeRequest
-	(*QueryRangeResponse)(nil), // 3: prometheus.v1.QueryRangeResponse
-	(*Vector)(nil),             // 4: prometheus.v1.Vector
-	(*Sample)(nil),             // 5: prometheus.v1.Sample
-	(*Matrix)(nil),             // 6: prometheus.v1.Matrix
-	(*SampleStream)(nil),       // 7: prometheus.v1.SampleStream
-	(*SamplePair)(nil),         // 8: prometheus.v1.SamplePair
-	(*String)(nil),             // 9: prometheus.v1.String
-	nil,                        // 10: prometheus.v1.Sample.MetricEntry
-	nil,                        // 11: prometheus.v1.SampleStream.MetricEntry
+	(*QueryRequest)(nil),        // 0: prometheus.v1.QueryRequest
+	(*QueryResponse)(nil),       // 1: prometheus.v1.QueryResponse
+	(*QueryRangeRequest)(nil),   // 2: prometheus.v1.QueryRangeRequest
+	(*QueryRangeResponse)(nil),  // 3: prometheus.v1.QueryRangeResponse
+	(*Vector)(nil),              // 4: prometheus.v1.Vector
+	(*Sample)(nil),              // 5: prometheus.v1.Sample
+	(*Matrix)(nil),              // 6: prometheus.v1.Matrix
+	(*SampleStream)(nil),        // 7: prometheus.v1.SampleStream
+	(*SamplePair)(nil),          // 8: prometheus.v1.SamplePair
+	(*String)(nil),              // 9: prometheus.v1.String
+	(*LabelNamesRequest)(nil),   // 10: prometheus.v1.LabelNamesRequest
+	(*LabelNamesResponse)(nil),  // 11: prometheus.v1.LabelNamesResponse
+	(*LabelValuesRequest)(nil),  // 12: prometheus.v1.LabelValuesRequest
+	(*LabelValuesResponse)(nil), // 13: prometheus.v1.LabelValuesResponse
+	nil,                         // 14: prometheus.v1.Sample.MetricEntry
+	nil,                         // 15: prometheus.v1.SampleStream.MetricEntry
 }
 var file_prometheus_v1_prometheus_proto_depIdxs = []int32{
 	8,  // 0: prometheus.v1.QueryResponse.scalar:type_name -> prometheus.v1.SamplePair
@@ -789,16 +1052,20 @@ var file_prometheus_v1_prometheus_proto_depIdxs = []int32{
 	6,  // 6: prometheus.v1.QueryRangeResponse.matrix:type_name -> prometheus.v1.Matrix
 	9,  // 7: prometheus.v1.QueryRangeResponse.string:type_name -> prometheus.v1.String
 	5,  // 8: prometheus.v1.Vector.samples:type_name -> prometheus.v1.Sample
-	10, // 9: prometheus.v1.Sample.metric:type_name -> prometheus.v1.Sample.MetricEntry
+	14, // 9: prometheus.v1.Sample.metric:type_name -> prometheus.v1.Sample.MetricEntry
 	7,  // 10: prometheus.v1.Matrix.samples:type_name -> prometheus.v1.SampleStream
 	8,  // 11: prometheus.v1.SampleStream.values:type_name -> prometheus.v1.SamplePair
-	11, // 12: prometheus.v1.SampleStream.metric:type_name -> prometheus.v1.SampleStream.MetricEntry
+	15, // 12: prometheus.v1.SampleStream.metric:type_name -> prometheus.v1.SampleStream.MetricEntry
 	0,  // 13: prometheus.v1.PrometheusService.Query:input_type -> prometheus.v1.QueryRequest
 	2,  // 14: prometheus.v1.PrometheusService.QueryRange:input_type -> prometheus.v1.QueryRangeRequest
-	1,  // 15: prometheus.v1.PrometheusService.Query:output_type -> prometheus.v1.QueryResponse
-	3,  // 16: prometheus.v1.PrometheusService.QueryRange:output_type -> prometheus.v1.QueryRangeResponse
-	15, // [15:17] is the sub-list for method output_type
-	13, // [13:15] is the sub-list for method input_type
+	10, // 15: prometheus.v1.PrometheusService.LabelNames:input_type -> prometheus.v1.LabelNamesRequest
+	12, // 16: prometheus.v1.PrometheusService.LabelValues:input_type -> prometheus.v1.LabelValuesRequest
+	1,  // 17: prometheus.v1.PrometheusService.Query:output_type -> prometheus.v1.QueryResponse
+	3,  // 18: prometheus.v1.PrometheusService.QueryRange:output_type -> prometheus.v1.QueryRangeResponse
+	11, // 19: prometheus.v1.PrometheusService.LabelNames:output_type -> prometheus.v1.LabelNamesResponse
+	13, // 20: prometheus.v1.PrometheusService.LabelValues:output_type -> prometheus.v1.LabelValuesResponse
+	17, // [17:21] is the sub-list for method output_type
+	13, // [13:17] is the sub-list for method input_type
 	13, // [13:13] is the sub-list for extension type_name
 	13, // [13:13] is the sub-list for extension extendee
 	0,  // [0:13] is the sub-list for field type_name
@@ -827,7 +1094,7 @@ func file_prometheus_v1_prometheus_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_prometheus_v1_prometheus_proto_rawDesc), len(file_prometheus_v1_prometheus_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -7,11 +7,14 @@
 //   - LabelsEditor    0..n free-form key=value metadata rows.
 //   - WindowControl   free-text duration fused to the 4w/2w/1w/1d preset buttons.
 
-import React, {type ReactNode, useRef, useState} from 'react'
+import React, {type ReactNode, useMemo, useRef, useState} from 'react'
+import {type Client} from '@connectrpc/connect'
 import {Trash2, Plus} from 'lucide-react'
 import {ToggleGroup, ToggleGroupItem} from '@/components/ui/toggle-group'
 import {cn} from '@/lib/utils'
-import {PYRRA_ALL_LABELS, PYRRA_SELECTOR_RE, suggest, type Suggestion} from './metricsCatalog'
+import {usePrometheusLabelNames, usePrometheusLabelValues} from '../../prometheus'
+import {type PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
+import {filterSuggestions, PYRRA_SELECTOR_RE, suggest, type Suggestion} from './metricsCatalog'
 
 export const inputBase =
   'w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
@@ -73,23 +76,50 @@ interface MetricInputProps {
   value: string
   onChange: (v: string) => void
   placeholder?: string
+  client: Client<typeof PrometheusService>
 }
 
-export const MetricInput = ({id, value, onChange, placeholder}: MetricInputProps): React.JSX.Element => {
+const emptySuggestion: Suggestion = {mode: '', metric: '', label: '', token: '', replaceStart: 0, replaceEnd: 0}
+
+export const MetricInput = ({id, value, onChange, placeholder, client}: MetricInputProps): React.JSX.Element => {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [open, setOpen] = useState(false)
-  const [sug, setSug] = useState<Suggestion>({mode: '', items: [], replaceStart: 0, replaceEnd: 0})
+  const [focused, setFocused] = useState(false)
+  const [sug, setSug] = useState<Suggestion>(emptySuggestion)
   const [active, setActive] = useState(0)
 
   const valid = PYRRA_SELECTOR_RE.test(value)
+  const matchers = sug.metric !== '' ? [`{__name__="${sug.metric}"}`] : []
 
+  // Fetch live from Prometheus for whichever context the caret is currently
+  // in — the other two queries stay disabled so only one is ever in flight.
+  const {values: metricNames} = usePrometheusLabelValues(client, '__name__', [], {enabled: sug.mode === 'metric'})
+  const {names: labelNames} = usePrometheusLabelNames(client, matchers, {enabled: sug.mode === 'label' && sug.metric !== ''})
+  const {values: labelValues} = usePrometheusLabelValues(client, sug.label, matchers, {
+    enabled: sug.mode === 'value' && sug.metric !== '' && sug.label !== '',
+  })
+
+  const items = useMemo(() => {
+    const rawItems = sug.mode === 'metric' ? metricNames : sug.mode === 'label' ? labelNames : sug.mode === 'value' ? labelValues : []
+    return filterSuggestions(rawItems, sug.token)
+  }, [sug.mode, sug.token, metricNames, labelNames, labelValues])
+  const open = focused && items.length > 0
+
+  const refreshFrom = (text: string, caret: number): void => {
+    // Typing or clicking can only happen while the input genuinely has DOM
+    // focus, so re-assert it here — undoing a prior Escape or apply() dismissal
+    // (which close the dropdown without a real blur, so onFocus never re-fires
+    // to reopen it otherwise).
+    setFocused(true)
+    setSug(suggest(text, caret))
+    setActive(0)
+  }
+
+  // For click/focus: no value change happened, so the value prop is current —
+  // just re-derive from the ref's live caret position.
   const refresh = (): void => {
     const el = inputRef.current
     if (el === null) return
-    const s = suggest(value, el.selectionStart ?? value.length)
-    setSug(s)
-    setActive(0)
-    setOpen(s.items.length > 0)
+    refreshFrom(value, el.selectionStart ?? value.length)
   }
 
   const apply = (item: string): void => {
@@ -100,7 +130,7 @@ export const MetricInput = ({id, value, onChange, placeholder}: MetricInputProps
     if (s.mode === 'value' && s.wrapQuotes === true) insert = `"${item}"`
     const next = value.slice(0, s.replaceStart) + insert + value.slice(s.replaceEnd)
     onChange(next)
-    setOpen(false)
+    setFocused(false)
     requestAnimationFrame(() => {
       if (inputRef.current !== null) {
         const pos = s.replaceStart + insert.length
@@ -114,15 +144,15 @@ export const MetricInput = ({id, value, onChange, placeholder}: MetricInputProps
     if (!open) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setActive((a) => Math.min(a + 1, sug.items.length - 1))
+      setActive((a) => Math.min(a + 1, items.length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setActive((a) => Math.max(a - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (sug.items[active] !== undefined) apply(sug.items[active])
+      if (items[active] !== undefined) apply(items[active])
     } else if (e.key === 'Escape') {
-      setOpen(false)
+      setFocused(false)
     }
   }
 
@@ -138,21 +168,38 @@ export const MetricInput = ({id, value, onChange, placeholder}: MetricInputProps
           spellCheck={false}
           autoComplete="off"
           onChange={(e) => {
-            onChange(e.target.value)
-            requestAnimationFrame(refresh)
+            const next = e.target.value
+            onChange(next)
+            // Use the event's own value/caret — not the (stale-by-one-render)
+            // value prop or a deferred rAF — so {, =, and " reliably flip
+            // context on the very keystroke that typed them.
+            refreshFrom(next, e.target.selectionStart ?? next.length)
           }}
           onKeyDown={onKeyDown}
           onKeyUp={(e) => {
             if (!['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(e.key)) refresh()
           }}
           onClick={refresh}
-          onFocus={refresh}
-          onBlur={() => setTimeout(() => { setOpen(false); }, 120)}
+          onFocus={() => {
+            setFocused(true)
+            refresh()
+          }}
+          onBlur={() => {
+            // Deferred so a click on a Typeahead item (onMouseDown) can apply()
+            // before the list unmounts. Guarded: if the input has already been
+            // refocused by the time this fires (e.g. a fast blur/refocus from
+            // clicking around), don't clobber that — otherwise the dropdown
+            // stays closed forever, since the input never re-fires onFocus
+            // while it's already focused.
+            setTimeout(() => {
+              if (inputRef.current !== document.activeElement) setFocused(false)
+            }, 120)
+          }}
         />
         {open && (
           <Typeahead
             mode={sug.mode}
-            items={sug.items}
+            items={items}
             active={active}
             onPick={apply}
             onHover={setActive}
@@ -167,16 +214,20 @@ export const MetricInput = ({id, value, onChange, placeholder}: MetricInputProps
 interface GroupingInputProps {
   value: string[]
   onChange: (v: string[]) => void
+  client: Client<typeof PrometheusService>
 }
 
-export const GroupingInput = ({value, onChange}: GroupingInputProps): React.JSX.Element => {
+export const GroupingInput = ({value, onChange, client}: GroupingInputProps): React.JSX.Element => {
+  const inputRef = useRef<HTMLInputElement>(null)
   const [text, setText] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
 
-  const suggestions = PYRRA_ALL_LABELS.filter(
-    (l) => l.toLowerCase().includes(text.toLowerCase()) && !value.includes(l),
-  ).slice(0, 8)
+  const {names: labelNames} = usePrometheusLabelNames(client)
+  const suggestions = filterSuggestions(
+    labelNames.filter((l) => !value.includes(l)),
+    text,
+  )
 
   const add = (label?: string): void => {
     const v = (label ?? text).replace(/[^a-zA-Z0-9_]/g, '')
@@ -223,6 +274,7 @@ export const GroupingInput = ({value, onChange}: GroupingInputProps): React.JSX.
       ))}
       <div className="relative min-w-[120px] flex-1">
         <input
+          ref={inputRef}
           className="h-6 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           value={text}
           placeholder={value.length > 0 ? '' : 'group by label…'}
@@ -235,7 +287,13 @@ export const GroupingInput = ({value, onChange}: GroupingInputProps): React.JSX.
           }}
           onKeyDown={onKeyDown}
           onFocus={() => { setOpen(true); }}
-          onBlur={() => setTimeout(() => { setOpen(false); }, 120)}
+          onBlur={() => {
+            // Guarded like MetricInput's: don't clobber a fast blur/refocus,
+            // or the dropdown can get stuck closed with no event left to reopen it.
+            setTimeout(() => {
+              if (inputRef.current !== document.activeElement) setOpen(false)
+            }, 120)
+          }}
         />
         {open && suggestions.length > 0 && (
           <Typeahead mode="label" items={suggestions} active={active} onPick={add} onHover={setActive} />

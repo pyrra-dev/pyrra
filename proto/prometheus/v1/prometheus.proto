@@ -7,6 +7,8 @@ option go_package = "github.com/pyrra-dev/pyrra/proto/prometheus/v1;prometheusv1
 service PrometheusService {
   rpc Query(QueryRequest) returns (QueryResponse) {}
   rpc QueryRange(QueryRangeRequest) returns (QueryRangeResponse) {}
+  rpc LabelNames(LabelNamesRequest) returns (LabelNamesResponse) {}
+  rpc LabelValues(LabelValuesRequest) returns (LabelValuesResponse) {}
 }
 
 message QueryRequest {
@@ -77,4 +79,36 @@ message SamplePair {
 message String {
   int64 time = 1;
   string value = 2;
+}
+
+message LabelNamesRequest {
+  // matchers optionally scopes label names to series matching these
+  // selectors, e.g. {__name__="http_requests_total"}.
+  repeated string matchers = 1;
+  // start and end bound the discovery window as unix seconds. 0 means
+  // unbounded, matching Prometheus' own UI behavior for these endpoints.
+  int64 start = 2;
+  int64 end = 3;
+}
+
+message LabelNamesResponse {
+  repeated string names = 1;
+  repeated string warnings = 2;
+}
+
+message LabelValuesRequest {
+  // label is the label name to list values for. "__name__" lists metric names.
+  string label = 1;
+  // matchers optionally scopes label values to series matching these
+  // selectors, e.g. {__name__="http_requests_total"}.
+  repeated string matchers = 2;
+  // start and end bound the discovery window as unix seconds. 0 means
+  // unbounded, matching Prometheus' own UI behavior for these endpoints.
+  int64 start = 3;
+  int64 end = 4;
+}
+
+message LabelValuesResponse {
+  repeated string values = 1;
+  repeated string warnings = 2;
 }
