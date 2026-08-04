@@ -1,6 +1,6 @@
 module github.com/pyrra-dev/pyrra
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/alecthomas/kong v1.13.0
@@ -11,7 +11,7 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/go-kit/log v0.2.1
 	github.com/oklog/run v1.2.0
-	github.com/polarsignals/connect-go-prometheus v0.0.0-20221209115647-3601eea3d0d0
+	github.com/polarsignals/connect-go-prometheus v0.0.0-20260621122702-792cc9893604
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.86.2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/common v0.67.5
@@ -29,6 +29,7 @@ require (
 )
 
 require (
+	connectrpc.com/connect v1.20.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
