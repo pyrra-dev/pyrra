@@ -1,31 +1,23 @@
-import React, {type JSX, useEffect, useLayoutEffect, useRef, useState} from 'react'
+import React, {type JSX, useLayoutEffect, useMemo, useRef, useState} from 'react'
 import {Spinner} from '@/components/ui/spinner'
 import UplotReact from 'uplot-react'
-import {type AlignedData} from 'uplot';
 import type uPlot from 'uplot'
 import {EXTERNAL_URL} from '../../App'
 import {ExternalLink} from 'lucide-react'
-import {type Labels, labelsString, parseLabelValue} from '../../labels'
+import {parseLabelValue} from '../../labels'
 import {colorful, greys} from './colors'
 import {seriesGaps} from './gaps'
-import {type Client} from '@connectrpc/connect'
-import {
-  type GraphDurationResponse,
-  type ObjectiveService,
-  type Series,
-  type Timeseries,
-} from '../../proto/objectives/v1alpha1/objectives_pb'
-import {timestampFromDate} from '@bufbuild/protobuf/wkt'
+import {type Timeseries} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {selectTimeRange} from './selectTimeRange'
 import {formatDuration} from '../../duration'
 import {buildExternalHRef, externalName} from '../../external'
 import {useGraphTooltip, formatAxisDates} from './useGraphTooltip'
 import GraphTooltip from './GraphTooltip'
+import {durationAlignedData} from './durationData'
 
 interface DurationGraphProps {
-  client: Client<typeof ObjectiveService>
-  labels: Labels
-  grouping: Labels
+  timeseries: Timeseries[]
+  loading: boolean
   from: number
   to: number
   uPlotCursor: uPlot.Cursor
@@ -35,9 +27,8 @@ interface DurationGraphProps {
 }
 
 const DurationGraph = ({
-  client,
-  labels,
-  grouping,
+  timeseries,
+  loading,
   from,
   to,
   uPlotCursor,
@@ -49,11 +40,13 @@ const DurationGraph = ({
 
   const {tooltipRef, initHook, setCursorHook} = useGraphTooltip(150)
 
-  const [durations, setDurations] = useState<AlignedData>()
-  const [durationQueries, setDurationQueries] = useState<string[]>([])
-  const [durationLabels, setDurationLabels] = useState<string[]>([])
-  const [durationsLoading, setDurationsLoading] = useState<boolean>(true)
   const [width, setWidth] = useState<number>(500)
+
+  const {
+    data: durations,
+    labels: durationLabels,
+    queries: durationQueries,
+  } = useMemo(() => durationAlignedData(timeseries, latency), [timeseries, latency])
 
   const setWidthFromContainer = () => {
     if (targetRef.current !== undefined && targetRef.current !== null) {
@@ -66,59 +59,12 @@ const DurationGraph = ({
   // Set width on every window resize
   window.addEventListener('resize', setWidthFromContainer)
 
-  useEffect(() => {
-    setDurationsLoading(true)
-    client
-      .graphDuration({
-        expr: labelsString(labels),
-        grouping: labelsString(grouping),
-        start: timestampFromDate(new Date(from)),
-        end: timestampFromDate(new Date(to)),
-      })
-      .then((resp: GraphDurationResponse) => {
-        let durationTimestamps: number[] = []
-        const durationData: number[][] = []
-        const durationLabels: string[] = []
-        const durationQueries: string[] = []
-
-        // The first series is a straight line (same latency target value for all timestamps)
-        // showing the objective.
-        if (latency !== undefined) {
-          durationData.push(Array(resp.timeseries[0].series[0].values.length).fill(latency / 1000) as number[])
-          durationLabels.push('{quantile="target"}')
-        }
-
-        resp.timeseries.forEach((timeseries: Timeseries, i: number) => {
-          const [x, ...series] = timeseries.series
-          if (i === 0) {
-            durationTimestamps = x.values
-          }
-
-          series.forEach((s: Series) => {
-            durationData.push(s.values)
-          })
-
-          durationLabels.push(...timeseries.labels)
-          durationQueries.push(timeseries.query)
-        })
-        setDurations([durationTimestamps, ...durationData])
-        setDurationLabels(durationLabels)
-        setDurationQueries(durationQueries)
-      })
-      .catch(() => {
-        setDurations(undefined)
-      })
-      .finally(() => {
-        setDurationsLoading(false)
-      })
-  }, [client, labels, grouping, from, to, latency])
-
   return (
     <>
       <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between'}}>
         <h4 className="graphs-headline">
           Duration
-          {durationsLoading ? (
+          {loading ? (
             <Spinner
               className="ml-4 mb-2 h-4 w-4 border-1"
             />
