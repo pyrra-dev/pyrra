@@ -179,6 +179,9 @@ export const filterSuggestions = (items: string[], token: string): string[] => {
     .filter((it) => it !== token)
     .map((it) => ({item: it, score: subsequenceScore(token, it)}))
     .filter(({score}) => score > 0)
-    .sort((a, b) => b.score - a.score || a.item.localeCompare(b.item))
+    .sort((a, b) => {
+      const diff = b.score - a.score
+      return diff !== 0 ? diff : a.item.localeCompare(b.item)
+    })
     .map(({item}) => item)
 }
