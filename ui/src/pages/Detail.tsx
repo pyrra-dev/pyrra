@@ -1,5 +1,5 @@
 import {Link} from 'react-router-dom'
-import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import React, {useCallback, useMemo, useState} from 'react'
 import {useQueryState, parseAsString} from 'nuqs'
 import {Spinner} from '@/components/ui/spinner'
 import {API_BASEPATH, hasObjectiveType, ObjectiveType} from '../App'
