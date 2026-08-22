@@ -72,7 +72,7 @@ func (x LabelMatcher_Type) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LabelMatcher_Type.Descriptor instead.
 func (LabelMatcher_Type) EnumDescriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{10, 0}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{12, 0}
 }
 
 type Alert_State int32
@@ -121,7 +121,7 @@ func (x Alert_State) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Alert_State.Descriptor instead.
 func (Alert_State) EnumDescriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{18, 0}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{20, 0}
 }
 
 type ListRequest struct {
@@ -220,6 +220,107 @@ func (x *ListResponse) GetObjectives() []*Objective {
 	return nil
 }
 
+type PreviewRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// config is the SLO YAML config as written in the editor. The backend parses
+	// it exactly like a stored config and returns the materialized Objective.
+	Config string `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	// grouping optionally scopes the preview to a single grouping label set, e.g.
+	// {handler="/api"}. Empty previews the objective grouped by its grouping
+	// labels (one series per label set), which the editor turns into a chooser.
+	Grouping      string `protobuf:"bytes,2,opt,name=grouping,proto3" json:"grouping,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PreviewRequest) Reset() {
+	*x = PreviewRequest{}
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PreviewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PreviewRequest) ProtoMessage() {}
+
+func (x *PreviewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PreviewRequest.ProtoReflect.Descriptor instead.
+func (*PreviewRequest) Descriptor() ([]byte, []int) {
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PreviewRequest) GetConfig() string {
+	if x != nil {
+		return x.Config
+	}
+	return ""
+}
+
+func (x *PreviewRequest) GetGrouping() string {
+	if x != nil {
+		return x.Grouping
+	}
+	return ""
+}
+
+type PreviewResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Objective     *Objective             `protobuf:"bytes,1,opt,name=objective,proto3" json:"objective,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PreviewResponse) Reset() {
+	*x = PreviewResponse{}
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PreviewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PreviewResponse) ProtoMessage() {}
+
+func (x *PreviewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PreviewResponse.ProtoReflect.Descriptor instead.
+func (*PreviewResponse) Descriptor() ([]byte, []int) {
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *PreviewResponse) GetObjective() *Objective {
+	if x != nil {
+		return x.Objective
+	}
+	return nil
+}
+
 type Objective struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Labels        map[string]string      `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -235,7 +336,7 @@ type Objective struct {
 
 func (x *Objective) Reset() {
 	*x = Objective{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[2]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -247,7 +348,7 @@ func (x *Objective) String() string {
 func (*Objective) ProtoMessage() {}
 
 func (x *Objective) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[2]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -260,7 +361,7 @@ func (x *Objective) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Objective.ProtoReflect.Descriptor instead.
 func (*Objective) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{2}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Objective) GetLabels() map[string]string {
@@ -327,7 +428,7 @@ type Indicator struct {
 
 func (x *Indicator) Reset() {
 	*x = Indicator{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[3]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -339,7 +440,7 @@ func (x *Indicator) String() string {
 func (*Indicator) ProtoMessage() {}
 
 func (x *Indicator) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[3]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -352,7 +453,7 @@ func (x *Indicator) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Indicator.ProtoReflect.Descriptor instead.
 func (*Indicator) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{3}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Indicator) GetOptions() isIndicator_Options {
@@ -437,7 +538,7 @@ type Ratio struct {
 
 func (x *Ratio) Reset() {
 	*x = Ratio{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[4]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -449,7 +550,7 @@ func (x *Ratio) String() string {
 func (*Ratio) ProtoMessage() {}
 
 func (x *Ratio) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[4]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -462,7 +563,7 @@ func (x *Ratio) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ratio.ProtoReflect.Descriptor instead.
 func (*Ratio) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{4}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Ratio) GetTotal() *Query {
@@ -497,7 +598,7 @@ type Latency struct {
 
 func (x *Latency) Reset() {
 	*x = Latency{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[5]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -509,7 +610,7 @@ func (x *Latency) String() string {
 func (*Latency) ProtoMessage() {}
 
 func (x *Latency) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[5]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -522,7 +623,7 @@ func (x *Latency) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Latency.ProtoReflect.Descriptor instead.
 func (*Latency) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{5}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Latency) GetTotal() *Query {
@@ -557,7 +658,7 @@ type LatencyNative struct {
 
 func (x *LatencyNative) Reset() {
 	*x = LatencyNative{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[6]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -569,7 +670,7 @@ func (x *LatencyNative) String() string {
 func (*LatencyNative) ProtoMessage() {}
 
 func (x *LatencyNative) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[6]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -582,7 +683,7 @@ func (x *LatencyNative) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LatencyNative.ProtoReflect.Descriptor instead.
 func (*LatencyNative) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{6}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *LatencyNative) GetTotal() *Query {
@@ -616,7 +717,7 @@ type BoolGauge struct {
 
 func (x *BoolGauge) Reset() {
 	*x = BoolGauge{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[7]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -628,7 +729,7 @@ func (x *BoolGauge) String() string {
 func (*BoolGauge) ProtoMessage() {}
 
 func (x *BoolGauge) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[7]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -641,7 +742,7 @@ func (x *BoolGauge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BoolGauge.ProtoReflect.Descriptor instead.
 func (*BoolGauge) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{7}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *BoolGauge) GetBoolGauge() *Query {
@@ -669,7 +770,7 @@ type Query struct {
 
 func (x *Query) Reset() {
 	*x = Query{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[8]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -681,7 +782,7 @@ func (x *Query) String() string {
 func (*Query) ProtoMessage() {}
 
 func (x *Query) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[8]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -694,7 +795,7 @@ func (x *Query) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Query.ProtoReflect.Descriptor instead.
 func (*Query) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{8}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Query) GetMetric() string {
@@ -731,7 +832,7 @@ type Queries struct {
 
 func (x *Queries) Reset() {
 	*x = Queries{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[9]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -743,7 +844,7 @@ func (x *Queries) String() string {
 func (*Queries) ProtoMessage() {}
 
 func (x *Queries) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[9]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -756,7 +857,7 @@ func (x *Queries) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Queries.ProtoReflect.Descriptor instead.
 func (*Queries) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{9}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Queries) GetCountTotal() string {
@@ -807,7 +908,7 @@ type LabelMatcher struct {
 
 func (x *LabelMatcher) Reset() {
 	*x = LabelMatcher{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[10]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -819,7 +920,7 @@ func (x *LabelMatcher) String() string {
 func (*LabelMatcher) ProtoMessage() {}
 
 func (x *LabelMatcher) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[10]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -832,7 +933,7 @@ func (x *LabelMatcher) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LabelMatcher.ProtoReflect.Descriptor instead.
 func (*LabelMatcher) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{10}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *LabelMatcher) GetType() LabelMatcher_Type {
@@ -867,7 +968,7 @@ type GetStatusRequest struct {
 
 func (x *GetStatusRequest) Reset() {
 	*x = GetStatusRequest{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[11]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -879,7 +980,7 @@ func (x *GetStatusRequest) String() string {
 func (*GetStatusRequest) ProtoMessage() {}
 
 func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[11]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -892,7 +993,7 @@ func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetStatusRequest) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{11}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetStatusRequest) GetExpr() string {
@@ -925,7 +1026,7 @@ type GetStatusResponse struct {
 
 func (x *GetStatusResponse) Reset() {
 	*x = GetStatusResponse{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[12]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -937,7 +1038,7 @@ func (x *GetStatusResponse) String() string {
 func (*GetStatusResponse) ProtoMessage() {}
 
 func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[12]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -950,7 +1051,7 @@ func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetStatusResponse) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{12}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetStatusResponse) GetStatus() []*ObjectiveStatus {
@@ -971,7 +1072,7 @@ type ObjectiveStatus struct {
 
 func (x *ObjectiveStatus) Reset() {
 	*x = ObjectiveStatus{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[13]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -983,7 +1084,7 @@ func (x *ObjectiveStatus) String() string {
 func (*ObjectiveStatus) ProtoMessage() {}
 
 func (x *ObjectiveStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[13]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -996,7 +1097,7 @@ func (x *ObjectiveStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ObjectiveStatus.ProtoReflect.Descriptor instead.
 func (*ObjectiveStatus) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{13}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ObjectiveStatus) GetLabels() map[string]string {
@@ -1031,7 +1132,7 @@ type Availability struct {
 
 func (x *Availability) Reset() {
 	*x = Availability{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[14]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1043,7 +1144,7 @@ func (x *Availability) String() string {
 func (*Availability) ProtoMessage() {}
 
 func (x *Availability) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[14]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1056,7 +1157,7 @@ func (x *Availability) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Availability.ProtoReflect.Descriptor instead.
 func (*Availability) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{14}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Availability) GetPercentage() float64 {
@@ -1091,7 +1192,7 @@ type Budget struct {
 
 func (x *Budget) Reset() {
 	*x = Budget{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[15]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1103,7 +1204,7 @@ func (x *Budget) String() string {
 func (*Budget) ProtoMessage() {}
 
 func (x *Budget) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[15]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1116,7 +1217,7 @@ func (x *Budget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Budget.ProtoReflect.Descriptor instead.
 func (*Budget) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{15}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Budget) GetTotal() float64 {
@@ -1152,7 +1253,7 @@ type GetAlertsRequest struct {
 
 func (x *GetAlertsRequest) Reset() {
 	*x = GetAlertsRequest{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[16]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1164,7 +1265,7 @@ func (x *GetAlertsRequest) String() string {
 func (*GetAlertsRequest) ProtoMessage() {}
 
 func (x *GetAlertsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[16]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1177,7 +1278,7 @@ func (x *GetAlertsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAlertsRequest.ProtoReflect.Descriptor instead.
 func (*GetAlertsRequest) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{16}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetAlertsRequest) GetExpr() string {
@@ -1217,7 +1318,7 @@ type GetAlertsResponse struct {
 
 func (x *GetAlertsResponse) Reset() {
 	*x = GetAlertsResponse{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[17]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1229,7 +1330,7 @@ func (x *GetAlertsResponse) String() string {
 func (*GetAlertsResponse) ProtoMessage() {}
 
 func (x *GetAlertsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[17]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1242,7 +1343,7 @@ func (x *GetAlertsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAlertsResponse.ProtoReflect.Descriptor instead.
 func (*GetAlertsResponse) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{17}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetAlertsResponse) GetAlerts() []*Alert {
@@ -1267,7 +1368,7 @@ type Alert struct {
 
 func (x *Alert) Reset() {
 	*x = Alert{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[18]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1279,7 +1380,7 @@ func (x *Alert) String() string {
 func (*Alert) ProtoMessage() {}
 
 func (x *Alert) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[18]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1292,7 +1393,7 @@ func (x *Alert) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Alert.ProtoReflect.Descriptor instead.
 func (*Alert) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{18}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Alert) GetLabels() map[string]string {
@@ -1355,7 +1456,7 @@ type Burnrate struct {
 
 func (x *Burnrate) Reset() {
 	*x = Burnrate{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[19]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1367,7 +1468,7 @@ func (x *Burnrate) String() string {
 func (*Burnrate) ProtoMessage() {}
 
 func (x *Burnrate) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[19]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1380,7 +1481,7 @@ func (x *Burnrate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Burnrate.ProtoReflect.Descriptor instead.
 func (*Burnrate) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{19}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Burnrate) GetWindow() *durationpb.Duration {
@@ -1416,7 +1517,7 @@ type GraphErrorBudgetRequest struct {
 
 func (x *GraphErrorBudgetRequest) Reset() {
 	*x = GraphErrorBudgetRequest{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[20]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1428,7 +1529,7 @@ func (x *GraphErrorBudgetRequest) String() string {
 func (*GraphErrorBudgetRequest) ProtoMessage() {}
 
 func (x *GraphErrorBudgetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[20]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1441,7 +1542,7 @@ func (x *GraphErrorBudgetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GraphErrorBudgetRequest.ProtoReflect.Descriptor instead.
 func (*GraphErrorBudgetRequest) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{20}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GraphErrorBudgetRequest) GetExpr() string {
@@ -1481,7 +1582,7 @@ type GraphErrorBudgetResponse struct {
 
 func (x *GraphErrorBudgetResponse) Reset() {
 	*x = GraphErrorBudgetResponse{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[21]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1493,7 +1594,7 @@ func (x *GraphErrorBudgetResponse) String() string {
 func (*GraphErrorBudgetResponse) ProtoMessage() {}
 
 func (x *GraphErrorBudgetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[21]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1506,7 +1607,7 @@ func (x *GraphErrorBudgetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GraphErrorBudgetResponse.ProtoReflect.Descriptor instead.
 func (*GraphErrorBudgetResponse) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{21}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GraphErrorBudgetResponse) GetTimeseries() *Timeseries {
@@ -1528,7 +1629,7 @@ type GraphRateRequest struct {
 
 func (x *GraphRateRequest) Reset() {
 	*x = GraphRateRequest{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[22]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1540,7 +1641,7 @@ func (x *GraphRateRequest) String() string {
 func (*GraphRateRequest) ProtoMessage() {}
 
 func (x *GraphRateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[22]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1553,7 +1654,7 @@ func (x *GraphRateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GraphRateRequest.ProtoReflect.Descriptor instead.
 func (*GraphRateRequest) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{22}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GraphRateRequest) GetExpr() string {
@@ -1593,7 +1694,7 @@ type GraphRateResponse struct {
 
 func (x *GraphRateResponse) Reset() {
 	*x = GraphRateResponse{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[23]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1605,7 +1706,7 @@ func (x *GraphRateResponse) String() string {
 func (*GraphRateResponse) ProtoMessage() {}
 
 func (x *GraphRateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[23]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1618,7 +1719,7 @@ func (x *GraphRateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GraphRateResponse.ProtoReflect.Descriptor instead.
 func (*GraphRateResponse) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{23}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GraphRateResponse) GetTimeseries() *Timeseries {
@@ -1640,7 +1741,7 @@ type GraphErrorsRequest struct {
 
 func (x *GraphErrorsRequest) Reset() {
 	*x = GraphErrorsRequest{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[24]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1652,7 +1753,7 @@ func (x *GraphErrorsRequest) String() string {
 func (*GraphErrorsRequest) ProtoMessage() {}
 
 func (x *GraphErrorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[24]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1665,7 +1766,7 @@ func (x *GraphErrorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GraphErrorsRequest.ProtoReflect.Descriptor instead.
 func (*GraphErrorsRequest) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{24}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GraphErrorsRequest) GetExpr() string {
@@ -1705,7 +1806,7 @@ type GraphErrorsResponse struct {
 
 func (x *GraphErrorsResponse) Reset() {
 	*x = GraphErrorsResponse{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[25]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1717,7 +1818,7 @@ func (x *GraphErrorsResponse) String() string {
 func (*GraphErrorsResponse) ProtoMessage() {}
 
 func (x *GraphErrorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[25]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1730,7 +1831,7 @@ func (x *GraphErrorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GraphErrorsResponse.ProtoReflect.Descriptor instead.
 func (*GraphErrorsResponse) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{25}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GraphErrorsResponse) GetTimeseries() *Timeseries {
@@ -1751,7 +1852,7 @@ type Timeseries struct {
 
 func (x *Timeseries) Reset() {
 	*x = Timeseries{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[26]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1763,7 +1864,7 @@ func (x *Timeseries) String() string {
 func (*Timeseries) ProtoMessage() {}
 
 func (x *Timeseries) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[26]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1776,7 +1877,7 @@ func (x *Timeseries) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Timeseries.ProtoReflect.Descriptor instead.
 func (*Timeseries) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{26}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *Timeseries) GetLabels() []string {
@@ -1809,7 +1910,7 @@ type Series struct {
 
 func (x *Series) Reset() {
 	*x = Series{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[27]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1821,7 +1922,7 @@ func (x *Series) String() string {
 func (*Series) ProtoMessage() {}
 
 func (x *Series) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[27]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1834,7 +1935,7 @@ func (x *Series) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Series.ProtoReflect.Descriptor instead.
 func (*Series) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{27}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *Series) GetValues() []float64 {
@@ -1856,7 +1957,7 @@ type GraphDurationRequest struct {
 
 func (x *GraphDurationRequest) Reset() {
 	*x = GraphDurationRequest{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[28]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1868,7 +1969,7 @@ func (x *GraphDurationRequest) String() string {
 func (*GraphDurationRequest) ProtoMessage() {}
 
 func (x *GraphDurationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[28]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1881,7 +1982,7 @@ func (x *GraphDurationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GraphDurationRequest.ProtoReflect.Descriptor instead.
 func (*GraphDurationRequest) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{28}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GraphDurationRequest) GetExpr() string {
@@ -1921,7 +2022,7 @@ type GraphDurationResponse struct {
 
 func (x *GraphDurationResponse) Reset() {
 	*x = GraphDurationResponse{}
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[29]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1933,7 +2034,7 @@ func (x *GraphDurationResponse) String() string {
 func (*GraphDurationResponse) ProtoMessage() {}
 
 func (x *GraphDurationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[29]
+	mi := &file_objectives_v1alpha1_objectives_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1946,7 +2047,7 @@ func (x *GraphDurationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GraphDurationResponse.ProtoReflect.Descriptor instead.
 func (*GraphDurationResponse) Descriptor() ([]byte, []int) {
-	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{29}
+	return file_objectives_v1alpha1_objectives_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GraphDurationResponse) GetTimeseries() []*Timeseries {
@@ -1967,7 +2068,12 @@ const file_objectives_v1alpha1_objectives_proto_rawDesc = "" +
 	"\fListResponse\x12>\n" +
 	"\n" +
 	"objectives\x18\x01 \x03(\v2\x1e.objectives.v1alpha1.ObjectiveR\n" +
-	"objectives\"\x85\x03\n" +
+	"objectives\"D\n" +
+	"\x0ePreviewRequest\x12\x16\n" +
+	"\x06config\x18\x01 \x01(\tR\x06config\x12\x1a\n" +
+	"\bgrouping\x18\x02 \x01(\tR\bgrouping\"O\n" +
+	"\x0fPreviewResponse\x12<\n" +
+	"\tobjective\x18\x01 \x01(\v2\x1e.objectives.v1alpha1.ObjectiveR\tobjective\"\x85\x03\n" +
 	"\tObjective\x12B\n" +
 	"\x06labels\x18\x01 \x03(\v2*.objectives.v1alpha1.Objective.LabelsEntryR\x06labels\x12\x16\n" +
 	"\x06target\x18\x02 \x01(\x01R\x06target\x121\n" +
@@ -2113,7 +2219,7 @@ const file_objectives_v1alpha1_objectives_proto_rawDesc = "" +
 	"\x15GraphDurationResponse\x12?\n" +
 	"\n" +
 	"timeseries\x18\x01 \x03(\v2\x1f.objectives.v1alpha1.TimeseriesR\n" +
-	"timeseries2\xbc\x05\n" +
+	"timeseries2\x94\x06\n" +
 	"\x10ObjectiveService\x12M\n" +
 	"\x04List\x12 .objectives.v1alpha1.ListRequest\x1a!.objectives.v1alpha1.ListResponse\"\x00\x12\\\n" +
 	"\tGetStatus\x12%.objectives.v1alpha1.GetStatusRequest\x1a&.objectives.v1alpha1.GetStatusResponse\"\x00\x12\\\n" +
@@ -2121,7 +2227,8 @@ const file_objectives_v1alpha1_objectives_proto_rawDesc = "" +
 	"\x10GraphErrorBudget\x12,.objectives.v1alpha1.GraphErrorBudgetRequest\x1a-.objectives.v1alpha1.GraphErrorBudgetResponse\"\x00\x12\\\n" +
 	"\tGraphRate\x12%.objectives.v1alpha1.GraphRateRequest\x1a&.objectives.v1alpha1.GraphRateResponse\"\x00\x12b\n" +
 	"\vGraphErrors\x12'.objectives.v1alpha1.GraphErrorsRequest\x1a(.objectives.v1alpha1.GraphErrorsResponse\"\x00\x12h\n" +
-	"\rGraphDuration\x12).objectives.v1alpha1.GraphDurationRequest\x1a*.objectives.v1alpha1.GraphDurationResponse\"\x002h\n" +
+	"\rGraphDuration\x12).objectives.v1alpha1.GraphDurationRequest\x1a*.objectives.v1alpha1.GraphDurationResponse\"\x00\x12V\n" +
+	"\aPreview\x12#.objectives.v1alpha1.PreviewRequest\x1a$.objectives.v1alpha1.PreviewResponse\"\x002h\n" +
 	"\x17ObjectiveBackendService\x12M\n" +
 	"\x04List\x12 .objectives.v1alpha1.ListRequest\x1a!.objectives.v1alpha1.ListResponse\"\x00BIZGgithub.com/pyrra-dev/pyrra/proto/objectives/v1alpha1;objectivesv1alpha1b\x06proto3"
 
@@ -2138,110 +2245,115 @@ func file_objectives_v1alpha1_objectives_proto_rawDescGZIP() []byte {
 }
 
 var file_objectives_v1alpha1_objectives_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_objectives_v1alpha1_objectives_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_objectives_v1alpha1_objectives_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_objectives_v1alpha1_objectives_proto_goTypes = []any{
 	(LabelMatcher_Type)(0),           // 0: objectives.v1alpha1.LabelMatcher.Type
 	(Alert_State)(0),                 // 1: objectives.v1alpha1.Alert.State
 	(*ListRequest)(nil),              // 2: objectives.v1alpha1.ListRequest
 	(*ListResponse)(nil),             // 3: objectives.v1alpha1.ListResponse
-	(*Objective)(nil),                // 4: objectives.v1alpha1.Objective
-	(*Indicator)(nil),                // 5: objectives.v1alpha1.Indicator
-	(*Ratio)(nil),                    // 6: objectives.v1alpha1.Ratio
-	(*Latency)(nil),                  // 7: objectives.v1alpha1.Latency
-	(*LatencyNative)(nil),            // 8: objectives.v1alpha1.LatencyNative
-	(*BoolGauge)(nil),                // 9: objectives.v1alpha1.BoolGauge
-	(*Query)(nil),                    // 10: objectives.v1alpha1.Query
-	(*Queries)(nil),                  // 11: objectives.v1alpha1.Queries
-	(*LabelMatcher)(nil),             // 12: objectives.v1alpha1.LabelMatcher
-	(*GetStatusRequest)(nil),         // 13: objectives.v1alpha1.GetStatusRequest
-	(*GetStatusResponse)(nil),        // 14: objectives.v1alpha1.GetStatusResponse
-	(*ObjectiveStatus)(nil),          // 15: objectives.v1alpha1.ObjectiveStatus
-	(*Availability)(nil),             // 16: objectives.v1alpha1.Availability
-	(*Budget)(nil),                   // 17: objectives.v1alpha1.Budget
-	(*GetAlertsRequest)(nil),         // 18: objectives.v1alpha1.GetAlertsRequest
-	(*GetAlertsResponse)(nil),        // 19: objectives.v1alpha1.GetAlertsResponse
-	(*Alert)(nil),                    // 20: objectives.v1alpha1.Alert
-	(*Burnrate)(nil),                 // 21: objectives.v1alpha1.Burnrate
-	(*GraphErrorBudgetRequest)(nil),  // 22: objectives.v1alpha1.GraphErrorBudgetRequest
-	(*GraphErrorBudgetResponse)(nil), // 23: objectives.v1alpha1.GraphErrorBudgetResponse
-	(*GraphRateRequest)(nil),         // 24: objectives.v1alpha1.GraphRateRequest
-	(*GraphRateResponse)(nil),        // 25: objectives.v1alpha1.GraphRateResponse
-	(*GraphErrorsRequest)(nil),       // 26: objectives.v1alpha1.GraphErrorsRequest
-	(*GraphErrorsResponse)(nil),      // 27: objectives.v1alpha1.GraphErrorsResponse
-	(*Timeseries)(nil),               // 28: objectives.v1alpha1.Timeseries
-	(*Series)(nil),                   // 29: objectives.v1alpha1.Series
-	(*GraphDurationRequest)(nil),     // 30: objectives.v1alpha1.GraphDurationRequest
-	(*GraphDurationResponse)(nil),    // 31: objectives.v1alpha1.GraphDurationResponse
-	nil,                              // 32: objectives.v1alpha1.Objective.LabelsEntry
-	nil,                              // 33: objectives.v1alpha1.ObjectiveStatus.LabelsEntry
-	nil,                              // 34: objectives.v1alpha1.Alert.LabelsEntry
-	(*durationpb.Duration)(nil),      // 35: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),    // 36: google.protobuf.Timestamp
+	(*PreviewRequest)(nil),           // 4: objectives.v1alpha1.PreviewRequest
+	(*PreviewResponse)(nil),          // 5: objectives.v1alpha1.PreviewResponse
+	(*Objective)(nil),                // 6: objectives.v1alpha1.Objective
+	(*Indicator)(nil),                // 7: objectives.v1alpha1.Indicator
+	(*Ratio)(nil),                    // 8: objectives.v1alpha1.Ratio
+	(*Latency)(nil),                  // 9: objectives.v1alpha1.Latency
+	(*LatencyNative)(nil),            // 10: objectives.v1alpha1.LatencyNative
+	(*BoolGauge)(nil),                // 11: objectives.v1alpha1.BoolGauge
+	(*Query)(nil),                    // 12: objectives.v1alpha1.Query
+	(*Queries)(nil),                  // 13: objectives.v1alpha1.Queries
+	(*LabelMatcher)(nil),             // 14: objectives.v1alpha1.LabelMatcher
+	(*GetStatusRequest)(nil),         // 15: objectives.v1alpha1.GetStatusRequest
+	(*GetStatusResponse)(nil),        // 16: objectives.v1alpha1.GetStatusResponse
+	(*ObjectiveStatus)(nil),          // 17: objectives.v1alpha1.ObjectiveStatus
+	(*Availability)(nil),             // 18: objectives.v1alpha1.Availability
+	(*Budget)(nil),                   // 19: objectives.v1alpha1.Budget
+	(*GetAlertsRequest)(nil),         // 20: objectives.v1alpha1.GetAlertsRequest
+	(*GetAlertsResponse)(nil),        // 21: objectives.v1alpha1.GetAlertsResponse
+	(*Alert)(nil),                    // 22: objectives.v1alpha1.Alert
+	(*Burnrate)(nil),                 // 23: objectives.v1alpha1.Burnrate
+	(*GraphErrorBudgetRequest)(nil),  // 24: objectives.v1alpha1.GraphErrorBudgetRequest
+	(*GraphErrorBudgetResponse)(nil), // 25: objectives.v1alpha1.GraphErrorBudgetResponse
+	(*GraphRateRequest)(nil),         // 26: objectives.v1alpha1.GraphRateRequest
+	(*GraphRateResponse)(nil),        // 27: objectives.v1alpha1.GraphRateResponse
+	(*GraphErrorsRequest)(nil),       // 28: objectives.v1alpha1.GraphErrorsRequest
+	(*GraphErrorsResponse)(nil),      // 29: objectives.v1alpha1.GraphErrorsResponse
+	(*Timeseries)(nil),               // 30: objectives.v1alpha1.Timeseries
+	(*Series)(nil),                   // 31: objectives.v1alpha1.Series
+	(*GraphDurationRequest)(nil),     // 32: objectives.v1alpha1.GraphDurationRequest
+	(*GraphDurationResponse)(nil),    // 33: objectives.v1alpha1.GraphDurationResponse
+	nil,                              // 34: objectives.v1alpha1.Objective.LabelsEntry
+	nil,                              // 35: objectives.v1alpha1.ObjectiveStatus.LabelsEntry
+	nil,                              // 36: objectives.v1alpha1.Alert.LabelsEntry
+	(*durationpb.Duration)(nil),      // 37: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),    // 38: google.protobuf.Timestamp
 }
 var file_objectives_v1alpha1_objectives_proto_depIdxs = []int32{
-	4,  // 0: objectives.v1alpha1.ListResponse.objectives:type_name -> objectives.v1alpha1.Objective
-	32, // 1: objectives.v1alpha1.Objective.labels:type_name -> objectives.v1alpha1.Objective.LabelsEntry
-	35, // 2: objectives.v1alpha1.Objective.window:type_name -> google.protobuf.Duration
-	5,  // 3: objectives.v1alpha1.Objective.indicator:type_name -> objectives.v1alpha1.Indicator
-	11, // 4: objectives.v1alpha1.Objective.queries:type_name -> objectives.v1alpha1.Queries
-	6,  // 5: objectives.v1alpha1.Indicator.ratio:type_name -> objectives.v1alpha1.Ratio
-	7,  // 6: objectives.v1alpha1.Indicator.latency:type_name -> objectives.v1alpha1.Latency
-	9,  // 7: objectives.v1alpha1.Indicator.boolGauge:type_name -> objectives.v1alpha1.BoolGauge
-	8,  // 8: objectives.v1alpha1.Indicator.latency_native:type_name -> objectives.v1alpha1.LatencyNative
-	10, // 9: objectives.v1alpha1.Ratio.total:type_name -> objectives.v1alpha1.Query
-	10, // 10: objectives.v1alpha1.Ratio.errors:type_name -> objectives.v1alpha1.Query
-	10, // 11: objectives.v1alpha1.Latency.total:type_name -> objectives.v1alpha1.Query
-	10, // 12: objectives.v1alpha1.Latency.success:type_name -> objectives.v1alpha1.Query
-	10, // 13: objectives.v1alpha1.LatencyNative.total:type_name -> objectives.v1alpha1.Query
-	10, // 14: objectives.v1alpha1.BoolGauge.boolGauge:type_name -> objectives.v1alpha1.Query
-	12, // 15: objectives.v1alpha1.Query.matchers:type_name -> objectives.v1alpha1.LabelMatcher
-	0,  // 16: objectives.v1alpha1.LabelMatcher.type:type_name -> objectives.v1alpha1.LabelMatcher.Type
-	36, // 17: objectives.v1alpha1.GetStatusRequest.time:type_name -> google.protobuf.Timestamp
-	15, // 18: objectives.v1alpha1.GetStatusResponse.status:type_name -> objectives.v1alpha1.ObjectiveStatus
-	33, // 19: objectives.v1alpha1.ObjectiveStatus.labels:type_name -> objectives.v1alpha1.ObjectiveStatus.LabelsEntry
-	16, // 20: objectives.v1alpha1.ObjectiveStatus.availability:type_name -> objectives.v1alpha1.Availability
-	17, // 21: objectives.v1alpha1.ObjectiveStatus.budget:type_name -> objectives.v1alpha1.Budget
-	20, // 22: objectives.v1alpha1.GetAlertsResponse.alerts:type_name -> objectives.v1alpha1.Alert
-	34, // 23: objectives.v1alpha1.Alert.labels:type_name -> objectives.v1alpha1.Alert.LabelsEntry
-	35, // 24: objectives.v1alpha1.Alert.for:type_name -> google.protobuf.Duration
-	1,  // 25: objectives.v1alpha1.Alert.state:type_name -> objectives.v1alpha1.Alert.State
-	21, // 26: objectives.v1alpha1.Alert.short:type_name -> objectives.v1alpha1.Burnrate
-	21, // 27: objectives.v1alpha1.Alert.long:type_name -> objectives.v1alpha1.Burnrate
-	35, // 28: objectives.v1alpha1.Burnrate.window:type_name -> google.protobuf.Duration
-	36, // 29: objectives.v1alpha1.GraphErrorBudgetRequest.start:type_name -> google.protobuf.Timestamp
-	36, // 30: objectives.v1alpha1.GraphErrorBudgetRequest.end:type_name -> google.protobuf.Timestamp
-	28, // 31: objectives.v1alpha1.GraphErrorBudgetResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	36, // 32: objectives.v1alpha1.GraphRateRequest.start:type_name -> google.protobuf.Timestamp
-	36, // 33: objectives.v1alpha1.GraphRateRequest.end:type_name -> google.protobuf.Timestamp
-	28, // 34: objectives.v1alpha1.GraphRateResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	36, // 35: objectives.v1alpha1.GraphErrorsRequest.start:type_name -> google.protobuf.Timestamp
-	36, // 36: objectives.v1alpha1.GraphErrorsRequest.end:type_name -> google.protobuf.Timestamp
-	28, // 37: objectives.v1alpha1.GraphErrorsResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	29, // 38: objectives.v1alpha1.Timeseries.series:type_name -> objectives.v1alpha1.Series
-	36, // 39: objectives.v1alpha1.GraphDurationRequest.start:type_name -> google.protobuf.Timestamp
-	36, // 40: objectives.v1alpha1.GraphDurationRequest.end:type_name -> google.protobuf.Timestamp
-	28, // 41: objectives.v1alpha1.GraphDurationResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
-	2,  // 42: objectives.v1alpha1.ObjectiveService.List:input_type -> objectives.v1alpha1.ListRequest
-	13, // 43: objectives.v1alpha1.ObjectiveService.GetStatus:input_type -> objectives.v1alpha1.GetStatusRequest
-	18, // 44: objectives.v1alpha1.ObjectiveService.GetAlerts:input_type -> objectives.v1alpha1.GetAlertsRequest
-	22, // 45: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:input_type -> objectives.v1alpha1.GraphErrorBudgetRequest
-	24, // 46: objectives.v1alpha1.ObjectiveService.GraphRate:input_type -> objectives.v1alpha1.GraphRateRequest
-	26, // 47: objectives.v1alpha1.ObjectiveService.GraphErrors:input_type -> objectives.v1alpha1.GraphErrorsRequest
-	30, // 48: objectives.v1alpha1.ObjectiveService.GraphDuration:input_type -> objectives.v1alpha1.GraphDurationRequest
-	2,  // 49: objectives.v1alpha1.ObjectiveBackendService.List:input_type -> objectives.v1alpha1.ListRequest
-	3,  // 50: objectives.v1alpha1.ObjectiveService.List:output_type -> objectives.v1alpha1.ListResponse
-	14, // 51: objectives.v1alpha1.ObjectiveService.GetStatus:output_type -> objectives.v1alpha1.GetStatusResponse
-	19, // 52: objectives.v1alpha1.ObjectiveService.GetAlerts:output_type -> objectives.v1alpha1.GetAlertsResponse
-	23, // 53: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:output_type -> objectives.v1alpha1.GraphErrorBudgetResponse
-	25, // 54: objectives.v1alpha1.ObjectiveService.GraphRate:output_type -> objectives.v1alpha1.GraphRateResponse
-	27, // 55: objectives.v1alpha1.ObjectiveService.GraphErrors:output_type -> objectives.v1alpha1.GraphErrorsResponse
-	31, // 56: objectives.v1alpha1.ObjectiveService.GraphDuration:output_type -> objectives.v1alpha1.GraphDurationResponse
-	3,  // 57: objectives.v1alpha1.ObjectiveBackendService.List:output_type -> objectives.v1alpha1.ListResponse
-	50, // [50:58] is the sub-list for method output_type
-	42, // [42:50] is the sub-list for method input_type
-	42, // [42:42] is the sub-list for extension type_name
-	42, // [42:42] is the sub-list for extension extendee
-	0,  // [0:42] is the sub-list for field type_name
+	6,  // 0: objectives.v1alpha1.ListResponse.objectives:type_name -> objectives.v1alpha1.Objective
+	6,  // 1: objectives.v1alpha1.PreviewResponse.objective:type_name -> objectives.v1alpha1.Objective
+	34, // 2: objectives.v1alpha1.Objective.labels:type_name -> objectives.v1alpha1.Objective.LabelsEntry
+	37, // 3: objectives.v1alpha1.Objective.window:type_name -> google.protobuf.Duration
+	7,  // 4: objectives.v1alpha1.Objective.indicator:type_name -> objectives.v1alpha1.Indicator
+	13, // 5: objectives.v1alpha1.Objective.queries:type_name -> objectives.v1alpha1.Queries
+	8,  // 6: objectives.v1alpha1.Indicator.ratio:type_name -> objectives.v1alpha1.Ratio
+	9,  // 7: objectives.v1alpha1.Indicator.latency:type_name -> objectives.v1alpha1.Latency
+	11, // 8: objectives.v1alpha1.Indicator.boolGauge:type_name -> objectives.v1alpha1.BoolGauge
+	10, // 9: objectives.v1alpha1.Indicator.latency_native:type_name -> objectives.v1alpha1.LatencyNative
+	12, // 10: objectives.v1alpha1.Ratio.total:type_name -> objectives.v1alpha1.Query
+	12, // 11: objectives.v1alpha1.Ratio.errors:type_name -> objectives.v1alpha1.Query
+	12, // 12: objectives.v1alpha1.Latency.total:type_name -> objectives.v1alpha1.Query
+	12, // 13: objectives.v1alpha1.Latency.success:type_name -> objectives.v1alpha1.Query
+	12, // 14: objectives.v1alpha1.LatencyNative.total:type_name -> objectives.v1alpha1.Query
+	12, // 15: objectives.v1alpha1.BoolGauge.boolGauge:type_name -> objectives.v1alpha1.Query
+	14, // 16: objectives.v1alpha1.Query.matchers:type_name -> objectives.v1alpha1.LabelMatcher
+	0,  // 17: objectives.v1alpha1.LabelMatcher.type:type_name -> objectives.v1alpha1.LabelMatcher.Type
+	38, // 18: objectives.v1alpha1.GetStatusRequest.time:type_name -> google.protobuf.Timestamp
+	17, // 19: objectives.v1alpha1.GetStatusResponse.status:type_name -> objectives.v1alpha1.ObjectiveStatus
+	35, // 20: objectives.v1alpha1.ObjectiveStatus.labels:type_name -> objectives.v1alpha1.ObjectiveStatus.LabelsEntry
+	18, // 21: objectives.v1alpha1.ObjectiveStatus.availability:type_name -> objectives.v1alpha1.Availability
+	19, // 22: objectives.v1alpha1.ObjectiveStatus.budget:type_name -> objectives.v1alpha1.Budget
+	22, // 23: objectives.v1alpha1.GetAlertsResponse.alerts:type_name -> objectives.v1alpha1.Alert
+	36, // 24: objectives.v1alpha1.Alert.labels:type_name -> objectives.v1alpha1.Alert.LabelsEntry
+	37, // 25: objectives.v1alpha1.Alert.for:type_name -> google.protobuf.Duration
+	1,  // 26: objectives.v1alpha1.Alert.state:type_name -> objectives.v1alpha1.Alert.State
+	23, // 27: objectives.v1alpha1.Alert.short:type_name -> objectives.v1alpha1.Burnrate
+	23, // 28: objectives.v1alpha1.Alert.long:type_name -> objectives.v1alpha1.Burnrate
+	37, // 29: objectives.v1alpha1.Burnrate.window:type_name -> google.protobuf.Duration
+	38, // 30: objectives.v1alpha1.GraphErrorBudgetRequest.start:type_name -> google.protobuf.Timestamp
+	38, // 31: objectives.v1alpha1.GraphErrorBudgetRequest.end:type_name -> google.protobuf.Timestamp
+	30, // 32: objectives.v1alpha1.GraphErrorBudgetResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
+	38, // 33: objectives.v1alpha1.GraphRateRequest.start:type_name -> google.protobuf.Timestamp
+	38, // 34: objectives.v1alpha1.GraphRateRequest.end:type_name -> google.protobuf.Timestamp
+	30, // 35: objectives.v1alpha1.GraphRateResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
+	38, // 36: objectives.v1alpha1.GraphErrorsRequest.start:type_name -> google.protobuf.Timestamp
+	38, // 37: objectives.v1alpha1.GraphErrorsRequest.end:type_name -> google.protobuf.Timestamp
+	30, // 38: objectives.v1alpha1.GraphErrorsResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
+	31, // 39: objectives.v1alpha1.Timeseries.series:type_name -> objectives.v1alpha1.Series
+	38, // 40: objectives.v1alpha1.GraphDurationRequest.start:type_name -> google.protobuf.Timestamp
+	38, // 41: objectives.v1alpha1.GraphDurationRequest.end:type_name -> google.protobuf.Timestamp
+	30, // 42: objectives.v1alpha1.GraphDurationResponse.timeseries:type_name -> objectives.v1alpha1.Timeseries
+	2,  // 43: objectives.v1alpha1.ObjectiveService.List:input_type -> objectives.v1alpha1.ListRequest
+	15, // 44: objectives.v1alpha1.ObjectiveService.GetStatus:input_type -> objectives.v1alpha1.GetStatusRequest
+	20, // 45: objectives.v1alpha1.ObjectiveService.GetAlerts:input_type -> objectives.v1alpha1.GetAlertsRequest
+	24, // 46: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:input_type -> objectives.v1alpha1.GraphErrorBudgetRequest
+	26, // 47: objectives.v1alpha1.ObjectiveService.GraphRate:input_type -> objectives.v1alpha1.GraphRateRequest
+	28, // 48: objectives.v1alpha1.ObjectiveService.GraphErrors:input_type -> objectives.v1alpha1.GraphErrorsRequest
+	32, // 49: objectives.v1alpha1.ObjectiveService.GraphDuration:input_type -> objectives.v1alpha1.GraphDurationRequest
+	4,  // 50: objectives.v1alpha1.ObjectiveService.Preview:input_type -> objectives.v1alpha1.PreviewRequest
+	2,  // 51: objectives.v1alpha1.ObjectiveBackendService.List:input_type -> objectives.v1alpha1.ListRequest
+	3,  // 52: objectives.v1alpha1.ObjectiveService.List:output_type -> objectives.v1alpha1.ListResponse
+	16, // 53: objectives.v1alpha1.ObjectiveService.GetStatus:output_type -> objectives.v1alpha1.GetStatusResponse
+	21, // 54: objectives.v1alpha1.ObjectiveService.GetAlerts:output_type -> objectives.v1alpha1.GetAlertsResponse
+	25, // 55: objectives.v1alpha1.ObjectiveService.GraphErrorBudget:output_type -> objectives.v1alpha1.GraphErrorBudgetResponse
+	27, // 56: objectives.v1alpha1.ObjectiveService.GraphRate:output_type -> objectives.v1alpha1.GraphRateResponse
+	29, // 57: objectives.v1alpha1.ObjectiveService.GraphErrors:output_type -> objectives.v1alpha1.GraphErrorsResponse
+	33, // 58: objectives.v1alpha1.ObjectiveService.GraphDuration:output_type -> objectives.v1alpha1.GraphDurationResponse
+	5,  // 59: objectives.v1alpha1.ObjectiveService.Preview:output_type -> objectives.v1alpha1.PreviewResponse
+	3,  // 60: objectives.v1alpha1.ObjectiveBackendService.List:output_type -> objectives.v1alpha1.ListResponse
+	52, // [52:61] is the sub-list for method output_type
+	43, // [43:52] is the sub-list for method input_type
+	43, // [43:43] is the sub-list for extension type_name
+	43, // [43:43] is the sub-list for extension extendee
+	0,  // [0:43] is the sub-list for field type_name
 }
 
 func init() { file_objectives_v1alpha1_objectives_proto_init() }
@@ -2249,7 +2361,7 @@ func file_objectives_v1alpha1_objectives_proto_init() {
 	if File_objectives_v1alpha1_objectives_proto != nil {
 		return
 	}
-	file_objectives_v1alpha1_objectives_proto_msgTypes[3].OneofWrappers = []any{
+	file_objectives_v1alpha1_objectives_proto_msgTypes[5].OneofWrappers = []any{
 		(*Indicator_Ratio)(nil),
 		(*Indicator_Latency)(nil),
 		(*Indicator_BoolGauge)(nil),
@@ -2261,7 +2373,7 @@ func file_objectives_v1alpha1_objectives_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_objectives_v1alpha1_objectives_proto_rawDesc), len(file_objectives_v1alpha1_objectives_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   33,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
