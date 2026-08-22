@@ -1,7 +1,6 @@
 import {Link} from 'react-router-dom'
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import {useQueryState, parseAsString} from 'nuqs'
-import {Badge} from '@/components/ui/badge'
 import {Spinner} from '@/components/ui/spinner'
 import {ToggleGroup, ToggleGroupItem} from '@/components/ui/toggle-group'
 import {cn} from '@/lib/utils'
@@ -19,15 +18,13 @@ import Toggle from '../components/Toggle'
 import DurationGraph from '../components/graphs/DurationGraph'
 import type uPlot from 'uplot'
 import {PrometheusService} from '../proto/prometheus/v1/prometheus_pb'
-import {replaceInterval, usePrometheusQuery} from '../prometheus'
+import {replaceInterval, usePrometheusQuery, vectorErrorsTotal} from '../prometheus'
 import {useObjectivesList} from '../objectives'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
 import {computeTimeRangePresets} from '../timeRangePresets'
-import ObjectiveTile from '../components/tiles/ObjectiveTile'
-import AvailabilityTile from '../components/tiles/AvailabilityTile'
-import ErrorBudgetTile from '../components/tiles/ErrorBudgetTile'
-import Tiles from '../components/tiles/Tiles'
+import ObjectiveTiles from '../components/tiles/ObjectiveTiles'
+import ObjectiveLabels from '../components/ObjectiveLabels'
 import {ChartArea, ChartLine, CornerDownLeft} from 'lucide-react'
 
 const Detail = () => {
@@ -197,25 +194,11 @@ const Detail = () => {
 
   const success: boolean = totalStatus === 'success' && errorStatus === 'success'
 
-  let errors: number = 0
-  let total: number = 1
-  if (totalResponse?.options.case === 'vector' && errorResponse?.options.case === 'vector') {
-    if (errorResponse.options.value.samples.length > 0) {
-      errors = errorResponse.options.value.samples[0].value
-    }
+  const {errors, total} = vectorErrorsTotal(totalResponse, errorResponse)
 
-    if (totalResponse.options.value.samples.length > 0) {
-      total = totalResponse.options.value.samples[0].value
-    }
-  }
-
-  const labelBadges = Object.entries({...objective.labels, ...groupingLabels})
-    .filter((l: [string, string]) => l[0] !== MetricName)
-    .map((l: [string, string]) => (
-      <Badge key={l[0]} variant="secondary" className="mr-1 font-normal">
-        {l[0]}={l[1]}
-      </Badge>
-    ))
+  const hasLabels = Object.keys({...objective.labels, ...groupingLabels}).some(
+    (k) => k !== MetricName,
+  )
 
   const uPlotCursor: uPlot.Cursor = {
     y: false,
@@ -238,12 +221,12 @@ const Detail = () => {
           <div className="mb-24 flex flex-wrap">
             <div className="w-full 3xl:w-10/12 3xl:mx-auto">
               <h3>{name}</h3>
-              {labelBadges}
+              <ObjectiveLabels labels={objective.labels} grouping={groupingLabels} />
             </div>
             {objective.description !== undefined && objective.description !== '' ? (
               <div
                 className="w-full md:w-1/2 3xl:w-5/12 3xl:ml-[8.33%]"
-                style={{marginTop: labelBadges.length > 0 ? 12 : 0}}>
+                style={{marginTop: hasLabels ? 12 : 0}}>
                 <p>{objective.description}</p>
               </div>
             ) : (
@@ -252,23 +235,13 @@ const Detail = () => {
           </div>
           <div className="mb-24 flex flex-wrap">
             <div className="w-full 3xl:w-10/12 3xl:mx-auto">
-              <Tiles>
-                <ObjectiveTile objective={objective} />
-                <AvailabilityTile
-                  objective={objective}
-                  loading={loading}
-                  success={success}
-                  errors={errors}
-                  total={total}
-                />
-                <ErrorBudgetTile
-                  objective={objective}
-                  loading={loading}
-                  success={success}
-                  errors={errors}
-                  total={total}
-                />
-              </Tiles>
+              <ObjectiveTiles
+                objective={objective}
+                loading={loading}
+                success={success}
+                errors={errors}
+                total={total}
+              />
             </div>
           </div>
           <div className="mb-24 flex flex-wrap">
