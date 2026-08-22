@@ -130,7 +130,7 @@ const Detail = () => {
   const objectiveType = objective !== null ? hasObjectiveType(objective) : ObjectiveType.Ratio
 
   const detail = useMemo<ObjectiveDetailValue | null>(() => {
-    if (objective === null || objective.labels === undefined) {
+    if (objective?.labels === undefined) {
       return null
     }
     return {

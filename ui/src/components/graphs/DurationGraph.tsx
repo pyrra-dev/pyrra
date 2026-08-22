@@ -1,7 +1,6 @@
 import React, {type JSX, useLayoutEffect, useMemo, useRef, useState} from 'react'
 import {Spinner} from '@/components/ui/spinner'
 import UplotReact from 'uplot-react'
-import {type AlignedData} from 'uplot';
 import type uPlot from 'uplot'
 import {EXTERNAL_URL} from '../../App'
 import {ExternalLink} from 'lucide-react'
