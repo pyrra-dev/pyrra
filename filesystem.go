@@ -89,7 +89,19 @@ Objectives:
 	return objectives
 }
 
-func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules, enablePrometheus3Migration bool, pyrraExternalURL *url.URL) int {
+// reloadEndpoint returns the URL that Pyrra POSTs to when triggering a reload
+// of the generated rules. When reloadURL is set it takes precedence over the
+// Prometheus client's default /-/reload endpoint, which is needed when the
+// reload endpoint sits behind a route prefix or on a separate component such as
+// Thanos Rule.
+func reloadEndpoint(promClient api.Client, reloadURL *url.URL) *url.URL {
+	if reloadURL != nil && reloadURL.String() != "" {
+		return reloadURL
+	}
+	return promClient.URL("/-/reload", nil)
+}
+
+func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.Client, configFiles, prometheusFolder string, genericRules, enablePrometheus3Migration bool, pyrraExternalURL, reloadURL *url.URL) int {
 	reconcilesTotal := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "pyrra_filesystem_reconciles_total",
 		Help: "The total amount of reconciles.",
@@ -222,7 +234,7 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 							// Eventually we trigger a reload and then start the outer loop again
 							// waiting for updates or termination.
 							level.Debug(logger).Log("msg", "reloading Prometheus now")
-							url := promClient.URL("/-/reload", nil)
+							url := reloadEndpoint(promClient, reloadURL)
 							resp, body, err := promClient.Do(ctx, &http.Request{Method: http.MethodPost, URL: url})
 							if err != nil {
 								level.Warn(logger).Log("msg", "failed to reload Prometheus")
