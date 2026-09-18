@@ -6,6 +6,7 @@ import (
 	"time"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -1945,7 +1946,7 @@ func TestObjective_SplitIncreaseRules(t *testing.T) {
 	t.Run("latency-performance-over-accuracy-two-objectives-same-metric", func(t *testing.T) {
 		latencyObjective := func(name, le string) Objective {
 			o := objectiveHTTPLatencyGroupingRegexLessAccuracy()
-			o.Labels = labels.FromStrings(labels.MetricName, name)
+			o.Labels = labels.FromStrings(model.MetricNameLabel, name)
 			for _, m := range o.Indicator.Latency.Success.LabelMatchers {
 				if m.Name == "le" {
 					m.Value = le
