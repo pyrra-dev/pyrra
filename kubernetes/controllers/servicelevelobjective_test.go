@@ -368,7 +368,7 @@ func Test_makeSplitPrometheusRules(t *testing.T) {
 					Rules: []monitoringv1.Rule{
 						{
 							Record: "http_requests:increase4w",
-							Expr:   intstr.FromString(`sum by (status) (sum_over_time(http_requests:increase5m{job="app"}[4w:5m]))`),
+							Expr:   intstr.FromString(`sum by (status) (sum_over_time(http_requests:increase5m{job="app",slo="http"}[4w:5m]))`),
 							Labels: map[string]string{
 								"job":  "app",
 								"slo":  "http",
