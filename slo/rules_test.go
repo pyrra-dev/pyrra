@@ -6,6 +6,8 @@ import (
 	"time"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -1454,7 +1456,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors", "severity": "critical"},
 			}, {
 				Record: "http_requests:increase4w",
-				Expr:   intstr.FromString(`sum by (code) (sum_over_time(http_requests:increase5m{job="thanos-receive-default"}[4w:5m]))`),
+				Expr:   intstr.FromString(`sum by (code) (sum_over_time(http_requests:increase5m{job="thanos-receive-default",slo="monitoring-http-errors"}[4w:5m]))`),
 				Labels: map[string]string{"job": "thanos-receive-default", "slo": "monitoring-http-errors"},
 			}},
 		},
@@ -1526,7 +1528,7 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors", "severity": "critical"},
 			}, {
 				Record: "grpc_server_handled:increase4w",
-				Expr:   intstr.FromString(`sum by (grpc_code, handler, job) (sum_over_time(grpc_server_handled:increase5m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api"}[4w:5m]))`),
+				Expr:   intstr.FromString(`sum by (grpc_code, handler, job) (sum_over_time(grpc_server_handled:increase5m{grpc_method="Write",grpc_service="conprof.WritableProfileStore",job="api",slo="monitoring-grpc-errors"}[4w:5m]))`),
 				Labels: map[string]string{"grpc_method": "Write", "grpc_service": "conprof.WritableProfileStore", "slo": "monitoring-grpc-errors"},
 			}},
 		},
@@ -1650,11 +1652,11 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1", "severity": "critical"},
 			}, {
 				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by (code, handler, job) (sum_over_time(http_request_duration_seconds:increase5m{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le=""}[4w:5m]))`),
+				Expr:   intstr.FromString(`sum by (code, handler, job) (sum_over_time(http_request_duration_seconds:increase5m{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="",slo="monitoring-http-latency"}[4w:5m]))`),
 				Labels: map[string]string{"slo": "monitoring-http-latency"},
 			}, {
 				Record: "http_request_duration_seconds:increase4w",
-				Expr:   intstr.FromString(`sum by (code, handler, job) (sum_over_time(http_request_duration_seconds:increase5m{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1"}[4w:5m]))`),
+				Expr:   intstr.FromString(`sum by (code, handler, job) (sum_over_time(http_request_duration_seconds:increase5m{code=~"2..",handler=~"/api.*",job="metrics-service-thanos-receive-default",le="1",slo="monitoring-http-latency"}[4w:5m]))`),
 				Labels: map[string]string{"slo": "monitoring-http-latency", "le": "1"},
 			}},
 		},
@@ -1847,11 +1849,11 @@ func TestObjective_IncreaseRules(t *testing.T) {
 				Labels: map[string]string{"severity": "critical", "slo": "up-targets"},
 			}, {
 				Record: "up:count4w",
-				Expr:   intstr.FromString(`sum(sum_over_time(up:count5m[4w:5m]))`),
+				Expr:   intstr.FromString(`sum(sum_over_time(up:count5m{slo="up-targets"}[4w:5m]))`),
 				Labels: map[string]string{"slo": "up-targets"},
 			}, {
 				Record: "up:sum4w",
-				Expr:   intstr.FromString(`sum(sum_over_time(up:sum5m[4w:5m]))`),
+				Expr:   intstr.FromString(`sum(sum_over_time(up:sum5m{slo="up-targets"}[4w:5m]))`),
 				Labels: map[string]string{"slo": "up-targets"},
 			}},
 		},
@@ -1937,6 +1939,32 @@ func TestObjective_SplitIncreaseRules(t *testing.T) {
 		require.Equal(t, "http_request_duration_seconds:increase4w", long.Rules[0].Record)
 		require.Equal(t, "http_request_duration_seconds:increase4w", long.Rules[1].Record)
 		require.Contains(t, long.Rules[0].Expr.String(), "sum_over_time")
+	})
+
+	// Two objectives on the same histogram record into the same :increase5m
+	// metric, so each long subquery has to select only its own SLO's series.
+	t.Run("latency-performance-over-accuracy-two-objectives-same-metric", func(t *testing.T) {
+		latencyObjective := func(name, le string) Objective {
+			o := objectiveHTTPLatencyGroupingRegexLessAccuracy()
+			o.Labels = labels.FromStrings(model.MetricNameLabel, name)
+			for _, m := range o.Indicator.Latency.Success.LabelMatchers {
+				if m.Name == "le" {
+					m.Value = le
+				}
+			}
+			return o
+		}
+
+		_, longP90, err := latencyObjective("compaction-duration-p90", "1").SplitIncreaseRules(GenerationOptions{})
+		require.NoError(t, err)
+		_, longP99, err := latencyObjective("compaction-duration-p99", "5").SplitIncreaseRules(GenerationOptions{})
+		require.NoError(t, err)
+
+		totalP90 := longP90.Rules[0].Expr.String()
+		totalP99 := longP99.Rules[0].Expr.String()
+		require.Contains(t, totalP90, `slo="compaction-duration-p90"`)
+		require.Contains(t, totalP99, `slo="compaction-duration-p99"`)
+		require.NotEqual(t, totalP90, totalP99)
 	})
 
 	t.Run("grpc-ratio-different-errors-metric-performance-over-accuracy", func(t *testing.T) {
