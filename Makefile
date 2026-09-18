@@ -18,7 +18,7 @@ endif
 
 gofumpt:
 ifeq (, $(shell which gofumpt))
-	go install mvdan.cc/gofumpt@latest
+	go install mvdan.cc/gofumpt@v0.11.0
 GOFUMPT=$(GOBIN)/gofumpt
 else
 GOFUMPT=$(shell which gofumpt)
