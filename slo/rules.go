@@ -835,7 +835,7 @@ func (o Objective) increaseRulesRatio(sloName string) (shortRules, longRules []m
 			return nil, nil, err
 		}
 
-		subqueryLabelMatchers := o.buildSubqueryMatchers(o.Indicator.Ratio.Total.LabelMatchers, subqueryName)
+		subqueryLabelMatchers := o.buildSubqueryMatchers(o.Indicator.Ratio.Total.LabelMatchers, subqueryName, sloName)
 		objectiveReplacer{
 			metric:   subqueryName,
 			matchers: subqueryLabelMatchers,
@@ -923,7 +923,7 @@ func (o Objective) increaseRulesRatio(sloName string) (shortRules, longRules []m
 				return nil, nil, err
 			}
 
-			subqueryLabelMatchers := o.buildSubqueryMatchers(o.Indicator.Ratio.Errors.LabelMatchers, subqueryName)
+			subqueryLabelMatchers := o.buildSubqueryMatchers(o.Indicator.Ratio.Errors.LabelMatchers, subqueryName, sloName)
 			objectiveReplacer{
 				metric:   subqueryName,
 				matchers: subqueryLabelMatchers,
@@ -982,8 +982,12 @@ func (o Objective) increaseRulesRatio(sloName string) (shortRules, longRules []m
 
 // buildSubqueryMatchers creates label matchers for the subquery recording rule,
 // replacing the metric name with the subquery recording rule name.
-func (o Objective) buildSubqueryMatchers(original []*labels.Matcher, subqueryName string) []*labels.Matcher {
-	matchers := make([]*labels.Matcher, 0, len(original))
+// Every SLO on the same metric records its short rules under that one
+// :increase5m name, separated only by the slo rule label, so the subquery has
+// to match it — otherwise identical matchers make each SLO sum the others'
+// series too and inflate the denominator.
+func (o Objective) buildSubqueryMatchers(original []*labels.Matcher, subqueryName, sloName string) []*labels.Matcher {
+	matchers := make([]*labels.Matcher, 0, len(original)+1)
 	for _, m := range original {
 		value := m.Value
 		if m.Name == model.MetricNameLabel {
@@ -995,7 +999,7 @@ func (o Objective) buildSubqueryMatchers(original []*labels.Matcher, subqueryNam
 			Value: value,
 		})
 	}
-	return matchers
+	return append(matchers, &labels.Matcher{Type: labels.MatchEqual, Name: "slo", Value: sloName})
 }
 
 func (o Objective) increaseRuleLatency(sloName string, opts GenerationOptions) (shortRules, longRules []monitoringv1.Rule, err error) {
@@ -1102,7 +1106,7 @@ func (o Objective) increaseRuleLatency(sloName string, opts GenerationOptions) (
 		// bucket (e.g. le="60.0"). Match le="" so the total subquery selects only
 		// the count series; without it the sum also picks up the success bucket
 		// and doubles the denominator.
-		totalSubqueryMatchers := o.buildSubqueryMatchers(applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts), subqueryName)
+		totalSubqueryMatchers := o.buildSubqueryMatchers(applyPrometheus3Migration(o.Indicator.Latency.Total.LabelMatchers, opts), subqueryName, sloName)
 		totalSubqueryMatchers = append(totalSubqueryMatchers, &labels.Matcher{Type: labels.MatchEqual, Name: "le", Value: ""})
 		objectiveReplacer{
 			metric:   subqueryName,
@@ -1126,7 +1130,7 @@ func (o Objective) increaseRuleLatency(sloName string, opts GenerationOptions) (
 		subqueryName = increaseName(o.Indicator.Latency.Success.Name, model.Duration(5*time.Minute))
 		objectiveReplacer{
 			metric:   subqueryName,
-			matchers: o.buildSubqueryMatchers(applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts), subqueryName),
+			matchers: o.buildSubqueryMatchers(applyPrometheus3Migration(o.Indicator.Latency.Success.LabelMatchers, opts), subqueryName, sloName),
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(subExpr)
@@ -1333,7 +1337,7 @@ func (o Objective) increaseRuleBoolGauge(sloName string) (shortRules, longRules 
 		}
 		objectiveReplacer{
 			metric:   countSubqueryName,
-			matchers: o.buildSubqueryMatchers(o.Indicator.BoolGauge.LabelMatchers, countSubqueryName),
+			matchers: o.buildSubqueryMatchers(o.Indicator.BoolGauge.LabelMatchers, countSubqueryName, sloName),
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(countSubExpr)
@@ -1350,7 +1354,7 @@ func (o Objective) increaseRuleBoolGauge(sloName string) (shortRules, longRules 
 		}
 		objectiveReplacer{
 			metric:   sumSubqueryName,
-			matchers: o.buildSubqueryMatchers(o.Indicator.BoolGauge.LabelMatchers, sumSubqueryName),
+			matchers: o.buildSubqueryMatchers(o.Indicator.BoolGauge.LabelMatchers, sumSubqueryName, sloName),
 			grouping: grouping,
 			window:   time.Duration(o.Window),
 		}.replace(sumSubExpr)
