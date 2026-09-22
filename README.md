@@ -258,7 +258,7 @@ Please adhere to this project's `code of conduct`.
 | Name           | Area        | GitHub                                             | Twitter                                             | Company       |
 | :------------- | :---------- | :------------------------------------------------- | :-------------------------------------------------- | :------------ |
 | Nadine Vehling | UX/UI       | [@nadinevehling](https://github.com/nadinevehling) | [@nadinevehling](https://twitter.com/nadinevehling) | Grafana Labs  |
-| Matthias Loibl | Engineering | [@metalmatze](https://github.com/metalmatze)       | [@metalmatze](https://twitter.com/MetalMatze)       | Polar Signals |
+| Matthias Loibl | Engineering | [@metalmatze](https://github.com/metalmatze)       | [@metalmatze](https://twitter.com/MetalMatze)       | Dash0         |
 
 We are mostly maintaining Pyrra in our free time.
 
