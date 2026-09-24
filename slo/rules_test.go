@@ -2317,7 +2317,7 @@ func TestObjective_GrafanaRules(t *testing.T) {
 				Labels: map[string]string{"slo": "up-targets"},
 			}, {
 				Record: "pyrra_requests:rate5m",
-				Expr:   intstr.FromString(`sum(up:count4w{slo="up-targets"})`),
+				Expr:   intstr.FromString(`sum(up:count4w{slo="up-targets"}) / 2419200`),
 				Labels: map[string]string{"slo": "up-targets"},
 			}, {
 				Record: "pyrra_errors:rate5m",

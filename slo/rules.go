@@ -1834,7 +1834,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 
 		// rate
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+			rate, err := parser.ParseExpr(`sum(metric{matchers="total"}) / 86400`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1842,6 +1842,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 			objectiveReplacer{
 				metric:   totalMetric,
 				matchers: totalMatchers,
+				window:   time.Duration(o.Window),
 			}.replace(rate)
 
 			rules = append(rules, monitoringv1.Rule{
