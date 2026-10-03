@@ -81,6 +81,7 @@ var CLI struct {
 	Filesystem struct {
 		ConfigFiles                string   `default:"/etc/pyrra/*.yaml" help:"The folder where Pyrra finds the config files to use. Any non yaml files will be ignored."`
 		PrometheusURL              *url.URL `default:"http://localhost:9090" help:"The URL to the Prometheus to query."`
+		ReloadURL                  *url.URL `default:"" help:"The URL to POST to when reloading the generated rules. Defaults to the Prometheus URL's /-/reload endpoint. Set this when the reload endpoint lives behind a route prefix or on a separate component like Thanos Rule."`
 		PrometheusFolder           string   `default:"/etc/prometheus/pyrra/" help:"The folder where Pyrra writes the generates Prometheus rules and alerts."`
 		GenericRules               bool     `default:"false" help:"Enabled generic recording rules generation to make it easier for tools like Grafana."`
 		EnablePrometheus3Migration bool     `default:"true" help:"Enable Prometheus 3 migration mode that makes rules compatible with both Prometheus 2 and 3. Enabled by default; pass --enable-prometheus-3-migration=false to opt out."`
@@ -265,6 +266,7 @@ func main() {
 			CLI.Filesystem.GenericRules,
 			CLI.Filesystem.EnablePrometheus3Migration,
 			CLI.Filesystem.ExternalURL,
+			CLI.Filesystem.ReloadURL,
 		)
 	case "kubernetes":
 		code = cmdKubernetes(
