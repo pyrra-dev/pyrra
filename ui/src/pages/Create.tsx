@@ -9,7 +9,7 @@
 // preview (see ../components/create/preview.ts); until that endpoint is wired it
 // shows an "unavailable" state and the YAML view carries the workflow.
 
-import {useMemo, useState, type JSX} from 'react'
+import {useMemo, useRef, useState, type JSX} from 'react'
 import {Link} from 'react-router-dom'
 import {createClient} from '@connectrpc/connect'
 import {createConnectTransport} from '@connectrpc/connect-web'
@@ -20,9 +20,10 @@ import {cn} from '@/lib/utils'
 import {API_BASEPATH} from '../App'
 import Navbar from '../components/Navbar'
 import {Field, MetricInput, GroupingInput, LabelsEditor, WindowControl, inputBase} from '../components/create/editorFields'
-import {DEFAULT_CONFIG, buildYaml, yamlFilename, type CreateConfig, type SLIType} from '../components/create/config'
+import {DEFAULT_CONFIG, buildYaml, buildPreviewYaml, yamlFilename, type CreateConfig, type SLIType} from '../components/create/config'
 import {previewObjective, PreviewUnavailableError, type PreviewStatus} from '../components/create/preview'
 import DetailPreview from '../components/create/DetailPreview'
+import TargetInput from '../components/create/TargetInput'
 import GroupingsTable from '../components/create/GroupingsTable'
 import {type Labels, labelsString} from '../labels'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
@@ -70,6 +71,7 @@ const Create = (): JSX.Element => {
   const [selectedGrouping, setSelectedGrouping] = useState<Labels | null>(null)
   const [previewSnap, setPreviewSnap] = useState<string | null>(null)
   const [previewYaml, setPreviewYaml] = useState('')
+  const [previewQueryYaml, setPreviewQueryYaml] = useState('')
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle')
   const [copied, setCopied] = useState(false)
 
@@ -80,8 +82,23 @@ const Create = (): JSX.Element => {
   ): void => { setCfg((c) => ({...c, [ind]: {...c[ind], ...patch}})); }
 
   const yaml = useMemo(() => buildYaml(cfg), [cfg])
-  const snapshot = useMemo(() => JSON.stringify(cfg), [cfg])
+
+  // The target is left out of the staleness snapshot: the preview recomputes
+  // availability and the error budget from it locally, so a target change alone
+  // doesn't leave anything on screen out of date.
+  const snapshot = useMemo(() => JSON.stringify({...cfg, target: ''}), [cfg])
   const stale = previewSnap !== null && previewSnap !== snapshot
+
+  // Keep the last target that parsed, so clearing the field to retype it leaves
+  // the preview on the last real value instead of blanking out mid-keystroke.
+  const lastTarget = useRef<number | undefined>(undefined)
+  const target = useMemo(() => {
+    const parsed = parseFloat(cfg.target)
+    if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 100) {
+      lastTarget.current = parsed / 100
+    }
+    return lastTarget.current
+  }, [cfg.target])
 
   // Show the grouping chooser once a grouped preview succeeded and nothing is picked.
   const showGroupings = previewStatus === 'success' && groupingObjective !== null && selectedGrouping === null
@@ -93,11 +110,12 @@ const Create = (): JSX.Element => {
     setDetailObjective(null)
     setGroupingObjective(null)
     const snap = snapshot
-    const previewedYaml = yaml
+    const previewedYaml = buildPreviewYaml(cfg)
     previewObjective(baseUrl, previewedYaml)
       .then((objective) => {
         setPreviewSnap(snap)
-        setPreviewYaml(previewedYaml)
+        setPreviewYaml(yaml)
+        setPreviewQueryYaml(previewedYaml)
         // A grouped objective drives the chooser; an ungrouped one renders directly.
         if (objectiveGrouping(objective).length > 0) {
           setGroupingObjective(objective)
@@ -117,7 +135,7 @@ const Create = (): JSX.Element => {
     setSelectedGrouping(labels)
     setDetailObjective(null)
     setPreviewStatus('loading')
-    previewObjective(baseUrl, previewYaml, labelsString(labels))
+    previewObjective(baseUrl, previewQueryYaml, labelsString(labels))
       .then((objective) => {
         setDetailObjective(objective)
         setPreviewStatus('success')
@@ -165,10 +183,14 @@ const Create = (): JSX.Element => {
         </div>
       </Navbar>
 
-      <div className="grid grid-cols-1 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(420px,1fr)_1fr]">
+      {/* The editor only ever needs max-w-2xl, so the column stops there instead
+          of taking half the viewport and centring the form in it — everything
+          past that point goes to the preview. It still can't take more than half
+          on narrower screens, where there's nothing to give away. */}
+      <div className="grid grid-cols-1 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(420px,min(42rem,50%))_1fr]">
         {/* ---------------- EDITOR ---------------- */}
         <div className="border-b border-border bg-background lg:min-h-0 lg:overflow-auto lg:border-b-0 lg:border-r">
-          <div className="mx-auto max-w-2xl px-8 pt-7 pb-16">
+          <div className="max-w-2xl px-8 pt-7 pb-16">
             <h3 className="mb-6">Create SLO</h3>
 
             <section className="border-border py-5">
@@ -192,13 +214,7 @@ const Create = (): JSX.Element => {
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-[160px_1fr]">
                 <Field label="Target" htmlFor="slo-target" hint="As a percentage.">
                   <div className="relative">
-                    <input
-                      id="slo-target"
-                      className={cn(inputBase, 'h-9 pr-7')}
-                      value={cfg.target}
-                      inputMode="decimal"
-                      onChange={(e) => { set({target: e.target.value.replace(/[^0-9.]/g, '')}); }}
-                    />
+                    <TargetInput value={cfg.target} onChange={(target) => { set({target}); }} />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                       %
                     </span>
@@ -432,6 +448,7 @@ const Create = (): JSX.Element => {
               stale={stale}
               onRun={runPreview}
               config={previewYaml}
+              target={target}
               grouping={selectedGrouping ?? undefined}
               onBack={groupingObjective !== null ? backToGroupings : undefined}
             />

@@ -132,9 +132,18 @@ const Tiles = (): JSX.Element => {
   )
 }
 
-const ErrorBudget = (): JSX.Element => {
+// queryTarget is the target the graphErrorBudget query was built with. The
+// Create editor passes it so a target changed since then re-derives the series
+// locally instead of waiting for a new preview; the detail page's target can't
+// move out from under its query, so it doesn't.
+const ErrorBudget = ({queryTarget}: {queryTarget?: number}): JSX.Element => {
   const {objective, promClient, from, to, uPlotCursor, updateTimeRange, absolute} =
     useObjectiveDetail()
+
+  // A 100% target has no error budget, so there's no percentage of one to plot.
+  if (objective.target >= 1) {
+    return <></>
+  }
 
   return (
     <div className="mb-24 flex flex-wrap">
@@ -148,6 +157,11 @@ const ErrorBudget = (): JSX.Element => {
             uPlotCursor={uPlotCursor}
             updateTimeRange={updateTimeRange}
             absolute={absolute}
+            rescale={
+              queryTarget !== undefined && queryTarget !== objective.target
+                ? {from: queryTarget, to: objective.target}
+                : undefined
+            }
           />
         ) : (
           <></>

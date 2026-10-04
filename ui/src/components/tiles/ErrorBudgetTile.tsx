@@ -28,6 +28,17 @@ const ErrorBudgetTile = ({objective, loading, success, errors, total}: ErrorBudg
       const unavailability = errors / total
       const availableBudget = (budget - unavailability) / budget
 
+      // A 100% target allows no failures at all, so there is no budget to have
+      // a percentage of — the division above is -Infinity or NaN.
+      if (budget <= 0) {
+        return (
+          <div className="rounded-lg bg-card p-9 text-card-foreground">
+            {headline}
+            <h2 className="font-sans text-[40px] font-normal mb-0">No budget</h2>
+          </div>
+        )
+      }
+
       return (
         <div className={cn('rounded-lg p-9 font-sans', availableBudget > 0 ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground')}>
           {headline}
