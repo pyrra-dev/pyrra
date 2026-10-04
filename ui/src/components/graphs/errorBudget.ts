@@ -16,12 +16,9 @@ export const rescaleErrorBudget = (value: number, from: number, to: number): num
   const fromBudget = 1 - from
   const toBudget = 1 - to
 
-  // Either side of the conversion needs a non-zero budget: without the one the
-  // series was built against there's no unavailability to recover, and a 100%
-  // target has no budget to express the result as a fraction of. Callers don't
-  // draw a graph in that case (see ObjectiveDetail.ErrorBudget), and the values
-  // have to stay finite regardless — uPlot builds its fill gradient from them
-  // and throws on NaN.
+  // A 100% displayed target has no budget to plot. Preview queries use a
+  // finite baseline even when the draft starts at 100% (buildPreviewYaml).
+  // A series already queried at 100% cannot recover unavailability here.
   if (fromBudget <= 0 || toBudget <= 0) {
     return value
   }

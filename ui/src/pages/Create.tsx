@@ -20,9 +20,10 @@ import {cn} from '@/lib/utils'
 import {API_BASEPATH} from '../App'
 import Navbar from '../components/Navbar'
 import {Field, MetricInput, GroupingInput, LabelsEditor, WindowControl, inputBase} from '../components/create/editorFields'
-import {DEFAULT_CONFIG, buildYaml, yamlFilename, type CreateConfig, type SLIType} from '../components/create/config'
+import {DEFAULT_CONFIG, buildYaml, buildPreviewYaml, yamlFilename, type CreateConfig, type SLIType} from '../components/create/config'
 import {previewObjective, PreviewUnavailableError, type PreviewStatus} from '../components/create/preview'
 import DetailPreview from '../components/create/DetailPreview'
+import TargetInput from '../components/create/TargetInput'
 import GroupingsTable from '../components/create/GroupingsTable'
 import {type Labels, labelsString} from '../labels'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
@@ -70,6 +71,7 @@ const Create = (): JSX.Element => {
   const [selectedGrouping, setSelectedGrouping] = useState<Labels | null>(null)
   const [previewSnap, setPreviewSnap] = useState<string | null>(null)
   const [previewYaml, setPreviewYaml] = useState('')
+  const [previewQueryYaml, setPreviewQueryYaml] = useState('')
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle')
   const [copied, setCopied] = useState(false)
 
@@ -108,11 +110,12 @@ const Create = (): JSX.Element => {
     setDetailObjective(null)
     setGroupingObjective(null)
     const snap = snapshot
-    const previewedYaml = yaml
+    const previewedYaml = buildPreviewYaml(cfg)
     previewObjective(baseUrl, previewedYaml)
       .then((objective) => {
         setPreviewSnap(snap)
-        setPreviewYaml(previewedYaml)
+        setPreviewYaml(yaml)
+        setPreviewQueryYaml(previewedYaml)
         // A grouped objective drives the chooser; an ungrouped one renders directly.
         if (objectiveGrouping(objective).length > 0) {
           setGroupingObjective(objective)
@@ -132,7 +135,7 @@ const Create = (): JSX.Element => {
     setSelectedGrouping(labels)
     setDetailObjective(null)
     setPreviewStatus('loading')
-    previewObjective(baseUrl, previewYaml, labelsString(labels))
+    previewObjective(baseUrl, previewQueryYaml, labelsString(labels))
       .then((objective) => {
         setDetailObjective(objective)
         setPreviewStatus('success')
@@ -211,23 +214,7 @@ const Create = (): JSX.Element => {
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-[160px_1fr]">
                 <Field label="Target" htmlFor="slo-target" hint="As a percentage.">
                   <div className="relative">
-                    {/* A number input so the arrow keys nudge the target and the
-                        preview recomputes as they do. The spinner buttons are
-                        hidden because they'd sit on top of the % suffix; the
-                        keyboard behaviour is what's wanted here. */}
-                    <input
-                      id="slo-target"
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.1}
-                      className={cn(
-                        inputBase,
-                        'h-9 pr-7 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
-                      )}
-                      value={cfg.target}
-                      onChange={(e) => { set({target: e.target.value}); }}
-                    />
+                    <TargetInput value={cfg.target} onChange={(target) => { set({target}); }} />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                       %
                     </span>

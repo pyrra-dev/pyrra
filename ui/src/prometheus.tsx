@@ -138,7 +138,12 @@ export const replaceInterval = (query: string, from: number, to: number): string
 
   const rateIntervalStr = formatDuration(rateInterval * 1000, 1)
 
-  return query.replaceAll(/\[(1s)\]/g, `[${rateIntervalStr}]`)
+  // Bool gauge request templates turn counts into a per-second rate by dividing by
+  // the range in seconds, rendered as a trailing "/ 1" for the 1s template range.
+  // It has to follow the range, otherwise the graph shows samples per interval.
+  return query
+    .replaceAll(/\[(1s)\]/g, `[${rateIntervalStr}]`)
+    .replace(/\s\/\s1$/, ` / ${rateInterval}`)
 }
 
 // vectorErrorsTotal pulls the errors/total sample values out of two instant-vector

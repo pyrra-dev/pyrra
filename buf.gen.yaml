@@ -1,14 +1,14 @@
 version: v1
 plugins:
   # renovate: datasource=github-releases depName=protocolbuffers/protobuf-go
-  - plugin: buf.build/protocolbuffers/go:v1.36.11
+  - plugin: buf.build/protocolbuffers/go:v1.36.12
     out: proto
     opt: paths=source_relative
   # renovate: datasource=github-releases depName=connectrpc/connect-go
-  - plugin: buf.build/connectrpc/go:v1.20.0
+  - plugin: buf.build/connectrpc/go:v1.21.0
     out: proto
     opt: paths=source_relative
   # renovate: datasource=github-releases depName=bufbuild/protobuf-es
-  - plugin: buf.build/bufbuild/es:v2.13.0
+  - plugin: buf.build/bufbuild/es:v2.15.0
     out: ui/src/proto
     opt: target=js+dts

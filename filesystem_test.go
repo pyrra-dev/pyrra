@@ -1,13 +1,30 @@
 package main
 
 import (
+	"net/url"
 	"testing"
 
+	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pyrra-dev/pyrra/slo"
 )
+
+func TestReloadEndpoint(t *testing.T) {
+	promClient, err := api.NewClient(api.Config{Address: "http://localhost:9090"})
+	require.NoError(t, err)
+
+	// Without an override the default Prometheus /-/reload endpoint is used.
+	require.Equal(t, "http://localhost:9090/-/reload", reloadEndpoint(promClient, nil).String())
+
+	// An empty override (kong's default for an unset *url.URL flag) is ignored.
+	require.Equal(t, "http://localhost:9090/-/reload", reloadEndpoint(promClient, &url.URL{}).String())
+
+	// A configured override takes precedence over the Prometheus URL.
+	override := &url.URL{Scheme: "http", Host: "localhost:17902", Path: "/rule/-/reload"}
+	require.Equal(t, "http://localhost:17902/rule/-/reload", reloadEndpoint(promClient, override).String())
+}
 
 func TestMatchObjectives(t *testing.T) {
 	obj1 := slo.Objective{Labels: labels.FromStrings("foo", "bar")}

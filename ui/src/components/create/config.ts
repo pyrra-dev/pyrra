@@ -135,3 +135,9 @@ export const buildYaml = (cfg: CreateConfig): string => {
 
 export const yamlFilename = (cfg: CreateConfig): string =>
   `${cfg.name !== '' ? cfg.name : 'slo'}.yaml`
+
+// A 100% target divides the error-budget query by zero. Keep a finite query
+// baseline for that preview; the editor supplies the displayed target locally.
+// Other targets go through unchanged so the backend still validates the draft.
+export const buildPreviewYaml = (cfg: CreateConfig): string =>
+  buildYaml(Number(cfg.target) === 100 ? {...cfg, target: '99'} : cfg)
