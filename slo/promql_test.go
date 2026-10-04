@@ -837,6 +837,12 @@ func TestObjective_RequestRange(t *testing.T) {
 		objective: objectiveUpTargetsGroupingRegex(),
 		expected:  `sum by (job, instance) (count_over_time(up{instance!~"(127.0.0.1|localhost).*"}[2h])) / 7200`,
 		timerange: 2 * time.Hour,
+	}, {
+		// The UI rewrites the [1s] range and the trailing "/ 1" of this template to its own interval.
+		name:      "up-targets-ui-template",
+		objective: objectiveUpTargets(),
+		expected:  `sum(count_over_time(up[1s])) / 1`,
+		timerange: time.Second,
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {

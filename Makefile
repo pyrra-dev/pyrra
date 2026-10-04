@@ -85,7 +85,7 @@ docker-push:
 controller-gen:
 ifeq (, $(shell which controller-gen))
 	# renovate: datasource=go depName=sigs.k8s.io/controller-tools
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.21.0
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.22.0
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
@@ -95,7 +95,7 @@ endif
 buf:
 ifeq (, $(shell which buf))
 	# renovate: datasource=github-releases depName=bufbuild/buf
-	go install github.com/bufbuild/buf/cmd/buf@v1.72.0
+	go install github.com/bufbuild/buf/cmd/buf@v1.73.0
 BUF=$(GOBIN)/buf
 else
 BUF=$(shell which buf)
