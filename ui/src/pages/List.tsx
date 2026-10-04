@@ -32,8 +32,7 @@ import {
 } from '@tanstack/react-table'
 import {type Duration} from '@bufbuild/protobuf/wkt'
 import {useObjectivesList} from '../objectives'
-import {formatTargetPercent} from '../percent'
-import PercentValue from '../components/tiles/PercentValue'
+import PercentValue, {TargetValue} from '../components/tiles/PercentValue'
 import {ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Columns2, Plus, Search, TriangleAlert} from 'lucide-react'
 import {Badge} from '@/components/ui/badge'
 import {buttonVariants} from '@/components/ui/button'
@@ -319,7 +318,7 @@ const columns = [
     header: 'Objective',
     // The target is an exact value someone wrote down, so it's trimmed rather
     // than rounded: 99%, not 99.00%.
-    cell: (props) => `${formatTargetPercent(props.getValue())}%`,
+    cell: (props) => <TargetValue value={props.getValue()} />,
   }),
   columnHelper.accessor('latency', {
     id: 'latency',

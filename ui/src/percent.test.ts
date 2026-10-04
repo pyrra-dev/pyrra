@@ -58,8 +58,22 @@ describe('formatTargetPercent', () => {
     expect(formatTargetPercent(99.9 / 100)).toBe('99.9')
   })
 
+  it('preserves targets beyond five decimal places', () => {
+    for (const percent of [99.999999, 99.9999999, 99.99999999999999, 12.3456789]) {
+      const fraction = percent / 100
+      const formatted = formatTargetPercent(fraction)
+      expect(formatted).toBe(percent.toString())
+      expect(Number(formatted) / 100).toBe(fraction)
+    }
+  })
+
   it('leaves a bare zero alone', () => {
     // The trailing-zero strip must not eat the only digit there is.
     expect(formatTargetPercent(0)).toBe('0')
+  })
+
+  it('renders small targets without scientific notation', () => {
+    expect(formatTargetPercent(1e-8)).toBe('0.000001')
+    expect(formatTargetPercent(1e-20)).toBe('0.000000000000000001')
   })
 })

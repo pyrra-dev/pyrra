@@ -1,84 +1,67 @@
-import React from 'react'
+import React, {useLayoutEffect, useMemo, useRef, useState} from 'react'
 import {cn} from '@/lib/utils'
-import {formatPercent} from '../../percent'
+import {formatPercent, formatTargetPercent} from '../../percent'
 
 interface PercentValueProps {
-  // The measured value as a fraction, e.g. 0.9876543.
+  // Measured values may be rounded to fit; authored targets use formatTargetPercent.
   value: number
-  // Positioning for the container this renders. It needs a width that doesn't
-  // come from its own contents (see below), so inside a flex row pass flex-1.
   className?: string
 }
 
-// How wide each precision needs to be, in em, measured as rendered including the
-// trailing %. Which set applies depends on how many characters the number has:
-// -569.20000% is 1.1em wider than 33.08000% at the same precision, and using one
-// set for both would either overflow the long ones or short-change the rest.
-//
-// Keyed by the length of the five-decimal string, which is the longest thing
-// that can appear: 33.08000 is 8, -569.20000 is 10.
-//
-// The classes have to be written out rather than built, because Tailwind finds
-// them by scanning the source.
-// Each tier drops its trailing zeros, so a value with nothing after the point
-// renders as 99 rather than 99.0 and needs no decimal place at all. That's the
-// only way whole percent ever shows: rounding 99.9 down to 99 — or up to 100 —
-// would be a different objective, so it doesn't happen.
-//
-// A side effect is that tiers collapse when the extra digits are zeros. 99 is
-// the same string at every precision, and which one CSS picks stops mattering.
-const BREAKPOINTS = {
-  // "99.85384" and shorter — 1/3/5 decimals need 3.09em / 4.34em / 5.60em
-  short: {
-    one: '@[4.4em]:hidden',
-    three: 'hidden @[4.4em]:inline @[5.7em]:hidden',
-    five: 'hidden @[5.7em]:inline',
-  },
-  // "100.00000", "-569.20000" — up to 4.15em / 5.41em / 6.67em
-  medium: {
-    one: '@[5.5em]:hidden',
-    three: 'hidden @[5.5em]:inline @[6.8em]:hidden',
-    five: 'hidden @[6.8em]:inline',
-  },
-  // "-1234.50000" and beyond, for a thoroughly blown budget
-  long: {
-    one: '@[6.3em]:hidden',
-    three: 'hidden @[6.3em]:inline @[7.6em]:hidden',
-    five: 'hidden @[7.6em]:inline',
-  },
-}
+const PRECISIONS = [5, 3, 1]
 
-// A measured percentage rendered at every precision it might need, with a
-// container query picking the one that fits. The same value appears at 40px in
-// a detail tile and at 14px in a list cell, and how many digits fit is a
-// question about the space it lands in, which the component can't know.
-//
-// The breakpoints are in em, which a container query resolves against the
-// container's own font-size — so because this container inherits the size the
-// digits render at, the thresholds hold at every font size and there's nothing
-// to pass in.
-//
-// Every precision is in the DOM, but the ones that don't fit are display:none,
-// which takes them out of the accessibility tree too, so only the visible one is
-// announced. Unlike an objective's target, these are measurements — dropping
-// digits to fit loses nothing that was ever exact.
-//
-// Note the container is block-level and must get its width from its parent:
-// inline-size containment makes an element's width independent of its contents,
-// so a shrink-to-fit parent would collapse it to nothing.
-const PercentValue = ({value, className}: PercentValueProps): React.JSX.Element => {
-  const percent = 100 * value
-  const five = percent.toFixed(5)
-  const width = five.length <= 8 ? 'short' : five.length <= 10 ? 'medium' : 'long'
-  const breakpoints = BREAKPOINTS[width]
+// Fixed width tiers cannot cover arbitrarily large negative budgets. Measure
+// each label at the inherited font size, then shrink only if no label fits.
+const PercentText = ({labels, className}: {labels: string[]; className?: string}): React.JSX.Element => {
+  const container = useRef<HTMLSpanElement>(null)
+  const [display, setDisplay] = useState({index: 0, scale: 1})
+
+  useLayoutEffect(() => {
+    const element = container.current
+    if (element === null) return
+    const measurements = Array.from(element.querySelectorAll<HTMLElement>('[data-percent-measure]'))
+
+    const fit = () => {
+      const available = element.getBoundingClientRect().width
+      if (available === 0) return
+      const widths = measurements.map((span) => span.getBoundingClientRect().width)
+      const fitting = widths.findIndex((width) => width <= available)
+      const index = fitting === -1 ? labels.length - 1 : fitting
+      const scale = widths[index] > available ? available / widths[index] : 1
+      setDisplay((previous) => previous.index === index && previous.scale === scale ? previous : {index, scale})
+    }
+
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(element)
+    // Font loading and font-size changes also change the space the digits need.
+    measurements.forEach((span) => { observer.observe(span) })
+    return () => { observer.disconnect() }
+  }, [labels])
 
   return (
-    <span className={cn('@container block', className)}>
-      <span className={breakpoints.one}>{formatPercent(percent, 1)}</span>
-      <span className={breakpoints.three}>{formatPercent(percent, 3)}</span>
-      <span className={breakpoints.five}>{formatPercent(percent, 5)}</span>%
+    <span ref={container} className={cn('@container relative block min-w-0', className)}>
+      <span className="inline-block whitespace-nowrap" style={{fontSize: `${display.scale}em`}}>
+        {labels[display.index] ?? labels[0]}
+      </span>
+      <span aria-hidden="true" className="pointer-events-none invisible absolute left-0 top-0 h-0 w-0 overflow-hidden">
+        {labels.map((label, index) => (
+          <span key={index} data-percent-measure className="absolute whitespace-nowrap">{label}</span>
+        ))}
+      </span>
     </span>
   )
+}
+
+const PercentValue = ({value, className}: PercentValueProps): React.JSX.Element => {
+  const labels = useMemo(() => PRECISIONS.map((decimals) => `${formatPercent(100 * value, decimals)}%`), [value])
+  return <PercentText labels={labels} className={className} />
+}
+
+// Exact targets fit by changing font size, never by dropping authored digits.
+export const TargetValue = ({value, className}: PercentValueProps): React.JSX.Element => {
+  const labels = useMemo(() => [`${formatTargetPercent(value)}%`], [value])
+  return <PercentText labels={labels} className={className} />
 }
 
 export default PercentValue
