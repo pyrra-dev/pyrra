@@ -3,6 +3,7 @@ import {Spinner} from '@/components/ui/spinner'
 import {cn} from '@/lib/utils'
 import {type Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {hasObjectiveType, ObjectiveType} from '../../App'
+import PercentValue from './PercentValue'
 
 interface AvailabilityTileProps {
   objective: Objective
@@ -40,7 +41,9 @@ const AvailabilityTile = ({
       return (
         <div className={cn('rounded-lg p-9 font-sans', percentage > objective.target ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground')}>
           {headline}
-          <h2 className="inline-block mr-2 font-sans text-[40px] font-normal mb-0">{(100 * percentage).toFixed(3)}%</h2>
+          <h2 className="block font-sans text-[40px] font-normal mb-0">
+            <PercentValue value={percentage} />
+          </h2>
           <table className="opacity-50 font-medium">
             <tbody>
               <tr>
