@@ -1,32 +1,33 @@
 // Live preview of the SLO Detail page, rendered from a materialized Objective.
 //
-// Given an Objective produced by the backend preview (see preview.ts), this
-// composes the very same building blocks as the real Detail page — the three
-// tiles and the error-budget / requests / errors graphs — querying Prometheus
-// directly through the query strings the backend computed. The result looks and
-// behaves exactly like an already-stored SLO.
+// This is the same detail view a stored SLO gets — it composes the parts from
+// components/detail/ObjectiveDetail rather than reimplementing them, so the two
+// can't drift. The one thing it leaves out is the alerts table, which needs
+// alerting rules that only exist once the SLO is deployed.
 //
-// Until the backend preview endpoint exists, `objective` is null and this shows
-// the idle / unavailable states instead.
+// The time range lives in local state rather than the URL: the draft isn't
+// addressable, so there's nothing to put a range on.
+//
+// Everything around the view — the idle, loading and error states, the grouping
+// chooser's back button, the dimming while the editor is ahead of the preview —
+// lives here.
 
-import React, {useMemo, useState, type JSX} from 'react'
+import React, {useCallback, useMemo, useState, type JSX} from 'react'
 import {createClient} from '@connectrpc/connect'
 import {createConnectTransport} from '@connectrpc/connect-web'
 import type uPlot from 'uplot'
 import {ArrowLeft, LineChart, Play} from 'lucide-react'
 import {Spinner} from '@/components/ui/spinner'
 import {Button} from '@/components/ui/button'
-import {hasObjectiveType, ObjectiveType, latencyTarget} from '../../App'
-import {type Labels, MetricName} from '../../labels'
+import {hasObjectiveType, ObjectiveType} from '../../App'
+import {type Labels} from '../../labels'
 import {type Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 import {PrometheusService} from '../../proto/prometheus/v1/prometheus_pb'
-import {usePrometheusQuery, replaceInterval, vectorErrorsTotal} from '../../prometheus'
-import ObjectiveTiles from '../tiles/ObjectiveTiles'
-import ObjectiveLabels from '../ObjectiveLabels'
-import ErrorBudgetGraph from '../graphs/ErrorBudgetGraph'
-import RequestsGraph from '../graphs/RequestsGraph'
-import ErrorsGraph from '../graphs/ErrorsGraph'
-import {type PreviewStatus} from './preview'
+import ObjectiveDetail, {type ObjectiveDetailValue} from '../detail/ObjectiveDetail'
+import TimeRangeControls from '../detail/TimeRangeControls'
+import {useAutoReload} from '../detail/useAutoReload'
+import {intervalFromDuration, previewTimeRangePresets} from '../../timeRangePresets'
+import {objectiveClient, type PreviewStatus} from './preview'
 
 interface DetailPreviewProps {
   baseUrl: string
@@ -34,6 +35,9 @@ interface DetailPreviewProps {
   status: PreviewStatus
   stale: boolean
   onRun: () => void
+  // The YAML that produced `objective`. The duration graph is computed from the
+  // same draft, since there is no stored SLO to look up.
+  config: string
   // The grouping label set this preview is scoped to, shown as pills next to the
   // objective's labels. Undefined for an ungrouped (overall) preview.
   grouping?: Labels
@@ -42,7 +46,9 @@ interface DetailPreviewProps {
   onBack?: () => void
 }
 
-const noop = (): void => {}
+// A different sync key from the detail page's, so hovering the preview can't
+// drag the crosshair on a detail page rendered elsewhere.
+const uPlotCursor: uPlot.Cursor = {y: false, lock: true, sync: {key: 'create-preview'}}
 
 const EmptyState = ({onRun}: {onRun: () => void}): JSX.Element => (
   <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2.5 p-10 text-center text-muted-foreground">
@@ -65,34 +71,68 @@ const Message = ({title, children}: {title: string; children: React.ReactNode}):
   </div>
 )
 
-const DetailPreview = ({baseUrl, objective, status, stale, onRun, grouping, onBack}: DetailPreviewProps): JSX.Element => {
+const DetailPreview = ({
+  baseUrl,
+  objective,
+  status,
+  stale,
+  onRun,
+  config,
+  grouping,
+  onBack,
+}: DetailPreviewProps): JSX.Element => {
   const promClient = useMemo(
     () => createClient(PrometheusService, createConnectTransport({baseUrl})),
     [baseUrl],
   )
+  const client = useMemo(() => objectiveClient(baseUrl), [baseUrl])
 
-  // A fixed range captured once — a preview doesn't need live auto-refresh.
-  const [{from, to}] = useState(() => {
+  const [{from, to}, setRange] = useState(() => {
     const now = Date.now()
     return {from: now - 60 * 60 * 1000, to: now}
   })
+  const [autoReload, setAutoReload] = useState(false)
+  const [absolute, setAbsolute] = useState(true)
 
-  const countTotal = objective?.queries?.countTotal ?? ''
-  const countErrors = objective?.queries?.countErrors ?? ''
-  const queriesEnabled = objective !== null && countTotal !== ''
+  const updateTimeRange = useCallback((from: number, to: number) => {
+    setRange({from, to})
+  }, [])
 
-  const {response: totalResponse, status: totalStatus} = usePrometheusQuery(
-    promClient,
-    countTotal,
-    to / 1000,
-    {enabled: queriesEnabled},
+  // Dragging a selection on a graph picks an explicit window, so stop sliding it.
+  const updateTimeRangeSelect = useCallback(
+    (min: number, max: number) => {
+      setAutoReload(false)
+      updateTimeRange(min, max)
+    },
+    [updateTimeRange],
   )
-  const {response: errorResponse, status: errorStatus} = usePrometheusQuery(
-    promClient,
-    countErrors,
-    to / 1000,
-    {enabled: queriesEnabled},
-  )
+
+  const selectRange = useCallback((duration: number) => {
+    const to = Date.now()
+    setRange({from: to - duration, to})
+  }, [])
+
+  const duration = to - from
+  const interval = intervalFromDuration(duration)
+
+  useAutoReload(autoReload, duration, interval, updateTimeRange)
+
+  const detail = useMemo<ObjectiveDetailValue | null>(() => {
+    if (objective === null) {
+      return null
+    }
+    return {
+      objective,
+      objectiveType: hasObjectiveType(objective),
+      promClient,
+      grouping: grouping ?? {},
+      from,
+      to,
+      absolute,
+      uPlotCursor,
+      updateTimeRange: updateTimeRangeSelect,
+    }
+  }, [objective, promClient, grouping, from, to, absolute, updateTimeRangeSelect])
 
   if (status === 'loading') {
     return (
@@ -120,21 +160,16 @@ const DetailPreview = ({baseUrl, objective, status, stale, onRun, grouping, onBa
     )
   }
 
-  if (objective === null) {
+  if (detail === null) {
     return <EmptyState onRun={onRun} />
   }
 
-  const name = objective.labels[MetricName] ?? 'preview'
-  const objectiveType = hasObjectiveType(objective)
-  const objectiveTypeLatency =
-    objectiveType === ObjectiveType.Latency || objectiveType === ObjectiveType.LatencyNative
+  const latency =
+    detail.objectiveType === ObjectiveType.Latency ||
+    detail.objectiveType === ObjectiveType.LatencyNative
 
-  const loading = totalStatus === 'pending' || errorStatus === 'pending'
-  const success = totalStatus === 'success' && errorStatus === 'success'
+  const timeRanges = previewTimeRangePresets(Number(detail.objective.window?.seconds ?? 0) * 1000)
 
-  const {errors, total} = vectorErrorsTotal(totalResponse, errorResponse)
-
-  const uPlotCursor: uPlot.Cursor = {y: false, lock: true, sync: {key: 'create-preview'}}
 
   return (
     <div className={stale ? 'opacity-55 transition-opacity' : 'transition-opacity'}>
@@ -146,71 +181,25 @@ const DetailPreview = ({baseUrl, objective, status, stale, onRun, grouping, onBa
             <ArrowLeft size={15} /> Groupings
           </button>
         )}
-        <div className="mb-7">
-          <h3 className="mb-3">{name}</h3>
-          <ObjectiveLabels labels={objective.labels} grouping={grouping} />
-          {objective.description !== '' && (
-            <p className="mt-3 max-w-prose text-sm leading-relaxed">{objective.description}</p>
-          )}
-        </div>
-
-        <div className="mb-7">
-          <ObjectiveTiles
-            objective={objective}
-            loading={loading}
-            success={success}
-            errors={errors}
-            total={total}
+        <ObjectiveDetail.Provider value={detail}>
+          <ObjectiveDetail.Header />
+          <ObjectiveDetail.Tiles />
+          <TimeRangeControls
+            timeRanges={timeRanges}
+            from={from}
+            to={to}
+            interval={interval}
+            autoReload={autoReload}
+            setAutoReload={setAutoReload}
+            absolute={absolute}
+            setAbsolute={setAbsolute}
+            onSelectRange={selectRange}
           />
-        </div>
-
-        {objective.queries?.graphErrorBudget !== undefined && (
-          <div className="mb-7">
-            <ErrorBudgetGraph
-              client={promClient}
-              query={objective.queries.graphErrorBudget}
-              from={from}
-              to={to}
-              uPlotCursor={uPlotCursor}
-              updateTimeRange={noop}
-              absolute={true}
-            />
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {objective.queries?.graphRequests !== undefined && (
-            <RequestsGraph
-              client={promClient}
-              query={replaceInterval(objective.queries.graphRequests, from, to)}
-              from={from}
-              to={to}
-              uPlotCursor={uPlotCursor}
-              type={objectiveType}
-              updateTimeRange={noop}
-              absolute={true}
-            />
-          )}
-          {objective.queries?.graphErrors !== undefined && (
-            <ErrorsGraph
-              client={promClient}
-              type={objectiveType}
-              query={replaceInterval(objective.queries.graphErrors, from, to)}
-              from={from}
-              to={to}
-              uPlotCursor={uPlotCursor}
-              updateTimeRange={noop}
-              absolute={true}
-            />
-          )}
-        </div>
-
-        {objectiveTypeLatency && (
-          <p className="mt-4 text-xs text-muted-foreground">
-            Latency target: {latencyTarget(objective) ?? '—'} ms · the duration graph and alerts table appear
-            on the stored SLO's Detail page.
-          </p>
-        )}
+          <ObjectiveDetail.ErrorBudget />
+          <ObjectiveDetail.GraphRow>
+            {latency && <ObjectiveDetail.PreviewDuration client={client} config={config} />}
+          </ObjectiveDetail.GraphRow>
+        </ObjectiveDetail.Provider>
       </div>
     </div>
   )

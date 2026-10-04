@@ -183,7 +183,9 @@ const Create = (): JSX.Element => {
                 />
               </Field>
 
-              <Field label="Labels" hint="Free-form key=value pairs attached to the objective.">
+              <Field
+                label="Labels"
+                hint="Metadata labels on the resource. Prefix a key with pyrra.dev/ to make it part of the objective — those show up on its detail page and are propagated to the generated rules. Unprefixed keys (like prometheus or role) only select which Prometheus picks up the PrometheusRule.">
                 <LabelsEditor value={cfg.labels} onChange={(labels) => { set({labels}); }} />
               </Field>
 
@@ -429,6 +431,7 @@ const Create = (): JSX.Element => {
               status={previewStatus}
               stale={stale}
               onRun={runPreview}
+              config={previewYaml}
               grouping={selectedGrouping ?? undefined}
               onBack={groupingObjective !== null ? backToGroupings : undefined}
             />

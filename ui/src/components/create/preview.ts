@@ -5,7 +5,7 @@
 // parsing on the backend, so the preview renders exactly as a stored SLO would —
 // same queries, same tiles, same graphs against real Prometheus data.
 
-import {Code, ConnectError, createClient} from '@connectrpc/connect'
+import {type Client, Code, ConnectError, createClient} from '@connectrpc/connect'
 import {createConnectTransport} from '@connectrpc/connect-web'
 import {ObjectiveService, type Objective} from '../../proto/objectives/v1alpha1/objectives_pb'
 
@@ -18,10 +18,13 @@ export class PreviewUnavailableError extends Error {
   }
 }
 
+export const objectiveClient = (baseUrl: string): Client<typeof ObjectiveService> =>
+  createClient(ObjectiveService, createConnectTransport({baseUrl}))
+
 // grouping optionally scopes the preview to a single grouping label set (e.g.
 // {handler="/api"}); empty previews the objective grouped by its grouping labels.
 export async function previewObjective(baseUrl: string, config: string, grouping = ''): Promise<Objective> {
-  const client = createClient(ObjectiveService, createConnectTransport({baseUrl}))
+  const client = objectiveClient(baseUrl)
   try {
     const response = await client.preview({config, grouping})
     if (response.objective === undefined) {

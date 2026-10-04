@@ -1,5 +1,5 @@
 import {Link} from 'react-router-dom'
-import React, {useCallback, useEffect, useMemo, useState} from 'react'
+import React, {useCallback, useMemo, useState} from 'react'
 import {useQueryState, parseAsString} from 'nuqs'
 import {Spinner} from '@/components/ui/spinner'
 import {API_BASEPATH, hasObjectiveType, ObjectiveType} from '../App'
@@ -13,9 +13,10 @@ import {PrometheusService} from '../proto/prometheus/v1/prometheus_pb'
 import {useObjectivesList} from '../objectives'
 import {type Objective} from '../proto/objectives/v1alpha1/objectives_pb'
 import {formatDuration, parseDuration} from '../duration'
-import {computeTimeRangePresets} from '../timeRangePresets'
+import {computeTimeRangePresets, intervalFromDuration} from '../timeRangePresets'
 import ObjectiveDetail, {type ObjectiveDetailValue} from '../components/detail/ObjectiveDetail'
 import TimeRangeControls from '../components/detail/TimeRangeControls'
+import {useAutoReload} from '../components/detail/useAutoReload'
 
 const uPlotCursor: uPlot.Cursor = {
   y: false,
@@ -107,19 +108,7 @@ const Detail = () => {
   const duration = to - from
   const interval = intervalFromDuration(duration)
 
-  useEffect(() => {
-    if (autoReload) {
-      const id = setInterval(() => {
-        const newTo = Date.now()
-        const newFrom = newTo - duration
-        updateTimeRange(newFrom, newTo, false)
-      }, interval)
-
-      return () => {
-        clearInterval(id)
-      }
-    }
-  }, [updateTimeRange, autoReload, duration, interval])
+  useAutoReload(autoReload, duration, interval, updateTimeRange)
 
   const selectRange = (t: number) => {
     const to = Date.now()
@@ -225,27 +214,6 @@ const Detail = () => {
       </div>
     </>
   )
-}
-
-const intervalFromDuration = (duration: number): number => {
-  // map some preset duration to nicer looking intervals
-  switch (duration) {
-    case 60 * 60 * 1000: // 1h => 10s
-      return 10 * 1000
-    case 12 * 60 * 60 * 1000: // 12h => 30s
-      return 30 * 1000
-    case 24 * 60 * 60 * 1000: // 12h => 30s
-      return 90 * 1000
-  }
-
-  if (duration < 10 * 1000 * 1000) {
-    return 10 * 1000
-  }
-  if (duration < 10 * 60 * 1000 * 1000) {
-    return Math.floor(duration / 1000 / 1000) * 1000 // round to seconds
-  }
-
-  return Math.floor(duration / 60 / 1000 / 1000) * 60 * 1000
 }
 
 export default Detail

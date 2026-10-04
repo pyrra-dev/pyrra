@@ -33,6 +33,9 @@ export const DEFAULT_CONFIG: CreateConfig = {
   labels: [
     {k: 'prometheus', v: 'k8s'},
     {k: 'role', v: 'alert-rules'},
+    // Only pyrra.dev/-prefixed labels become part of the objective itself, so
+    // this is the one that shows up on the detail page.
+    {k: 'pyrra.dev/team', v: 'platform'},
   ],
   target: '99.0',
   window: '7d',
