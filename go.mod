@@ -11,7 +11,7 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/go-kit/log v0.2.1
 	github.com/go-logr/logr v1.4.4
-	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/oklog/run v1.2.0
 	github.com/polarsignals/connect-go-prometheus v0.0.0-20260621122702-792cc9893604
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.93.1
