@@ -19,7 +19,7 @@ require (
 	github.com/prometheus/common v0.72.0
 	github.com/prometheus/prometheus v0.310.0
 	github.com/stretchr/testify v1.12.1
-	github.com/toon-format/toon-go v0.0.0-20251202084852-7ca0e27c4e8c
+	github.com/toon-format/toon-go v1.0.1
 	golang.org/x/net v0.60.0
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
