@@ -5,191 +5,204 @@
 package prometheusv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/pyrra-dev/pyrra/proto/prometheus/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// PrometheusServiceName is the fully-qualified name of the PrometheusService service.
 	PrometheusServiceName = "prometheus.v1.PrometheusService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// PrometheusServiceQueryProcedure is the fully-qualified name of the PrometheusService's Query RPC.
+	// PrometheusServiceQueryProcedure is the procedure name of the PrometheusService's Query RPC.
 	PrometheusServiceQueryProcedure = "/prometheus.v1.PrometheusService/Query"
-	// PrometheusServiceQueryRangeProcedure is the fully-qualified name of the PrometheusService's
-	// QueryRange RPC.
+	// PrometheusServiceQueryRangeProcedure is the procedure name of the PrometheusService's QueryRange
+	// RPC.
 	PrometheusServiceQueryRangeProcedure = "/prometheus.v1.PrometheusService/QueryRange"
-	// PrometheusServiceLabelNamesProcedure is the fully-qualified name of the PrometheusService's
-	// LabelNames RPC.
+	// PrometheusServiceLabelNamesProcedure is the procedure name of the PrometheusService's LabelNames
+	// RPC.
 	PrometheusServiceLabelNamesProcedure = "/prometheus.v1.PrometheusService/LabelNames"
-	// PrometheusServiceLabelValuesProcedure is the fully-qualified name of the PrometheusService's
+	// PrometheusServiceLabelValuesProcedure is the procedure name of the PrometheusService's
 	// LabelValues RPC.
 	PrometheusServiceLabelValuesProcedure = "/prometheus.v1.PrometheusService/LabelValues"
 )
 
+var (
+	prometheusServiceQuerySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_prometheus_v1_prometheus_proto.Services().ByName("PrometheusService").Methods().ByName("Query"),
+			Procedure:  PrometheusServiceQueryProcedure,
+		}
+	})
+	prometheusServiceQueryRangeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_prometheus_v1_prometheus_proto.Services().ByName("PrometheusService").Methods().ByName("QueryRange"),
+			Procedure:  PrometheusServiceQueryRangeProcedure,
+		}
+	})
+	prometheusServiceLabelNamesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_prometheus_v1_prometheus_proto.Services().ByName("PrometheusService").Methods().ByName("LabelNames"),
+			Procedure:  PrometheusServiceLabelNamesProcedure,
+		}
+	})
+	prometheusServiceLabelValuesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_prometheus_v1_prometheus_proto.Services().ByName("PrometheusService").Methods().ByName("LabelValues"),
+			Procedure:  PrometheusServiceLabelValuesProcedure,
+		}
+	})
+)
+
 // PrometheusServiceClient is a client for the prometheus.v1.PrometheusService service.
 type PrometheusServiceClient interface {
-	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
-	QueryRange(context.Context, *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error)
-	LabelNames(context.Context, *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error)
-	LabelValues(context.Context, *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error)
+	Query(context.Context, *v1.QueryRequest) (*v1.QueryResponse, error)
+	QueryRange(context.Context, *v1.QueryRangeRequest) (*v1.QueryRangeResponse, error)
+	LabelNames(context.Context, *v1.LabelNamesRequest) (*v1.LabelNamesResponse, error)
+	LabelValues(context.Context, *v1.LabelValuesRequest) (*v1.LabelValuesResponse, error)
 }
 
 // NewPrometheusServiceClient constructs a client for the prometheus.v1.PrometheusService service.
-// By default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped
-// responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewPrometheusServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PrometheusServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	prometheusServiceMethods := v1.File_prometheus_v1_prometheus_proto.Services().ByName("PrometheusService").Methods()
-	return &prometheusServiceClient{
-		query: connect.NewClient[v1.QueryRequest, v1.QueryResponse](
-			httpClient,
-			baseURL+PrometheusServiceQueryProcedure,
-			connect.WithSchema(prometheusServiceMethods.ByName("Query")),
-			connect.WithClientOptions(opts...),
-		),
-		queryRange: connect.NewClient[v1.QueryRangeRequest, v1.QueryRangeResponse](
-			httpClient,
-			baseURL+PrometheusServiceQueryRangeProcedure,
-			connect.WithSchema(prometheusServiceMethods.ByName("QueryRange")),
-			connect.WithClientOptions(opts...),
-		),
-		labelNames: connect.NewClient[v1.LabelNamesRequest, v1.LabelNamesResponse](
-			httpClient,
-			baseURL+PrometheusServiceLabelNamesProcedure,
-			connect.WithSchema(prometheusServiceMethods.ByName("LabelNames")),
-			connect.WithClientOptions(opts...),
-		),
-		labelValues: connect.NewClient[v1.LabelValuesRequest, v1.LabelValuesResponse](
-			httpClient,
-			baseURL+PrometheusServiceLabelValuesProcedure,
-			connect.WithSchema(prometheusServiceMethods.ByName("LabelValues")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// prometheusServiceClient implements PrometheusServiceClient.
-type prometheusServiceClient struct {
-	query       *connect.Client[v1.QueryRequest, v1.QueryResponse]
-	queryRange  *connect.Client[v1.QueryRangeRequest, v1.QueryRangeResponse]
-	labelNames  *connect.Client[v1.LabelNamesRequest, v1.LabelNamesResponse]
-	labelValues *connect.Client[v1.LabelValuesRequest, v1.LabelValuesResponse]
-}
-
-// Query calls prometheus.v1.PrometheusService.Query.
-func (c *prometheusServiceClient) Query(ctx context.Context, req *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
-	return c.query.CallUnary(ctx, req)
-}
-
-// QueryRange calls prometheus.v1.PrometheusService.QueryRange.
-func (c *prometheusServiceClient) QueryRange(ctx context.Context, req *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error) {
-	return c.queryRange.CallUnary(ctx, req)
-}
-
-// LabelNames calls prometheus.v1.PrometheusService.LabelNames.
-func (c *prometheusServiceClient) LabelNames(ctx context.Context, req *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error) {
-	return c.labelNames.CallUnary(ctx, req)
-}
-
-// LabelValues calls prometheus.v1.PrometheusService.LabelValues.
-func (c *prometheusServiceClient) LabelValues(ctx context.Context, req *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error) {
-	return c.labelValues.CallUnary(ctx, req)
+// Multiple service clients may share a single connect.Client.
+func NewPrometheusServiceClient(client *connect.Client) PrometheusServiceClient {
+	return &prometheusServiceClient{client: client}
 }
 
 // PrometheusServiceHandler is an implementation of the prometheus.v1.PrometheusService service.
 type PrometheusServiceHandler interface {
-	Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error)
-	QueryRange(context.Context, *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error)
-	LabelNames(context.Context, *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error)
-	LabelValues(context.Context, *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error)
+	Query(context.Context, *v1.QueryRequest) (*v1.QueryResponse, error)
+	QueryRange(context.Context, *v1.QueryRangeRequest) (*v1.QueryRangeResponse, error)
+	LabelNames(context.Context, *v1.LabelNamesRequest) (*v1.LabelNamesResponse, error)
+	LabelValues(context.Context, *v1.LabelValuesRequest) (*v1.LabelValuesResponse, error)
 }
 
-// NewPrometheusServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewPrometheusServiceHandler(svc PrometheusServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	prometheusServiceMethods := v1.File_prometheus_v1_prometheus_proto.Services().ByName("PrometheusService").Methods()
-	prometheusServiceQueryHandler := connect.NewUnaryHandler(
-		PrometheusServiceQueryProcedure,
-		svc.Query,
-		connect.WithSchema(prometheusServiceMethods.ByName("Query")),
-		connect.WithHandlerOptions(opts...),
+// RegisterPrometheusServiceHandler registers svc as the prometheus.v1.PrometheusService
+// implementation on server.
+func RegisterPrometheusServiceHandler(server *connect.Server, svc PrometheusServiceHandler) {
+	adapter := prometheusServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: prometheusServiceQuerySpec(), Handler: adapter.query},
+		connect.Method{Spec: prometheusServiceQueryRangeSpec(), Handler: adapter.queryRange},
+		connect.Method{Spec: prometheusServiceLabelNamesSpec(), Handler: adapter.labelNames},
+		connect.Method{Spec: prometheusServiceLabelValuesSpec(), Handler: adapter.labelValues},
 	)
-	prometheusServiceQueryRangeHandler := connect.NewUnaryHandler(
-		PrometheusServiceQueryRangeProcedure,
-		svc.QueryRange,
-		connect.WithSchema(prometheusServiceMethods.ByName("QueryRange")),
-		connect.WithHandlerOptions(opts...),
-	)
-	prometheusServiceLabelNamesHandler := connect.NewUnaryHandler(
-		PrometheusServiceLabelNamesProcedure,
-		svc.LabelNames,
-		connect.WithSchema(prometheusServiceMethods.ByName("LabelNames")),
-		connect.WithHandlerOptions(opts...),
-	)
-	prometheusServiceLabelValuesHandler := connect.NewUnaryHandler(
-		PrometheusServiceLabelValuesProcedure,
-		svc.LabelValues,
-		connect.WithSchema(prometheusServiceMethods.ByName("LabelValues")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/prometheus.v1.PrometheusService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case PrometheusServiceQueryProcedure:
-			prometheusServiceQueryHandler.ServeHTTP(w, r)
-		case PrometheusServiceQueryRangeProcedure:
-			prometheusServiceQueryRangeHandler.ServeHTTP(w, r)
-		case PrometheusServiceLabelNamesProcedure:
-			prometheusServiceLabelNamesHandler.ServeHTTP(w, r)
-		case PrometheusServiceLabelValuesProcedure:
-			prometheusServiceLabelValuesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedPrometheusServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedPrometheusServiceHandler struct{}
 
-func (UnimplementedPrometheusServiceHandler) Query(context.Context, *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.Query is not implemented"))
+func (UnimplementedPrometheusServiceHandler) Query(context.Context, *v1.QueryRequest) (*v1.QueryResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "prometheus.v1.PrometheusService.Query is not implemented")
 }
 
-func (UnimplementedPrometheusServiceHandler) QueryRange(context.Context, *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.QueryRange is not implemented"))
+func (UnimplementedPrometheusServiceHandler) QueryRange(context.Context, *v1.QueryRangeRequest) (*v1.QueryRangeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "prometheus.v1.PrometheusService.QueryRange is not implemented")
 }
 
-func (UnimplementedPrometheusServiceHandler) LabelNames(context.Context, *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.LabelNames is not implemented"))
+func (UnimplementedPrometheusServiceHandler) LabelNames(context.Context, *v1.LabelNamesRequest) (*v1.LabelNamesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "prometheus.v1.PrometheusService.LabelNames is not implemented")
 }
 
-func (UnimplementedPrometheusServiceHandler) LabelValues(context.Context, *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("prometheus.v1.PrometheusService.LabelValues is not implemented"))
+func (UnimplementedPrometheusServiceHandler) LabelValues(context.Context, *v1.LabelValuesRequest) (*v1.LabelValuesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "prometheus.v1.PrometheusService.LabelValues is not implemented")
+}
+
+type prometheusServiceClient struct {
+	client *connect.Client
+}
+
+func (c *prometheusServiceClient) Query(ctx context.Context, req *v1.QueryRequest) (*v1.QueryResponse, error) {
+	var res v1.QueryResponse
+	if err := c.client.CallUnary(ctx, prometheusServiceQuerySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *prometheusServiceClient) QueryRange(ctx context.Context, req *v1.QueryRangeRequest) (*v1.QueryRangeResponse, error) {
+	var res v1.QueryRangeResponse
+	if err := c.client.CallUnary(ctx, prometheusServiceQueryRangeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *prometheusServiceClient) LabelNames(ctx context.Context, req *v1.LabelNamesRequest) (*v1.LabelNamesResponse, error) {
+	var res v1.LabelNamesResponse
+	if err := c.client.CallUnary(ctx, prometheusServiceLabelNamesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *prometheusServiceClient) LabelValues(ctx context.Context, req *v1.LabelValuesRequest) (*v1.LabelValuesResponse, error) {
+	var res v1.LabelValuesResponse
+	if err := c.client.CallUnary(ctx, prometheusServiceLabelValuesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type prometheusServiceHandler struct{ svc PrometheusServiceHandler }
+
+func (h prometheusServiceHandler) query(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.QueryRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Query(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h prometheusServiceHandler) queryRange(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.QueryRangeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.QueryRange(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h prometheusServiceHandler) labelNames(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.LabelNamesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.LabelNames(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h prometheusServiceHandler) labelValues(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.LabelValuesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.LabelValues(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

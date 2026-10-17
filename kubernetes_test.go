@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	connect "connectrpc.com/connect"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -118,12 +117,12 @@ func TestObjectiveServer_ListObjectives(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			response, err := s.List(context.Background(), connect.NewRequest(&objectivesv1alpha1.ListRequest{
+			response, err := s.List(context.Background(), &objectivesv1alpha1.ListRequest{
 				Expr: tc.expr,
-			}))
+			})
 			require.NoError(t, err)
-			require.Len(t, response.Msg.Objectives, len(tc.response))
-			require.Equal(t, tc.response, response.Msg.Objectives)
+			require.Len(t, response.Objectives, len(tc.response))
+			require.Equal(t, tc.response, response.Objectives)
 		})
 	}
 }
@@ -152,11 +151,11 @@ func TestObjectiveServer_ListObjectivesScoped(t *testing.T) {
 	}}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			response, err := s.List(context.Background(), connect.NewRequest(&objectivesv1alpha1.ListRequest{
+			response, err := s.List(context.Background(), &objectivesv1alpha1.ListRequest{
 				Expr: tc.expr,
-			}))
+			})
 			require.NoError(t, err)
-			require.Equal(t, tc.response, response.Msg.Objectives)
+			require.Equal(t, tc.response, response.Objectives)
 		})
 	}
 }

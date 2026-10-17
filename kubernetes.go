@@ -25,7 +25,8 @@ import (
 	"syscall"
 	"time"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/go-kit/log"
 	"github.com/go-logr/logr" //nolint:depguard // Required for logr.LogSink adapter bridging go-kit/log with controller-runtime.
 	"github.com/oklog/run"
@@ -211,11 +212,13 @@ func cmdKubernetes(
 	}
 	{
 		router := http.NewServeMux()
-		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(&KubernetesObjectiveServer{
+		srv := connect.NewServer()
+		objectivesv1alpha1connect.RegisterObjectiveBackendServiceHandler(srv, &KubernetesObjectiveServer{
 			client:     mgr.GetClient(),
 			pyrraURL:   pyrraURL,
 			namespaces: cacheOptions.DefaultNamespaces,
-		}))
+		})
+		connecthttp.Mount(router, srv, connecthttp.WithReadMaxBytes(0))
 
 		server := http.Server{
 			Addr:      ":9444",
@@ -282,18 +285,18 @@ func (s *KubernetesObjectiveServer) watches(namespace string) bool {
 	return ok
 }
 
-func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
+func (s *KubernetesObjectiveServer) List(ctx context.Context, req *objectivesv1alpha1.ListRequest) (*objectivesv1alpha1.ListResponse, error) {
 	var (
 		matchers         []*labels.Matcher
 		nameMatcher      *labels.Matcher
 		namespaceMatcher *labels.Matcher
 	)
 
-	if req.Msg.Expr != "" {
+	if req.Expr != "" {
 		var err error
-		matchers, err = parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Expr)
+		matchers, err = parser.NewParser(parser.Options{}).ParseMetricSelector(req.Expr)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "failed to parse expr: %v", err).WithCause(err)
 		}
 		for _, m := range matchers {
 			if m.Name == model.MetricNameLabel {
@@ -310,16 +313,16 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 		if !s.watches(namespaceMatcher.Value) {
 			// The cache doesn't hold this namespace, so listing it would fail.
 			// No objective can match either, so return an empty list.
-			return connect.NewResponse(&objectivesv1alpha1.ListResponse{
+			return &objectivesv1alpha1.ListResponse{
 				Objectives: []*objectivesv1alpha1.Objective{},
-			}), nil
+			}, nil
 		}
 		listOpts.Namespace = namespaceMatcher.Value
 	}
 
 	var list pyrrav1alpha1.ServiceLevelObjectiveList
 	if err := s.client.List(ctx, &list, &listOpts); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	objectives := make([]*objectivesv1alpha1.Objective, 0, len(list.Items))
@@ -337,12 +340,12 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 
 		internal, err := slo.Internal()
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 		objectives = append(objectives, objectivesv1alpha1.FromInternal(internal))
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.ListResponse{
+	return &objectivesv1alpha1.ListResponse{
 		Objectives: objectives,
-	}), nil
+	}, nil
 }

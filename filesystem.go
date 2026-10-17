@@ -11,7 +11,8 @@ import (
 	"sync"
 	"time"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -261,12 +262,12 @@ func cmdFilesystem(logger log.Logger, reg *prometheus.Registry, promClient api.C
 		prometheusInterceptor := connectprometheus.NewInterceptor(reg)
 
 		router := http.NewServeMux()
-		router.Handle(objectivesv1alpha1connect.NewObjectiveBackendServiceHandler(
-			&FilesystemObjectiveServer{
-				objectives: objectives,
-			},
-			connect.WithInterceptors(prometheusInterceptor),
-		))
+		srv := connect.NewServer(prometheusInterceptor.ServerInterceptor())
+		objectivesv1alpha1connect.RegisterObjectiveBackendServiceHandler(srv, &FilesystemObjectiveServer{
+			objectives: objectives,
+		})
+		connecthttp.Mount(router, srv, connecthttp.WithReadMaxBytes(0))
+
 		router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 		server := http.Server{
@@ -294,13 +295,13 @@ type FilesystemObjectiveServer struct {
 	objectives *Objectives
 }
 
-func (s *FilesystemObjectiveServer) List(_ context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
+func (s *FilesystemObjectiveServer) List(_ context.Context, req *objectivesv1alpha1.ListRequest) (*objectivesv1alpha1.ListResponse, error) {
 	var matchers []*labels.Matcher
-	if expr := req.Msg.Expr; expr != "" {
+	if expr := req.Expr; expr != "" {
 		var err error
 		matchers, err = parser.NewParser(parser.Options{}).ParseMetricSelector(expr)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "failed to parse expr: %v", err).WithCause(err)
 		}
 	}
 
@@ -311,12 +312,12 @@ func (s *FilesystemObjectiveServer) List(_ context.Context, req *connect.Request
 	}
 
 	if len(objectives) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no objectives found"))
+		return nil, connect.Errorf(connect.CodeNotFound, "no objectives found")
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.ListResponse{
+	return &objectivesv1alpha1.ListResponse{
 		Objectives: objectives,
-	}), nil
+	}, nil
 }
 
 func writeRuleFile(logger log.Logger, file, prometheusFolder string, genericRules, operatorRule, enablePrometheus3Migration bool, externalURL string) error {

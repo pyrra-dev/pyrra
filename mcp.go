@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/go-kit/log"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/prometheus/common/model"
@@ -158,15 +158,15 @@ func (m *mcpServer) listObjectives(ctx context.Context, _ *mcpsdk.CallToolReques
 		matchers[model.MetricNameLabel] = in.Name
 	}
 
-	list, err := m.objectives.List(ctx, connect.NewRequest(&objectivesv1alpha1.ListRequest{Expr: selectorFromLabels(matchers)}))
+	list, err := m.objectives.List(ctx, &objectivesv1alpha1.ListRequest{Expr: selectorFromLabels(matchers)})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// One bulk GetAlerts for all objectives; summarize per objective name.
 	alertSummaries := map[string]*alertSummary{}
-	if alerts, err := m.objectives.GetAlerts(ctx, connect.NewRequest(&objectivesv1alpha1.GetAlertsRequest{})); err == nil {
-		for _, a := range alerts.Msg.Alerts {
+	if alerts, err := m.objectives.GetAlerts(ctx, &objectivesv1alpha1.GetAlertsRequest{}); err == nil {
+		for _, a := range alerts.Alerts {
 			name := a.GetLabels()[model.MetricNameLabel]
 			if name == "" {
 				continue
@@ -181,7 +181,7 @@ func (m *mcpServer) listObjectives(ctx context.Context, _ *mcpsdk.CallToolReques
 	}
 
 	result := listObjectivesResult{}
-	for _, o := range list.Msg.Objectives {
+	for _, o := range list.Objectives {
 		name := o.GetLabels()[model.MetricNameLabel]
 		objLabels := stripName(o.GetLabels())
 		typ := indicatorType(o)
@@ -189,12 +189,12 @@ func (m *mcpServer) listObjectives(ctx context.Context, _ *mcpsdk.CallToolReques
 		window := humanizeDuration(o.GetWindow().AsDuration())
 		sum := alertSummaries[name]
 
-		status, err := m.objectives.GetStatus(ctx, connect.NewRequest(&objectivesv1alpha1.GetStatusRequest{Expr: selectorName(name)}))
+		status, err := m.objectives.GetStatus(ctx, &objectivesv1alpha1.GetStatusRequest{Expr: selectorName(name)})
 		if err != nil {
 			// Objectives with no data error out; skip them like the UI does.
 			continue
 		}
-		for _, st := range status.Msg.Status {
+		for _, st := range status.Status {
 			result.Objectives = append(result.Objectives, objectiveRow{
 				Name:          name,
 				Labels:        labelString(mergeLabels(objLabels, st.GetLabels())),
@@ -238,7 +238,7 @@ func (m *mcpServer) getObjective(ctx context.Context, _ *mcpsdk.CallToolRequest,
 		}
 		req.Time = timestamppb.New(t)
 	}
-	status, err := m.objectives.GetStatus(ctx, connect.NewRequest(req))
+	status, err := m.objectives.GetStatus(ctx, req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -253,7 +253,7 @@ func (m *mcpServer) getObjective(ctx context.Context, _ *mcpsdk.CallToolRequest,
 		Latency:     latencyThreshold(o),
 		Queries:     m.statusQueries(o, in.Grouping),
 	}
-	for _, st := range status.Msg.Status {
+	for _, st := range status.Status {
 		res.Status = append(res.Status, statusRow{
 			Labels:       labelString(st.GetLabels()),
 			Availability: round(st.GetAvailability().GetPercentage()*100, 3),
@@ -265,16 +265,16 @@ func (m *mcpServer) getObjective(ctx context.Context, _ *mcpsdk.CallToolRequest,
 
 	// Multi-burn-rate alerts, merged in like the detail page (all windows, with
 	// current burn rates).
-	alerts, err := m.objectives.GetAlerts(ctx, connect.NewRequest(&objectivesv1alpha1.GetAlertsRequest{
+	alerts, err := m.objectives.GetAlerts(ctx, &objectivesv1alpha1.GetAlertsRequest{
 		Expr:     selectorName(in.Name),
 		Grouping: selectorFromLabels(in.Grouping),
 		Inactive: true,
 		Current:  true,
-	}))
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-	res.Alerts = buildAlertRows(alerts.Msg.Alerts, o.GetWindow().AsDuration(), o.GetTarget())
+	res.Alerts = buildAlertRows(alerts.Alerts, o.GetWindow().AsDuration(), o.GetTarget())
 
 	// Graphs (the detail page's Error Budget / Requests / Errors / Duration).
 	// Prometheus does the downsampling: we set the query step to ~range/max_points
@@ -300,39 +300,39 @@ func (m *mcpServer) getObjective(ctx context.Context, _ *mcpsdk.CallToolRequest,
 	}
 
 	if res.ErrorBudget, err = m.fetchGraph(g, true, func(r graphReq) ([]*objectivesv1alpha1.Timeseries, error) {
-		resp, err := m.objectives.GraphErrorBudget(ctxGraph, connect.NewRequest(&objectivesv1alpha1.GraphErrorBudgetRequest{Expr: r.expr, Grouping: r.grouping, Start: r.start, End: r.end}))
+		resp, err := m.objectives.GraphErrorBudget(ctxGraph, &objectivesv1alpha1.GraphErrorBudgetRequest{Expr: r.expr, Grouping: r.grouping, Start: r.start, End: r.end})
 		if err != nil {
 			return nil, err
 		}
-		return []*objectivesv1alpha1.Timeseries{resp.Msg.GetTimeseries()}, nil
+		return []*objectivesv1alpha1.Timeseries{resp.GetTimeseries()}, nil
 	}); err != nil {
 		return nil, nil, err
 	}
 	if res.Requests, err = m.fetchGraph(g, false, func(r graphReq) ([]*objectivesv1alpha1.Timeseries, error) {
-		resp, err := m.objectives.GraphRate(ctxGraph, connect.NewRequest(&objectivesv1alpha1.GraphRateRequest{Expr: r.expr, Grouping: r.grouping, Start: r.start, End: r.end}))
+		resp, err := m.objectives.GraphRate(ctxGraph, &objectivesv1alpha1.GraphRateRequest{Expr: r.expr, Grouping: r.grouping, Start: r.start, End: r.end})
 		if err != nil {
 			return nil, err
 		}
-		return []*objectivesv1alpha1.Timeseries{resp.Msg.GetTimeseries()}, nil
+		return []*objectivesv1alpha1.Timeseries{resp.GetTimeseries()}, nil
 	}); err != nil {
 		return nil, nil, err
 	}
 	if res.Errors, err = m.fetchGraph(g, false, func(r graphReq) ([]*objectivesv1alpha1.Timeseries, error) {
-		resp, err := m.objectives.GraphErrors(ctxGraph, connect.NewRequest(&objectivesv1alpha1.GraphErrorsRequest{Expr: r.expr, Grouping: r.grouping, Start: r.start, End: r.end}))
+		resp, err := m.objectives.GraphErrors(ctxGraph, &objectivesv1alpha1.GraphErrorsRequest{Expr: r.expr, Grouping: r.grouping, Start: r.start, End: r.end})
 		if err != nil {
 			return nil, err
 		}
-		return []*objectivesv1alpha1.Timeseries{resp.Msg.GetTimeseries()}, nil
+		return []*objectivesv1alpha1.Timeseries{resp.GetTimeseries()}, nil
 	}); err != nil {
 		return nil, nil, err
 	}
 	if indicatorType(o) == "latency" || indicatorType(o) == "latency_native" {
 		if res.Duration, err = m.fetchGraph(g, false, func(r graphReq) ([]*objectivesv1alpha1.Timeseries, error) {
-			resp, err := m.objectives.GraphDuration(ctxGraph, connect.NewRequest(&objectivesv1alpha1.GraphDurationRequest{Expr: r.expr, Grouping: r.grouping, Start: r.start, End: r.end}))
+			resp, err := m.objectives.GraphDuration(ctxGraph, &objectivesv1alpha1.GraphDurationRequest{Expr: r.expr, Grouping: r.grouping, Start: r.start, End: r.end})
 			if err != nil {
 				return nil, err
 			}
-			return resp.Msg.GetTimeseries(), nil
+			return resp.GetTimeseries(), nil
 		}); err != nil {
 			return nil, nil, err
 		}
@@ -397,14 +397,14 @@ func (m *mcpServer) statusQueries(o *objectivesv1alpha1.Objective, grouping map[
 }
 
 func (m *mcpServer) listOne(ctx context.Context, name string) (*objectivesv1alpha1.Objective, error) {
-	resp, err := m.objectives.List(ctx, connect.NewRequest(&objectivesv1alpha1.ListRequest{Expr: selectorName(name)}))
+	resp, err := m.objectives.List(ctx, &objectivesv1alpha1.ListRequest{Expr: selectorName(name)})
 	if err != nil {
 		return nil, err
 	}
-	if len(resp.Msg.Objectives) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("objective %q not found", name))
+	if len(resp.Objectives) == 0 {
+		return nil, connect.Errorf(connect.CodeNotFound, "objective %q not found", name)
 	}
-	return resp.Msg.Objectives[0], nil
+	return resp.Objectives[0], nil
 }
 
 // graphReq carries the resolved request parameters into a graph fetch closure.

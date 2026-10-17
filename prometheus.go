@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/go-kit/log"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -17,15 +17,15 @@ type prometheusServer struct {
 	promAPI *promCache
 }
 
-func (ps *prometheusServer) Query(ctx context.Context, req *connect.Request[v1.QueryRequest]) (*connect.Response[v1.QueryResponse], error) {
-	value, warnings, err := ps.promAPI.Query(ctx, req.Msg.Query, time.Unix(req.Msg.Time, 0))
+func (ps *prometheusServer) Query(ctx context.Context, req *v1.QueryRequest) (*v1.QueryResponse, error) {
+	value, warnings, err := ps.promAPI.Query(ctx, req.Query, time.Unix(req.Time, 0))
 	if err != nil {
-		return nil, err
+		return nil, unknownError(err)
 	}
 
 	switch v := value.(type) {
 	case *model.String:
-		return connect.NewResponse(&v1.QueryResponse{
+		return &v1.QueryResponse{
 			Warnings: warnings,
 			Options: &v1.QueryResponse_String_{
 				String_: &v1.String{
@@ -33,9 +33,9 @@ func (ps *prometheusServer) Query(ctx context.Context, req *connect.Request[v1.Q
 					Value: v.Value,
 				},
 			},
-		}), err
+		}, err
 	case *model.Scalar:
-		return connect.NewResponse(&v1.QueryResponse{
+		return &v1.QueryResponse{
 			Warnings: warnings,
 			Options: &v1.QueryResponse_Scalar{
 				Scalar: &v1.SamplePair{
@@ -43,46 +43,46 @@ func (ps *prometheusServer) Query(ctx context.Context, req *connect.Request[v1.Q
 					Value: float64(v.Value),
 				},
 			},
-		}), nil
+		}, nil
 	case model.Vector:
 		vector := convertVector(v)
-		return connect.NewResponse(&v1.QueryResponse{
+		return &v1.QueryResponse{
 			Warnings: warnings,
 			Options: &v1.QueryResponse_Vector{
 				Vector: vector,
 			},
-		}), nil
+		}, nil
 	}
 
-	return connect.NewResponse(&v1.QueryResponse{
+	return &v1.QueryResponse{
 		Warnings: warnings,
 		Options:  nil,
-	}), nil
+	}, nil
 }
 
-func (ps *prometheusServer) QueryRange(ctx context.Context, req *connect.Request[v1.QueryRangeRequest]) (*connect.Response[v1.QueryRangeResponse], error) {
-	value, warnings, err := ps.promAPI.QueryRange(ctx, req.Msg.GetQuery(), prometheusapiv1.Range{
-		Start: time.Unix(req.Msg.GetStart(), 0),
-		End:   time.Unix(req.Msg.GetEnd(), 0),
-		Step:  time.Duration(req.Msg.GetStep()) * time.Second,
+func (ps *prometheusServer) QueryRange(ctx context.Context, req *v1.QueryRangeRequest) (*v1.QueryRangeResponse, error) {
+	value, warnings, err := ps.promAPI.QueryRange(ctx, req.GetQuery(), prometheusapiv1.Range{
+		Start: time.Unix(req.GetStart(), 0),
+		End:   time.Unix(req.GetEnd(), 0),
+		Step:  time.Duration(req.GetStep()) * time.Second,
 	})
 	if err != nil {
-		return nil, err
+		return nil, unknownError(err)
 	}
 
 	switch v := value.(type) {
 	case model.Matrix:
-		return connect.NewResponse(&v1.QueryRangeResponse{
+		return &v1.QueryRangeResponse{
 			Warnings: warnings,
 			Options: &v1.QueryRangeResponse_Matrix{
 				Matrix: convertMatrix(v),
 			},
-		}), nil
+		}, nil
 	}
 
-	return connect.NewResponse(&v1.QueryRangeResponse{
+	return &v1.QueryRangeResponse{
 		Warnings: warnings,
-	}), nil
+	}, nil
 }
 
 // unixOrZero converts a unix-seconds timestamp to time.Time, treating 0 as
@@ -95,15 +95,15 @@ func unixOrZero(t int64) time.Time {
 	return time.Unix(t, 0)
 }
 
-func (ps *prometheusServer) LabelNames(ctx context.Context, req *connect.Request[v1.LabelNamesRequest]) (*connect.Response[v1.LabelNamesResponse], error) {
+func (ps *prometheusServer) LabelNames(ctx context.Context, req *v1.LabelNamesRequest) (*v1.LabelNamesResponse, error) {
 	names, warnings, err := ps.promAPI.LabelNames(
 		ctx,
-		req.Msg.GetMatchers(),
-		unixOrZero(req.Msg.GetStart()),
-		unixOrZero(req.Msg.GetEnd()),
+		req.GetMatchers(),
+		unixOrZero(req.GetStart()),
+		unixOrZero(req.GetEnd()),
 	)
 	if err != nil {
-		return nil, err
+		return nil, unknownError(err)
 	}
 
 	// The API returns model.LabelNames, which is a []model.LabelName, while the
@@ -113,22 +113,22 @@ func (ps *prometheusServer) LabelNames(ctx context.Context, req *connect.Request
 		labelNames = append(labelNames, string(name))
 	}
 
-	return connect.NewResponse(&v1.LabelNamesResponse{
+	return &v1.LabelNamesResponse{
 		Names:    labelNames,
 		Warnings: warnings,
-	}), nil
+	}, nil
 }
 
-func (ps *prometheusServer) LabelValues(ctx context.Context, req *connect.Request[v1.LabelValuesRequest]) (*connect.Response[v1.LabelValuesResponse], error) {
+func (ps *prometheusServer) LabelValues(ctx context.Context, req *v1.LabelValuesRequest) (*v1.LabelValuesResponse, error) {
 	values, warnings, err := ps.promAPI.LabelValues(
 		ctx,
-		req.Msg.GetLabel(),
-		req.Msg.GetMatchers(),
-		unixOrZero(req.Msg.GetStart()),
-		unixOrZero(req.Msg.GetEnd()),
+		req.GetLabel(),
+		req.GetMatchers(),
+		unixOrZero(req.GetStart()),
+		unixOrZero(req.GetEnd()),
 	)
 	if err != nil {
-		return nil, err
+		return nil, unknownError(err)
 	}
 
 	out := make([]string, 0, len(values))
@@ -136,10 +136,10 @@ func (ps *prometheusServer) LabelValues(ctx context.Context, req *connect.Reques
 		out = append(out, string(v))
 	}
 
-	return connect.NewResponse(&v1.LabelValuesResponse{
+	return &v1.LabelValuesResponse{
 		Values:   out,
 		Warnings: warnings,
-	}), nil
+	}, nil
 }
 
 func convertVector(in model.Vector) *v1.Vector {
@@ -180,4 +180,10 @@ func convertMatrix(in model.Matrix) *v1.Matrix {
 		}
 	}
 	return &v1.Matrix{Samples: samples}
+}
+
+// unknownError keeps the Prometheus API error message on the wire, e.g. a PromQL parse error.
+// connect v2 drops the message of any error that isn't a *connect.Error.
+func unknownError(err error) error {
+	return connect.NewError(connect.CodeUnknown, err.Error()).WithCause(err)
 }

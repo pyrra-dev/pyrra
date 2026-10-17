@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/go-kit/log"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -449,12 +449,12 @@ spec:
 `
 
 	server := &objectiveServer{}
-	resp, err := server.Preview(context.Background(), connect.NewRequest(&objectivesv1alpha1.PreviewRequest{
+	resp, err := server.Preview(context.Background(), &objectivesv1alpha1.PreviewRequest{
 		Config: config,
-	}))
+	})
 	require.NoError(t, err)
 
-	o := resp.Msg.Objective
+	o := resp.Objective
 	require.NotNil(t, o)
 	require.Equal(t, "prometheus-api-query", o.Labels[model.MetricNameLabel])
 	require.Equal(t, 0.99, o.Target)
@@ -472,7 +472,7 @@ spec:
 
 func TestObjectiveServerPreviewInvalid(t *testing.T) {
 	server := &objectiveServer{}
-	_, err := server.Preview(context.Background(), connect.NewRequest(&objectivesv1alpha1.PreviewRequest{
+	_, err := server.Preview(context.Background(), &objectivesv1alpha1.PreviewRequest{
 		Config: `apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
@@ -487,7 +487,7 @@ spec:
       total:
         metric: foo_total
 `,
-	}))
+	})
 	require.Error(t, err)
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
@@ -561,15 +561,15 @@ spec:
 func TestObjectiveServerPreviewGraphDuration(t *testing.T) {
 	server, prom := newDurationServer(t, durationMatrix())
 
-	resp, err := server.PreviewGraphDuration(context.Background(), connect.NewRequest(&objectivesv1alpha1.PreviewGraphDurationRequest{
+	resp, err := server.PreviewGraphDuration(context.Background(), &objectivesv1alpha1.PreviewGraphDurationRequest{
 		Config: latencyConfig,
-	}))
+	})
 	require.NoError(t, err)
 
 	// Percentiles at or below the 99% target: 99, 95, 90, 50.
-	require.Len(t, resp.Msg.Timeseries, 4)
-	require.Equal(t, []string{`{quantile="p99"}`}, resp.Msg.Timeseries[0].Labels)
-	require.Equal(t, []string{`{quantile="p50"}`}, resp.Msg.Timeseries[3].Labels)
+	require.Len(t, resp.Timeseries, 4)
+	require.Equal(t, []string{`{quantile="p99"}`}, resp.Timeseries[0].Labels)
+	require.Equal(t, []string{`{quantile="p50"}`}, resp.Timeseries[3].Labels)
 
 	// The whole point of the preview variant: the queries read the underlying
 	// histogram directly, so they work before any recording rule exists.
@@ -601,10 +601,10 @@ spec:
 
 	server, prom := newDurationServer(t, durationMatrix())
 
-	_, err := server.PreviewGraphDuration(context.Background(), connect.NewRequest(&objectivesv1alpha1.PreviewGraphDurationRequest{
+	_, err := server.PreviewGraphDuration(context.Background(), &objectivesv1alpha1.PreviewGraphDurationRequest{
 		Config:   config,
 		Grouping: `{service="query"}`,
-	}))
+	})
 	require.NoError(t, err)
 
 	// Regression test: the grouping used to be dropped for latencyNative, so the
@@ -719,16 +719,16 @@ func TestGraphRange(t *testing.T) {
 func TestObjectiveServerPreviewGraphDurationErrors(t *testing.T) {
 	t.Run("invalid config", func(t *testing.T) {
 		server, _ := newDurationServer(t, durationMatrix())
-		_, err := server.PreviewGraphDuration(context.Background(), connect.NewRequest(&objectivesv1alpha1.PreviewGraphDurationRequest{
+		_, err := server.PreviewGraphDuration(context.Background(), &objectivesv1alpha1.PreviewGraphDurationRequest{
 			Config: "not: valid: yaml:",
-		}))
+		})
 		require.Error(t, err)
 		require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 	})
 
 	t.Run("not latency based", func(t *testing.T) {
 		server, _ := newDurationServer(t, durationMatrix())
-		_, err := server.PreviewGraphDuration(context.Background(), connect.NewRequest(&objectivesv1alpha1.PreviewGraphDurationRequest{
+		_, err := server.PreviewGraphDuration(context.Background(), &objectivesv1alpha1.PreviewGraphDurationRequest{
 			Config: `apiVersion: pyrra.dev/v1alpha1
 kind: ServiceLevelObjective
 metadata:
@@ -743,7 +743,7 @@ spec:
       total:
         metric: foo_total
 `,
-		}))
+		})
 		require.Error(t, err)
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	})
@@ -752,9 +752,9 @@ spec:
 		// An empty matrix for every percentile: NotFound, and notably no panic —
 		// this used to hand connect a nil error.
 		server, _ := newDurationServer(t, model.Matrix{})
-		_, err := server.PreviewGraphDuration(context.Background(), connect.NewRequest(&objectivesv1alpha1.PreviewGraphDurationRequest{
+		_, err := server.PreviewGraphDuration(context.Background(), &objectivesv1alpha1.PreviewGraphDurationRequest{
 			Config: latencyConfig,
-		}))
+		})
 		require.Error(t, err)
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
