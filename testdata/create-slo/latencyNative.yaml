@@ -1,0 +1,21 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: prometheus-api-query
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+    pyrra.dev/team: platform
+spec:
+  target: "99.0"
+  window: 7d
+  description: "Requests that aren't 5xx: the #1 signal"
+  indicator:
+    latencyNative:
+      latency: 200ms
+      total:
+        metric: connect_server_requests_duration_seconds{job="pyrra",code="ok"}
+      grouping:
+        - service
+        - method

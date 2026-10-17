@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"math"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -490,6 +492,40 @@ spec:
 	})
 	require.Error(t, err)
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+// The fixtures are written by the UI serializer (ui/src/components/create/fixtures.test.ts),
+// so a change on either side of the editor/backend contract fails here.
+func TestObjectiveFromEditorConfig(t *testing.T) {
+	for _, tc := range []struct {
+		fixture   string
+		indicator slo.IndicatorType
+		grouping  []string
+	}{
+		{fixture: "ratio", indicator: slo.Ratio, grouping: []string{"handler"}},
+		{fixture: "latency", indicator: slo.Latency},
+		{fixture: "latencyNative", indicator: slo.LatencyNative, grouping: []string{"service", "method"}},
+		{fixture: "bool", indicator: slo.BoolGauge, grouping: []string{"instance"}},
+	} {
+		t.Run(tc.fixture, func(t *testing.T) {
+			config, err := os.ReadFile(filepath.Join("testdata", "create-slo", tc.fixture+".yaml"))
+			require.NoError(t, err)
+
+			objective, err := objectiveFromConfig(context.Background(), string(config), "")
+			require.NoError(t, err)
+
+			require.Equal(t, tc.indicator, objective.IndicatorType())
+			require.Equal(t, tc.grouping, objective.Grouping())
+			require.Equal(t, labels.FromStrings(
+				model.MetricNameLabel, "prometheus-api-query",
+				"namespace", "monitoring",
+				"pyrra.dev/team", "platform",
+			), objective.Labels)
+			require.Equal(t, 0.99, objective.Target)
+			require.Equal(t, model.Duration(7*24*time.Hour), objective.Window)
+			require.Equal(t, "Requests that aren't 5xx: the #1 signal", objective.Description)
+		})
+	}
 }
 
 // fakePrometheus records the queries it is asked to run and replays a canned
