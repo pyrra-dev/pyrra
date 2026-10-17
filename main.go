@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"embed"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -20,7 +21,8 @@ import (
 	"syscall"
 	"time"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"github.com/alecthomas/kong"
 	"github.com/dgraph-io/ristretto/v2"
 	"github.com/go-chi/chi/v5"
@@ -387,25 +389,33 @@ func cmdAPI(
 			logger:  log.WithPrefix(logger, "service", "objective"),
 			promAPI: promAPI,
 			client: newBackendClientCache(
-				objectivesv1alpha1connect.NewObjectiveBackendServiceClient(
+				objectivesv1alpha1connect.NewObjectiveBackendServiceClient(connect.NewClient(connecthttp.NewTransport(
 					client,
 					apiURL.String(),
-					connect.WithInterceptors(prometheusInterceptor),
-				),
+					connecthttp.WithReadMaxBytes(0),
+				), prometheusInterceptor.ClientInterceptor(),
+				)),
 			),
 			opts: slo.GenerationOptions{EnablePrometheus3Migration: enablePrometheus3Migration},
 		}
 
-		objectivePath, objectiveHandler := objectivesv1alpha1connect.NewObjectiveServiceHandler(
-			objectiveService,
-			connect.WithInterceptors(prometheusInterceptor),
-		)
+		// v2 applies interceptors per server, not per handler. The Prometheus proxy
+		// stays on its own server so it keeps not being counted, as in v1.
+		objectiveRPC := connect.NewServer(prometheusInterceptor.ServerInterceptor())
+		objectivesv1alpha1connect.RegisterObjectiveServiceHandler(objectiveRPC, objectiveService)
+		objectivePath := "/" + objectivesv1alpha1connect.ObjectiveServiceName + "/"
+		objectiveHandler := http.NewServeMux()
+		connecthttp.Mount(objectiveHandler, objectiveRPC, connecthttp.WithReadMaxBytes(0))
 
 		prometheusService := &prometheusServer{
 			logger:  log.WithPrefix(logger, "service", "prometheus"),
 			promAPI: promAPI,
 		}
-		prometheusPath, prometheusHandler := prometheusv1connect.NewPrometheusServiceHandler(prometheusService)
+		prometheusRPC := connect.NewServer()
+		prometheusv1connect.RegisterPrometheusServiceHandler(prometheusRPC, prometheusService)
+		prometheusPath := "/" + prometheusv1connect.PrometheusServiceName + "/"
+		prometheusHandler := http.NewServeMux()
+		connecthttp.Mount(prometheusHandler, prometheusRPC, connecthttp.WithReadMaxBytes(0))
 
 		mcpHandler := newMCPHandler(objectiveService, log.WithPrefix(logger, "service", "mcp"))
 
@@ -552,21 +562,26 @@ type backendClientCache struct {
 }
 
 // List calls the backend service and caches the result for 10 seconds if the request is successful.
-func (b *backendClientCache) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
-	key := req.Msg.Expr + req.Msg.Grouping
+func (b *backendClientCache) List(ctx context.Context, req *objectivesv1alpha1.ListRequest) (*objectivesv1alpha1.ListResponse, error) {
+	key := req.Expr + req.Grouping
 
 	list, found := b.cache.Get(key)
 	if found {
-		return connect.NewResponse(list.(*objectivesv1alpha1.ListResponse)), nil
+		return list.(*objectivesv1alpha1.ListResponse), nil
 	}
 
 	start := time.Now()
 	resp, err := b.client.List(ctx, req)
 	if err != nil {
+		// connect v2 scrubs a remote error returned as-is to a bare CodeInternal.
+		// Re-author it so the UI still sees the backend's code, e.g. NotFound for no SLOs.
+		if cerr, ok := errors.AsType[*connect.Error](err); ok && cerr.IsRemote() {
+			return nil, connect.NewError(cerr.Code(), cerr.Message()).WithCause(err)
+		}
 		return nil, err
 	}
 
-	_ = b.cache.SetWithTTL(key, resp.Msg, time.Since(start).Milliseconds(), 10*time.Second)
+	_ = b.cache.SetWithTTL(key, resp, time.Since(start).Milliseconds(), 10*time.Second)
 
 	return resp, nil
 }
@@ -803,46 +818,46 @@ type objectiveServer struct {
 }
 
 func (s *objectiveServer) getObjective(ctx context.Context, expr string) (slo.Objective, error) {
-	resp, err := s.client.List(ctx, connect.NewRequest(&objectivesv1alpha1.ListRequest{
+	resp, err := s.client.List(ctx, &objectivesv1alpha1.ListRequest{
 		Expr: expr,
-	}))
+	})
 	if err != nil {
 		return slo.Objective{}, err
 	}
 
-	if len(resp.Msg.Objectives) != 1 {
-		return slo.Objective{}, connect.NewError(connect.CodeAborted, fmt.Errorf("expr matches more than one SLO, it matches: %d", len(resp.Msg.Objectives)))
+	if len(resp.Objectives) != 1 {
+		return slo.Objective{}, connect.Errorf(connect.CodeAborted, "expr matches more than one SLO, it matches: %d", len(resp.Objectives))
 	}
 
-	return objectivesv1alpha1.ToInternal(resp.Msg.Objectives[0]), nil
+	return objectivesv1alpha1.ToInternal(resp.Objectives[0]), nil
 }
 
-func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
-	if expr := req.Msg.Expr; expr != "" {
+func (s *objectiveServer) List(ctx context.Context, req *objectivesv1alpha1.ListRequest) (*objectivesv1alpha1.ListResponse, error) {
+	if expr := req.Expr; expr != "" {
 		if _, err := parser.NewParser(parser.Options{}).ParseMetricSelector(expr); err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "failed to parse expr: %v", err).WithCause(err)
 		}
 	}
 
-	resp, err := s.client.List(ctx, connect.NewRequest(&objectivesv1alpha1.ListRequest{
-		Expr: req.Msg.Expr,
-	}))
+	resp, err := s.client.List(ctx, &objectivesv1alpha1.ListRequest{
+		Expr: req.Expr,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	groupingMatchers := map[string]*labels.Matcher{}
-	if req.Msg.Grouping != "" {
-		ms, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
+	if req.Grouping != "" {
+		ms, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Grouping)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 		for _, m := range ms {
 			groupingMatchers[m.Name] = m
 		}
 	}
 
-	for _, o := range resp.Msg.Objectives {
+	for _, o := range resp.Objectives {
 		oi := objectivesv1alpha1.ToInternal(o)
 
 		// If specific grouping was selected we need to merge the label matchers for the queries.
@@ -944,9 +959,9 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 		}
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.ListResponse{
-		Objectives: resp.Msg.Objectives,
-	}), nil
+	return &objectivesv1alpha1.ListResponse{
+		Objectives: resp.Objectives,
+	}, nil
 }
 
 // objectiveFromConfig materializes a draft SLO from its YAML config, without
@@ -957,22 +972,22 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 func objectiveFromConfig(ctx context.Context, config, grouping string) (slo.Objective, error) {
 	var cfg v1alpha1.ServiceLevelObjective
 	if err := yaml.UnmarshalStrict([]byte(config), &cfg); err != nil {
-		return slo.Objective{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to unmarshal config: %w", err))
+		return slo.Objective{}, connect.Errorf(connect.CodeInvalidArgument, "failed to unmarshal config: %v", err).WithCause(err)
 	}
 
 	if _, err := cfg.ValidateCreate(ctx, &cfg); err != nil {
-		return slo.Objective{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to validate config: %w", err))
+		return slo.Objective{}, connect.Errorf(connect.CodeInvalidArgument, "failed to validate config: %v", err).WithCause(err)
 	}
 
 	objective, err := cfg.Internal()
 	if err != nil {
-		return slo.Objective{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to build objective: %w", err))
+		return slo.Objective{}, connect.Errorf(connect.CodeInvalidArgument, "failed to build objective: %v", err).WithCause(err)
 	}
 
 	if grouping != "" {
 		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(grouping)
 		if err != nil {
-			return slo.Objective{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to parse grouping: %w", err))
+			return slo.Objective{}, connect.Errorf(connect.CodeInvalidArgument, "failed to parse grouping: %v", err).WithCause(err)
 		}
 		mergeGroupingMatchers(&objective, groupingMatchers)
 	}
@@ -1005,8 +1020,8 @@ func mergeGroupingMatchers(objective *slo.Objective, matchers []*labels.Matcher)
 // Preview materializes a draft SLO from its YAML config and fills in the queries
 // like List does, so the UI can render the detail page as if the SLO already
 // existed.
-func (s *objectiveServer) Preview(ctx context.Context, req *connect.Request[objectivesv1alpha1.PreviewRequest]) (*connect.Response[objectivesv1alpha1.PreviewResponse], error) {
-	objective, err := objectiveFromConfig(ctx, req.Msg.Config, req.Msg.Grouping)
+func (s *objectiveServer) Preview(ctx context.Context, req *objectivesv1alpha1.PreviewRequest) (*objectivesv1alpha1.PreviewResponse, error) {
+	objective, err := objectiveFromConfig(ctx, req.Config, req.Grouping)
 	if err != nil {
 		return nil, err
 	}
@@ -1023,22 +1038,22 @@ func (s *objectiveServer) Preview(ctx context.Context, req *connect.Request[obje
 		GraphErrors:      objective.ErrorsRange(time.Second, s.opts),
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.PreviewResponse{
+	return &objectivesv1alpha1.PreviewResponse{
 		Objective: o,
-	}), nil
+	}, nil
 }
 
-func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[objectivesv1alpha1.GetStatusRequest]) (*connect.Response[objectivesv1alpha1.GetStatusResponse], error) {
-	objective, err := s.getObjective(ctx, req.Msg.Expr)
+func (s *objectiveServer) GetStatus(ctx context.Context, req *objectivesv1alpha1.GetStatusRequest) (*objectivesv1alpha1.GetStatusResponse, error) {
+	objective, err := s.getObjective(ctx, req.Expr)
 	if err != nil {
 		return nil, err
 	}
 
 	// Merge grouping into objective's query
-	if req.Msg.Grouping != "" {
-		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
+	if req.Grouping != "" {
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Grouping)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 		if objective.Indicator.Ratio != nil {
 			for _, m := range groupingMatchers {
@@ -1058,15 +1073,15 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 	}
 
 	ts := time.Now()
-	if req.Msg.Time != nil {
-		ts = req.Msg.Time.AsTime()
+	if req.Time != nil {
+		ts = req.Time.AsTime()
 	}
 
 	queryTotal := objective.QueryTotal(objective.Window, s.opts)
 	value, _, err := s.promAPI.Query(contextSetPromCache(ctx, 15*time.Second), queryTotal, ts)
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to query total", "query", queryTotal, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	statuses := map[model.Fingerprint]*objectivesv1alpha1.ObjectiveStatus{}
@@ -1090,7 +1105,7 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 	value, _, err = s.promAPI.Query(contextSetPromCache(ctx, 15*time.Second), queryErrors, ts)
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to query errors", "query", queryErrors, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 	for _, v := range value.(model.Vector) {
 		if s, exists := statuses[v.Metric.Fingerprint()]; exists {
@@ -1135,21 +1150,21 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 		statusSlice = append(statusSlice, s)
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.GetStatusResponse{
+	return &objectivesv1alpha1.GetStatusResponse{
 		Status: statusSlice,
-	}), nil
+	}, nil
 }
 
-func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Request[objectivesv1alpha1.GraphErrorBudgetRequest]) (*connect.Response[objectivesv1alpha1.GraphErrorBudgetResponse], error) {
-	objective, err := s.getObjective(ctx, req.Msg.Expr)
+func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *objectivesv1alpha1.GraphErrorBudgetRequest) (*objectivesv1alpha1.GraphErrorBudgetResponse, error) {
+	objective, err := s.getObjective(ctx, req.Expr)
 	if err != nil {
 		return nil, err
 	}
 
-	if req.Msg.Grouping != "" && req.Msg.Grouping != "{}" {
-		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
+	if req.Grouping != "" && req.Grouping != "{}" {
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Grouping)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed parsing alerts metric: %w", err))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "failed parsing alerts metric: %v", err).WithCause(err)
 		}
 
 		if ratio := objective.Indicator.Ratio; ratio != nil {
@@ -1203,15 +1218,15 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 		}
 	}
 	if objective.Indicator.LatencyNative != nil && objective.Indicator.Ratio.Total.Name != "" {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("unimplemented"))
+		return nil, connect.Errorf(connect.CodeInternal, "unimplemented")
 	}
 
 	end := time.Now()
 	start := end.Add(-1 * time.Hour)
 
-	if !req.Msg.Start.AsTime().IsZero() && !req.Msg.End.AsTime().IsZero() {
-		start = req.Msg.Start.AsTime()
-		end = req.Msg.End.AsTime()
+	if !req.Start.AsTime().IsZero() && !req.End.AsTime().IsZero() {
+		start = req.Start.AsTime()
+		end = req.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
 	if s := contextGetGraphStep(ctx); s > 0 {
@@ -1226,19 +1241,19 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 	})
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to query error budget", "query", query, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	matrix, ok := value.(model.Matrix)
 	if !ok {
 		err := fmt.Errorf("no matrix returned")
 		level.Debug(s.logger).Log("msg", "returned data wasn't of type matrix", "query", query, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	if len(matrix) == 0 {
 		level.Debug(s.logger).Log("msg", "returned no data", "query", query)
-		return nil, connect.NewError(connect.CodeNotFound, nil)
+		return nil, connect.NewError(connect.CodeNotFound, "")
 	}
 
 	valueLength := 0
@@ -1256,24 +1271,24 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 		series = append(series, &objectivesv1alpha1.Series{Values: float64s})
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.GraphErrorBudgetResponse{
+	return &objectivesv1alpha1.GraphErrorBudgetResponse{
 		Timeseries: &objectivesv1alpha1.Timeseries{
 			Query:  query,
 			Series: series,
 		},
-	}), nil
+	}, nil
 }
 
-func (s *objectiveServer) GetAlerts(ctx context.Context, req *connect.Request[objectivesv1alpha1.GetAlertsRequest]) (*connect.Response[objectivesv1alpha1.GetAlertsResponse], error) {
-	resp, err := s.client.List(ctx, connect.NewRequest(&objectivesv1alpha1.ListRequest{
-		Expr: req.Msg.Expr,
-	}))
+func (s *objectiveServer) GetAlerts(ctx context.Context, req *objectivesv1alpha1.GetAlertsRequest) (*objectivesv1alpha1.GetAlertsResponse, error) {
+	resp, err := s.client.List(ctx, &objectivesv1alpha1.ListRequest{
+		Expr: req.Expr,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	objectives := make([]slo.Objective, 0, len(resp.Msg.Objectives))
-	for _, o := range resp.Msg.Objectives {
+	objectives := make([]slo.Objective, 0, len(resp.Objectives))
+	for _, o := range resp.Objectives {
 		objectives = append(objectives, objectivesv1alpha1.ToInternal(o))
 	}
 
@@ -1282,16 +1297,16 @@ func (s *objectiveServer) GetAlerts(ctx context.Context, req *connect.Request[ob
 
 	var groupingMatchers []*labels.Matcher
 
-	if req.Msg.Grouping != "" && req.Msg.Grouping != "{}" {
+	if req.Grouping != "" && req.Grouping != "{}" {
 		expr, err := parser.NewParser(parser.Options{}).ParseExpr(queryAlerts)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed parsing alerts metric: %w", err))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "failed parsing alerts metric: %v", err).WithCause(err)
 		}
 
 		// If grouping exists we merge those matchers directly into the queryAlerts query.
-		groupingMatchers, err = parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
+		groupingMatchers, err = parser.NewParser(parser.Options{}).ParseMetricSelector(req.Grouping)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed parsing grouping matchers: %w", err))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "failed parsing grouping matchers: %v", err).WithCause(err)
 		}
 
 		vec := expr.(*parser.VectorSelector)
@@ -1308,19 +1323,19 @@ func (s *objectiveServer) GetAlerts(ctx context.Context, req *connect.Request[ob
 	value, _, err := s.promAPI.Query(contextSetPromCache(ctx, 5*time.Second), queryAlerts, time.Now())
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to query alerts", "query", queryAlerts, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	vector, ok := value.(model.Vector)
 	if !ok {
 		err := fmt.Errorf("no vector returned")
 		level.Debug(s.logger).Log("msg", "returned data wasn't of type vector", "query", queryAlerts, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
-	alerts := alertsMatchingObjectives(vector, objectives, groupingMatchers, req.Msg.Inactive)
+	alerts := alertsMatchingObjectives(vector, objectives, groupingMatchers, req.Inactive)
 
-	if req.Msg.Current {
+	if req.Current {
 		for _, objective := range objectives {
 			mtx := &sync.Mutex{}
 			windowsMap := map[time.Duration]float64{}
@@ -1390,7 +1405,7 @@ func (s *objectiveServer) GetAlerts(ctx context.Context, req *connect.Request[ob
 		}
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.GetAlertsResponse{Alerts: alerts}), nil
+	return &objectivesv1alpha1.GetAlertsResponse{Alerts: alerts}, nil
 }
 
 // alertsMatchingObjectives loops through all alerts trying to match objectives based on their labels.
@@ -1559,17 +1574,17 @@ func alertsMatchingObjectives(metrics model.Vector, objectives []slo.Objective, 
 	return alerts
 }
 
-func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[objectivesv1alpha1.GraphRateRequest]) (*connect.Response[objectivesv1alpha1.GraphRateResponse], error) {
-	objective, err := s.getObjective(ctx, req.Msg.Expr)
+func (s *objectiveServer) GraphRate(ctx context.Context, req *objectivesv1alpha1.GraphRateRequest) (*objectivesv1alpha1.GraphRateResponse, error) {
+	objective, err := s.getObjective(ctx, req.Expr)
 	if err != nil {
 		return nil, err
 	}
 
 	// Merge grouping into objective's query
-	if req.Msg.Grouping != "" {
-		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
+	if req.Grouping != "" {
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Grouping)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "failed to parse expr: %v", err).WithCause(err)
 		}
 		if objective.Indicator.Ratio != nil {
 			for _, m := range groupingMatchers {
@@ -1591,9 +1606,9 @@ func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[ob
 	end := time.Now()
 	start := end.Add(-1 * time.Hour)
 
-	if !req.Msg.Start.AsTime().IsZero() && !req.Msg.End.AsTime().IsZero() {
-		start = req.Msg.Start.AsTime()
-		end = req.Msg.End.AsTime()
+	if !req.Start.AsTime().IsZero() && !req.End.AsTime().IsZero() {
+		start = req.Start.AsTime()
+		end = req.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
 	if s := contextGetGraphStep(ctx); s > 0 {
@@ -1612,25 +1627,25 @@ func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[ob
 	})
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to run range request", "query", query, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	if value.Type() != model.ValMatrix {
 		err := fmt.Errorf("returned data is not a matrix")
 		level.Warn(s.logger).Log("query", query, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	matrix, ok := value.(model.Matrix)
 	if !ok {
 		err := fmt.Errorf("no matrix returned")
 		level.Warn(s.logger).Log("query", query, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	if len(matrix) == 0 {
 		level.Debug(s.logger).Log("msg", "no data returned", "query", query)
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 
 	valueLength := 0
@@ -1652,26 +1667,26 @@ func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[ob
 		series = append(series, &objectivesv1alpha1.Series{Values: float64s})
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.GraphRateResponse{
+	return &objectivesv1alpha1.GraphRateResponse{
 		Timeseries: &objectivesv1alpha1.Timeseries{
 			Labels: labels,
 			Query:  query,
 			Series: series,
 		},
-	}), nil
+	}, nil
 }
 
-func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[objectivesv1alpha1.GraphErrorsRequest]) (*connect.Response[objectivesv1alpha1.GraphErrorsResponse], error) {
-	objective, err := s.getObjective(ctx, req.Msg.Expr)
+func (s *objectiveServer) GraphErrors(ctx context.Context, req *objectivesv1alpha1.GraphErrorsRequest) (*objectivesv1alpha1.GraphErrorsResponse, error) {
+	objective, err := s.getObjective(ctx, req.Expr)
 	if err != nil {
 		return nil, err
 	}
 
 	// Merge grouping into objective's query
-	if req.Msg.Grouping != "" {
-		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
+	if req.Grouping != "" {
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Grouping)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "failed to parse expr: %v", err).WithCause(err)
 		}
 		if objective.Indicator.Ratio != nil {
 			for _, m := range groupingMatchers {
@@ -1693,9 +1708,9 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 	end := time.Now()
 	start := end.Add(-1 * time.Hour)
 
-	if !req.Msg.Start.AsTime().IsZero() && !req.Msg.End.AsTime().IsZero() {
-		start = req.Msg.Start.AsTime()
-		end = req.Msg.End.AsTime()
+	if !req.Start.AsTime().IsZero() && !req.End.AsTime().IsZero() {
+		start = req.Start.AsTime()
+		end = req.End.AsTime()
 	}
 	step := end.Sub(start) / 1000
 	if s := contextGetGraphStep(ctx); s > 0 {
@@ -1713,25 +1728,25 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 	})
 	if err != nil {
 		level.Warn(s.logger).Log("msg", "failed to run range error request", "query", query, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	if value.Type() != model.ValMatrix {
 		err := fmt.Errorf("returned data is not a matrix")
 		level.Warn(s.logger).Log("query", query, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	matrix, ok := value.(model.Matrix)
 	if !ok {
 		err := fmt.Errorf("no matrix returned")
 		level.Warn(s.logger).Log("query", query, "err", err)
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 	}
 
 	if len(matrix) == 0 {
 		level.Debug(s.logger).Log("msg", "no data returned", "query", query)
-		return nil, connect.NewError(connect.CodeNotFound, err)
+		return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 	}
 
 	valueLength := 0
@@ -1754,42 +1769,42 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 		series = append(series, &objectivesv1alpha1.Series{Values: float64s})
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.GraphErrorsResponse{
+	return &objectivesv1alpha1.GraphErrorsResponse{
 		Timeseries: &objectivesv1alpha1.Timeseries{
 			Labels: labels,
 			Query:  query,
 			Series: series,
 		},
-	}), nil
+	}, nil
 }
 
 var percentiles = []float64{0.999, 0.99, 0.95, 0.9, 0.5}
 
-func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Request[objectivesv1alpha1.GraphDurationRequest]) (*connect.Response[objectivesv1alpha1.GraphDurationResponse], error) {
-	objective, err := s.getObjective(ctx, req.Msg.Expr)
+func (s *objectiveServer) GraphDuration(ctx context.Context, req *objectivesv1alpha1.GraphDurationRequest) (*objectivesv1alpha1.GraphDurationResponse, error) {
+	objective, err := s.getObjective(ctx, req.Expr)
 	if err != nil {
 		return nil, err
 	}
 
 	// Merge grouping into objective's query
-	if req.Msg.Grouping != "" {
-		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
+	if req.Grouping != "" {
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Grouping)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
+			return nil, connect.Errorf(connect.CodeFailedPrecondition, "failed to parse expr: %v", err).WithCause(err)
 		}
 		mergeGroupingMatchers(&objective, groupingMatchers)
 	}
 
-	start, end := graphRange(req.Msg.Start.AsTime(), req.Msg.End.AsTime())
+	start, end := graphRange(req.Start.AsTime(), req.End.AsTime())
 
 	timeseries, err := s.durationTimeseries(ctx, objective, start, end)
 	if err != nil {
 		return nil, err
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.GraphDurationResponse{
+	return &objectivesv1alpha1.GraphDurationResponse{
 		Timeseries: timeseries,
-	}), nil
+	}, nil
 }
 
 // PreviewGraphDuration renders the duration graph for a draft SLO that hasn't
@@ -1797,22 +1812,22 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 // the SLO to exist; this materializes it from the YAML config instead. The
 // duration queries are raw histogram_quantile over the underlying histogram
 // either way, so no recording rules need to have been generated.
-func (s *objectiveServer) PreviewGraphDuration(ctx context.Context, req *connect.Request[objectivesv1alpha1.PreviewGraphDurationRequest]) (*connect.Response[objectivesv1alpha1.PreviewGraphDurationResponse], error) {
-	objective, err := objectiveFromConfig(ctx, req.Msg.Config, req.Msg.Grouping)
+func (s *objectiveServer) PreviewGraphDuration(ctx context.Context, req *objectivesv1alpha1.PreviewGraphDurationRequest) (*objectivesv1alpha1.PreviewGraphDurationResponse, error) {
+	objective, err := objectiveFromConfig(ctx, req.Config, req.Grouping)
 	if err != nil {
 		return nil, err
 	}
 
-	start, end := graphRange(req.Msg.Start.AsTime(), req.Msg.End.AsTime())
+	start, end := graphRange(req.Start.AsTime(), req.End.AsTime())
 
 	timeseries, err := s.durationTimeseries(ctx, objective, start, end)
 	if err != nil {
 		return nil, err
 	}
 
-	return connect.NewResponse(&objectivesv1alpha1.PreviewGraphDurationResponse{
+	return &objectivesv1alpha1.PreviewGraphDurationResponse{
 		Timeseries: timeseries,
-	}), nil
+	}, nil
 }
 
 // graphRange resolves a request's start/end, defaulting to the last hour when
@@ -1835,7 +1850,7 @@ func (s *objectiveServer) durationTimeseries(ctx context.Context, objective slo.
 	if t := objective.IndicatorType(); t != slo.Latency && t != slo.LatencyNative {
 		// DurationRange returns an empty query for these, which Prometheus would
 		// reject with an opaque error.
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("objective is not latency based"))
+		return nil, connect.Errorf(connect.CodeFailedPrecondition, "objective is not latency based")
 	}
 
 	step := end.Sub(start) / 1000
@@ -1880,20 +1895,20 @@ func (s *objectiveServer) durationTimeseries(ctx context.Context, objective slo.
 		})
 		if err != nil {
 			level.Warn(s.logger).Log("msg", "failed to run range error request", "query", query, "err", err)
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 
 		if value.Type() != model.ValMatrix {
 			err := fmt.Errorf("returned data is not a matrix")
 			level.Warn(s.logger).Log("query", query, "err", err)
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 
 		matrix, ok := value.(model.Matrix)
 		if !ok {
 			err := fmt.Errorf("no matrix returned")
 			level.Warn(s.logger).Log("query", query, "err", err)
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 
 		// A single percentile without samples is normal — especially for a draft
@@ -1920,7 +1935,7 @@ func (s *objectiveServer) durationTimeseries(ctx context.Context, objective slo.
 	}
 
 	if len(timeseries) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("no data for any percentile of %s", objective.Name()))
+		return nil, connect.Errorf(connect.CodeNotFound, "no data for any percentile of %s", objective.Name())
 	}
 
 	return timeseries, nil
