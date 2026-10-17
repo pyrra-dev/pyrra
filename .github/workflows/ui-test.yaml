@@ -45,6 +45,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
         working-directory: ./ui
+      - run: npm run check:crd-types
+        working-directory: ./ui
       - run: npm run test
         working-directory: ./ui
 
