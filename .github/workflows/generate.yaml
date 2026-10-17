@@ -29,9 +29,14 @@ jobs:
       with:
         go-version-file: go.mod
     - run: go install github.com/brancz/gojsontoyaml@latest
+    - uses: actions/setup-node@v7
+      with:
+        node-version-file: .node-version
+    - run: npm ci
+      working-directory: ./ui
     # Regenerate everything controller-gen owns (canonical CRD under config/crd/bases, the
-    # derived JSON, RBAC role and deepcopy code) and fail if anything drifts from the
-    # committed state. Fix locally with `make generate`.
+    # derived JSON, RBAC role and deepcopy code) plus the UI's CRD types, and fail if
+    # anything drifts from the committed state. Fix locally with `make generate`.
     - run: make generate && git diff --exit-code
 
   proto:

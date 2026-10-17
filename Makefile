@@ -62,11 +62,13 @@ vet:
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: generate
-generate: controller-gen gojsontoyaml ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+generate: controller-gen gojsontoyaml ui/node_modules ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) object:headerFile="kubernetes/hack/boilerplate.go.txt" crd rbac:roleName="pyrra-kubernetes" webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	# config/crd/bases holds the canonical CRD YAML (stable path for consumers). Derive the
 	# JSON consumed by the jsonnet pipeline from it
 	find config/crd/bases -name '*.yaml' -print0 | xargs -0 -I{} sh -c '$(GOJSONTOYAML) -yamltojson < "$$1" | jq > "$(PWD)/jsonnet/controller-gen/$$(basename -s .yaml $$1).json"' -- {}
+	# The Create SLO editor serializes against TypeScript types derived from the same CRD.
+	cd ui && npm run generate:crd-types
 
 # Generate Go and TypeScript code from the protobuf definitions.
 # Plugin versions are pinned in buf.gen.yaml; run this after editing any .proto.
