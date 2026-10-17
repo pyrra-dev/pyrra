@@ -298,7 +298,7 @@ func (s *FilesystemObjectiveServer) List(_ context.Context, req *connect.Request
 	var matchers []*labels.Matcher
 	if expr := req.Msg.Expr; expr != "" {
 		var err error
-		matchers, err = parser.ParseMetricSelector(expr)
+		matchers, err = parser.NewParser(parser.Options{}).ParseMetricSelector(expr)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}

@@ -291,7 +291,7 @@ func (s *KubernetesObjectiveServer) List(ctx context.Context, req *connect.Reque
 
 	if req.Msg.Expr != "" {
 		var err error
-		matchers, err = parser.ParseMetricSelector(req.Msg.Expr)
+		matchers, err = parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Expr)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}

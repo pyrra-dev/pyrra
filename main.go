@@ -817,7 +817,7 @@ func (s *objectiveServer) getObjective(ctx context.Context, expr string) (slo.Ob
 
 func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objectivesv1alpha1.ListRequest]) (*connect.Response[objectivesv1alpha1.ListResponse], error) {
 	if expr := req.Msg.Expr; expr != "" {
-		if _, err := parser.ParseMetricSelector(expr); err != nil {
+		if _, err := parser.NewParser(parser.Options{}).ParseMetricSelector(expr); err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}
 	}
@@ -831,7 +831,7 @@ func (s *objectiveServer) List(ctx context.Context, req *connect.Request[objecti
 
 	groupingMatchers := map[string]*labels.Matcher{}
 	if req.Msg.Grouping != "" {
-		ms, err := parser.ParseMetricSelector(req.Msg.Grouping)
+		ms, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
@@ -968,7 +968,7 @@ func objectiveFromConfig(ctx context.Context, config, grouping string) (slo.Obje
 	}
 
 	if grouping != "" {
-		groupingMatchers, err := parser.ParseMetricSelector(grouping)
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(grouping)
 		if err != nil {
 			return slo.Objective{}, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to parse grouping: %w", err))
 		}
@@ -1034,7 +1034,7 @@ func (s *objectiveServer) GetStatus(ctx context.Context, req *connect.Request[ob
 
 	// Merge grouping into objective's query
 	if req.Msg.Grouping != "" {
-		groupingMatchers, err := parser.ParseMetricSelector(req.Msg.Grouping)
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
@@ -1145,7 +1145,7 @@ func (s *objectiveServer) GraphErrorBudget(ctx context.Context, req *connect.Req
 	}
 
 	if req.Msg.Grouping != "" && req.Msg.Grouping != "{}" {
-		groupingMatchers, err := parser.ParseMetricSelector(req.Msg.Grouping)
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed parsing alerts metric: %w", err))
 		}
@@ -1281,13 +1281,13 @@ func (s *objectiveServer) GetAlerts(ctx context.Context, req *connect.Request[ob
 	var groupingMatchers []*labels.Matcher
 
 	if req.Msg.Grouping != "" && req.Msg.Grouping != "{}" {
-		expr, err := parser.ParseExpr(queryAlerts)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(queryAlerts)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed parsing alerts metric: %w", err))
 		}
 
 		// If grouping exists we merge those matchers directly into the queryAlerts query.
-		groupingMatchers, err = parser.ParseMetricSelector(req.Msg.Grouping)
+		groupingMatchers, err = parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed parsing grouping matchers: %w", err))
 		}
@@ -1565,7 +1565,7 @@ func (s *objectiveServer) GraphRate(ctx context.Context, req *connect.Request[ob
 
 	// Merge grouping into objective's query
 	if req.Msg.Grouping != "" {
-		groupingMatchers, err := parser.ParseMetricSelector(req.Msg.Grouping)
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}
@@ -1667,7 +1667,7 @@ func (s *objectiveServer) GraphErrors(ctx context.Context, req *connect.Request[
 
 	// Merge grouping into objective's query
 	if req.Msg.Grouping != "" {
-		groupingMatchers, err := parser.ParseMetricSelector(req.Msg.Grouping)
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}
@@ -1771,7 +1771,7 @@ func (s *objectiveServer) GraphDuration(ctx context.Context, req *connect.Reques
 
 	// Merge grouping into objective's query
 	if req.Msg.Grouping != "" {
-		groupingMatchers, err := parser.ParseMetricSelector(req.Msg.Grouping)
+		groupingMatchers, err := parser.NewParser(parser.Options{}).ParseMetricSelector(req.Msg.Grouping)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("failed to parse expr: %w", err))
 		}

@@ -1126,9 +1126,9 @@ func TestReplacer(t *testing.T) {
 
 	for i, tc := range testcases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			inputExpr, err := parser.ParseExpr(tc.input)
+			inputExpr, err := parser.NewParser(parser.Options{}).ParseExpr(tc.input)
 			require.NoError(t, err)
-			outputExpr, err := parser.ParseExpr(tc.output)
+			outputExpr, err := parser.NewParser(parser.Options{}).ParseExpr(tc.output)
 			require.NoError(t, err)
 			tc.replacer.replace(inputExpr)
 			require.Equal(t, outputExpr.String(), inputExpr.String())

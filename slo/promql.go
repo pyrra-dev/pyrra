@@ -14,7 +14,7 @@ import (
 
 // QueryTotal returns a PromQL query to get the total amount of requests served during the window.
 func (o Objective) QueryTotal(window model.Duration, opts GenerationOptions) string {
-	expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
+	expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (metric{})`)
 	if err != nil {
 		return ""
 	}
@@ -76,7 +76,7 @@ func (o Objective) QueryTotal(window model.Duration, opts GenerationOptions) str
 func (o Objective) QueryErrors(window model.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (grouping) (metric{})`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (metric{})`)
 		if err != nil {
 			return ""
 		}
@@ -104,7 +104,7 @@ func (o Objective) QueryErrors(window model.Duration, opts GenerationOptions) st
 
 		return expr.String()
 	case Latency:
-		expr, err := parser.ParseExpr(`sum by (grouping) (metric{matchers="total"}) - sum by (grouping) (errorMetric{matchers="errors"})`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (metric{matchers="total"}) - sum by (grouping) (errorMetric{matchers="errors"})`)
 		if err != nil {
 			return ""
 		}
@@ -149,7 +149,7 @@ func (o Objective) QueryErrors(window model.Duration, opts GenerationOptions) st
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`sum by (grouping) (metric{matchers="total"}) - sum by (grouping) (errorMetric{matchers="errors"})`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (metric{matchers="total"}) - sum by (grouping) (errorMetric{matchers="errors"})`)
 		if err != nil {
 			return ""
 		}
@@ -187,7 +187,7 @@ func (o Objective) QueryErrors(window model.Duration, opts GenerationOptions) st
 
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`sum by (grouping) (errorMetric{matchers="errors"}) - sum by (grouping) (metric{matchers="total"})`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (errorMetric{matchers="errors"}) - sum by (grouping) (metric{matchers="total"})`)
 		if err != nil {
 			return ""
 		}
@@ -239,7 +239,7 @@ func (o Objective) QueryErrorBudget(opts GenerationOptions) string {
 	indicatorType := o.IndicatorType()
 	switch indicatorType {
 	case Ratio:
-		expr, err := parser.ParseExpr(`
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`
 (
   (1 - 0.696969)
   -
@@ -295,7 +295,7 @@ func (o Objective) QueryErrorBudget(opts GenerationOptions) string {
 
 		return expr.String()
 	case Latency, LatencyNative:
-		expr, err := parser.ParseExpr(`
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`
 (
   (1 - 0.696969)
   -
@@ -373,7 +373,7 @@ func (o Objective) QueryErrorBudget(opts GenerationOptions) string {
 
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`
 (
   (1 - 0.696969)
   -
@@ -457,7 +457,7 @@ func rawMatchers(name string, lms []*labels.Matcher) []*labels.Matcher {
 func (o Objective) QueryTotalRaw(window model.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (grouping) (increase(metric{}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (increase(metric{}[1s]))`)
 		if err != nil {
 			return ""
 		}
@@ -469,7 +469,7 @@ func (o Objective) QueryTotalRaw(window model.Duration, opts GenerationOptions) 
 		}.replace(expr)
 		return expr.String()
 	case Latency:
-		expr, err := parser.ParseExpr(`sum by (grouping) (increase(metric{}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (increase(metric{}[1s]))`)
 		if err != nil {
 			return ""
 		}
@@ -481,7 +481,7 @@ func (o Objective) QueryTotalRaw(window model.Duration, opts GenerationOptions) 
 		}.replace(expr)
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`histogram_count(sum by (grouping) (increase(metric{}[1s])))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`histogram_count(sum by (grouping) (increase(metric{}[1s])))`)
 		if err != nil {
 			return ""
 		}
@@ -493,7 +493,7 @@ func (o Objective) QueryTotalRaw(window model.Duration, opts GenerationOptions) 
 		}.replace(expr)
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`sum by (grouping) (count_over_time(metric{}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (count_over_time(metric{}[1s]))`)
 		if err != nil {
 			return ""
 		}
@@ -516,7 +516,7 @@ func (o Objective) QueryTotalRaw(window model.Duration, opts GenerationOptions) 
 func (o Objective) QueryErrorsRaw(window model.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (grouping) (increase(metric{}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (increase(metric{}[1s]))`)
 		if err != nil {
 			return ""
 		}
@@ -529,7 +529,7 @@ func (o Objective) QueryErrorsRaw(window model.Duration, opts GenerationOptions)
 		return expr.String()
 	case Latency:
 		// errors = total requests - requests served within the latency threshold.
-		expr, err := parser.ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s])) - sum by (grouping) (increase(errorMetric{matchers="errors"}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s])) - sum by (grouping) (increase(errorMetric{matchers="errors"}[1s]))`)
 		if err != nil {
 			return ""
 		}
@@ -544,7 +544,7 @@ func (o Objective) QueryErrorsRaw(window model.Duration, opts GenerationOptions)
 		return expr.String()
 	case LatencyNative:
 		// errors = total observations - observations within the latency threshold.
-		expr, err := parser.ParseExpr(`histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s]))) - (histogram_fraction(0, 0.420, sum by (grouping) (increase(metric{matchers="total"}[1s]))) * histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s]))))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s]))) - (histogram_fraction(0, 0.420, sum by (grouping) (increase(metric{matchers="total"}[1s]))) * histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s]))))`)
 		if err != nil {
 			return ""
 		}
@@ -558,7 +558,7 @@ func (o Objective) QueryErrorsRaw(window model.Duration, opts GenerationOptions)
 		return expr.String()
 	case BoolGauge:
 		// errors = total samples - "true" samples.
-		expr, err := parser.ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s])) - sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s])) - sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return ""
 		}
@@ -579,7 +579,7 @@ func (o Objective) QueryErrorsRaw(window model.Duration, opts GenerationOptions)
 func (o Objective) QueryErrorBudgetRaw(opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`
 (
   (1 - 0.696969)
   -
@@ -605,7 +605,7 @@ func (o Objective) QueryErrorBudgetRaw(opts GenerationOptions) string {
 		}.replace(expr)
 		return expr.String()
 	case Latency:
-		expr, err := parser.ParseExpr(`
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`
 (
   (1 - 0.696969)
   -
@@ -632,7 +632,7 @@ func (o Objective) QueryErrorBudgetRaw(opts GenerationOptions) string {
 		}.replace(expr)
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`
 (
   (1 - 0.696969)
   -
@@ -655,7 +655,7 @@ func (o Objective) QueryErrorBudgetRaw(opts GenerationOptions) string {
 		}.replace(expr)
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`
 (
   (1 - 0.696969)
   -
@@ -770,7 +770,7 @@ func (o Objective) QueryBurnrate(timerange time.Duration, groupingMatchers []*la
 		return "", fmt.Errorf("objective misses indicator")
 	}
 
-	expr, err := parser.ParseExpr(`sum(metric{})`)
+	expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(metric{})`)
 	if err != nil {
 		return "", err
 	}
@@ -887,7 +887,7 @@ func (r objectiveReplacer) replace(node parser.Node) {
 func (o Objective) RequestRange(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (group) (rate(metric{}[1s])) > 0`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (group) (rate(metric{}[1s])) > 0`)
 		if err != nil {
 			return err.Error()
 		}
@@ -912,7 +912,7 @@ func (o Objective) RequestRange(timerange time.Duration, opts GenerationOptions)
 
 		return expr.String()
 	case Latency:
-		expr, err := parser.ParseExpr(`sum(rate(metric{}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(rate(metric{}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -927,7 +927,7 @@ func (o Objective) RequestRange(timerange time.Duration, opts GenerationOptions)
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`sum by (grouping) (histogram_count(rate(metric{}[1s])))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (histogram_count(rate(metric{}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -941,7 +941,7 @@ func (o Objective) RequestRange(timerange time.Duration, opts GenerationOptions)
 
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`sum by(group) (count_over_time(metric{matchers="total"}[1s])) / 86400`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by(group) (count_over_time(metric{matchers="total"}[1s])) / 86400`)
 		if err != nil {
 			return err.Error()
 		}
@@ -963,7 +963,7 @@ func (o Objective) RequestRange(timerange time.Duration, opts GenerationOptions)
 func (o Objective) ErrorsRange(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (group) (rate(errorMetric{matchers="errors"}[1s])) / scalar(sum(rate(metric{matchers="total"}[1s]))) > 0`)
 		if err != nil {
 			return err.Error()
 		}
@@ -996,7 +996,7 @@ func (o Objective) ErrorsRange(timerange time.Duration, opts GenerationOptions) 
 
 		return expr.String()
 	case Latency:
-		expr, err := parser.ParseExpr(`(sum(rate(metric{matchers="total"}[1s])) -  sum(rate(errorMetric{matchers="errors"}[1s]))) / sum(rate(metric{matchers="total"}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`(sum(rate(metric{matchers="total"}[1s])) -  sum(rate(errorMetric{matchers="errors"}[1s]))) / sum(rate(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -1011,7 +1011,7 @@ func (o Objective) ErrorsRange(timerange time.Duration, opts GenerationOptions) 
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, sum by (grouping) (rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`1 - histogram_fraction(0,0.696969, sum by (grouping) (rate(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -1037,7 +1037,7 @@ func (o Objective) ErrorsRange(timerange time.Duration, opts GenerationOptions) 
 
 		return expr.String()
 	case BoolGauge:
-		expr, err := parser.ParseExpr(`sum by (group) ((count_over_time(metric{matchers="total"}[1s]) - sum_over_time(metric{matchers="total"}[1s]))) / sum by(group) (count_over_time(metric{matchers="total"}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (group) ((count_over_time(metric{matchers="total"}[1s]) - sum_over_time(metric{matchers="total"}[1s]))) / sum by(group) (count_over_time(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -1057,7 +1057,7 @@ func (o Objective) ErrorsRange(timerange time.Duration, opts GenerationOptions) 
 func (o Objective) DurationRange(timerange time.Duration, percentile float64) string {
 	switch o.IndicatorType() {
 	case Latency:
-		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum by (le) (rate(errorMetric{matchers="errors"}[1s])))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`histogram_quantile(0.420, sum by (le) (rate(errorMetric{matchers="errors"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -1079,7 +1079,7 @@ func (o Objective) DurationRange(timerange time.Duration, percentile float64) st
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`histogram_quantile(0.420, sum by (grouping) (rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`histogram_quantile(0.420, sum by (grouping) (rate(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
