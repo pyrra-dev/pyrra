@@ -499,20 +499,20 @@ type fakePrometheus struct {
 	matrix  model.Matrix
 }
 
-func (f *fakePrometheus) Query(_ context.Context, _ string, _ time.Time, _ ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error) {
+func (f *fakePrometheus) Query(_ context.Context, _ string, _ time.Time, _ ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, prometheusapiv1.Infos, error) {
 	panic("not implemented")
 }
 
-func (f *fakePrometheus) QueryRange(_ context.Context, query string, _ prometheusapiv1.Range, _ ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error) {
+func (f *fakePrometheus) QueryRange(_ context.Context, query string, _ prometheusapiv1.Range, _ ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, prometheusapiv1.Infos, error) {
 	f.queries = append(f.queries, query)
-	return f.matrix, nil, nil
+	return f.matrix, nil, nil, nil
 }
 
-func (f *fakePrometheus) LabelNames(_ context.Context, _ []string, _, _ time.Time, _ ...prometheusapiv1.Option) (model.LabelNames, prometheusapiv1.Warnings, error) {
+func (f *fakePrometheus) LabelNames(_ context.Context, _ []string, _, _ time.Time, _ ...prometheusapiv1.Option) (model.LabelNames, prometheusapiv1.Warnings, prometheusapiv1.Infos, error) {
 	panic("not implemented")
 }
 
-func (f *fakePrometheus) LabelValues(_ context.Context, _ string, _ []string, _, _ time.Time, _ ...prometheusapiv1.Option) (model.LabelValues, prometheusapiv1.Warnings, error) {
+func (f *fakePrometheus) LabelValues(_ context.Context, _ string, _ []string, _, _ time.Time, _ ...prometheusapiv1.Option) (model.LabelValues, prometheusapiv1.Warnings, prometheusapiv1.Infos, error) {
 	panic("not implemented")
 }
 
