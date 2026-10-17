@@ -1,5 +1,5 @@
 // Form draft and YAML generation for the Create SLO editor.
-import {stringify} from 'yaml'
+import {Document, parse, visit} from 'yaml'
 import type {ServiceLevelObjective} from './serviceLevelObjective.generated'
 
 export type SLIType = 'ratio' | 'latency' | 'latencyNative' | 'bool'
@@ -123,8 +123,37 @@ export const toServiceLevelObjective = (cfg: CreateConfig): ServiceLevelObjectiv
   }
 }
 
-// Preserve scalar types when exporting the same document used by preview/copy.
-export const buildYaml = (cfg: CreateConfig): string => stringify(toServiceLevelObjective(cfg)).trimEnd()
+// Pyrra and kubectl read YAML with sigs.k8s.io/yaml (YAML 1.1), many other
+// tools with YAML 1.2. A plain no, 0o17 or 1_000 is a string in one and a bool or
+// number in the other, so any string that doesn't read back as itself in both
+// gets double quotes. YAML 1.1 also breaks lines at NEL, LS and PS, even inside
+// quotes, so those are written as escapes.
+const yaml11LineBreaks = /[\x85\u{2028}\u{2029}]/gu
+
+const readsBackAsItself = (value: string): boolean =>
+  (['1.1', '1.2'] as const).every((version) => {
+    try {
+      return parse(value, {version}) === value
+    } catch {
+      return false
+    }
+  })
+
+export const buildYaml = (cfg: CreateConfig): string => {
+  const doc = new Document(toServiceLevelObjective(cfg))
+  visit(doc, {
+    Scalar(_, node) {
+      if (typeof node.value !== 'string') return
+      // Multi-line strings become block scalars, which both versions read alike.
+      const ambiguous = !node.value.includes('\n') && !readsBackAsItself(node.value)
+      if (ambiguous || node.value.search(yaml11LineBreaks) !== -1) node.type = 'QUOTE_DOUBLE'
+    },
+  })
+  return doc
+    .toString()
+    .replace(yaml11LineBreaks, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+    .trimEnd()
+}
 
 export const yamlFilename = (cfg: CreateConfig): string =>
   `${cfg.name !== '' ? cfg.name : 'slo'}.yaml`

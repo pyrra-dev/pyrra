@@ -13,6 +13,8 @@ describe('editor YAML fixtures', () => {
       namespace: 'monitoring',
       // Characters that hand-built YAML got wrong (#1923).
       description: "Requests that aren't 5xx: the #1 signal",
+      // Unquoted, sigs.k8s.io/yaml reads these as false and 15.
+      labels: [...DEFAULT_CONFIG.labels, {k: 'pyrra.dev/paging', v: 'no'}, {k: 'pyrra.dev/cost-center', v: '0o17'}],
     })
     await expect(`${yaml}\n`).toMatchFileSnapshot(`${fixtureDirectory}/${sliType}.yaml`)
   })

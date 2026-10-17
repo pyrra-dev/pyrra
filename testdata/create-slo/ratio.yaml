@@ -7,6 +7,8 @@ metadata:
     prometheus: k8s
     role: alert-rules
     pyrra.dev/team: platform
+    pyrra.dev/paging: "no"
+    pyrra.dev/cost-center: "0o17"
 spec:
   target: "99.0"
   window: 7d

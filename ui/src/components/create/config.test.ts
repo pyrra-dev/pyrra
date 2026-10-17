@@ -21,26 +21,39 @@ describe('buildYaml', () => {
     })
   })
 
-  it('round trips YAML-sensitive strings in descriptions, metrics, labels, and grouping', () => {
-    const values = ['colon: space', 'hash # space', "it's quoted", '42', 'true', '', 'first line\nsecond line']
+  it('round trips YAML-sensitive strings in names, descriptions, metrics, labels, and grouping under YAML 1.1 and 1.2', () => {
+    const values = [
+      'colon: space', 'hash # space', "it's quoted", '42', 'true', '', 'first line\nsecond line',
+      // Booleans, numbers, and times only in YAML 1.1, the version sigs.k8s.io/yaml reads.
+      'no', 'yes', 'on', 'off', 'y', 'n', '0b101', '1_000', '12:30:00', '2026-10-17',
+      // A number only in YAML 1.2.
+      '0o17',
+      // Line breaks only in YAML 1.1, also inside quoted and block scalars.
+      'a\u0085b', 'a\u2028b', 'a\u2029b', 'two\nlines\u2028',
+    ]
     for (const value of values) {
       const config: CreateConfig = {
         ...DEFAULT_CONFIG,
+        name: value,
         description: value,
-        labels: [{k: 'text', v: value}],
+        labels: [{k: 'text', v: value}, {k: value, v: 'key'}],
         target: value,
         window: value,
         ratio: {errors: value, total: value, grouping: [value]},
       }
-      const parsed = parse(buildYaml(config))
-      expect(parsed.metadata.labels.text).toBe(value)
-      expect(parsed.spec.target).toBe(value)
-      expect(parsed.spec.window).toBe(value)
-      expect(parsed.spec.indicator.ratio.errors.metric).toBe(value)
-      expect(parsed.spec.indicator.ratio.total.metric).toBe(value)
-      expect(parsed.spec.indicator.ratio.grouping).toEqual([value])
-      if (value === '') expect(parsed.spec).not.toHaveProperty('description')
-      else expect(parsed.spec.description).toBe(value)
+      for (const version of ['1.1', '1.2'] as const) {
+        const parsed = parse(buildYaml(config), {version})
+        expect(parsed.metadata.name).toBe(value === '' ? 'unnamed-slo' : value)
+        expect(parsed.metadata.labels.text).toBe(value)
+        if (value !== '') expect(parsed.metadata.labels[value]).toBe('key')
+        expect(parsed.spec.target).toBe(value)
+        expect(parsed.spec.window).toBe(value)
+        expect(parsed.spec.indicator.ratio.errors.metric).toBe(value)
+        expect(parsed.spec.indicator.ratio.total.metric).toBe(value)
+        expect(parsed.spec.indicator.ratio.grouping).toEqual([value])
+        if (value === '') expect(parsed.spec).not.toHaveProperty('description')
+        else expect(parsed.spec.description).toBe(value)
+      }
     }
   })
 

@@ -520,6 +520,8 @@ func TestObjectiveFromEditorConfig(t *testing.T) {
 				model.MetricNameLabel, "prometheus-api-query",
 				"namespace", "monitoring",
 				"pyrra.dev/team", "platform",
+				"pyrra.dev/paging", "no",
+				"pyrra.dev/cost-center", "0o17",
 			), objective.Labels)
 			require.Equal(t, 0.99, objective.Target)
 			require.Equal(t, model.Duration(7*24*time.Hour), objective.Window)
