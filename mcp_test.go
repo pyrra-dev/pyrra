@@ -62,13 +62,13 @@ func TestListObjectivesTOON(t *testing.T) {
 		},
 	}}
 
-	out, err := toon.Marshal(result, toon.WithLengthMarkers(true))
+	out, err := toon.Marshal(result)
 	require.NoError(t, err)
 
 	s := string(out)
 	t.Log("\n" + s)
 	// Tabular form: a single header row with all column names, then bare rows.
-	require.True(t, strings.Contains(s, "objectives[#2]"), "want length-marked array header, got:\n%s", s)
+	require.True(t, strings.Contains(s, "objectives[2]"), "want length-marked array header, got:\n%s", s)
 	require.True(t, strings.Contains(s, "name") && strings.Contains(s, "availability") && strings.Contains(s, "alerts_worst"))
 	require.Contains(t, s, "caddy-response-latency")
 }
@@ -91,14 +91,14 @@ func TestGetObjectiveGraphTOON(t *testing.T) {
 			},
 		},
 	}
-	out, err := toon.Marshal(res, toon.WithLengthMarkers(true))
+	out, err := toon.Marshal(res)
 	require.NoError(t, err)
 	s := string(out)
 	t.Log("\n" + s)
 	// Single-series: inline current. Multi-series: per-series current.
 	require.Contains(t, s, "error_budget:")
-	require.Contains(t, s, "values[#4]")
-	require.Contains(t, s, "series[#2]")
+	require.Contains(t, s, "values[4]")
+	require.Contains(t, s, "series[2]")
 	require.Contains(t, s, `quantile=\"p90\"`)
 	// One inline current (error_budget) + one per duration series = 3.
 	require.Equal(t, 3, strings.Count(s, "current:"))

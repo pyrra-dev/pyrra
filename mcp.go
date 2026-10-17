@@ -516,7 +516,7 @@ func applyMultiSeries(res *graphData, ts *objectivesv1alpha1.Timeseries) {
 }
 
 func toonResult(v any) (*mcpsdk.CallToolResult, any, error) {
-	b, err := toon.Marshal(v, toon.WithLengthMarkers(true))
+	b, err := toon.Marshal(v)
 	if err != nil {
 		return nil, nil, fmt.Errorf("encoding TOON: %w", err)
 	}
