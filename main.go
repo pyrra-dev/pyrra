@@ -633,13 +633,13 @@ func (c *thanosClient) Do(ctx context.Context, r *http.Request) (*http.Response,
 
 type prometheusAPI interface {
 	// Query performs a query for the given time.
-	Query(ctx context.Context, query string, ts time.Time, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error)
+	Query(ctx context.Context, query string, ts time.Time, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, prometheusapiv1.Infos, error)
 	// QueryRange performs a query for the given range.
-	QueryRange(ctx context.Context, query string, r prometheusapiv1.Range, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error)
+	QueryRange(ctx context.Context, query string, r prometheusapiv1.Range, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, prometheusapiv1.Infos, error)
 	// LabelNames returns the unique label names present in the block in sorted order.
-	LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelNames, prometheusapiv1.Warnings, error)
+	LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelNames, prometheusapiv1.Warnings, prometheusapiv1.Infos, error)
 	// LabelValues performs a query for the values of the given label.
-	LabelValues(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelValues, prometheusapiv1.Warnings, error)
+	LabelValues(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelValues, prometheusapiv1.Warnings, prometheusapiv1.Infos, error)
 }
 
 type promLogger struct {
@@ -647,7 +647,7 @@ type promLogger struct {
 	logger log.Logger
 }
 
-func (l *promLogger) Query(ctx context.Context, query string, ts time.Time, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error) {
+func (l *promLogger) Query(ctx context.Context, query string, ts time.Time, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, prometheusapiv1.Infos, error) {
 	level.Debug(l.logger).Log(
 		"msg", "running instant query",
 		"query", query,
@@ -656,7 +656,7 @@ func (l *promLogger) Query(ctx context.Context, query string, ts time.Time, opts
 	return l.api.Query(ctx, query, ts, opts...)
 }
 
-func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusapiv1.Range, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, error) {
+func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusapiv1.Range, opts ...prometheusapiv1.Option) (model.Value, prometheusapiv1.Warnings, prometheusapiv1.Infos, error) {
 	level.Debug(l.logger).Log(
 		"msg", "running range query",
 		"query", query,
@@ -666,7 +666,7 @@ func (l *promLogger) QueryRange(ctx context.Context, query string, r prometheusa
 	return l.api.QueryRange(ctx, query, r, opts...)
 }
 
-func (l *promLogger) LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelNames, prometheusapiv1.Warnings, error) {
+func (l *promLogger) LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelNames, prometheusapiv1.Warnings, prometheusapiv1.Infos, error) {
 	level.Debug(l.logger).Log(
 		"msg", "listing label names",
 		"matches", strings.Join(matches, ","),
@@ -674,7 +674,7 @@ func (l *promLogger) LabelNames(ctx context.Context, matches []string, startTime
 	return l.api.LabelNames(ctx, matches, startTime, endTime, opts...)
 }
 
-func (l *promLogger) LabelValues(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelValues, prometheusapiv1.Warnings, error) {
+func (l *promLogger) LabelValues(ctx context.Context, label string, matches []string, startTime, endTime time.Time, opts ...prometheusapiv1.Option) (model.LabelValues, prometheusapiv1.Warnings, prometheusapiv1.Infos, error) {
 	level.Debug(l.logger).Log(
 		"msg", "listing label values",
 		"label", label,
@@ -729,7 +729,7 @@ func (p *promCache) Query(ctx context.Context, query string, ts time.Time) (mode
 	}
 
 	start := time.Now()
-	value, warnings, err := p.api.Query(ctx, query, ts)
+	value, warnings, _, err := p.api.Query(ctx, query, ts)
 	duration := time.Since(start)
 	if err != nil {
 		return nil, warnings, fmt.Errorf("prometheus query: %w", err)
@@ -761,7 +761,7 @@ func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusap
 	}
 
 	start := time.Now()
-	value, warnings, err := p.api.QueryRange(ctx, query, r)
+	value, warnings, _, err := p.api.QueryRange(ctx, query, r)
 	duration := time.Since(start)
 	if err != nil {
 		return nil, warnings, fmt.Errorf("prometheus query range: %w", err)
@@ -786,11 +786,13 @@ func (p *promCache) QueryRange(ctx context.Context, query string, r prometheusap
 // API without caching: metadata payloads are small and infrequent enough
 // (driven by editor keystrokes) that the ristretto cache isn't worth it here.
 func (p *promCache) LabelNames(ctx context.Context, matches []string, startTime, endTime time.Time) (model.LabelNames, prometheusapiv1.Warnings, error) {
-	return p.api.LabelNames(ctx, matches, startTime, endTime)
+	names, warnings, _, err := p.api.LabelNames(ctx, matches, startTime, endTime)
+	return names, warnings, err
 }
 
 func (p *promCache) LabelValues(ctx context.Context, label string, matches []string, startTime, endTime time.Time) (model.LabelValues, prometheusapiv1.Warnings, error) {
-	return p.api.LabelValues(ctx, label, matches, startTime, endTime)
+	values, warnings, _, err := p.api.LabelValues(ctx, label, matches, startTime, endTime)
+	return values, warnings, err
 }
 
 type objectiveServer struct {
