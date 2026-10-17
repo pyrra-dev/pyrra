@@ -46,7 +46,8 @@ export const DEFAULT_CONFIG: CreateConfig = {
     grouping: ['handler'],
   },
   latency: {
-    success: 'caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code!~"5..",le="0.05"}',
+    success:
+      'caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code!~"5..",le="0.05"}',
     total: 'caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code!~"5.."}',
     grouping: [],
   },
@@ -74,7 +75,7 @@ const groupingFor = (cfg: CreateConfig): string[] => {
   }
 }
 
-const yamlValue = (v: string): string => (/[^a-zA-Z0-9_.-]/.test(v) ? `'${v}'` : v)
+const yamlValue = (v: string): string => JSON.stringify(v)
 
 // Renders the ServiceLevelObjective YAML for the given form config.
 export const buildYaml = (cfg: CreateConfig): string => {
@@ -85,50 +86,50 @@ export const buildYaml = (cfg: CreateConfig): string => {
   lines.push('apiVersion: pyrra.dev/v1alpha1')
   lines.push('kind: ServiceLevelObjective')
   lines.push('metadata:')
-  lines.push(`  name: ${cfg.name !== '' ? cfg.name : 'unnamed-slo'}`)
+  lines.push(`  name: ${yamlValue(cfg.name !== '' ? cfg.name : 'unnamed-slo')}`)
   if (cfg.namespace !== '') {
-    lines.push(`  namespace: ${cfg.namespace}`)
+    lines.push(`  namespace: ${yamlValue(cfg.namespace)}`)
   }
   if (metaLabels.length > 0) {
     lines.push('  labels:')
-    metaLabels.forEach((r) => lines.push(`    ${r.k}: ${yamlValue(r.v)}`))
+    metaLabels.forEach((r) => lines.push(`    ${yamlValue(r.k)}: ${yamlValue(r.v)}`))
   }
   lines.push('spec:')
-  lines.push(`  target: '${cfg.target}'`)
-  lines.push(`  window: ${cfg.window}`)
+  lines.push(`  target: ${yamlValue(cfg.target)}`)
+  lines.push(`  window: ${yamlValue(cfg.window)}`)
   if (cfg.description !== '') {
-    lines.push(`  description: ${cfg.description}`)
+    lines.push(`  description: ${yamlValue(cfg.description)}`)
   }
   lines.push('  indicator:')
   switch (cfg.sliType) {
     case 'ratio':
       lines.push('    ratio:')
       lines.push('      errors:')
-      lines.push(`        metric: ${cfg.ratio.errors}`)
+      lines.push(`        metric: ${yamlValue(cfg.ratio.errors)}`)
       lines.push('      total:')
-      lines.push(`        metric: ${cfg.ratio.total}`)
+      lines.push(`        metric: ${yamlValue(cfg.ratio.total)}`)
       break
     case 'latency':
       lines.push('    latency:')
       lines.push('      success:')
-      lines.push(`        metric: ${cfg.latency.success}`)
+      lines.push(`        metric: ${yamlValue(cfg.latency.success)}`)
       lines.push('      total:')
-      lines.push(`        metric: ${cfg.latency.total}`)
+      lines.push(`        metric: ${yamlValue(cfg.latency.total)}`)
       break
     case 'latencyNative':
       lines.push('    latencyNative:')
-      lines.push(`      latency: ${cfg.latencyNative.latency}`)
+      lines.push(`      latency: ${yamlValue(cfg.latencyNative.latency)}`)
       lines.push('      total:')
-      lines.push(`        metric: ${cfg.latencyNative.total}`)
+      lines.push(`        metric: ${yamlValue(cfg.latencyNative.total)}`)
       break
     case 'bool':
       lines.push('    bool_gauge:')
-      lines.push(`      metric: ${cfg.bool.metric}`)
+      lines.push(`      metric: ${yamlValue(cfg.bool.metric)}`)
       break
   }
   if (grouping.length > 0) {
     lines.push('      grouping:')
-    grouping.forEach((g) => lines.push(`        - ${g}`))
+    grouping.forEach((g) => lines.push(`        - ${yamlValue(g)}`))
   }
   return lines.join('\n')
 }
