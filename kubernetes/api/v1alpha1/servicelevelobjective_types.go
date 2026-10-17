@@ -310,14 +310,14 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 			warnings = append(warnings, "ratio errors metric should be different from ratio total metric")
 		}
 
-		totalExpr, err := parser.ParseExpr(ratio.Total.Metric)
+		totalExpr, err := parser.NewParser(parser.Options{}).ParseExpr(ratio.Total.Metric)
 		if err != nil {
 			return warnings, fmt.Errorf("failed to parse ratio total metric: %w", err)
 		}
 		if _, ok := totalExpr.(*parser.VectorSelector); !ok {
 			return warnings, fmt.Errorf("ratio total metric must be a vector selector, but got %T", totalExpr)
 		}
-		errorsExpr, err := parser.ParseExpr(ratio.Errors.Metric)
+		errorsExpr, err := parser.NewParser(parser.Options{}).ParseExpr(ratio.Errors.Metric)
 		if err != nil {
 			return warnings, fmt.Errorf("failed to parse ratio error metric: %w", err)
 		}
@@ -338,11 +338,11 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 			warnings = append(warnings, "latency success metric should be different from latency total metric")
 		}
 
-		parsedTotal, err := parser.ParseExpr(latency.Total.Metric)
+		parsedTotal, err := parser.NewParser(parser.Options{}).ParseExpr(latency.Total.Metric)
 		if err != nil {
 			return warnings, fmt.Errorf("failed to parse latency total metric: %w", err)
 		}
-		parsedSuccess, err := parser.ParseExpr(latency.Success.Metric)
+		parsedSuccess, err := parser.NewParser(parser.Options{}).ParseExpr(latency.Success.Metric)
 		if err != nil {
 			return warnings, fmt.Errorf("failed to parse latency success metric: %w", err)
 		}
@@ -396,7 +396,7 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 			return warnings, fmt.Errorf("latencyNative latency objective must be a valid duration: %w", err)
 		}
 
-		_, err := parser.ParseExpr(latencyNative.Total.Metric)
+		_, err := parser.NewParser(parser.Options{}).ParseExpr(latencyNative.Total.Metric)
 		if err != nil {
 			return warnings, fmt.Errorf("failed to parse latencyNative total metric: %w", err)
 		}
@@ -408,7 +408,7 @@ func (in *ServiceLevelObjective) validate() (admission.Warnings, error) {
 			return warnings, fmt.Errorf("boolGauge metric must be set")
 		}
 
-		if _, err := parser.ParseExpr(boolGauge.Metric); err != nil {
+		if _, err := parser.NewParser(parser.Options{}).ParseExpr(boolGauge.Metric); err != nil {
 			return warnings, fmt.Errorf("failed to parse boolGauge metric: %w", err)
 		}
 	}
@@ -462,7 +462,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 	var ratio *slo.RatioIndicator
 	if in.Spec.ServiceLevelIndicator.Ratio != nil {
-		totalExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Ratio.Total.Metric)
+		totalExpr, err := parser.NewParser(parser.Options{}).ParseExpr(in.Spec.ServiceLevelIndicator.Ratio.Total.Metric)
 		if err != nil {
 			return slo.Objective{}, err
 		}
@@ -472,7 +472,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 			return slo.Objective{}, fmt.Errorf("ratio total metric is not a VectorSelector")
 		}
 
-		errorExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Ratio.Errors.Metric)
+		errorExpr, err := parser.NewParser(parser.Options{}).ParseExpr(in.Spec.ServiceLevelIndicator.Ratio.Errors.Metric)
 		if err != nil {
 			return slo.Objective{}, err
 		}
@@ -503,7 +503,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 	var latency *slo.LatencyIndicator
 	if in.Spec.ServiceLevelIndicator.Latency != nil {
-		totalExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Latency.Total.Metric)
+		totalExpr, err := parser.NewParser(parser.Options{}).ParseExpr(in.Spec.ServiceLevelIndicator.Latency.Total.Metric)
 		if err != nil {
 			return slo.Objective{}, err
 		}
@@ -519,7 +519,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 			totalMatchers[i] = &labels.Matcher{Type: matcher.Type, Name: matcher.Name, Value: matcher.Value}
 		}
 
-		successExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.Latency.Success.Metric)
+		successExpr, err := parser.NewParser(parser.Options{}).ParseExpr(in.Spec.ServiceLevelIndicator.Latency.Success.Metric)
 		if err != nil {
 			return slo.Objective{}, err
 		}
@@ -555,7 +555,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 			return slo.Objective{}, fmt.Errorf("failed to parse objective latency: %w", err)
 		}
 
-		totalExpr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric)
+		totalExpr, err := parser.NewParser(parser.Options{}).ParseExpr(in.Spec.ServiceLevelIndicator.LatencyNative.Total.Metric)
 		if err != nil {
 			return slo.Objective{}, err
 		}
@@ -583,7 +583,7 @@ func (in *ServiceLevelObjective) Internal() (slo.Objective, error) {
 
 	var boolGauge *slo.BoolGaugeIndicator
 	if in.Spec.ServiceLevelIndicator.BoolGauge != nil {
-		expr, err := parser.ParseExpr(in.Spec.ServiceLevelIndicator.BoolGauge.Metric)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(in.Spec.ServiceLevelIndicator.BoolGauge.Metric)
 		if err != nil {
 			return slo.Objective{}, err
 		}

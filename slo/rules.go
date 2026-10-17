@@ -451,7 +451,7 @@ func (o Objective) BurnrateName(rate time.Duration) string {
 func (o Objective) Burnrate(timerange time.Duration, opts GenerationOptions) string {
 	switch o.IndicatorType() {
 	case Ratio:
-		expr, err := parser.ParseExpr(`sum by (grouping) (rate(errorMetric{matchers="errors"}[1s])) / sum by (grouping) (rate(metric{matchers="total"}[1s]))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (rate(errorMetric{matchers="errors"}[1s])) / sum by (grouping) (rate(metric{matchers="total"}[1s]))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -487,7 +487,7 @@ func (o Objective) Burnrate(timerange time.Duration, opts GenerationOptions) str
 			/
 			sum by (grouping) (rate(metric{matchers="total"}[1s]))
 `
-		expr, err := parser.ParseExpr(query)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(query)
 		if err != nil {
 			return err.Error()
 		}
@@ -514,7 +514,7 @@ func (o Objective) Burnrate(timerange time.Duration, opts GenerationOptions) str
 
 		return expr.String()
 	case LatencyNative:
-		expr, err := parser.ParseExpr(`1 - histogram_fraction(0,0.696969, sum by (grouping) (rate(metric{matchers="total"}[1s])))`)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(`1 - histogram_fraction(0,0.696969, sum by (grouping) (rate(metric{matchers="total"}[1s])))`)
 		if err != nil {
 			return err.Error()
 		}
@@ -549,7 +549,7 @@ func (o Objective) Burnrate(timerange time.Duration, opts GenerationOptions) str
 			/
 			sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))
 `
-		expr, err := parser.ParseExpr(query)
+		expr, err := parser.NewParser(parser.Options{}).ParseExpr(query)
 		if err != nil {
 			return err.Error()
 		}
@@ -665,23 +665,23 @@ func (o Objective) commonRuleAnnotations(externalURL string) map[string]string {
 }
 
 func (o Objective) countExpr() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-	return parser.ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))`)
+	return parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (count_over_time(metric{matchers="total"}[1s]))`)
 }
 
 func (o Objective) sumExpr() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-	return parser.ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))`)
+	return parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s]))`)
 }
 
 func (o Objective) increaseExpr() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-	return parser.ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s]))`)
+	return parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (increase(metric{matchers="total"}[1s]))`)
 }
 
 func (o Objective) increaseSubqueryExpr() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-	return parser.ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s:2s]))`)
+	return parser.NewParser(parser.Options{}).ParseExpr(`sum by (grouping) (sum_over_time(metric{matchers="total"}[1s:2s]))`)
 }
 
 func (o Objective) absentExpr() (parser.Expr, error) {
-	return parser.ParseExpr(`absent(metric{matchers="total"}) == 1`)
+	return parser.NewParser(parser.Options{}).ParseExpr(`absent(metric{matchers="total"}) == 1`)
 }
 
 func (o Objective) increaseInterval() model.Duration {
@@ -1210,7 +1210,7 @@ func (o Objective) increaseRuleLatencyNative(sloName string) ([]monitoringv1.Rul
 		}
 	}
 
-	expr, err := parser.ParseExpr(`histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
+	expr, err := parser.NewParser(parser.Options{}).ParseExpr(`histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
 	if err != nil {
 		return rules, err
 	}
@@ -1228,7 +1228,7 @@ func (o Objective) increaseRuleLatencyNative(sloName string) ([]monitoringv1.Rul
 		Labels: ruleLabels,
 	})
 
-	expr, err = parser.ParseExpr(`histogram_fraction(0, 0.696969, sum by (grouping) (increase(metric{matchers="total"}[1s]))) * histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
+	expr, err = parser.NewParser(parser.Options{}).ParseExpr(`histogram_fraction(0, 0.696969, sum by (grouping) (increase(metric{matchers="total"}[1s]))) * histogram_count(sum by (grouping) (increase(metric{matchers="total"}[1s])))`)
 	if err != nil {
 		return rules, err
 	}
@@ -1518,7 +1518,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 			return monitoringv1.RuleGroup{}, ErrGroupingUnsupported
 		}
 
-		availability, err := parser.ParseExpr(`1 - sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
+		availability, err := parser.NewParser(parser.Options{}).ParseExpr(`1 - sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -1579,7 +1579,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 			Labels: ruleLabels,
 		})
 
-		rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m]))`)
+		rate, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(rate(metric{matchers="total"}[5m]))`)
 		if err != nil {
 			return monitoringv1.RuleGroup{}, err
 		}
@@ -1596,7 +1596,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 		})
 
 		errorsExpr := func() (parser.Expr, error) { // Returns a new instance of Expr with this query each time called
-			return parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m])) or vector(0)`)
+			return parser.NewParser(parser.Options{}).ParseExpr(`sum(rate(metric{matchers="total"}[5m])) or vector(0)`)
 		}
 		errorsParsedExpr, err := errorsExpr()
 		if err != nil {
@@ -1620,7 +1620,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 
 		// availability
 		{
-			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
+			expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(errorMetric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1674,7 +1674,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 		}
 		// rate
 		{
-			rate, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m]))`)
+			rate, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(rate(metric{matchers="total"}[5m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1700,7 +1700,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 		}
 		// errors
 		{
-			errorsExpr, err := parser.ParseExpr(`sum(rate(metric{matchers="total"}[5m])) - sum(rate(errorMetric{matchers="errors"}[5m]))`)
+			errorsExpr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(rate(metric{matchers="total"}[5m])) - sum(rate(errorMetric{matchers="errors"}[5m]))`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1741,7 +1741,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 
 		// availability
 		{
-			expr, err := parser.ParseExpr(`sum(metric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
+			expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(metric{matchers="errors"} or vector(0)) / sum(metric{matchers="total"})`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1813,7 +1813,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 
 		// availability
 		{
-			expr, err := parser.ParseExpr(`sum(errorMetric{matchers="errors"}) / sum(metric{matchers="total"})`)
+			expr, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(errorMetric{matchers="errors"}) / sum(metric{matchers="total"})`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1834,7 +1834,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 
 		// rate
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"})`)
+			rate, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(metric{matchers="total"})`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
@@ -1853,7 +1853,7 @@ func (o Objective) GenericRules(opts GenerationOptions) (monitoringv1.RuleGroup,
 
 		// errors
 		{
-			rate, err := parser.ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
+			rate, err := parser.NewParser(parser.Options{}).ParseExpr(`sum(metric{matchers="total"}) - sum(errorMetric{matchers="errors"})`)
 			if err != nil {
 				return monitoringv1.RuleGroup{}, err
 			}
