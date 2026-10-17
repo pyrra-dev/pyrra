@@ -6,7 +6,7 @@
   "dependencyDashboard": true,
   "baseBranchPatterns": [
     "main",
-    "release-0.9"
+    "release-0.10"
   ],
   "packageRules": [
     {
@@ -56,18 +56,21 @@
     {
       "description": "Release branch - only allow patch updates",
       "matchBaseBranches": [
-        "release-0.9"
+        "release-0.10"
       ],
       "matchUpdateTypes": [
         "major",
-        "minor"
+        "minor",
+        "digest",
+        "pin",
+        "pinDigest"
       ],
       "enabled": false
     },
     {
       "description": "Release branch PRs get release label",
       "matchBaseBranches": [
-        "release-0.9"
+        "release-0.10"
       ],
       "addLabels": [
         "release"
