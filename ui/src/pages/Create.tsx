@@ -201,7 +201,7 @@ const Create = (): JSX.Element => {
                   value={cfg.name}
                   spellCheck={false}
                   autoComplete="off"
-                  onChange={(e) => { set({name: e.target.value.replace(/[^a-zA-Z0-9-]/g, '')}); }}
+                  onChange={(e) => { set({name: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')}); }}
                 />
               </Field>
 
