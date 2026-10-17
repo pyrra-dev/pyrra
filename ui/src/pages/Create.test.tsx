@@ -21,6 +21,18 @@ vi.mock('../components/create/DetailPreview', () => ({
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); })
 
+describe('name', () => {
+  it('only produces names Kubernetes accepts', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter><Create /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    fireEvent.change(screen.getByLabelText('Name'), {target: {value: 'Checkout_API'}})
+    expect(parse(screen.getByText(/^apiVersion:/).textContent ?? '').metadata.name).toBe('checkoutapi')
+  })
+})
+
 describe('live target preview', () => {
   it('keeps a finite query baseline and original duration config while target edits stay local', async () => {
     render(
