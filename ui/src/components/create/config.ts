@@ -1,9 +1,6 @@
-// Form model + YAML generation for the Create SLO editor.
-//
-// The model mirrors the pyrra.dev/v1alpha1 ServiceLevelObjective spec closely
-// enough that buildYaml() emits a config identical to what you'd commit to Git
-// or apply with kubectl. The same YAML is what the (future) preview endpoint
-// feeds back through Pyrra's own Go parsing to materialize a live Objective.
+// Form draft and YAML generation for the Create SLO editor.
+import {Document, parse, visit} from 'yaml'
+import type {ServiceLevelObjective} from './serviceLevelObjective.generated'
 
 export type SLIType = 'ratio' | 'latency' | 'latencyNative' | 'bool'
 
@@ -74,63 +71,88 @@ const groupingFor = (cfg: CreateConfig): string[] => {
   }
 }
 
-const yamlValue = (v: string): string => (/[^a-zA-Z0-9_.-]/.test(v) ? `'${v}'` : v)
-
-// Renders the ServiceLevelObjective YAML for the given form config.
-export const buildYaml = (cfg: CreateConfig): string => {
+// Convert the editor draft to the CRD-derived document shape. The last row wins
+// for duplicate label names, matching how edits to a map behave.
+export const toServiceLevelObjective = (cfg: CreateConfig): ServiceLevelObjective => {
   const grouping = groupingFor(cfg)
-  const metaLabels = cfg.labels.filter((r) => r.k !== '')
-  const lines: string[] = []
-
-  lines.push('apiVersion: pyrra.dev/v1alpha1')
-  lines.push('kind: ServiceLevelObjective')
-  lines.push('metadata:')
-  lines.push(`  name: ${cfg.name !== '' ? cfg.name : 'unnamed-slo'}`)
-  if (cfg.namespace !== '') {
-    lines.push(`  namespace: ${cfg.namespace}`)
-  }
-  if (metaLabels.length > 0) {
-    lines.push('  labels:')
-    metaLabels.forEach((r) => lines.push(`    ${r.k}: ${yamlValue(r.v)}`))
-  }
-  lines.push('spec:')
-  lines.push(`  target: '${cfg.target}'`)
-  lines.push(`  window: ${cfg.window}`)
-  if (cfg.description !== '') {
-    lines.push(`  description: ${cfg.description}`)
-  }
-  lines.push('  indicator:')
+  const labels = Object.fromEntries(cfg.labels.filter((row) => row.k !== '').map((row) => [row.k, row.v]))
+  const indicator: NonNullable<ServiceLevelObjective['spec']>['indicator'] = {}
   switch (cfg.sliType) {
     case 'ratio':
-      lines.push('    ratio:')
-      lines.push('      errors:')
-      lines.push(`        metric: ${cfg.ratio.errors}`)
-      lines.push('      total:')
-      lines.push(`        metric: ${cfg.ratio.total}`)
+      indicator.ratio = {
+        errors: {metric: cfg.ratio.errors},
+        total: {metric: cfg.ratio.total},
+        ...(grouping.length > 0 && {grouping}),
+      }
       break
     case 'latency':
-      lines.push('    latency:')
-      lines.push('      success:')
-      lines.push(`        metric: ${cfg.latency.success}`)
-      lines.push('      total:')
-      lines.push(`        metric: ${cfg.latency.total}`)
+      indicator.latency = {
+        success: {metric: cfg.latency.success},
+        total: {metric: cfg.latency.total},
+        ...(grouping.length > 0 && {grouping}),
+      }
       break
     case 'latencyNative':
-      lines.push('    latencyNative:')
-      lines.push(`      latency: ${cfg.latencyNative.latency}`)
-      lines.push('      total:')
-      lines.push(`        metric: ${cfg.latencyNative.total}`)
+      indicator.latencyNative = {
+        latency: cfg.latencyNative.latency,
+        total: {metric: cfg.latencyNative.total},
+        ...(grouping.length > 0 && {grouping}),
+      }
       break
     case 'bool':
-      lines.push('    bool_gauge:')
-      lines.push(`      metric: ${cfg.bool.metric}`)
+      indicator.bool_gauge = {
+        metric: cfg.bool.metric,
+        ...(grouping.length > 0 && {grouping}),
+      }
       break
   }
-  if (grouping.length > 0) {
-    lines.push('      grouping:')
-    grouping.forEach((g) => lines.push(`        - ${g}`))
+  return {
+    apiVersion: 'pyrra.dev/v1alpha1',
+    kind: 'ServiceLevelObjective',
+    metadata: {
+      name: cfg.name !== '' ? cfg.name : 'unnamed-slo',
+      ...(cfg.namespace !== '' && {namespace: cfg.namespace}),
+      ...(Object.keys(labels).length > 0 && {labels}),
+    },
+    spec: {
+      target: cfg.target,
+      window: cfg.window,
+      ...(cfg.description !== '' && {description: cfg.description}),
+      indicator,
+    },
   }
-  return lines.join('\n')
+}
+
+// Pyrra and kubectl read YAML with sigs.k8s.io/yaml (YAML 1.1), many other
+// tools with YAML 1.2. A plain no, 0o17 or 1_000 is a string in one and a bool or
+// number in the other, so any string that doesn't read back as itself in both
+// gets double quotes. YAML 1.1 also breaks lines at NEL, LS and PS, even inside
+// quotes, so those are written as escapes.
+const yaml11LineBreaks = /[\x85\u{2028}\u{2029}]/gu
+
+const readsBackAsItself = (value: string): boolean =>
+  (['1.1', '1.2'] as const).every((version) => {
+    try {
+      return parse(value, {version}) === value
+    } catch {
+      return false
+    }
+  })
+
+export const buildYaml = (cfg: CreateConfig): string => {
+  const doc = new Document(toServiceLevelObjective(cfg))
+  visit(doc, {
+    Scalar(_, node) {
+      if (typeof node.value !== 'string') return
+      // Multi-line strings become block scalars, which both versions read alike.
+      const ambiguous = !node.value.includes('\n') && !readsBackAsItself(node.value)
+      if (ambiguous || node.value.search(yaml11LineBreaks) !== -1) node.type = 'QUOTE_DOUBLE'
+    },
+  })
+  return doc
+    .toString()
+    .replace(yaml11LineBreaks, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+    .trimEnd()
 }
 
 export const yamlFilename = (cfg: CreateConfig): string =>

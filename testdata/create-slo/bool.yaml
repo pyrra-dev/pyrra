@@ -1,0 +1,20 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: prometheus-api-query
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+    pyrra.dev/team: platform
+    pyrra.dev/paging: "no"
+    pyrra.dev/cost-center: "0o17"
+spec:
+  target: "99.0"
+  window: 7d
+  description: "Requests that aren't 5xx: the #1 signal"
+  indicator:
+    bool_gauge:
+      metric: up{job="prometheus-k8s"}
+      grouping:
+        - instance

@@ -8,8 +8,10 @@
 import React, {useMemo, useState, type JSX} from 'react'
 import {createClient} from '@connectrpc/connect'
 import {createConnectTransport} from '@connectrpc/connect-web'
+import {useQueryClient} from '@tanstack/react-query'
 import {Spinner} from '@/components/ui/spinner'
 import {Badge} from '@/components/ui/badge'
+import {Button} from '@/components/ui/button'
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '@/components/ui/table'
 import {cn} from '@/lib/utils'
 import {type Labels, MetricName, labelsString} from '../../labels'
@@ -42,6 +44,7 @@ const sampleLabels = (s: Sample): Labels => {
 }
 
 const GroupingsTable = ({baseUrl, objective, selected, onSelect}: GroupingsTableProps): JSX.Element => {
+  const queryClient = useQueryClient()
   const promClient = useMemo(
     () => createClient(PrometheusService, createConnectTransport({baseUrl})),
     [baseUrl],
@@ -87,6 +90,43 @@ const GroupingsTable = ({baseUrl, objective, selected, onSelect}: GroupingsTable
   }, [totalResponse, errorResponse])
 
   const loading = totalStatus === 'pending' || errorStatus === 'pending'
+  const totalFailed = totalStatus === 'error'
+  const errorsFailed = errorStatus === 'error'
+
+  if (totalFailed || errorsFailed) {
+    const failedQueries =
+      totalFailed && errorsFailed
+        ? 'total and errors queries'
+        : totalFailed
+          ? 'total query'
+          : 'errors query'
+    return (
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-2.5 p-10 text-center text-muted-foreground">
+        <p className="font-heading text-xl font-bold text-foreground">Couldn’t load groupings</p>
+        <p className="max-w-96 text-sm leading-relaxed">
+          The {failedQueries} failed. Check the query and try again.
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => {
+            if (totalFailed) {
+              void queryClient.invalidateQueries({
+                queryKey: ['query', countTotal, Math.floor(now)],
+                exact: true,
+              })
+            }
+            if (errorsFailed) {
+              void queryClient.invalidateQueries({
+                queryKey: ['query', countErrors, Math.floor(now)],
+                exact: true,
+              })
+            }
+          }}>
+          Retry
+        </Button>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

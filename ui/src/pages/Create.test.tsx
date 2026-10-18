@@ -2,6 +2,7 @@ import {fireEvent, render, screen, waitFor, cleanup} from '@testing-library/reac
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {MemoryRouter} from 'react-router-dom'
 import {afterEach, describe, expect, it, vi} from 'vitest'
+import {parse} from 'yaml'
 import {previewObjective} from '../components/create/preview'
 import Create from './Create'
 
@@ -20,6 +21,18 @@ vi.mock('../components/create/DetailPreview', () => ({
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); })
 
+describe('name', () => {
+  it('only produces names Kubernetes accepts', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter><Create /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    fireEvent.change(screen.getByLabelText('Name'), {target: {value: 'Checkout_API'}})
+    expect(parse(screen.getByText(/^apiVersion:/).textContent ?? '').metadata.name).toBe('checkoutapi')
+  })
+})
+
 describe('live target preview', () => {
   it('keeps a finite query baseline and original duration config while target edits stay local', async () => {
     render(
@@ -31,8 +44,8 @@ describe('live target preview', () => {
     fireEvent.change(input, {target: {value: '100'}})
     fireEvent.click(screen.getByRole('button', {name: /^preview$/i}))
     await waitFor(() => { expect(screen.getByTestId('target')).toHaveTextContent('1'); })
-    expect(vi.mocked(previewObjective).mock.calls[0][1]).toContain("target: '99'")
-    expect(screen.getByTestId('preview')).toHaveTextContent("target: '100'")
+    expect(parse(vi.mocked(previewObjective).mock.calls[0][1]).spec.target).toBe('99')
+    expect(parse(screen.getByTestId('preview').querySelector('pre')?.textContent ?? '').spec.target).toBe('100')
     fireEvent.keyDown(input, {key: 'ArrowDown'})
     expect(Number(screen.getByTestId('target').textContent)).toBeCloseTo(0.9999999, 10)
     fireEvent.change(input, {target: {value: '99'}})

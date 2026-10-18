@@ -1,0 +1,21 @@
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: prometheus-api-query
+  namespace: monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+    pyrra.dev/team: platform
+    pyrra.dev/paging: "no"
+    pyrra.dev/cost-center: "0o17"
+spec:
+  target: "99.0"
+  window: 7d
+  description: "Requests that aren't 5xx: the #1 signal"
+  indicator:
+    latency:
+      success:
+        metric: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code!~"5..",le="0.05"}
+      total:
+        metric: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code!~"5.."}

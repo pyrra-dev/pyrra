@@ -363,22 +363,32 @@ interface WindowControlProps {
 export const WindowControl = ({value, onChange}: WindowControlProps): React.JSX.Element => {
   const presets = ['4w', '2w', '1w', '1d']
   const isPreset = presets.includes(value)
+  // A custom window typed through a preset prefix (1w on the way to 1w3d) must
+  // stay in the field, so it shows what was typed until a preset button replaces it.
+  const [typed, setTyped] = useState(isPreset ? '' : value)
   return (
     <div className="inline-flex items-center">
       <input
         className="z-10 h-8 w-14 rounded-l-lg rounded-r-none border border-r-0 border-input bg-muted/50 px-2.5 font-mono text-[13px] font-medium text-foreground shadow-inner outline-none transition-all placeholder:font-sans placeholder:text-muted-foreground focus-visible:z-20 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        value={isPreset ? '' : value}
+        value={typed === value || !isPreset ? value : ''}
         placeholder="2w"
         aria-label="Custom window"
         spellCheck={false}
         autoComplete="off"
-        onChange={(e) => { onChange(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); }}
+        onChange={(e) => {
+          const window = e.target.value.replace(/[^a-zA-Z0-9]/g, '')
+          setTyped(window)
+          onChange(window)
+        }}
       />
       <ToggleGroup
         variant="outline"
         value={isPreset ? [value] : []}
         onValueChange={(val) => {
-          if (val.length > 0) onChange(val[val.length - 1])
+          if (val.length > 0) {
+            setTyped('')
+            onChange(val[val.length - 1])
+          }
         }}>
         {presets.map((w, i) => (
           <ToggleGroupItem
