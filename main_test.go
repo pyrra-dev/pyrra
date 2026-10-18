@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"io"
-	"log/slog"
 	"math"
 	"os"
 	"path/filepath"
@@ -17,6 +15,7 @@ import (
 	"github.com/go-kit/log"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/common/promslog"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/model/rulefmt"
 	"github.com/prometheus/prometheus/promql/parser"
@@ -505,7 +504,8 @@ var updateCreateSLO = flag.Bool("update", false, "Update generated rules in Crea
 
 // The UI checks form -> SLO; this test checks SLO -> recording/alerting rules.
 // Update only the rules with:
-// go test . -run '^TestRulesFromSLO$' -update
+//
+//	go test . -run '^TestRulesFromSLO$' -update
 func TestRulesFromSLO(t *testing.T) {
 	files, err := filepath.Glob(filepath.Join("testdata", "create-slo", "*.yaml"))
 	require.NoError(t, err)
@@ -530,7 +530,7 @@ func TestRulesFromSLO(t *testing.T) {
 			rules, err := os.ReadFile(filepath.Join(output, "slo.yaml"))
 			require.NoError(t, err)
 			_, errs := rulefmt.Parse(rules, false, model.UTF8Validation,
-				parser.NewParser(parser.Options{}), slog.New(slog.NewTextHandler(io.Discard, nil)))
+				parser.NewParser(parser.Options{}), promslog.NewNopLogger())
 			require.Empty(t, errs, "Prometheus must accept the generated rules")
 
 			if *updateCreateSLO {
