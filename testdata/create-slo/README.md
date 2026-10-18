@@ -6,8 +6,8 @@ Each `.yaml` file is one case shared by the UI and Go tests, with three sections
   fields and the complete active indicator; the UI fills inactive indicators from
   `DEFAULT_CONFIG`.
 - `slo`: the expected SLO YAML as a literal block (`|`). The UI compares `buildYaml`
-  against this exact text, including quoting. Go parses this same text through
-  `objectiveFromConfig`, without reading or asserting against the form inputs.
+  against this exact text, including quoting. Go uses this same text as input to
+  rule generation. Go does not decode the form inputs.
 - `rules`: the expected recording and alerting rules as a literal block. Go writes
   the `slo` text to a temporary file, runs `writeRuleFile` with the CLI defaults,
   validates the output with Prometheus's `rulefmt.Parse`, and compares it here.
@@ -17,16 +17,16 @@ To add a case, copy an existing file, edit `form` and the expected `slo`, and se
 rules from the repository root:
 
 ```sh
-go test . -run '^TestObjectiveFromEditorConfig$' -update
+go test . -run '^TestRulesFromSLO$' -update
 ```
 
-This updates only the rules expectations, after SLO parsing and Prometheus
+This updates only the rules expectations, after rule generation and Prometheus
 validation pass. It does not regenerate the expected SLO from the serializer.
 Review the generated rules, then run both sides without updating:
 
 ```sh
 (cd ui && npm test -- src/components/create/fixtures.test.ts)
-go test . -run '^TestObjectiveFromEditorConfig$'
+go test . -run '^TestRulesFromSLO$'
 ```
 
 These are serialization and rule-generation tests, not time-series evaluation

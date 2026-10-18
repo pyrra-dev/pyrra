@@ -503,10 +503,10 @@ spec:
 
 var updateCreateSLO = flag.Bool("update", false, "Update generated rules in Create SLO fixtures")
 
-// Each fixture has three parts: form inputs, SLO YAML checked by the UI, and
-// recording/alerting rules checked here. Update only the rules with:
-// go test . -run '^TestObjectiveFromEditorConfig$' -update
-func TestObjectiveFromEditorConfig(t *testing.T) {
+// The UI checks form -> SLO; this test checks SLO -> recording/alerting rules.
+// Update only the rules with:
+// go test . -run '^TestRulesFromSLO$' -update
+func TestRulesFromSLO(t *testing.T) {
 	files, err := filepath.Glob(filepath.Join("testdata", "create-slo", "*.yaml"))
 	require.NoError(t, err)
 	require.NotEmpty(t, files)
@@ -519,9 +519,6 @@ func TestObjectiveFromEditorConfig(t *testing.T) {
 				Rules string
 			}
 			require.NoError(t, yaml.Unmarshal(data, &fixture))
-
-			_, err = objectiveFromConfig(context.Background(), fixture.SLO, "")
-			require.NoError(t, err)
 
 			// Exercise the filesystem/CLI output path with its default options.
 			dir := t.TempDir()
@@ -555,7 +552,7 @@ func TestObjectiveFromEditorConfig(t *testing.T) {
 				require.NoError(t, os.WriteFile(file, []byte(updated.String()), 0o644))
 				fixture.Rules = string(rules)
 			}
-			require.Equal(t, fixture.Rules, string(rules), "regenerate with go test . -run '^TestObjectiveFromEditorConfig$' -update")
+			require.Equal(t, fixture.Rules, string(rules), "regenerate with go test . -run '^TestRulesFromSLO$' -update")
 		})
 	}
 }

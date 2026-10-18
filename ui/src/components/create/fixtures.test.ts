@@ -6,7 +6,7 @@ import {parse} from 'yaml'
 import {buildYaml, DEFAULT_CONFIG, type CreateConfig} from './config'
 
 // Each case contains form inputs, the exact SLO YAML, and the generated rules.
-// TestObjectiveFromEditorConfig consumes the same SLO and checks the rules.
+// TestRulesFromSLO consumes the same SLO and checks the rules.
 const fixtureDirectory = fileURLToPath(new URL('../../../../testdata/create-slo/', import.meta.url))
 const fixtures = readdirSync(fixtureDirectory).filter((name) => name.endsWith('.yaml'))
 
@@ -19,7 +19,6 @@ describe('editor YAML fixtures', () => {
     const fixture = parse(readFileSync(`${fixtureDirectory}/${name}`, 'utf8')) as {
       form: Partial<CreateConfig>
       slo: string
-      rules: string
     }
     expect(`${buildYaml({...DEFAULT_CONFIG, ...fixture.form})}\n`).toBe(fixture.slo)
   })
