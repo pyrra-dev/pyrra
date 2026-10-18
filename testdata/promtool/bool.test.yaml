@@ -1,0 +1,132 @@
+# 98% over 7d: critical thresholds 28% / 14%, warnings 4% / 2%.
+rule_files: [bool.rules.yaml]
+evaluation_interval: 30s
+fuzzy_compare: true
+group_eval_order: [probe-success-increase, probe-success]
+
+tests:
+  - name: healthy probes do not burn the budget
+    interval: 15s
+    input_series:
+      - series: up{job="prometheus-k8s",instance="a"}
+        values: 1x960
+    alert_rule_test:
+      - {eval_time: 4h, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: up:burnrate1m
+        eval_time: 4h
+        exp_samples:
+          - labels: 'up:burnrate1m{job="prometheus-k8s",instance="a",slo="probe-success",team="platform"}'
+            value: 0
+
+  - name: outage from startup fires both critical alerts
+    interval: 15s
+    input_series:
+      - series: up{job="prometheus-k8s",instance="a"}
+        values: 0x40
+    alert_rule_test:
+      - {eval_time: 30s, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - eval_time: 10m
+        alertname: ErrorBudgetBurn
+        exp_alerts: &critical
+          - &fast_alert
+            exp_labels:
+              <<: &identity {job: prometheus-k8s, instance: a, slo: probe-success, team: platform}
+              severity: critical
+              short: 1m
+              long: 15m
+              exhaustion: 12h
+          - exp_labels:
+              <<: *identity
+              severity: critical
+              short: 8m
+              long: 1h30m
+              exhaustion: 1d
+      # A present zero is a failed probe, not an absent metric.
+      - {eval_time: 10m, alertname: SLOMetricAbsent, exp_alerts: []}
+
+  - name: six hours healthy then twenty minutes of failed probes
+    interval: 15s
+    input_series:
+      - series: up{job="prometheus-k8s",instance="a"}
+        values: 1x1440 0x79
+    alert_rule_test:
+      - {eval_time: 6h, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 6h1m, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 6h8m, alertname: ErrorBudgetBurn, exp_alerts: [*fast_alert]}
+      - {eval_time: 6h20m, alertname: ErrorBudgetBurn, exp_alerts: *critical}
+      - {eval_time: 6h20m, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: up:burnrate1m
+        eval_time: 6h20m
+        exp_samples:
+          - labels: 'up:burnrate1m{job="prometheus-k8s",instance="a",slo="probe-success",team="platform"}'
+            value: 1
+
+  - name: one failed probe every ten minutes fires only warnings
+    interval: 1m
+    input_series:
+      # Each block is nine successes and one failure. Keep gauge inputs boolean.
+      - series: up{job="prometheus-k8s",instance="a"}
+        values: >-
+          1x8 0 1x8 0 1x8 0 1x8 0 1x8 0 1x8 0
+          1x8 0 1x8 0 1x8 0 1x8 0 1x8 0 1x8 0
+          1x8 0 1x8 0 1x8 0 1x8 0 1x8 0 1x8 0
+          1x8 0 1x8 0 1x8 0 1x8 0 1x8 0 1x8 0 1
+    alert_rule_test:
+      - eval_time: 4h
+        alertname: ErrorBudgetBurn
+        exp_alerts:
+          - exp_labels: {<<: *identity, severity: warning, short: 30m, long: 6h, exhaustion: 3d12h}
+          - exp_labels: {<<: *identity, severity: warning, short: 1h30m, long: 1d, exhaustion: 1w}
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: up:burnrate30m
+        eval_time: 4h
+        exp_samples:
+          - labels: 'up:burnrate30m{job="prometheus-k8s",instance="a",slo="probe-success",team="platform"}'
+            value: 0.1
+      # Inclusive t=0..240m gives 241 observations, of which 24 failed.
+      - expr: up:count1w
+        eval_time: 4h
+        exp_samples:
+          - labels: 'up:count1w{job="prometheus-k8s",instance="a",slo="probe-success",team="platform"}'
+            value: 241
+      - expr: up:sum1w
+        eval_time: 4h
+        exp_samples:
+          - labels: 'up:sum1w{job="prometheus-k8s",instance="a",slo="probe-success",team="platform"}'
+            value: 217
+
+  - name: missing probes page only after five minutes
+    interval: 15s
+    input_series: []
+    alert_rule_test:
+      - {eval_time: 4m30s, alertname: SLOMetricAbsent, exp_alerts: []}
+      - eval_time: 5m
+        alertname: SLOMetricAbsent
+        exp_alerts:
+          - exp_labels: {job: prometheus-k8s, slo: probe-success, team: platform, severity: critical}
+      - {eval_time: 10m, alertname: ErrorBudgetBurn, exp_alerts: []}
+    promql_expr_test:
+      - {expr: up:burnrate1m, eval_time: 10m, exp_samples: []}
+
+  - name: one failed instance pages independently of a healthy instance
+    interval: 15s
+    input_series:
+      - series: up{job="prometheus-k8s",instance="a"}
+        values: 0x40
+      - series: up{job="prometheus-k8s",instance="b"}
+        values: 1x40
+    alert_rule_test:
+      - {eval_time: 10m, alertname: ErrorBudgetBurn, exp_alerts: *critical}
+      - {eval_time: 10m, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: up:burnrate1m
+        eval_time: 10m
+        exp_samples:
+          - labels: 'up:burnrate1m{job="prometheus-k8s",instance="a",slo="probe-success",team="platform"}'
+            value: 1
+          - labels: 'up:burnrate1m{job="prometheus-k8s",instance="b",slo="probe-success",team="platform"}'
+            value: 0

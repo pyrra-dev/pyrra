@@ -1,0 +1,147 @@
+# 99% over 7d: critical thresholds 14% / 7%, warnings 2% / 1%.
+rule_files: [ratio.rules.yaml]
+evaluation_interval: 30s
+fuzzy_compare: true
+group_eval_order: [prometheus-api-query-increase, prometheus-api-query]
+
+tests:
+  - name: healthy traffic does not burn the budget
+    interval: 15s
+    input_series:
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="200"}
+        values: 0+100x960
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="500"}
+        values: 0x960
+    alert_rule_test:
+      - {eval_time: 4h, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: prometheus_http_requests:burnrate1m
+        eval_time: 4h
+        exp_samples:
+          - labels: 'prometheus_http_requests:burnrate1m{handler="/api/v1/query",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0
+
+  - name: outage from startup fires both critical alerts and no warnings yet
+    interval: 15s
+    input_series:
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="200"}
+        values: 0x40
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="500"}
+        values: 0+100x40
+    alert_rule_test:
+      # The first evaluation with a rate is 30s; even the fast alert is pending at 1m.
+      - {eval_time: 1m, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - eval_time: 10m
+        alertname: ErrorBudgetBurn
+        exp_alerts: &critical
+          - &fast_alert
+            exp_labels:
+              <<: &identity
+                handler: /api/v1/query
+                slo: prometheus-api-query
+                team: platform
+                paging: "no"
+                cost-center: "0o17"
+              severity: critical
+              short: 1m
+              long: 15m
+              exhaustion: 12h
+          - exp_labels:
+              <<: *identity
+              severity: critical
+              short: 8m
+              long: 1h30m
+              exhaustion: 1d
+      - {eval_time: 10m, alertname: SLOMetricAbsent, exp_alerts: []}
+
+  - name: six hours healthy then outage fills the long window before paging
+    interval: 15s
+    input_series:
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="200"}
+        values: 0+100x1440 144000x48
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="500"}
+        values: 0x1440 100+100x47
+    alert_rule_test:
+      - {eval_time: 6h, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 6h1m, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 6h5m, alertname: ErrorBudgetBurn, exp_alerts: [*fast_alert]}
+      - {eval_time: 6h12m, alertname: ErrorBudgetBurn, exp_alerts: *critical}
+      - {eval_time: 6h12m, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: prometheus_http_requests:burnrate1m
+        eval_time: 6h12m
+        exp_samples:
+          - labels: 'prometheus_http_requests:burnrate1m{handler="/api/v1/query",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 1
+
+  - name: three percent errors fire only the two warnings
+    interval: 15s
+    input_series:
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="200"}
+        values: 0+97x960
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="500"}
+        values: 0+3x960
+    alert_rule_test:
+      - eval_time: 4h
+        alertname: ErrorBudgetBurn
+        exp_alerts:
+          - exp_labels: {<<: *identity, severity: warning, short: 30m, long: 6h, exhaustion: 3d12h}
+          - exp_labels: {<<: *identity, severity: warning, short: 1h30m, long: 1d, exhaustion: 1w}
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      # 3 failures / 100 requests, not divided by the 1% error budget.
+      - expr: prometheus_http_requests:burnrate1m
+        eval_time: 10m
+        exp_samples:
+          - labels: 'prometheus_http_requests:burnrate1m{handler="/api/v1/query",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0.03
+      - expr: prometheus_http_requests:burnrate1d
+        eval_time: 4h
+        exp_samples:
+          - labels: 'prometheus_http_requests:burnrate1d{handler="/api/v1/query",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0.03
+      # Forty increments, grouped by code as well as handler.
+      - expr: prometheus_http_requests:increase1w
+        eval_time: 10m
+        exp_samples:
+          - labels: 'prometheus_http_requests:increase1w{handler="/api/v1/query",code="200",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 3880
+          - labels: 'prometheus_http_requests:increase1w{handler="/api/v1/query",code="500",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 120
+
+  - name: missing metrics page after the absence hold time
+    interval: 15s
+    input_series: []
+    alert_rule_test:
+      - {eval_time: 2m30s, alertname: SLOMetricAbsent, exp_alerts: []}
+      - eval_time: 3m
+        alertname: SLOMetricAbsent
+        exp_alerts:
+          - exp_labels: {slo: prometheus-api-query, team: platform, paging: "no", cost-center: "0o17", severity: critical}
+      - {eval_time: 10m, alertname: ErrorBudgetBurn, exp_alerts: []}
+    promql_expr_test:
+      - {expr: prometheus_http_requests:burnrate1m, eval_time: 10m, exp_samples: []}
+
+  - name: high volume healthy handler cannot hide a low volume failing handler
+    interval: 15s
+    input_series:
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="200"}
+        values: 0x40
+      - series: prometheus_http_requests_total{handler="/api/v1/query",code="500"}
+        values: 0+10x40
+      - series: prometheus_http_requests_total{handler="/api/v1/query_range",code="200"}
+        values: 0+1000x40
+      - series: prometheus_http_requests_total{handler="/api/v1/query_range",code="500"}
+        values: 0x40
+    alert_rule_test:
+      - {eval_time: 10m, alertname: ErrorBudgetBurn, exp_alerts: *critical}
+      - {eval_time: 10m, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: prometheus_http_requests:burnrate1m
+        eval_time: 10m
+        exp_samples:
+          - labels: 'prometheus_http_requests:burnrate1m{handler="/api/v1/query",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 1
+          - labels: 'prometheus_http_requests:burnrate1m{handler="/api/v1/query_range",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0

@@ -1,0 +1,160 @@
+# 99.9% over 14d: critical thresholds 1.4% / 0.7%, warnings 0.2% / 0.1%.
+rule_files: [latency.rules.yaml]
+evaluation_interval: 30s
+fuzzy_compare: true
+group_eval_order: [prometheus-api-query-increase, prometheus-api-query]
+
+tests:
+  - name: all requests within the latency bound
+    interval: 15s
+    input_series:
+      - series: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code="200"}
+        values: 0+15000x960
+      - series: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code="200",le="0.05"}
+        values: 0+15000x960
+    alert_rule_test:
+      - {eval_time: 4h, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: caddy_http_response_duration_seconds:burnrate3m
+        eval_time: 4h
+        exp_samples:
+          - labels: 'caddy_http_response_duration_seconds:burnrate3m{handler="subroute",job="caddy",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0
+
+  - name: no fast requests from startup fires both critical alerts
+    interval: 15s
+    input_series:
+      - series: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code="200"}
+        values: 0+15000x40
+      - series: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code="200",le="0.05"}
+        values: 0x40
+    alert_rule_test:
+      - {eval_time: 1m, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - eval_time: 10m
+        alertname: ErrorBudgetBurn
+        exp_alerts: &critical
+          - &fast_alert
+            exp_labels:
+              <<: &identity
+                handler: subroute
+                job: caddy
+                slo: prometheus-api-query
+                team: platform
+                paging: "no"
+                cost-center: "0o17"
+              severity: critical
+              short: 3m
+              long: 30m
+              exhaustion: 1d
+          - exp_labels: {<<: *identity, severity: critical, short: 15m, long: 3h, exhaustion: 2d}
+      - {eval_time: 10m, alertname: SLOMetricAbsent, exp_alerts: []}
+
+  - name: six hours fast then twelve minutes with every request too slow
+    interval: 15s
+    input_series:
+      - series: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code="200"}
+        values: 0+15000x1488
+      - series: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code="200",le="0.05"}
+        values: 0+15000x1440 21600000x47
+    alert_rule_test:
+      - {eval_time: 6h, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 6h1m, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 6h5m, alertname: ErrorBudgetBurn, exp_alerts: [*fast_alert]}
+      - {eval_time: 6h12m, alertname: ErrorBudgetBurn, exp_alerts: *critical}
+      - {eval_time: 6h12m, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: caddy_http_response_duration_seconds:burnrate3m
+        eval_time: 6h12m
+        exp_samples:
+          - labels: 'caddy_http_response_duration_seconds:burnrate3m{handler="subroute",job="caddy",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 1
+
+  - name: three in a thousand slow requests fire only warnings
+    interval: 15s
+    input_series:
+      - series: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code="200"}
+        values: 0+15000x960
+      - series: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code="200",le="0.05"}
+        values: 0+14955x960
+    alert_rule_test:
+      - eval_time: 4h
+        alertname: ErrorBudgetBurn
+        exp_alerts: &warnings
+          - exp_labels: {<<: *identity, severity: warning, short: 1h, long: 12h, exhaustion: 1w}
+          - exp_labels: {<<: *identity, severity: warning, short: 3h, long: 2d, exhaustion: 2w}
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: caddy_http_response_duration_seconds:burnrate3m
+        eval_time: 10m
+        exp_samples:
+          - labels: 'caddy_http_response_duration_seconds:burnrate3m{handler="subroute",job="caddy",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0.003
+      - expr: caddy_http_response_duration_seconds:burnrate2d
+        eval_time: 4h
+        exp_samples:
+          - labels: 'caddy_http_response_duration_seconds:burnrate2d{handler="subroute",job="caddy",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0.003
+      # Forty increments: total=40*15000, fast=40*14955. The le label distinguishes them.
+      - expr: caddy_http_response_duration_seconds:increase2w
+        eval_time: 10m
+        exp_samples:
+          - labels: 'caddy_http_response_duration_seconds:increase2w{handler="subroute",job="caddy",code="200",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 600000
+          - labels: 'caddy_http_response_duration_seconds:increase2w{handler="subroute",job="caddy",code="200",le="0.05",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 598200
+
+  - name: both missing metrics produce distinct absence alerts
+    interval: 15s
+    input_series: []
+    alert_rule_test:
+      - {eval_time: 30s, alertname: SLOMetricAbsent, exp_alerts: []}
+      - eval_time: 1m
+        alertname: SLOMetricAbsent
+        exp_alerts:
+          - exp_labels: &absent
+              handler: subroute
+              job: caddy
+              slo: prometheus-api-query
+              team: platform
+              paging: "no"
+              cost-center: "0o17"
+              severity: critical
+          - exp_labels: {<<: *absent, le: "0.05"}
+      - {eval_time: 10m, alertname: ErrorBudgetBurn, exp_alerts: []}
+    promql_expr_test:
+      - {expr: caddy_http_response_duration_seconds:burnrate3m, eval_time: 10m, exp_samples: []}
+
+  - name: missing success bucket is not a zero-valued bucket
+    interval: 15s
+    input_series:
+      - series: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code="200"}
+        values: 0+15000x40
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: SLOMetricAbsent
+        exp_alerts:
+          - exp_labels: {<<: *absent, le: "0.05"}
+      - {eval_time: 10m, alertname: ErrorBudgetBurn, exp_alerts: []}
+
+  - name: ungrouped latency aggregates asymmetric code series before dividing
+    interval: 15s
+    input_series:
+      - series: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code="200"}
+        values: 0+15000x960
+      - series: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code="200",le="0.05"}
+        values: 0+15000x960
+      - series: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code="201"}
+        values: 0+30000x960
+      - series: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code="201",le="0.05"}
+        values: 0+29865x960
+    alert_rule_test:
+      - {eval_time: 4h, alertname: ErrorBudgetBurn, exp_alerts: *warnings}
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      # 135 slow / 45000 total, not the unweighted mean of the two ratios.
+      - expr: caddy_http_response_duration_seconds:burnrate3m
+        eval_time: 4h
+        exp_samples:
+          - labels: 'caddy_http_response_duration_seconds:burnrate3m{handler="subroute",job="caddy",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0.003
