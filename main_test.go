@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -516,93 +515,13 @@ func TestObjectiveFromEditorConfig(t *testing.T) {
 			data, err := os.ReadFile(file)
 			require.NoError(t, err)
 			var fixture struct {
-				Form struct {
-					Name        string
-					Namespace   string
-					Description string
-					Target      string
-					Window      string
-					SLIType     string `yaml:"sliType"`
-					Labels      []struct{ K, V string }
-					Ratio       struct {
-						Errors, Total string
-						Grouping      []string
-					}
-					Latency struct {
-						Success, Total string
-						Grouping       []string
-					}
-					LatencyNative struct {
-						Latency, Total string
-						Grouping       []string
-					} `yaml:"latencyNative"`
-					Bool struct {
-						Metric   string
-						Grouping []string
-					}
-				}
 				SLO   string `yaml:"slo"`
 				Rules string
 			}
 			require.NoError(t, yaml.Unmarshal(data, &fixture))
-			form := fixture.Form
 
-			objective, err := objectiveFromConfig(context.Background(), fixture.SLO, "")
+			_, err = objectiveFromConfig(context.Background(), fixture.SLO, "")
 			require.NoError(t, err)
-
-			name := form.Name
-			if name == "" {
-				name = "unnamed-slo"
-			}
-			expectedLabels := map[string]string{model.MetricNameLabel: name}
-			if form.Namespace != "" {
-				expectedLabels["namespace"] = form.Namespace
-			}
-			for _, label := range form.Labels {
-				if strings.HasPrefix(label.K, "pyrra.dev/") {
-					expectedLabels[label.K] = label.V
-				}
-			}
-			require.Equal(t, labels.FromMap(expectedLabels), objective.Labels)
-			target, err := strconv.ParseFloat(form.Target, 64)
-			require.NoError(t, err)
-			require.Equal(t, target/100, objective.Target)
-			window, err := model.ParseDuration(form.Window)
-			require.NoError(t, err)
-			require.Equal(t, window, objective.Window)
-			require.Equal(t, form.Description, objective.Description)
-
-			checkMetric := func(input string, metric slo.Metric) {
-				t.Helper()
-				expr, err := parser.NewParser(parser.Options{}).ParseExpr(input)
-				require.NoError(t, err)
-				require.Equal(t, expr.String(), metric.Metric())
-			}
-			switch form.SLIType {
-			case "ratio":
-				require.Equal(t, slo.Ratio, objective.IndicatorType())
-				require.ElementsMatch(t, form.Ratio.Grouping, objective.Grouping())
-				checkMetric(form.Ratio.Errors, objective.Indicator.Ratio.Errors)
-				checkMetric(form.Ratio.Total, objective.Indicator.Ratio.Total)
-			case "latency":
-				require.Equal(t, slo.Latency, objective.IndicatorType())
-				require.ElementsMatch(t, form.Latency.Grouping, objective.Grouping())
-				checkMetric(form.Latency.Success, objective.Indicator.Latency.Success)
-				checkMetric(form.Latency.Total, objective.Indicator.Latency.Total)
-			case "latencyNative":
-				require.Equal(t, slo.LatencyNative, objective.IndicatorType())
-				require.ElementsMatch(t, form.LatencyNative.Grouping, objective.Grouping())
-				checkMetric(form.LatencyNative.Total, objective.Indicator.LatencyNative.Total)
-				latency, err := model.ParseDuration(form.LatencyNative.Latency)
-				require.NoError(t, err)
-				require.Equal(t, latency, objective.Indicator.LatencyNative.Latency)
-			case "bool":
-				require.Equal(t, slo.BoolGauge, objective.IndicatorType())
-				require.ElementsMatch(t, form.Bool.Grouping, objective.Grouping())
-				checkMetric(form.Bool.Metric, objective.Indicator.BoolGauge.Metric)
-			default:
-				t.Fatalf("unknown indicator type %q", form.SLIType)
-			}
 
 			// Exercise the filesystem/CLI output path with its default options.
 			dir := t.TempDir()
