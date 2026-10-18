@@ -1,23 +1,196 @@
-apiVersion: pyrra.dev/v1alpha1
-kind: ServiceLevelObjective
-metadata:
+form:
   name: prometheus-api-query
   namespace: monitoring
-  labels:
-    prometheus: k8s
-    role: alert-rules
-    pyrra.dev/team: platform
-    pyrra.dev/paging: "no"
-    pyrra.dev/cost-center: "0o17"
-spec:
-  target: "99.0"
-  window: 7d
   description: "Requests that aren't 5xx: the #1 signal"
-  indicator:
-    latencyNative:
-      latency: 200ms
-      total:
-        metric: connect_server_requests_duration_seconds{job="pyrra",code="ok"}
-      grouping:
-        - service
-        - method
+  labels:
+    - {k: prometheus, v: k8s}
+    - {k: role, v: alert-rules}
+    - {k: pyrra.dev/team, v: platform}
+    - {k: pyrra.dev/paging, v: "no"}
+    - {k: pyrra.dev/cost-center, v: "0o17"}
+  target: "99.5"
+  window: 28d
+  sliType: latencyNative
+  latencyNative:
+    latency: 200ms
+    total: connect_server_requests_duration_seconds{job="pyrra",code="ok"}
+    grouping: [service, method]
+slo: |
+  apiVersion: pyrra.dev/v1alpha1
+  kind: ServiceLevelObjective
+  metadata:
+    name: prometheus-api-query
+    namespace: monitoring
+    labels:
+      prometheus: k8s
+      role: alert-rules
+      pyrra.dev/team: platform
+      pyrra.dev/paging: "no"
+      pyrra.dev/cost-center: "0o17"
+  spec:
+    target: "99.5"
+    window: 28d
+    description: "Requests that aren't 5xx: the #1 signal"
+    indicator:
+      latencyNative:
+        latency: 200ms
+        total:
+          metric: connect_server_requests_duration_seconds{job="pyrra",code="ok"}
+        grouping:
+          - service
+          - method
+rules: |
+  groups:
+  - interval: 2m30s
+    name: prometheus-api-query-increase
+    rules:
+    - expr: histogram_count(sum by (service, method) (increase(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[4w])))
+      labels:
+        code: ok
+        cost-center: "0o17"
+        job: pyrra
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: connect_server_requests_duration_seconds:increase4w
+    - expr: histogram_fraction(0, 0.2, sum by (service, method) (increase(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[4w])))
+        * histogram_count(sum by (service, method) (increase(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[4w])))
+      labels:
+        code: ok
+        cost-center: "0o17"
+        job: pyrra
+        le: "0.2"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: connect_server_requests_duration_seconds:increase4w
+  - interval: 30s
+    name: prometheus-api-query
+    rules:
+    - expr: 1 - histogram_fraction(0, 0.2, sum by (method, service) (rate(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[5m])))
+      labels:
+        code: ok
+        cost-center: "0o17"
+        job: pyrra
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: connect_server_requests_duration_seconds:burnrate5m
+    - expr: 1 - histogram_fraction(0, 0.2, sum by (method, service) (rate(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[30m])))
+      labels:
+        code: ok
+        cost-center: "0o17"
+        job: pyrra
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: connect_server_requests_duration_seconds:burnrate30m
+    - expr: 1 - histogram_fraction(0, 0.2, sum by (method, service) (rate(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[1h])))
+      labels:
+        code: ok
+        cost-center: "0o17"
+        job: pyrra
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: connect_server_requests_duration_seconds:burnrate1h
+    - expr: 1 - histogram_fraction(0, 0.2, sum by (method, service) (rate(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[2h])))
+      labels:
+        code: ok
+        cost-center: "0o17"
+        job: pyrra
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: connect_server_requests_duration_seconds:burnrate2h
+    - expr: 1 - histogram_fraction(0, 0.2, sum by (method, service) (rate(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[6h])))
+      labels:
+        code: ok
+        cost-center: "0o17"
+        job: pyrra
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: connect_server_requests_duration_seconds:burnrate6h
+    - expr: 1 - histogram_fraction(0, 0.2, sum by (method, service) (rate(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[1d])))
+      labels:
+        code: ok
+        cost-center: "0o17"
+        job: pyrra
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: connect_server_requests_duration_seconds:burnrate1d
+    - expr: 1 - histogram_fraction(0, 0.2, sum by (method, service) (rate(connect_server_requests_duration_seconds{code="ok",job="pyrra"}[4d])))
+      labels:
+        code: ok
+        cost-center: "0o17"
+        job: pyrra
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: connect_server_requests_duration_seconds:burnrate4d
+    - alert: ErrorBudgetBurn
+      expr: connect_server_requests_duration_seconds:burnrate5m{code="ok",job="pyrra",slo="prometheus-api-query"}
+        > (14 * (1-0.995)) and connect_server_requests_duration_seconds:burnrate1h{code="ok",job="pyrra",slo="prometheus-api-query"}
+        > (14 * (1-0.995))
+      for: 2m
+      labels:
+        code: ok
+        cost-center: "0o17"
+        exhaustion: 2d
+        job: pyrra
+        long: 1h
+        paging: "no"
+        severity: critical
+        short: 5m
+        slo: prometheus-api-query
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: connect_server_requests_duration_seconds:burnrate30m{code="ok",job="pyrra",slo="prometheus-api-query"}
+        > (7 * (1-0.995)) and connect_server_requests_duration_seconds:burnrate6h{code="ok",job="pyrra",slo="prometheus-api-query"}
+        > (7 * (1-0.995))
+      for: 15m
+      labels:
+        code: ok
+        cost-center: "0o17"
+        exhaustion: 4d
+        job: pyrra
+        long: 6h
+        paging: "no"
+        severity: critical
+        short: 30m
+        slo: prometheus-api-query
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: connect_server_requests_duration_seconds:burnrate2h{code="ok",job="pyrra",slo="prometheus-api-query"}
+        > (2 * (1-0.995)) and connect_server_requests_duration_seconds:burnrate1d{code="ok",job="pyrra",slo="prometheus-api-query"}
+        > (2 * (1-0.995))
+      for: 1h
+      labels:
+        code: ok
+        cost-center: "0o17"
+        exhaustion: 2w
+        job: pyrra
+        long: 1d
+        paging: "no"
+        severity: warning
+        short: 2h
+        slo: prometheus-api-query
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: connect_server_requests_duration_seconds:burnrate6h{code="ok",job="pyrra",slo="prometheus-api-query"}
+        > (1 * (1-0.995)) and connect_server_requests_duration_seconds:burnrate4d{code="ok",job="pyrra",slo="prometheus-api-query"}
+        > (1 * (1-0.995))
+      for: 3h
+      labels:
+        code: ok
+        cost-center: "0o17"
+        exhaustion: 4w
+        job: pyrra
+        long: 4d
+        paging: "no"
+        severity: warning
+        short: 6h
+        slo: prometheus-api-query
+        team: platform

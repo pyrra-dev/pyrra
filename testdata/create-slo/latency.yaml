@@ -1,21 +1,232 @@
-apiVersion: pyrra.dev/v1alpha1
-kind: ServiceLevelObjective
-metadata:
+form:
   name: prometheus-api-query
   namespace: monitoring
-  labels:
-    prometheus: k8s
-    role: alert-rules
-    pyrra.dev/team: platform
-    pyrra.dev/paging: "no"
-    pyrra.dev/cost-center: "0o17"
-spec:
-  target: "99.0"
-  window: 7d
   description: "Requests that aren't 5xx: the #1 signal"
-  indicator:
-    latency:
-      success:
-        metric: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code!~"5..",le="0.05"}
-      total:
-        metric: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code!~"5.."}
+  labels:
+    - {k: prometheus, v: k8s}
+    - {k: role, v: alert-rules}
+    - {k: pyrra.dev/team, v: platform}
+    - {k: pyrra.dev/paging, v: "no"}
+    - {k: pyrra.dev/cost-center, v: "0o17"}
+  target: "99.9"
+  window: 14d
+  sliType: latency
+  latency:
+    success: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code!~"5..",le="0.05"}
+    total: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code!~"5.."}
+    grouping: []
+slo: |
+  apiVersion: pyrra.dev/v1alpha1
+  kind: ServiceLevelObjective
+  metadata:
+    name: prometheus-api-query
+    namespace: monitoring
+    labels:
+      prometheus: k8s
+      role: alert-rules
+      pyrra.dev/team: platform
+      pyrra.dev/paging: "no"
+      pyrra.dev/cost-center: "0o17"
+  spec:
+    target: "99.9"
+    window: 14d
+    description: "Requests that aren't 5xx: the #1 signal"
+    indicator:
+      latency:
+        success:
+          metric: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code!~"5..",le="0.05"}
+        total:
+          metric: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code!~"5.."}
+rules: |
+  groups:
+  - interval: 1m30s
+    name: prometheus-api-query-increase
+    rules:
+    - expr: sum by (code) (increase(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[2w]))
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: caddy_http_response_duration_seconds:increase2w
+    - expr: sum by (code) (increase(caddy_http_response_duration_seconds_bucket{code!~"5..",handler="subroute",job="caddy",le="0.05"}[2w]))
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        le: "0.05"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: caddy_http_response_duration_seconds:increase2w
+    - alert: SLOMetricAbsent
+      expr: absent(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"})
+        == 1
+      for: 1m
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        paging: "no"
+        severity: critical
+        slo: prometheus-api-query
+        team: platform
+    - alert: SLOMetricAbsent
+      expr: absent(caddy_http_response_duration_seconds_bucket{code!~"5..",handler="subroute",job="caddy",le="0.05"})
+        == 1
+      for: 1m
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        le: "0.05"
+        paging: "no"
+        severity: critical
+        slo: prometheus-api-query
+        team: platform
+  - interval: 30s
+    name: prometheus-api-query
+    rules:
+    - expr: (sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[3m]))
+        - sum(rate(caddy_http_response_duration_seconds_bucket{code!~"5..",handler="subroute",job="caddy",le="0.05"}[3m])))
+        / sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[3m]))
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: caddy_http_response_duration_seconds:burnrate3m
+    - expr: (sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[15m]))
+        - sum(rate(caddy_http_response_duration_seconds_bucket{code!~"5..",handler="subroute",job="caddy",le="0.05"}[15m])))
+        / sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[15m]))
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: caddy_http_response_duration_seconds:burnrate15m
+    - expr: (sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[30m]))
+        - sum(rate(caddy_http_response_duration_seconds_bucket{code!~"5..",handler="subroute",job="caddy",le="0.05"}[30m])))
+        / sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[30m]))
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: caddy_http_response_duration_seconds:burnrate30m
+    - expr: (sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[1h]))
+        - sum(rate(caddy_http_response_duration_seconds_bucket{code!~"5..",handler="subroute",job="caddy",le="0.05"}[1h])))
+        / sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[1h]))
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: caddy_http_response_duration_seconds:burnrate1h
+    - expr: (sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[3h]))
+        - sum(rate(caddy_http_response_duration_seconds_bucket{code!~"5..",handler="subroute",job="caddy",le="0.05"}[3h])))
+        / sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[3h]))
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: caddy_http_response_duration_seconds:burnrate3h
+    - expr: (sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[12h]))
+        - sum(rate(caddy_http_response_duration_seconds_bucket{code!~"5..",handler="subroute",job="caddy",le="0.05"}[12h])))
+        / sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[12h]))
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: caddy_http_response_duration_seconds:burnrate12h
+    - expr: (sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[2d]))
+        - sum(rate(caddy_http_response_duration_seconds_bucket{code!~"5..",handler="subroute",job="caddy",le="0.05"}[2d])))
+        / sum(rate(caddy_http_response_duration_seconds_count{code!~"5..",handler="subroute",job="caddy"}[2d]))
+      labels:
+        cost-center: "0o17"
+        handler: subroute
+        job: caddy
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: caddy_http_response_duration_seconds:burnrate2d
+    - alert: ErrorBudgetBurn
+      expr: caddy_http_response_duration_seconds:burnrate3m{handler="subroute",job="caddy",slo="prometheus-api-query"}
+        > (14 * (1-0.9990000000000001)) and caddy_http_response_duration_seconds:burnrate30m{handler="subroute",job="caddy",slo="prometheus-api-query"}
+        > (14 * (1-0.9990000000000001))
+      for: 1m
+      labels:
+        cost-center: "0o17"
+        exhaustion: 1d
+        handler: subroute
+        job: caddy
+        long: 30m
+        paging: "no"
+        severity: critical
+        short: 3m
+        slo: prometheus-api-query
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: caddy_http_response_duration_seconds:burnrate15m{handler="subroute",job="caddy",slo="prometheus-api-query"}
+        > (7 * (1-0.9990000000000001)) and caddy_http_response_duration_seconds:burnrate3h{handler="subroute",job="caddy",slo="prometheus-api-query"}
+        > (7 * (1-0.9990000000000001))
+      for: 8m
+      labels:
+        cost-center: "0o17"
+        exhaustion: 2d
+        handler: subroute
+        job: caddy
+        long: 3h
+        paging: "no"
+        severity: critical
+        short: 15m
+        slo: prometheus-api-query
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: caddy_http_response_duration_seconds:burnrate1h{handler="subroute",job="caddy",slo="prometheus-api-query"}
+        > (2 * (1-0.9990000000000001)) and caddy_http_response_duration_seconds:burnrate12h{handler="subroute",job="caddy",slo="prometheus-api-query"}
+        > (2 * (1-0.9990000000000001))
+      for: 30m
+      labels:
+        cost-center: "0o17"
+        exhaustion: 1w
+        handler: subroute
+        job: caddy
+        long: 12h
+        paging: "no"
+        severity: warning
+        short: 1h
+        slo: prometheus-api-query
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: caddy_http_response_duration_seconds:burnrate3h{handler="subroute",job="caddy",slo="prometheus-api-query"}
+        > (1 * (1-0.9990000000000001)) and caddy_http_response_duration_seconds:burnrate2d{handler="subroute",job="caddy",slo="prometheus-api-query"}
+        > (1 * (1-0.9990000000000001))
+      for: 1h30m
+      labels:
+        cost-center: "0o17"
+        exhaustion: 2w
+        handler: subroute
+        job: caddy
+        long: 2d
+        paging: "no"
+        severity: warning
+        short: 3h
+        slo: prometheus-api-query
+        team: platform

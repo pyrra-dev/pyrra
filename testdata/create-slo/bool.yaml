@@ -1,20 +1,160 @@
-apiVersion: pyrra.dev/v1alpha1
-kind: ServiceLevelObjective
-metadata:
-  name: prometheus-api-query
-  namespace: monitoring
+form:
+  name: probe-success
+  namespace: ""
+  description: ""
   labels:
-    prometheus: k8s
-    role: alert-rules
-    pyrra.dev/team: platform
-    pyrra.dev/paging: "no"
-    pyrra.dev/cost-center: "0o17"
-spec:
-  target: "99.0"
+    - {k: prometheus, v: k8s}
+    - {k: pyrra.dev/team, v: first}
+    - {k: "", v: ignored}
+    - {k: pyrra.dev/team, v: platform}
+  target: "98"
   window: 7d
-  description: "Requests that aren't 5xx: the #1 signal"
-  indicator:
-    bool_gauge:
-      metric: up{job="prometheus-k8s"}
-      grouping:
-        - instance
+  sliType: bool
+  bool:
+    metric: up{job="prometheus-k8s"}
+    grouping: [instance]
+slo: |
+  apiVersion: pyrra.dev/v1alpha1
+  kind: ServiceLevelObjective
+  metadata:
+    name: probe-success
+    labels:
+      prometheus: k8s
+      pyrra.dev/team: platform
+  spec:
+    target: "98"
+    window: 7d
+    indicator:
+      bool_gauge:
+        metric: up{job="prometheus-k8s"}
+        grouping:
+          - instance
+rules: |
+  groups:
+  - interval: 1m
+    name: probe-success-increase
+    rules:
+    - expr: sum by (__name__, instance, job) (count_over_time(up{job="prometheus-k8s"}[1w]))
+      labels:
+        slo: probe-success
+        team: platform
+      record: up:count1w
+    - expr: sum by (__name__, instance, job) (sum_over_time(up{job="prometheus-k8s"}[1w]))
+      labels:
+        slo: probe-success
+        team: platform
+      record: up:sum1w
+    - alert: SLOMetricAbsent
+      expr: absent(up{job="prometheus-k8s"}) == 1
+      for: 5m
+      labels:
+        severity: critical
+        slo: probe-success
+        team: platform
+  - interval: 30s
+    name: probe-success
+    rules:
+    - expr: (sum by (instance) (count_over_time(up{job="prometheus-k8s"}[1m])) - sum
+        by (instance) (sum_over_time(up{job="prometheus-k8s"}[1m]))) / sum by (instance)
+        (count_over_time(up{job="prometheus-k8s"}[1m]))
+      labels:
+        job: prometheus-k8s
+        slo: probe-success
+        team: platform
+      record: up:burnrate1m
+    - expr: (sum by (instance) (count_over_time(up{job="prometheus-k8s"}[8m])) - sum
+        by (instance) (sum_over_time(up{job="prometheus-k8s"}[8m]))) / sum by (instance)
+        (count_over_time(up{job="prometheus-k8s"}[8m]))
+      labels:
+        job: prometheus-k8s
+        slo: probe-success
+        team: platform
+      record: up:burnrate8m
+    - expr: (sum by (instance) (count_over_time(up{job="prometheus-k8s"}[15m])) - sum
+        by (instance) (sum_over_time(up{job="prometheus-k8s"}[15m]))) / sum by (instance)
+        (count_over_time(up{job="prometheus-k8s"}[15m]))
+      labels:
+        job: prometheus-k8s
+        slo: probe-success
+        team: platform
+      record: up:burnrate15m
+    - expr: (sum by (instance) (count_over_time(up{job="prometheus-k8s"}[30m])) - sum
+        by (instance) (sum_over_time(up{job="prometheus-k8s"}[30m]))) / sum by (instance)
+        (count_over_time(up{job="prometheus-k8s"}[30m]))
+      labels:
+        job: prometheus-k8s
+        slo: probe-success
+        team: platform
+      record: up:burnrate30m
+    - expr: (sum by (instance) (count_over_time(up{job="prometheus-k8s"}[1h30m])) -
+        sum by (instance) (sum_over_time(up{job="prometheus-k8s"}[1h30m]))) / sum by
+        (instance) (count_over_time(up{job="prometheus-k8s"}[1h30m]))
+      labels:
+        job: prometheus-k8s
+        slo: probe-success
+        team: platform
+      record: up:burnrate1h30m
+    - expr: (sum by (instance) (count_over_time(up{job="prometheus-k8s"}[6h])) - sum
+        by (instance) (sum_over_time(up{job="prometheus-k8s"}[6h]))) / sum by (instance)
+        (count_over_time(up{job="prometheus-k8s"}[6h]))
+      labels:
+        job: prometheus-k8s
+        slo: probe-success
+        team: platform
+      record: up:burnrate6h
+    - expr: (sum by (instance) (count_over_time(up{job="prometheus-k8s"}[1d])) - sum
+        by (instance) (sum_over_time(up{job="prometheus-k8s"}[1d]))) / sum by (instance)
+        (count_over_time(up{job="prometheus-k8s"}[1d]))
+      labels:
+        job: prometheus-k8s
+        slo: probe-success
+        team: platform
+      record: up:burnrate1d
+    - alert: ErrorBudgetBurn
+      expr: up:burnrate1m{job="prometheus-k8s",slo="probe-success"} > (14 * (1-0.98))
+        and up:burnrate15m{job="prometheus-k8s",slo="probe-success"} > (14 * (1-0.98))
+      for: 1m
+      labels:
+        exhaustion: 12h
+        job: prometheus-k8s
+        long: 15m
+        severity: critical
+        short: 1m
+        slo: probe-success
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: up:burnrate8m{job="prometheus-k8s",slo="probe-success"} > (7 * (1-0.98))
+        and up:burnrate1h30m{job="prometheus-k8s",slo="probe-success"} > (7 * (1-0.98))
+      for: 4m
+      labels:
+        exhaustion: 1d
+        job: prometheus-k8s
+        long: 1h30m
+        severity: critical
+        short: 8m
+        slo: probe-success
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: up:burnrate30m{job="prometheus-k8s",slo="probe-success"} > (2 * (1-0.98))
+        and up:burnrate6h{job="prometheus-k8s",slo="probe-success"} > (2 * (1-0.98))
+      for: 15m
+      labels:
+        exhaustion: 3d12h
+        job: prometheus-k8s
+        long: 6h
+        severity: warning
+        short: 30m
+        slo: probe-success
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: up:burnrate1h30m{job="prometheus-k8s",slo="probe-success"} > (1 * (1-0.98))
+        and up:burnrate1d{job="prometheus-k8s",slo="probe-success"} > (1 * (1-0.98))
+      for: 45m
+      labels:
+        exhaustion: 1w
+        job: prometheus-k8s
+        long: 1d
+        severity: warning
+        short: 1h30m
+        slo: probe-success
+        team: platform

@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"flag"
+	"io"
+	"log/slog"
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,8 +19,11 @@ import (
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/model/rulefmt"
+	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"gopkg.in/yaml.v3"
 
 	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/slo"
@@ -494,38 +502,141 @@ spec:
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
-// The fixtures are written by the UI serializer (ui/src/components/create/fixtures.test.ts),
-// so a change on either side of the editor/backend contract fails here.
+var updateCreateSLO = flag.Bool("update", false, "Update generated rules in Create SLO fixtures")
+
+// Each fixture has three parts: form inputs, SLO YAML checked by the UI, and
+// recording/alerting rules checked here. Update only the rules with:
+// go test . -run '^TestObjectiveFromEditorConfig$' -update
 func TestObjectiveFromEditorConfig(t *testing.T) {
-	for _, tc := range []struct {
-		fixture   string
-		indicator slo.IndicatorType
-		grouping  []string
-	}{
-		{fixture: "ratio", indicator: slo.Ratio, grouping: []string{"handler"}},
-		{fixture: "latency", indicator: slo.Latency},
-		{fixture: "latencyNative", indicator: slo.LatencyNative, grouping: []string{"service", "method"}},
-		{fixture: "bool", indicator: slo.BoolGauge, grouping: []string{"instance"}},
-	} {
-		t.Run(tc.fixture, func(t *testing.T) {
-			config, err := os.ReadFile(filepath.Join("testdata", "create-slo", tc.fixture+".yaml"))
+	files, err := filepath.Glob(filepath.Join("testdata", "create-slo", "*.yaml"))
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+	for _, file := range files {
+		t.Run(strings.TrimSuffix(filepath.Base(file), ".yaml"), func(t *testing.T) {
+			data, err := os.ReadFile(file)
+			require.NoError(t, err)
+			var fixture struct {
+				Form struct {
+					Name        string
+					Namespace   string
+					Description string
+					Target      string
+					Window      string
+					SLIType     string `yaml:"sliType"`
+					Labels      []struct{ K, V string }
+					Ratio       struct {
+						Errors, Total string
+						Grouping      []string
+					}
+					Latency struct {
+						Success, Total string
+						Grouping       []string
+					}
+					LatencyNative struct {
+						Latency, Total string
+						Grouping       []string
+					} `yaml:"latencyNative"`
+					Bool struct {
+						Metric   string
+						Grouping []string
+					}
+				}
+				SLO   string `yaml:"slo"`
+				Rules string
+			}
+			require.NoError(t, yaml.Unmarshal(data, &fixture))
+			form := fixture.Form
+
+			objective, err := objectiveFromConfig(context.Background(), fixture.SLO, "")
 			require.NoError(t, err)
 
-			objective, err := objectiveFromConfig(context.Background(), string(config), "")
+			name := form.Name
+			if name == "" {
+				name = "unnamed-slo"
+			}
+			expectedLabels := map[string]string{model.MetricNameLabel: name}
+			if form.Namespace != "" {
+				expectedLabels["namespace"] = form.Namespace
+			}
+			for _, label := range form.Labels {
+				if strings.HasPrefix(label.K, "pyrra.dev/") {
+					expectedLabels[label.K] = label.V
+				}
+			}
+			require.Equal(t, labels.FromMap(expectedLabels), objective.Labels)
+			target, err := strconv.ParseFloat(form.Target, 64)
 			require.NoError(t, err)
+			require.Equal(t, target/100, objective.Target)
+			window, err := model.ParseDuration(form.Window)
+			require.NoError(t, err)
+			require.Equal(t, window, objective.Window)
+			require.Equal(t, form.Description, objective.Description)
 
-			require.Equal(t, tc.indicator, objective.IndicatorType())
-			require.Equal(t, tc.grouping, objective.Grouping())
-			require.Equal(t, labels.FromStrings(
-				model.MetricNameLabel, "prometheus-api-query",
-				"namespace", "monitoring",
-				"pyrra.dev/team", "platform",
-				"pyrra.dev/paging", "no",
-				"pyrra.dev/cost-center", "0o17",
-			), objective.Labels)
-			require.Equal(t, 0.99, objective.Target)
-			require.Equal(t, model.Duration(7*24*time.Hour), objective.Window)
-			require.Equal(t, "Requests that aren't 5xx: the #1 signal", objective.Description)
+			checkMetric := func(input string, metric slo.Metric) {
+				t.Helper()
+				expr, err := parser.NewParser(parser.Options{}).ParseExpr(input)
+				require.NoError(t, err)
+				require.Equal(t, expr.String(), metric.Metric())
+			}
+			switch form.SLIType {
+			case "ratio":
+				require.Equal(t, slo.Ratio, objective.IndicatorType())
+				require.ElementsMatch(t, form.Ratio.Grouping, objective.Grouping())
+				checkMetric(form.Ratio.Errors, objective.Indicator.Ratio.Errors)
+				checkMetric(form.Ratio.Total, objective.Indicator.Ratio.Total)
+			case "latency":
+				require.Equal(t, slo.Latency, objective.IndicatorType())
+				require.ElementsMatch(t, form.Latency.Grouping, objective.Grouping())
+				checkMetric(form.Latency.Success, objective.Indicator.Latency.Success)
+				checkMetric(form.Latency.Total, objective.Indicator.Latency.Total)
+			case "latencyNative":
+				require.Equal(t, slo.LatencyNative, objective.IndicatorType())
+				require.ElementsMatch(t, form.LatencyNative.Grouping, objective.Grouping())
+				checkMetric(form.LatencyNative.Total, objective.Indicator.LatencyNative.Total)
+				latency, err := model.ParseDuration(form.LatencyNative.Latency)
+				require.NoError(t, err)
+				require.Equal(t, latency, objective.Indicator.LatencyNative.Latency)
+			case "bool":
+				require.Equal(t, slo.BoolGauge, objective.IndicatorType())
+				require.ElementsMatch(t, form.Bool.Grouping, objective.Grouping())
+				checkMetric(form.Bool.Metric, objective.Indicator.BoolGauge.Metric)
+			default:
+				t.Fatalf("unknown indicator type %q", form.SLIType)
+			}
+
+			// Exercise the filesystem/CLI output path with its default options.
+			dir := t.TempDir()
+			config := filepath.Join(dir, "slo.yaml")
+			require.NoError(t, os.WriteFile(config, []byte(fixture.SLO), 0o600))
+			output := filepath.Join(dir, "rules")
+			require.NoError(t, os.Mkdir(output, 0o700))
+			require.NoError(t, writeRuleFile(log.NewNopLogger(), config, output, false, false, true, ""))
+			rules, err := os.ReadFile(filepath.Join(output, "slo.yaml"))
+			require.NoError(t, err)
+			_, errs := rulefmt.Parse(rules, false, model.UTF8Validation,
+				parser.NewParser(parser.Options{}), slog.New(slog.NewTextHandler(io.Discard, nil)))
+			require.Empty(t, errs, "Prometheus must accept the generated rules")
+
+			if *updateCreateSLO {
+				// Preserve the form and SLO sections; only replace the rules golden.
+				var document yaml.Node
+				require.NoError(t, yaml.Unmarshal(data, &document))
+				fields := document.Content[0].Content
+				for i := 0; i < len(fields); i += 2 {
+					if fields[i].Value == "rules" {
+						fields[i+1].SetString(string(rules))
+						fields[i+1].Style = yaml.LiteralStyle
+					}
+				}
+				var updated strings.Builder
+				encoder := yaml.NewEncoder(&updated)
+				encoder.SetIndent(2)
+				require.NoError(t, encoder.Encode(&document))
+				require.NoError(t, encoder.Close())
+				require.NoError(t, os.WriteFile(file, []byte(updated.String()), 0o644))
+				fixture.Rules = string(rules)
+			}
+			require.Equal(t, fixture.Rules, string(rules), "regenerate with go test . -run '^TestObjectiveFromEditorConfig$' -update")
 		})
 	}
 }

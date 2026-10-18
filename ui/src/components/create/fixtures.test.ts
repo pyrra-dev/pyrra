@@ -1,21 +1,26 @@
+// @vitest-environment node
+import {readFileSync, readdirSync} from 'node:fs'
+import {fileURLToPath} from 'node:url'
 import {describe, expect, it} from 'vitest'
-import {buildYaml, DEFAULT_CONFIG, type SLIType} from './config'
+import {parse} from 'yaml'
+import {buildYaml, DEFAULT_CONFIG, type CreateConfig} from './config'
 
-// These files are the contract with the Go side: TestObjectiveFromEditorConfig
-// feeds them through the Preview parsing path. Regenerate with npx vitest run -u.
-const fixtureDirectory = '../../../../testdata/create-slo'
+// Each case contains form inputs, the exact SLO YAML, and the generated rules.
+// TestObjectiveFromEditorConfig consumes the same SLO and checks the rules.
+const fixtureDirectory = fileURLToPath(new URL('../../../../testdata/create-slo/', import.meta.url))
+const fixtures = readdirSync(fixtureDirectory).filter((name) => name.endsWith('.yaml'))
 
 describe('editor YAML fixtures', () => {
-  it.each(['ratio', 'latency', 'latencyNative', 'bool'] as const satisfies readonly SLIType[])('%s', async (sliType) => {
-    const yaml = buildYaml({
-      ...DEFAULT_CONFIG,
-      sliType,
-      namespace: 'monitoring',
-      // Characters that hand-built YAML got wrong (#1923).
-      description: "Requests that aren't 5xx: the #1 signal",
-      // Unquoted, sigs.k8s.io/yaml reads these as false and 15.
-      labels: [...DEFAULT_CONFIG.labels, {k: 'pyrra.dev/paging', v: 'no'}, {k: 'pyrra.dev/cost-center', v: '0o17'}],
-    })
-    await expect(`${yaml}\n`).toMatchFileSnapshot(`${fixtureDirectory}/${sliType}.yaml`)
+  it('has shared cases', () => {
+    expect(fixtures.length).toBeGreaterThan(0)
+  })
+
+  it.each(fixtures)('%s', (name) => {
+    const fixture = parse(readFileSync(`${fixtureDirectory}/${name}`, 'utf8')) as {
+      form: Partial<CreateConfig>
+      slo: string
+      rules: string
+    }
+    expect(`${buildYaml({...DEFAULT_CONFIG, ...fixture.form})}\n`).toBe(fixture.slo)
   })
 })
