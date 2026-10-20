@@ -32,4 +32,8 @@ go test . -run '^TestRulesFromSLO$'
 ```
 
 These are serialization and rule-generation tests, not time-series evaluation
-tests. No Prometheus server or promtool binary is required.
+tests. No Prometheus server or promtool binary is required for those commands.
+
+The handwritten [promtool suites](../promtool/README.md) evaluate these same
+generated rules. Run `make test-rules` with promtool 3.15.0 installed. It checks
+every rules golden before invoking promtool; a stale golden fails the run.

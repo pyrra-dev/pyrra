@@ -5,6 +5,7 @@ import (
 	"flag"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -500,16 +501,24 @@ spec:
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
-var updateCreateSLO = flag.Bool("update", false, "Update generated rules in Create SLO fixtures")
+var (
+	updateCreateSLO = flag.Bool("update", false, "Update generated rules in Create SLO fixtures")
+	promtool        = flag.String("promtool", "", "Run handwritten rule suites with this promtool binary after checking all Create SLO goldens")
+)
 
 // The UI checks form -> SLO; this test checks SLO -> recording/alerting rules.
 // Update only the rules with:
 //
 //	go test . -run '^TestRulesFromSLO$' -update
 func TestRulesFromSLO(t *testing.T) {
+	require.False(t, *updateCreateSLO && *promtool != "", "update goldens separately before running promtool")
 	files, err := filepath.Glob(filepath.Join("testdata", "create-slo", "*.yaml"))
 	require.NoError(t, err)
 	require.NotEmpty(t, files)
+	// Keep generated rules outside the subtests' temporary directories until every
+	// golden passes. A stale golden must stop the entire behavioral test run.
+	ruleDir := t.TempDir()
+	var suites []string
 	for _, file := range files {
 		t.Run(strings.TrimSuffix(filepath.Base(file), ".yaml"), func(t *testing.T) {
 			data, err := os.ReadFile(file)
@@ -560,7 +569,22 @@ func TestRulesFromSLO(t *testing.T) {
 			expected, err := yaml.Marshal(&fixture.Rules)
 			require.NoError(t, err)
 			require.YAMLEq(t, string(expected), string(rules), "regenerate with go test . -run '^TestRulesFromSLO$' -update")
+			if *promtool != "" {
+				name := strings.TrimSuffix(filepath.Base(file), ".yaml")
+				require.NoError(t, os.WriteFile(filepath.Join(ruleDir, name+".rules.yaml"), rules, 0o600))
+				suite, err := os.ReadFile(filepath.Join("testdata", "promtool", name+".test.yaml"))
+				require.NoError(t, err, "every shared fixture needs a handwritten promtool suite")
+				path := filepath.Join(ruleDir, name+".test.yaml")
+				require.NoError(t, os.WriteFile(path, suite, 0o600))
+				suites = append(suites, path)
+			}
 		})
+	}
+	if *promtool != "" && !t.Failed() {
+		cmd := exec.CommandContext(t.Context(), *promtool, append([]string{"test", "rules"}, suites...)...)
+		output, err := cmd.CombinedOutput()
+		t.Logf("%s", output)
+		require.NoError(t, err, "promtool behavioral tests failed")
 	}
 }
 
