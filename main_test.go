@@ -515,15 +515,19 @@ func TestRulesFromSLO(t *testing.T) {
 			data, err := os.ReadFile(file)
 			require.NoError(t, err)
 			var fixture struct {
-				SLO   string `yaml:"slo"`
-				Rules string
+				SLO   yaml.Node `yaml:"slo"`
+				Rules yaml.Node
 			}
 			require.NoError(t, yaml.Unmarshal(data, &fixture))
+			require.Equal(t, yaml.MappingNode, fixture.SLO.Kind)
+			require.Equal(t, yaml.MappingNode, fixture.Rules.Kind)
 
 			// Exercise the filesystem/CLI output path with its default options.
 			dir := t.TempDir()
 			config := filepath.Join(dir, "slo.yaml")
-			require.NoError(t, os.WriteFile(config, []byte(fixture.SLO), 0o600))
+			sloYAML, err := yaml.Marshal(&fixture.SLO)
+			require.NoError(t, err)
+			require.NoError(t, os.WriteFile(config, sloYAML, 0o600))
 			output := filepath.Join(dir, "rules")
 			require.NoError(t, os.Mkdir(output, 0o700))
 			require.NoError(t, writeRuleFile(log.NewNopLogger(), config, output, false, false, true, ""))
@@ -537,11 +541,12 @@ func TestRulesFromSLO(t *testing.T) {
 				// Preserve the form and SLO sections; only replace the rules golden.
 				var document yaml.Node
 				require.NoError(t, yaml.Unmarshal(data, &document))
+				var generated yaml.Node
+				require.NoError(t, yaml.Unmarshal(rules, &generated))
 				fields := document.Content[0].Content
 				for i := 0; i < len(fields); i += 2 {
 					if fields[i].Value == "rules" {
-						fields[i+1].SetString(string(rules))
-						fields[i+1].Style = yaml.LiteralStyle
+						fields[i+1] = generated.Content[0]
 					}
 				}
 				var updated strings.Builder
@@ -550,9 +555,11 @@ func TestRulesFromSLO(t *testing.T) {
 				require.NoError(t, encoder.Encode(&document))
 				require.NoError(t, encoder.Close())
 				require.NoError(t, os.WriteFile(file, []byte(updated.String()), 0o644))
-				fixture.Rules = string(rules)
+				fixture.Rules = *generated.Content[0]
 			}
-			require.Equal(t, fixture.Rules, string(rules), "regenerate with go test . -run '^TestRulesFromSLO$' -update")
+			expected, err := yaml.Marshal(&fixture.Rules)
+			require.NoError(t, err)
+			require.YAMLEq(t, string(expected), string(rules), "regenerate with go test . -run '^TestRulesFromSLO$' -update")
 		})
 	}
 }

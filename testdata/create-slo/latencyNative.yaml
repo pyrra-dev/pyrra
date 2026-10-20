@@ -15,7 +15,7 @@ form:
     latency: 200ms
     total: connect_server_requests_duration_seconds{job="pyrra",code="ok"}
     grouping: [service, method]
-slo: |
+slo:
   apiVersion: pyrra.dev/v1alpha1
   kind: ServiceLevelObjective
   metadata:
@@ -39,7 +39,7 @@ slo: |
         grouping:
           - service
           - method
-rules: |
+rules:
   groups:
   - interval: 2m30s
     name: prometheus-api-query-increase

@@ -15,7 +15,7 @@ form:
     success: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code!~"5..",le="0.05"}
     total: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code!~"5.."}
     grouping: []
-slo: |
+slo:
   apiVersion: pyrra.dev/v1alpha1
   kind: ServiceLevelObjective
   metadata:
@@ -37,7 +37,7 @@ slo: |
           metric: caddy_http_response_duration_seconds_bucket{job="caddy",handler="subroute",code!~"5..",le="0.05"}
         total:
           metric: caddy_http_response_duration_seconds_count{job="caddy",handler="subroute",code!~"5.."}
-rules: |
+rules:
   groups:
   - interval: 1m30s
     name: prometheus-api-query-increase

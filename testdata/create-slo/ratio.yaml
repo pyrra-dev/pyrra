@@ -15,7 +15,7 @@ form:
     errors: prometheus_http_requests_total{handler=~"/api.*",code=~"5.."}
     total: prometheus_http_requests_total{handler=~"/api.*"}
     grouping: [handler]
-slo: |
+slo:
   apiVersion: pyrra.dev/v1alpha1
   kind: ServiceLevelObjective
   metadata:
@@ -39,7 +39,7 @@ slo: |
           metric: prometheus_http_requests_total{handler=~"/api.*"}
         grouping:
           - handler
-rules: |
+rules:
   groups:
   - interval: 1m
     name: prometheus-api-query-increase
