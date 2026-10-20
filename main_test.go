@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,9 +15,13 @@ import (
 	"github.com/go-kit/log"
 	prometheusapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/common/promslog"
 	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/model/rulefmt"
+	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"gopkg.in/yaml.v3"
 
 	objectivesv1alpha1 "github.com/pyrra-dev/pyrra/proto/objectives/v1alpha1"
 	"github.com/pyrra-dev/pyrra/slo"
@@ -494,38 +500,66 @@ spec:
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
-// The fixtures are written by the UI serializer (ui/src/components/create/fixtures.test.ts),
-// so a change on either side of the editor/backend contract fails here.
-func TestObjectiveFromEditorConfig(t *testing.T) {
-	for _, tc := range []struct {
-		fixture   string
-		indicator slo.IndicatorType
-		grouping  []string
-	}{
-		{fixture: "ratio", indicator: slo.Ratio, grouping: []string{"handler"}},
-		{fixture: "latency", indicator: slo.Latency},
-		{fixture: "latencyNative", indicator: slo.LatencyNative, grouping: []string{"service", "method"}},
-		{fixture: "bool", indicator: slo.BoolGauge, grouping: []string{"instance"}},
-	} {
-		t.Run(tc.fixture, func(t *testing.T) {
-			config, err := os.ReadFile(filepath.Join("testdata", "create-slo", tc.fixture+".yaml"))
-			require.NoError(t, err)
+var updateCreateSLO = flag.Bool("update", false, "Update generated rules in Create SLO fixtures")
 
-			objective, err := objectiveFromConfig(context.Background(), string(config), "")
+// The UI checks form -> SLO; this test checks SLO -> recording/alerting rules.
+// Update only the rules with:
+//
+//	go test . -run '^TestRulesFromSLO$' -update
+func TestRulesFromSLO(t *testing.T) {
+	files, err := filepath.Glob(filepath.Join("testdata", "create-slo", "*.yaml"))
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+	for _, file := range files {
+		t.Run(strings.TrimSuffix(filepath.Base(file), ".yaml"), func(t *testing.T) {
+			data, err := os.ReadFile(file)
 			require.NoError(t, err)
+			var fixture struct {
+				SLO   yaml.Node `yaml:"slo"`
+				Rules yaml.Node
+			}
+			require.NoError(t, yaml.Unmarshal(data, &fixture))
+			require.Equal(t, yaml.MappingNode, fixture.SLO.Kind)
+			require.Equal(t, yaml.MappingNode, fixture.Rules.Kind)
 
-			require.Equal(t, tc.indicator, objective.IndicatorType())
-			require.Equal(t, tc.grouping, objective.Grouping())
-			require.Equal(t, labels.FromStrings(
-				model.MetricNameLabel, "prometheus-api-query",
-				"namespace", "monitoring",
-				"pyrra.dev/team", "platform",
-				"pyrra.dev/paging", "no",
-				"pyrra.dev/cost-center", "0o17",
-			), objective.Labels)
-			require.Equal(t, 0.99, objective.Target)
-			require.Equal(t, model.Duration(7*24*time.Hour), objective.Window)
-			require.Equal(t, "Requests that aren't 5xx: the #1 signal", objective.Description)
+			// Exercise the filesystem/CLI output path with its default options.
+			dir := t.TempDir()
+			config := filepath.Join(dir, "slo.yaml")
+			sloYAML, err := yaml.Marshal(&fixture.SLO)
+			require.NoError(t, err)
+			require.NoError(t, os.WriteFile(config, sloYAML, 0o600))
+			output := filepath.Join(dir, "rules")
+			require.NoError(t, os.Mkdir(output, 0o700))
+			require.NoError(t, writeRuleFile(log.NewNopLogger(), config, output, false, false, true, ""))
+			rules, err := os.ReadFile(filepath.Join(output, "slo.yaml"))
+			require.NoError(t, err)
+			_, errs := rulefmt.Parse(rules, false, model.UTF8Validation,
+				parser.NewParser(parser.Options{}), promslog.NewNopLogger())
+			require.Empty(t, errs, "Prometheus must accept the generated rules")
+
+			if *updateCreateSLO {
+				// Preserve the form and SLO sections; only replace the rules golden.
+				var document yaml.Node
+				require.NoError(t, yaml.Unmarshal(data, &document))
+				var generated yaml.Node
+				require.NoError(t, yaml.Unmarshal(rules, &generated))
+				fields := document.Content[0].Content
+				for i := 0; i < len(fields); i += 2 {
+					if fields[i].Value == "rules" {
+						fields[i+1] = generated.Content[0]
+					}
+				}
+				var updated strings.Builder
+				encoder := yaml.NewEncoder(&updated)
+				encoder.SetIndent(2)
+				require.NoError(t, encoder.Encode(&document))
+				require.NoError(t, encoder.Close())
+				require.NoError(t, os.WriteFile(file, []byte(updated.String()), 0o644))
+				fixture.Rules = *generated.Content[0]
+			}
+			expected, err := yaml.Marshal(&fixture.Rules)
+			require.NoError(t, err)
+			require.YAMLEq(t, string(expected), string(rules), "regenerate with go test . -run '^TestRulesFromSLO$' -update")
 		})
 	}
 }

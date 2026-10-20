@@ -1,23 +1,177 @@
-apiVersion: pyrra.dev/v1alpha1
-kind: ServiceLevelObjective
-metadata:
+form:
   name: prometheus-api-query
   namespace: monitoring
+  description: "Requests that aren't 5xx: the #1 signal\Lacross handlers"
   labels:
-    prometheus: k8s
-    role: alert-rules
-    pyrra.dev/team: platform
-    pyrra.dev/paging: "no"
-    pyrra.dev/cost-center: "0o17"
-spec:
+    - {k: prometheus, v: k8s}
+    - {k: role, v: alert-rules}
+    - {k: pyrra.dev/team, v: platform}
+    - {k: pyrra.dev/paging, v: "no"}
+    - {k: pyrra.dev/cost-center, v: "0o17"}
   target: "99.0"
   window: 7d
-  description: "Requests that aren't 5xx: the #1 signal"
-  indicator:
-    ratio:
-      errors:
-        metric: prometheus_http_requests_total{handler=~"/api.*",code=~"5.."}
-      total:
-        metric: prometheus_http_requests_total{handler=~"/api.*"}
-      grouping:
-        - handler
+  sliType: ratio
+  ratio:
+    errors: prometheus_http_requests_total{handler=~"/api.*",code=~"5.."}
+    total: prometheus_http_requests_total{handler=~"/api.*"}
+    grouping: [handler]
+slo:
+  apiVersion: pyrra.dev/v1alpha1
+  kind: ServiceLevelObjective
+  metadata:
+    name: prometheus-api-query
+    namespace: monitoring
+    labels:
+      prometheus: k8s
+      role: alert-rules
+      pyrra.dev/team: platform
+      pyrra.dev/paging: "no"
+      pyrra.dev/cost-center: "0o17"
+  spec:
+    target: "99.0"
+    window: 7d
+    description: "Requests that aren't 5xx: the #1 signal\u2028across handlers"
+    indicator:
+      ratio:
+        errors:
+          metric: prometheus_http_requests_total{handler=~"/api.*",code=~"5.."}
+        total:
+          metric: prometheus_http_requests_total{handler=~"/api.*"}
+        grouping:
+          - handler
+rules:
+  groups:
+  - interval: 1m
+    name: prometheus-api-query-increase
+    rules:
+    - expr: sum by (code, handler) (increase(prometheus_http_requests_total{handler=~"/api.*"}[1w]))
+      labels:
+        cost-center: "0o17"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: prometheus_http_requests:increase1w
+    - alert: SLOMetricAbsent
+      expr: absent(prometheus_http_requests_total{handler=~"/api.*"}) == 1
+      for: 3m
+      labels:
+        cost-center: "0o17"
+        paging: "no"
+        severity: critical
+        slo: prometheus-api-query
+        team: platform
+  - interval: 30s
+    name: prometheus-api-query
+    rules:
+    - expr: sum by (handler) (rate(prometheus_http_requests_total{code=~"5..",handler=~"/api.*"}[1m]))
+        / sum by (handler) (rate(prometheus_http_requests_total{handler=~"/api.*"}[1m]))
+      labels:
+        cost-center: "0o17"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: prometheus_http_requests:burnrate1m
+    - expr: sum by (handler) (rate(prometheus_http_requests_total{code=~"5..",handler=~"/api.*"}[8m]))
+        / sum by (handler) (rate(prometheus_http_requests_total{handler=~"/api.*"}[8m]))
+      labels:
+        cost-center: "0o17"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: prometheus_http_requests:burnrate8m
+    - expr: sum by (handler) (rate(prometheus_http_requests_total{code=~"5..",handler=~"/api.*"}[15m]))
+        / sum by (handler) (rate(prometheus_http_requests_total{handler=~"/api.*"}[15m]))
+      labels:
+        cost-center: "0o17"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: prometheus_http_requests:burnrate15m
+    - expr: sum by (handler) (rate(prometheus_http_requests_total{code=~"5..",handler=~"/api.*"}[30m]))
+        / sum by (handler) (rate(prometheus_http_requests_total{handler=~"/api.*"}[30m]))
+      labels:
+        cost-center: "0o17"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: prometheus_http_requests:burnrate30m
+    - expr: sum by (handler) (rate(prometheus_http_requests_total{code=~"5..",handler=~"/api.*"}[1h30m]))
+        / sum by (handler) (rate(prometheus_http_requests_total{handler=~"/api.*"}[1h30m]))
+      labels:
+        cost-center: "0o17"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: prometheus_http_requests:burnrate1h30m
+    - expr: sum by (handler) (rate(prometheus_http_requests_total{code=~"5..",handler=~"/api.*"}[6h]))
+        / sum by (handler) (rate(prometheus_http_requests_total{handler=~"/api.*"}[6h]))
+      labels:
+        cost-center: "0o17"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: prometheus_http_requests:burnrate6h
+    - expr: sum by (handler) (rate(prometheus_http_requests_total{code=~"5..",handler=~"/api.*"}[1d]))
+        / sum by (handler) (rate(prometheus_http_requests_total{handler=~"/api.*"}[1d]))
+      labels:
+        cost-center: "0o17"
+        paging: "no"
+        slo: prometheus-api-query
+        team: platform
+      record: prometheus_http_requests:burnrate1d
+    - alert: ErrorBudgetBurn
+      expr: prometheus_http_requests:burnrate1m{handler=~"/api.*",slo="prometheus-api-query"}
+        > (14 * (1-0.99)) and prometheus_http_requests:burnrate15m{handler=~"/api.*",slo="prometheus-api-query"}
+        > (14 * (1-0.99))
+      for: 1m0s
+      labels:
+        cost-center: "0o17"
+        exhaustion: 12h
+        long: 15m
+        paging: "no"
+        severity: critical
+        short: 1m
+        slo: prometheus-api-query
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: prometheus_http_requests:burnrate8m{handler=~"/api.*",slo="prometheus-api-query"}
+        > (7 * (1-0.99)) and prometheus_http_requests:burnrate1h30m{handler=~"/api.*",slo="prometheus-api-query"}
+        > (7 * (1-0.99))
+      for: 4m0s
+      labels:
+        cost-center: "0o17"
+        exhaustion: 1d
+        long: 1h30m
+        paging: "no"
+        severity: critical
+        short: 8m
+        slo: prometheus-api-query
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: prometheus_http_requests:burnrate30m{handler=~"/api.*",slo="prometheus-api-query"}
+        > (2 * (1-0.99)) and prometheus_http_requests:burnrate6h{handler=~"/api.*",slo="prometheus-api-query"}
+        > (2 * (1-0.99))
+      for: 15m0s
+      labels:
+        cost-center: "0o17"
+        exhaustion: 3d12h
+        long: 6h
+        paging: "no"
+        severity: warning
+        short: 30m
+        slo: prometheus-api-query
+        team: platform
+    - alert: ErrorBudgetBurn
+      expr: prometheus_http_requests:burnrate1h30m{handler=~"/api.*",slo="prometheus-api-query"}
+        > (1 * (1-0.99)) and prometheus_http_requests:burnrate1d{handler=~"/api.*",slo="prometheus-api-query"}
+        > (1 * (1-0.99))
+      for: 45m0s
+      labels:
+        cost-center: "0o17"
+        exhaustion: 1w
+        long: 1d
+        paging: "no"
+        severity: warning
+        short: 1h30m
+        slo: prometheus-api-query
+        team: platform
