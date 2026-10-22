@@ -6,6 +6,8 @@ cloud.google.com/go/compute/metadata v0.9.0 h1:pDUj4QMoPejqq20dK0Pg2N4yG9zIkYGdB
 cloud.google.com/go/compute/metadata v0.9.0/go.mod h1:E0bWwX5wTnLPedCKqk3pJmVgCBSM6qQI1yTBdEb3C10=
 connectrpc.com/connect/v2 v2.0.1 h1:WTAycxe87UqxSM5oxS30d1dalZ+C5xz8Ec8O6zVYkHQ=
 connectrpc.com/connect/v2 v2.0.1/go.mod h1:N32OLrstcPUzkykFynnefFro3+xzSdOrZlK2jHmS/xo=
+connectrpc.com/connect/v2 v2.0.2 h1:PoPDmOlhc46elsuCdKCKTxjNBb3HJlKF+s/sP2oucPw=
+connectrpc.com/connect/v2 v2.0.2/go.mod h1:N32OLrstcPUzkykFynnefFro3+xzSdOrZlK2jHmS/xo=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.1 h1:zvXfGJCWvywnCA814d8ZiVyt+fm9nnTE8xSb99zRyfo=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.1/go.mod h1:iptorS+VYKFL2N6PnebpS91dubG35eAOEERnT4PJbQU=
 github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.14.1 h1:u93s+zU2JD62im61Bm5CZIc1ZrOJaIAWEg0WOrMVkEo=
