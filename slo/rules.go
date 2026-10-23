@@ -134,6 +134,7 @@ func (o Objective) Burnrates(opts GenerationOptions) (monitoringv1.RuleGroup, er
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
+			alertLabels["burnrate_tier"] = w.Tier
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -222,6 +223,7 @@ func (o Objective) Burnrates(opts GenerationOptions) (monitoringv1.RuleGroup, er
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
+			alertLabels["burnrate_tier"] = w.Tier
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -310,6 +312,7 @@ func (o Objective) Burnrates(opts GenerationOptions) (monitoringv1.RuleGroup, er
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
+			alertLabels["burnrate_tier"] = w.Tier
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -398,6 +401,7 @@ func (o Objective) Burnrates(opts GenerationOptions) (monitoringv1.RuleGroup, er
 			alertLabels["long"] = model.Duration(w.Long).String()
 			alertLabels["severity"] = o.alertSeverityLabel(i, w)
 			alertLabels["exhaustion"] = o.Exhausts(w.Factor).String()
+			alertLabels["burnrate_tier"] = w.Tier
 
 			r := monitoringv1.Rule{
 				Alert: o.AlertName(),
@@ -1430,8 +1434,16 @@ const (
 	warning  severity = "warning"
 )
 
+const (
+	tierFast     = "fast"
+	tierMedium   = "medium"
+	tierSlow     = "slow"
+	tierLongTerm = "long-term"
+)
+
 type Window struct {
 	Severity severity
+	Tier     string
 	For      time.Duration
 	Long     time.Duration
 	Short    time.Duration
@@ -1446,24 +1458,28 @@ func Windows(sloWindow time.Duration) []Window {
 	// long and short rates are calculated based on the ratio for 28 days.
 	return []Window{{
 		Severity: critical,
+		Tier:     tierFast,
 		For:      (sloWindow / (28 * 24 * (60 / 2))).Round(round), // 2m for 28d - half short
 		Long:     (sloWindow / (28 * 24)).Round(round),            // 1h for 28d
 		Short:    (sloWindow / (28 * 24 * (60 / 5))).Round(round), // 5m for 28d
 		Factor:   14,                                              // error budget burn: 50% within a day
 	}, {
 		Severity: critical,
+		Tier:     tierMedium,
 		For:      (sloWindow / (28 * 24 * (60 / 15))).Round(round), // 15m for 28d - half short
 		Long:     (sloWindow / (28 * (24 / 6))).Round(round),       // 6h for 28d
 		Short:    (sloWindow / (28 * 24 * (60 / 30))).Round(round), // 30m for 28d
 		Factor:   7,                                                // error budget burn: 20% within a day / 100% within 5 days
 	}, {
 		Severity: warning,
+		Tier:     tierSlow,
 		For:      (sloWindow / (28 * 24)).Round(round),       // 1h for 28d - half short
 		Long:     (sloWindow / 28).Round(round),              // 1d for 28d
 		Short:    (sloWindow / (28 * (24 / 2))).Round(round), // 2h for 28d
 		Factor:   2,                                          // error budget burn: 10% within a day / 100% within 10 days
 	}, {
 		Severity: warning,
+		Tier:     tierLongTerm,
 		For:      (sloWindow / (28 * (24 / 3))).Round(round), // 3h for 28d - half short
 		Long:     (sloWindow / 7).Round(round),               // 4d for 28d
 		Short:    (sloWindow / (28 * (24 / 6))).Round(round), // 6h for 28d
