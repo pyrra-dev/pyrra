@@ -7,16 +7,21 @@ on:
       - examples/**
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   jsonnet:
     runs-on: ubuntu-latest
     name: Generate Jsonnet examples
     steps:
-    - uses: actions/checkout@v7
-    - uses: actions/setup-go@v7.0.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         go-version-file: go.mod
-    - uses: zendesk/setup-jsonnet@v17
+    - uses: zendesk/setup-jsonnet@76fef91403b40b20e4344a88f6c06a85be4f97d4 # v17
     - run: go install github.com/brancz/gojsontoyaml@latest
     - run: make --always-make examples && git diff --exit-code
 
@@ -24,12 +29,14 @@ jobs:
     runs-on: ubuntu-latest
     name: Generate controller-gen manifests
     steps:
-    - uses: actions/checkout@v7
-    - uses: actions/setup-go@v7.0.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         go-version-file: go.mod
     - run: go install github.com/brancz/gojsontoyaml@latest
-    - uses: actions/setup-node@v7
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version-file: .node-version
     - run: npm ci
@@ -43,11 +50,13 @@ jobs:
     runs-on: ubuntu-latest
     name: Generate protobuf code
     steps:
-    - uses: actions/checkout@v7
-    - uses: actions/setup-go@v7.0.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         go-version-file: go.mod
-    - uses: bufbuild/buf-setup-action@v1
+    - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
       with:
         github_token: ${{ github.token }}
     # Regenerate the committed Go + TypeScript stubs and fail if anything drifts

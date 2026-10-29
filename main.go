@@ -51,7 +51,7 @@ import (
 	"github.com/pyrra-dev/pyrra/slo"
 )
 
-//go:embed ui/build
+//go:embed all:ui/build
 var ui embed.FS
 
 var (

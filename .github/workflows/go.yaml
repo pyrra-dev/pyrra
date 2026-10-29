@@ -7,6 +7,9 @@ on:
       - 'main'
     tags:
       - 'v*'
+permissions:
+  contents: read
+
 env:
   golang-version: '1.17'
   REGISTRY: ghcr.io
@@ -16,10 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     name: Go
     steps:
-      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      # Go caching is acceptable here because this workflow has a read-only
+      # token, uses no secrets and publishes nothing.
+      - name: Install Go # zizmor: ignore[cache-poisoning]
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version-file: 'go.mod'
-      - run: mkdir -p ui/build && touch ui/build/empty
       - run: make test
       - run: make pyrra
