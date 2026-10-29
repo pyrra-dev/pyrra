@@ -200,16 +200,20 @@ func (r *ServiceLevelObjectiveReconciler) cleanupStalePrometheusRules(ctx contex
 }
 
 func (r *ServiceLevelObjectiveReconciler) reconcileMimirRuleGroup(ctx context.Context, logger kitlog.Logger, kubeObjective pyrrav1alpha1.ServiceLevelObjective) (ctrl.Result, error) {
-	newRuleGroup, err := makeMimirRuleGroup(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules, r.EnablePrometheus3Migration, r.PyrraExternalURL)
+	newRuleGroups, err := makeMimirRuleGroups(kubeObjective, r.GenericRules, r.MimirWriteAlertingRules, r.EnablePrometheus3Migration, r.PyrraExternalURL)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	level.Info(logger).Log("msg", "updating mimir rule", "name", newRuleGroup.Name)
+	// The first group keeps the name of the single combined group written by
+	// earlier versions, so updating it first also drops the increase rules from
+	// it before they are written to their own group.
+	for _, newRuleGroup := range newRuleGroups {
+		level.Info(logger).Log("msg", "updating mimir rule", "name", newRuleGroup.Name)
 
-	err = r.MimirClient.SetRuleGroup(ctx, kubeObjective.GetName(), *newRuleGroup)
-	if err != nil {
-		return ctrl.Result{}, err
+		if err := r.MimirClient.SetRuleGroup(ctx, kubeObjective.GetName(), newRuleGroup); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	kubeObjective.Status.Type = "MimirRule"
@@ -355,7 +359,11 @@ func makeConfigMap(name string, kubeObjective pyrrav1alpha1.ServiceLevelObjectiv
 	}, nil
 }
 
-func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, writeAlertingRules, enablePrometheus3Migration bool, externalURL string) (*rulefmt.RuleGroup, error) {
+// makeMimirRuleGroups returns the rule groups written to the Mimir ruler for
+// an SLO. Like the PrometheusRule output, the increase rules get their own group
+// with an interval based on the SLO window, while the burn rate and generic rules
+// are evaluated every 30s.
+func makeMimirRuleGroups(kubeObjective pyrrav1alpha1.ServiceLevelObjective, genericRules, writeAlertingRules, enablePrometheus3Migration bool, externalURL string) ([]rulefmt.RuleGroup, error) {
 	objective, err := kubeObjective.Internal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get objective: %w", err)
@@ -372,44 +380,46 @@ func makeMimirRuleGroup(kubeObjective pyrrav1alpha1.ServiceLevelObjective, gener
 	}
 	increasesMimirRules := prometheusRulesToMimirRules(increases.Rules, writeAlertingRules)
 
+	increaseInterval := model.Duration(30 * time.Second)
+	if increases.Interval != nil {
+		increaseInterval, err = model.ParseDuration(string(*increases.Interval))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse increase rules interval: %w", err)
+		}
+	}
+
 	burnrates, err := objective.Burnrates(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get burn rate rules: %w", err)
 	}
-	burnratesMimirRules := prometheusRulesToMimirRules(burnrates.Rules, writeAlertingRules)
+	rules := prometheusRulesToMimirRules(burnrates.Rules, writeAlertingRules)
 
-	genericMimirRules := []rulefmt.Rule{}
 	if genericRules {
-		rules, err := objective.GenericRules(opts)
+		generic, err := objective.GenericRules(opts)
 		if err != nil {
 			if err != slo.ErrGroupingUnsupported {
 				return nil, fmt.Errorf("failed to get generic rules: %w", err)
 			}
 		} else {
-			genericMimirRules = append(genericMimirRules, prometheusRulesToMimirRules(rules.Rules, writeAlertingRules)...)
+			rules = append(rules, prometheusRulesToMimirRules(generic.Rules, writeAlertingRules)...)
 		}
 	}
 
-	combinedRules := make([]rulefmt.Rule, len(increasesMimirRules)+len(burnratesMimirRules)+len(genericMimirRules))
-	i := 0
-	for _, r := range increasesMimirRules {
-		combinedRules[i] = r
-		i++
-	}
-	for _, r := range burnratesMimirRules {
-		combinedRules[i] = r
-		i++
-	}
-	for _, r := range genericMimirRules {
-		combinedRules[i] = r
-		i++
-	}
-
-	return &rulefmt.RuleGroup{
+	groups := []rulefmt.RuleGroup{{
 		Name:     kubeObjective.GetName(),
 		Interval: model.Duration(time.Second * 30),
-		Rules:    combinedRules,
-	}, nil
+		Rules:    rules,
+	}}
+
+	if len(increasesMimirRules) > 0 {
+		groups = append(groups, rulefmt.RuleGroup{
+			Name:     kubeObjective.GetName() + "-increase",
+			Interval: increaseInterval,
+			Rules:    increasesMimirRules,
+		})
+	}
+
+	return groups, nil
 }
 
 func prometheusRuleToMimirRule(promRule monitoringv1.Rule) rulefmt.Rule {

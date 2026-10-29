@@ -3,9 +3,11 @@ package controllers
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -398,6 +400,38 @@ func Test_makeSplitPrometheusRulesWithoutRuleOutput(t *testing.T) {
 	require.Equal(t, "bar", shortRule.Labels["team"])
 	require.Equal(t, "foo", longRule.Labels[slo.PropagationLabelsPrefix+"team"])
 	require.Equal(t, "bar", longRule.Labels["team"])
+}
+
+func Test_makeMimirRuleGroups(t *testing.T) {
+	groups, err := makeMimirRuleGroups(httpSLO, true, true, false, "")
+	require.NoError(t, err)
+	require.Len(t, groups, 2)
+
+	// Burn rate and generic rules keep the original group name and 30s interval.
+	require.Equal(t, "http", groups[0].Name)
+	require.Equal(t, model.Duration(30*time.Second), groups[0].Interval)
+	require.NotEmpty(t, groups[0].Rules)
+	for _, r := range groups[0].Rules {
+		require.NotContains(t, r.Record, ":increase")
+	}
+
+	// Increase rules get their own group using the window based interval,
+	// matching the PrometheusRule output (150s for a 28d window).
+	require.Equal(t, "http-increase", groups[1].Name)
+	require.Equal(t, model.Duration(150*time.Second), groups[1].Interval)
+	require.NotEmpty(t, groups[1].Rules)
+	for _, r := range groups[1].Rules {
+		if r.Record != "" {
+			require.Contains(t, r.Record, ":increase")
+		}
+	}
+
+	shortWindow := httpSLO.DeepCopy()
+	shortWindow.Spec.Window = "1d"
+	groups, err = makeMimirRuleGroups(*shortWindow, false, false, false, "")
+	require.NoError(t, err)
+	require.Len(t, groups, 2)
+	require.Equal(t, model.Duration(30*time.Second), groups[1].Interval)
 }
 
 func Test_mergeLabels(t *testing.T) {
