@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigestsToSemver"
   ],
   "dependencyDashboard": true,
   "baseBranchPatterns": [
@@ -181,7 +182,8 @@
         "/(^|/)Makefile$/"
       ],
       "matchStrings": [
-        "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)\\s+go install .+@(?<currentValue>v[^\\s]+)"
+        "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)\\s+go install .+@(?<currentValue>v[^\\s]+)",
+        "# renovate: datasource=(?<datasource>.+?) depName=(?<depName>.+?)\\s+[A-Z_]+ \\?= (?<currentValue>v[^\\s]+)"
       ]
     },
     {

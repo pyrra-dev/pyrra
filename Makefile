@@ -30,7 +30,7 @@ all: ui/build build lint
 install: ui/node_modules
 
 clean:
-	rm -rf ui/build ui/node_modules
+	rm -rf ui/build/* ui/node_modules
 
 # Run tests
 test: generate fmt vet
@@ -51,6 +51,14 @@ deploy: manifests
 
 # Run code linters
 lint: fmt vet
+
+# renovate: datasource=github-releases depName=golangci/golangci-lint
+GOLANGCI_LINT_VERSION ?= v2.15.0
+
+# Used by the golangci-lint workflow synced from prometheus/prometheus.
+.PHONY: print-golangci-lint-version
+print-golangci-lint-version:
+	@echo $(GOLANGCI_LINT_VERSION)
 
 # Run gofumpt against code
 fmt: gofumpt
@@ -108,7 +116,11 @@ ui: ui/node_modules ui/build
 ui/node_modules:
 	cd ui && npm install
 
-ui/build:
+# ui/build/.gitkeep is committed so that go:embed works without a UI build,
+# therefore the directory itself can't be the target.
+ui/build: ui/build/index.html
+
+ui/build/index.html:
 	cd ui && npm run build
 
 examples: examples/kubernetes/manifests examples/kubernetes/manifests-webhook examples/kubernetes-namespaced/manifests examples/openshift/manifests
