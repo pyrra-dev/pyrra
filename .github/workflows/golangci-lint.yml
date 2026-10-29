@@ -1,32 +1,48 @@
+---
+# This action is synced from https://github.com/prometheus/prometheus
 name: golangci-lint
 on:
   push:
-    tags:
-      - v*
-    branches:
-      - master
-      - main
+    branches: [main, master, 'release-*']
     paths:
-      - '**.go'
+      - "go.sum"
+      - "go.mod"
+      - "**.go"
+      - "scripts/errcheck_excludes.txt"
+      - ".github/workflows/golangci-lint.yml"
+      - ".golangci.yml"
+    tags: ['v*']
   pull_request:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
-  cancel-in-progress: true
+permissions:  # added using https://github.com/step-security/secure-repo
+  contents: read
 
 jobs:
   golangci:
+    permissions:
+      contents: read  # for actions/checkout to fetch code
+      pull-requests: read  # for golangci/golangci-lint-action to fetch pull requests
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version-file: 'go.mod'
-      - name: Build UI
-        run: make ui
-      - name: golangci-lint
+          persist-credentials: false
+      # Go caching is acceptable here because this workflow has a read-only
+      # token, uses no secrets and publishes nothing.
+      - name: Install Go # zizmor: ignore[cache-poisoning]
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.27.x
+      - name: Install snmp_exporter/generator dependencies
+        run: sudo apt-get update && sudo apt-get -y install libsnmp-dev
+        if: github.repository == 'prometheus/snmp_exporter'
+      - name: Get golangci-lint version
+        id: golangci-lint-version
+        run: echo "version=$(make print-golangci-lint-version)" >> $GITHUB_OUTPUT
+      - name: Lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          args: --timeout=10m
-          version: 'latest'
+          args: --verbose
+          version: ${{ steps.golangci-lint-version.outputs.version }}
