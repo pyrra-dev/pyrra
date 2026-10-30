@@ -60,7 +60,7 @@ var (
 	}
 	objectiveHTTPRatioGrouping = func() Objective {
 		o := objectiveHTTPRatio()
-		o.Indicator.Ratio.Grouping = []string{"job", "handler"}
+		o.Indicator.Ratio.Grouping = []string{"handler"}
 		return o
 	}
 	objectiveHTTPRatioGroupingRegex = func() Objective {
@@ -403,11 +403,11 @@ func TestObjective_QueryTotal(t *testing.T) {
 	}, {
 		name:      "http-ratio-grouping",
 		objective: objectiveHTTPRatioGrouping(),
-		expected:  `sum by (job, handler) (http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"})`,
+		expected:  `sum by (handler) (http_requests:increase4w{job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "http-ratio-grouping-regex",
 		objective: objectiveHTTPRatioGroupingRegex(),
-		expected:  `sum by (job, handler) (http_requests:increase4w{handler=~"/api.*",job="thanos-receive-default",slo="monitoring-http-errors"})`,
+		expected:  `sum by (handler) (http_requests:increase4w{handler=~"/api.*",job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "grpc-ratio",
 		objective: objectiveGRPCRatio(),
@@ -484,11 +484,11 @@ func TestObjective_QueryErrors(t *testing.T) {
 	}, {
 		name:      "http-ratio-grouping",
 		objective: objectiveHTTPRatioGrouping(),
-		expected:  `sum by (job, handler) (http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"})`,
+		expected:  `sum by (handler) (http_requests:increase4w{code=~"5..",job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "http-ratio-grouping-regex",
 		objective: objectiveHTTPRatioGroupingRegex(),
-		expected:  `sum by (job, handler) (http_requests:increase4w{code=~"5..",handler=~"/api.*",job="thanos-receive-default",slo="monitoring-http-errors"})`,
+		expected:  `sum by (handler) (http_requests:increase4w{code=~"5..",handler=~"/api.*",job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "grpc-ratio",
 		objective: objectiveGRPCRatio(),
@@ -650,14 +650,14 @@ func TestObjective_QueryBurnrate(t *testing.T) {
 		grouping: []*labels.Matcher{
 			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
 		},
-		expected: `sum(http_requests:burnrate5m{handler="/api/v1/query",slo="monitoring-http-errors"})`,
+		expected: `sum(http_requests:burnrate5m{handler="/api/v1/query",job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "http-ratio-grouping-regex",
 		objective: objectiveHTTPRatioGroupingRegex(),
 		grouping: []*labels.Matcher{
 			{Type: labels.MatchEqual, Name: "handler", Value: "/api/v1/query"},
 		},
-		expected: `sum(http_requests:burnrate5m{handler="/api/v1/query",slo="monitoring-http-errors"})`,
+		expected: `sum(http_requests:burnrate5m{handler="/api/v1/query",job="thanos-receive-default",slo="monitoring-http-errors"})`,
 	}, {
 		name:      "grpc-ratio",
 		objective: objectiveGRPCRatio(),
@@ -1199,7 +1199,7 @@ func TestObjective_QueryTotalRaw(t *testing.T) {
 		objective: objectiveHTTPRatioGrouping(),
 		// Grouped by the objective's grouping labels so the editor can offer each
 		// label set as a chooser; selecting one re-scopes the preview.
-		expected: `sum by (job, handler) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`,
+		expected: `sum by (handler) (increase(http_requests_total{job="thanos-receive-default"}[4w]))`,
 	}, {
 		name:      "bool-gauge",
 		objective: objectiveUpTargets(),
@@ -1224,7 +1224,7 @@ func TestObjective_QueryErrorsRaw(t *testing.T) {
 	}, {
 		name:      "http-ratio-grouping",
 		objective: objectiveHTTPRatioGrouping(),
-		expected:  `sum by (job, handler) (increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[4w]))`,
+		expected:  `sum by (handler) (increase(http_requests_total{code=~"5..",job="thanos-receive-default"}[4w]))`,
 	}, {
 		name:      "bool-gauge",
 		objective: objectiveUpTargets(),
