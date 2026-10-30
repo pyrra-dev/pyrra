@@ -1,6 +1,6 @@
 # Parse all files with TypeScript.
 extends:
-  - 'standard-with-typescript'
+  - 'love'
   - 'prettier'
 
 parserOptions:
