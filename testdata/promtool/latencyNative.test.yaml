@@ -1,0 +1,139 @@
+# 99.5% over 28d: critical thresholds 7% / 3.5%, warnings 1% / 0.5%.
+# Schema 0, offset -3 puts fast observations in (0.0625, 0.125] and slow
+# observations in (0.5, 1]. The 0.2s bound crosses only an empty bucket.
+rule_files: [latencyNative.rules.yaml]
+evaluation_interval: 30s
+fuzzy_compare: true
+group_eval_order: [prometheus-api-query-increase, prometheus-api-query]
+
+tests:
+  - name: all native histogram observations are fast
+    interval: 1m
+    input_series:
+      - series: connect_server_requests_duration_seconds{job="pyrra",code="ok",service="api",method="read"}
+        values: '{{schema:0 count:0 sum:0 offset:-3 buckets:[0 0 0 0]}}+{{schema:0 count:100 sum:10 offset:-3 buckets:[100 0 0 0]}}x240'
+    alert_rule_test:
+      - {eval_time: 4h, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: connect_server_requests_duration_seconds:burnrate5m
+        eval_time: 4h
+        exp_samples:
+          - labels: 'connect_server_requests_duration_seconds:burnrate5m{job="pyrra",code="ok",service="api",method="read",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0
+
+  - name: all observations slow from startup fires both critical alerts
+    interval: 1m
+    input_series:
+      - series: connect_server_requests_duration_seconds{job="pyrra",code="ok",service="api",method="read"}
+        values: '{{schema:0 count:0 sum:0 offset:-3 buckets:[0 0 0 0]}}+{{schema:0 count:100 sum:100 offset:-3 buckets:[0 0 0 100]}}x20'
+    alert_rule_test:
+      - {eval_time: 2m, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - eval_time: 20m
+        alertname: ErrorBudgetBurn
+        exp_alerts: &critical
+          - &fast_alert
+            exp_labels:
+              <<: &identity
+                job: pyrra
+                code: ok
+                service: api
+                method: read
+                slo: prometheus-api-query
+                team: platform
+                paging: "no"
+                cost-center: "0o17"
+              severity: critical
+              short: 5m
+              long: 1h
+              exhaustion: 2d
+          - exp_labels: {<<: *identity, severity: critical, short: 30m, long: 6h, exhaustion: 4d}
+      - {eval_time: 20m, alertname: SLOMetricAbsent, exp_alerts: []}
+
+  - name: six hours fast then thirty minutes slow without a counter reset
+    interval: 1m
+    input_series:
+      - series: connect_server_requests_duration_seconds{job="pyrra",code="ok",service="api",method="read"}
+        values: >-
+          {{schema:0 count:0 sum:0 offset:-3 buckets:[0 0 0 0]}}+{{schema:0 count:100 sum:10 offset:-3 buckets:[100 0 0 0]}}x360
+          {{schema:0 count:36100 sum:3700 offset:-3 buckets:[36000 0 0 100]}}+{{schema:0 count:100 sum:100 offset:-3 buckets:[0 0 0 100]}}x29
+    alert_rule_test:
+      - {eval_time: 6h, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 6h2m, alertname: ErrorBudgetBurn, exp_alerts: []}
+      - {eval_time: 6h10m, alertname: ErrorBudgetBurn, exp_alerts: [*fast_alert]}
+      - {eval_time: 6h30m, alertname: ErrorBudgetBurn, exp_alerts: *critical}
+      - {eval_time: 6h30m, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: connect_server_requests_duration_seconds:burnrate5m
+        eval_time: 6h30m
+        exp_samples:
+          - labels: 'connect_server_requests_duration_seconds:burnrate5m{job="pyrra",code="ok",service="api",method="read",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 1
+
+  - name: one slow observation in thirty two fires only warnings
+    interval: 1m
+    input_series:
+      - series: connect_server_requests_duration_seconds{job="pyrra",code="ok",service="api",method="read"}
+        values: '{{schema:0 count:0 sum:0 offset:-3 buckets:[0 0 0 0]}}+{{schema:0 count:32 sum:4.1 offset:-3 buckets:[31 0 0 1]}}x240'
+    alert_rule_test:
+      - eval_time: 4h
+        alertname: ErrorBudgetBurn
+        exp_alerts:
+          - exp_labels: {<<: *identity, severity: warning, short: 2h, long: 1d, exhaustion: 2w}
+          - exp_labels: {<<: *identity, severity: warning, short: 6h, long: 4d, exhaustion: 4w}
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      # 1 - histogram_fraction amplifies rounding beyond fuzzy_compare's one
+      # mantissa bit. Check the independent 1/32 expectation to 12 decimal places.
+      - expr: round(connect_server_requests_duration_seconds:burnrate5m, 1e-12)
+        eval_time: 10m
+        exp_samples:
+          - labels: '{job="pyrra",code="ok",service="api",method="read",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0.03125
+      - expr: round(connect_server_requests_duration_seconds:burnrate4d, 1e-12)
+        eval_time: 4h
+        exp_samples:
+          - labels: '{job="pyrra",code="ok",service="api",method="read",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0.03125
+      # Ten increments, 32 observations each, 31 of them within the bound.
+      - expr: connect_server_requests_duration_seconds:increase4w
+        eval_time: 10m
+        exp_samples:
+          - labels: 'connect_server_requests_duration_seconds:increase4w{job="pyrra",code="ok",service="api",method="read",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 320
+          - labels: 'connect_server_requests_duration_seconds:increase4w{job="pyrra",code="ok",service="api",method="read",le="0.2",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 310
+
+  - name: missing native histograms produce no burn samples or alerts
+    interval: 1m
+    input_series: []
+    alert_rule_test:
+      - {eval_time: 4h, alertname: ErrorBudgetBurn, exp_alerts: []}
+      # Native histogram rules do not currently generate SLOMetricAbsent.
+      - {eval_time: 4h, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - {expr: connect_server_requests_duration_seconds:burnrate5m, eval_time: 4h, exp_samples: []}
+      - {expr: connect_server_requests_duration_seconds:increase4w, eval_time: 4h, exp_samples: []}
+
+  - name: neither method nor service may be aggregated away
+    interval: 1m
+    input_series:
+      - series: connect_server_requests_duration_seconds{job="pyrra",code="ok",service="api",method="read"}
+        values: '{{schema:0 count:0 sum:0 offset:-3 buckets:[0 0 0 0]}}+{{schema:0 count:10 sum:10 offset:-3 buckets:[0 0 0 10]}}x20'
+      - series: connect_server_requests_duration_seconds{job="pyrra",code="ok",service="api",method="write"}
+        values: '{{schema:0 count:0 sum:0 offset:-3 buckets:[0 0 0 0]}}+{{schema:0 count:1000 sum:100 offset:-3 buckets:[1000 0 0 0]}}x20'
+      - series: connect_server_requests_duration_seconds{job="pyrra",code="ok",service="worker",method="read"}
+        values: '{{schema:0 count:0 sum:0 offset:-3 buckets:[0 0 0 0]}}+{{schema:0 count:2000 sum:200 offset:-3 buckets:[2000 0 0 0]}}x20'
+    alert_rule_test:
+      - {eval_time: 20m, alertname: ErrorBudgetBurn, exp_alerts: *critical}
+      - {eval_time: 20m, alertname: SLOMetricAbsent, exp_alerts: []}
+    promql_expr_test:
+      - expr: connect_server_requests_duration_seconds:burnrate5m
+        eval_time: 20m
+        exp_samples:
+          - labels: 'connect_server_requests_duration_seconds:burnrate5m{job="pyrra",code="ok",service="api",method="read",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 1
+          - labels: 'connect_server_requests_duration_seconds:burnrate5m{job="pyrra",code="ok",service="api",method="write",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0
+          - labels: 'connect_server_requests_duration_seconds:burnrate5m{job="pyrra",code="ok",service="worker",method="read",slo="prometheus-api-query",team="platform",paging="no","cost-center"="0o17"}'
+            value: 0

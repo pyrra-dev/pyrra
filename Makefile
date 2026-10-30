@@ -36,6 +36,12 @@ clean:
 test: generate fmt vet
 	go test -race ./... -coverprofile cover.out
 
+# Verify every generated-rule golden before evaluating handwritten time series.
+PROMTOOL ?= promtool
+.PHONY: test-rules
+test-rules:
+	go test -count=1 -v . -run '^TestRulesFromSLO$$' -promtool "$(PROMTOOL)"
+
 build: pyrra
 
 # Build api binary
