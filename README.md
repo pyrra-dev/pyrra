@@ -243,7 +243,7 @@ Generated protobuf APIs with connect-go for Go and connect-web for TypeScript.
 
 ## Roadmap
 
-Best to check the [Projects board](https://github.com/pyrra-dev/pyrra/projects) and if you cannot find what you're looking for feel free to open an issue!
+Best to check the [open issues](https://github.com/prometheus-community/pyrra/issues) and if you cannot find what you're looking for feel free to open an issue!
 
 ## Contributing
 

@@ -27,12 +27,12 @@ that means we need to make sure that Pyrra authenticates accordingly.
 
 ## Prerequisites
 
-You need an OpenShift cluster. It generally doesn't matter where it loves 
+You need an OpenShift cluster. It generally doesn't matter where it lives 
 but for the ease of use we will use a 
-[Code Ready Containers](https://crc.dev/crc/) cluster.\
+[Code Ready Containers](https://crc.dev/docs/introducing/) cluster.\
 Follow the 
-[documentation](https://crc.dev/crc/#installing-codeready-containers_gsg) to 
-install CrC on your platform. After tha is done you can run the following 
+[documentation](https://crc.dev/docs/installing/) to 
+install CrC on your platform. After that is done you can run the following 
 command to get the command to log in as `kubeadmin`:
 
 ```shell

@@ -2,7 +2,7 @@
 
 By default, Pyrra generates recording rules that compute increases over the full SLO window, for example `increase(metric[4w])`. This is accurate but expensive. With a long window and high-cardinality metrics, Prometheus has to scan weeks of raw samples on every evaluation. In Thanos setups, this means large amounts of raw data transferred across the wire on every query.
 
-The Wikimedia Foundation ran into this with a 12-week SLO over high-cardinality Istio metrics. Their `increase(metric[12w])` rules took up to 95 seconds to evaluate, approaching their 120-second timeout. See [#1440](https://github.com/pyrra-dev/pyrra/issues/1440) for the full context. A detailed write-up of the problem and this solution is available on the [Polar Signals blog](https://www.polarsignals.com/blog/posts/2025/12/30/optimizing-slo-performance-at-scale-how-we-solved-pyrra-s-query-performance-on-thanos).
+The Wikimedia Foundation ran into this with a 12-week SLO over high-cardinality Istio metrics. Their `increase(metric[12w])` rules took up to 95 seconds to evaluate, approaching their 120-second timeout. See [#1440](https://github.com/prometheus-community/pyrra/issues/1440) for the full context. A detailed write-up of the problem and this solution is available on the [Polar Signals blog](https://www.polarsignals.com/blog/posts/2025/12/30/optimizing-slo-performance-at-scale-how-we-solved-pyrra-s-query-performance-on-thanos).
 
 Enable performance mode if you're seeing slow rule evaluation or high memory usage, particularly with windows longer than 7 days or high-cardinality metrics.
 
